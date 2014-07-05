@@ -1850,7 +1850,7 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
     clock_t log_time = log_start;
     clock_t log_new_time;
 
-    clock_t log_interval = 1000;
+    clock_t log_interval = 10000;
     long long log_rows = 0, log_piece = 0;
 
     long long total_lines = 0;
@@ -1900,7 +1900,7 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
             char *move = path, *move_end = path + 1024;
             while(move != move_end && *move != '\0')
             {
-                switch(*move)
+                switch(*move++)
                 {
                 case 'l':
                     if(node->move_left && node->move_left->check(map))
