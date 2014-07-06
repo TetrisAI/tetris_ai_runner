@@ -39,3 +39,11 @@ Icon
 *.suo
 *.user
 *.opensdf
+*.pdb
+*.tlog
+*.obj
+*.log
+*.idb
+*.exp
+*.lib
+*.manifest
