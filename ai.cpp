@@ -31,7 +31,6 @@ char* WINAPI Name()
 #include <unordered_set>
 #include <map>
 #include <set>
-#include <tuple>
 #include <algorithm>
 #include <fstream>
 #include <array>
@@ -47,9 +46,10 @@ union TetrisBlockStatus;
 struct TetrisMap
 {
     int row[32];
-    int top;
+    int top[32];
     int width;
     int height;
+    int roof;
     int count;
     inline bool full(int x, int y) const
     {
@@ -88,7 +88,7 @@ struct std::equal_to<TetrisBlockStatus>
 
 struct TetrisOpertion
 {
-    TetrisNode(*create)(int w, int h);
+    TetrisNode(*create)(int w, int h, TetrisOpertion op);
     TetrisNode const *(*generate)(TetrisMap const &);
     bool(*rotate_clockwise)(TetrisNode &, TetrisMap const &);
     bool(*rotate_counterclockwise)(TetrisNode &, TetrisMap const &);
@@ -103,7 +103,9 @@ struct TetrisNode
     TetrisBlockStatus status;
     TetrisOpertion op;
     int data[4];
-    int row;
+    int top[4];
+    int bottom[4];
+    char row, height, col, width;
 
     TetrisNode const *rotate_clockwise;
     TetrisNode const *rotate_counterclockwise;
@@ -114,79 +116,104 @@ struct TetrisNode
 
     bool check(TetrisMap const &map) const
     {
-        return !(
-            check_row<1>(row + 0, data[3], map.row) ||
-            check_row<1>(row + 1, data[2], map.row) ||
-            check_row<0>(row + 2, data[1], map.row) ||
-            check_row<0>(row + 3, data[0], map.row) ||
-            false);
-    }
-    bool valid(TetrisMap const &map) const
-    {
-        int count = 0;
-        for(int i = 0, flag = 1; i < map.width; ++i, flag <<= 1)
-        {
-            count += (row < -3) ? 0 : !!(data[0] & flag);
-            count += (row < -2) ? 0 : !!(data[1] & flag);
-            count += (row < -1) ? 0 : !!(data[2] & flag);
-            count += (row <  0) ? 0 : !!(data[3] & flag);
-        }
-        return count == 4;
+        return !(check_row(0, map) || check_row(1, map) || check_row(2, map) || check_row(3, map));
     }
     size_t attach(TetrisMap &map) const
     {
         const int full = (1 << map.width) - 1;
-        attach_row<0>(row + 0, data[3], map.row);
-        attach_row<0>(row + 1, data[2], map.row);
-        attach_row<1>(row + 2, data[1], map.row);
-        attach_row<1>(row + 3, data[0], map.row);
+        attach_row(0, map);
+        attach_row(1, map);
+        attach_row(2, map);
+        attach_row(3, map);
         int clear = 0;
-        clear += clear_row(row + 3, full, map.height, map.row);
-        clear += clear_row(row + 2, full, map.height, map.row);
-        clear += clear_row(row + 1, full, map.height, map.row);
-        clear += clear_row(row + 0, full, map.height, map.row);
-        if(data[0] != 0)
+        clear += clear_row(3, full, map);
+        clear += clear_row(2, full, map);
+        clear += clear_row(1, full, map);
+        clear += clear_row(0, full, map);
+        map.roof -= clear;
+        map.count += 4 - clear * map.width;
+        if(clear > 0)
         {
-            map.top = std::max(map.top, row + 4) - clear;
-        }
-        else if(data[1] != 0)
-        {
-            map.top = std::max(map.top, row + 3) - clear;
+            for(int x = 0; x < map.width; ++x)
+            {
+                map.top[x] = 0;
+                for(int y = map.roof - 1; y >= 0; --y)
+                {
+                    if(map.full(x, y))
+                    {
+                        map.top[x] = y + 1;
+                        break;
+                    }
+                }
+            }
         }
         else
         {
-            map.top = std::max(map.top, row + 2) - clear;
+            update_top(0, map);
+            update_top(1, map);
+            update_top(2, map);
+            update_top(3, map);
         }
-        map.count += 4 - clear * map.width;
         return clear;
     }
-private:
-    inline int clear_row(int row, int const full, int height, int map[]) const
+    size_t drop(TetrisMap const &map) const
     {
-        if(row >= 0 && map[row] == full)
+        int value = map.height;
+        drop_rows(0, value, map);
+        drop_rows(1, value, map);
+        drop_rows(2, value, map);
+        drop_rows(3, value, map);
+        return value > 0 ? value : 0;
+    }
+private:
+    inline int check_row(int offset, TetrisMap const &map) const
+    {
+        if(offset < height)
         {
-            memmove(&map[row], &map[row + 1], (height - row - 1) * sizeof(int));
-            map[height - 1] = 0;
+            return map.row[row + offset] & data[offset];
+        }
+        return 0;
+    }
+    inline void update_top(int offset, TetrisMap &map) const
+    {
+        if(offset < width)
+        {
+            int &value = map.top[col + offset];
+            value = std::max<int>(value, top[offset]);
+            if(value > map.roof)
+            {
+                map.roof = value;
+            }
+        }
+    }
+    inline void attach_row(int offset, TetrisMap &map) const
+    {
+        if(offset < height)
+        {
+            map.row[row + offset] |= data[offset];
+        }
+    }
+    inline int clear_row(int offset, int const full, TetrisMap &map) const
+    {
+        if(offset >= height)
+        {
+            return 0;
+        }
+        int index = row + offset;
+        if(map.row[index] == full)
+        {
+            memmove(&map.row[index], &map.row[index + 1], (map.height - index - 1) * sizeof(int));
+            map.row[map.height - 1] = 0;
             return 1;
         }
         return 0;
     }
-    template<bool check>
-    static inline void attach_row(int row, int data_row, int map[])
+    inline void drop_rows(int offset, int &value, TetrisMap const &map) const
     {
-        if(check || row >= 0)
+        if(offset < width)
         {
-            map[row] |= data_row;
+            value = std::min<int>(value, bottom[offset] - map.top[offset + col]);
         }
-    }
-    template<bool check>
-    static inline int check_row(int row, int data_row, int const map[])
-    {
-        if(check || row >= 0)
-        {
-            return map[row] & data_row;
-        }
-        return 0;
     }
 };
 
@@ -205,1168 +232,94 @@ inline TetrisNode const *get(TetrisBlockStatus const &status)
         return &find->second;
     }
 }
-std::map<unsigned char, TetrisOpertion> op;
+
+inline TetrisNode const *get(unsigned char t, char x, char y, unsigned r)
+{
+    TetrisBlockStatus status =
+    {
+        t, x, y, r
+    };
+    return get(status);
+}
+
+inline TetrisNode const *drop(TetrisNode const *node, TetrisMap const &map)
+{
+    TetrisBlockStatus status =
+    {
+        node->status.t, node->status.x, node->status.y - node->drop(map), node->status.r
+    };
+    return get(status);
+}
+std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> init_op;
+std::map<unsigned char, TetrisNode const *(*)(TetrisMap const &)> op;
 
 ////////////////////////////////////////////////////////////////////////////////
-#define T(o, a, b, c, d) (((a) ? (1 << ((o) - 2)) : 0) | ((b) ? (1 << ((o) - 1)) : 0) | ((c) ? (1 << (o)) : 0) | ((d) ? (1 << ((o) + 1)) : 0))
 
-TetrisNode create_O(int w, int h)
+template<unsigned char T, unsigned char R, int line1, int line2, int line3, int line4>
+TetrisNode create_template(int w, int h, TetrisOpertion op)
 {
+    static_assert(line1 || line2 || line3 || line3, "data error");
     TetrisBlockStatus status =
     {
-        'O', w / 2, h - 2, 1
+        T, w / 2, h - 2, R
     };
-    return
+    TetrisNode node =
     {
-        status,
-        {},
-        {
-            T(status.x, 0, 0, 0, 0),
-            T(status.x, 0, 1, 1, 0),
-            T(status.x, 0, 1, 1, 0),
-            T(status.x, 0, 0, 0, 0),
-        },
-        h - 4
+        status, op, {line4 << (status.x - 2), line3 << (status.x - 2), line2 << (status.x - 2), line1 << (status.x - 2)}, {}, {}, h - 4, 4, w / 2 - 2, 4
     };
-}
-
-TetrisNode create_I(int w, int h)
-{
-    TetrisBlockStatus status =
+    while(node.data[0] == 0)
     {
-        'I', w / 2, h - 2, 1
-    };
-    return
-    {
-        status,
-        {},
-        {
-            T(status.x, 0, 0, 0, 0),
-            T(status.x, 1, 1, 1, 1),
-            T(status.x, 0, 0, 0, 0),
-            T(status.x, 0, 0, 0, 0),
-        },
-        h - 4
-    };
-}
-
-TetrisNode create_S(int w, int h)
-{
-    TetrisBlockStatus status =
-    {
-        'S', w / 2, h - 2, 1
-    };
-    return
-    {
-        status,
-        {},
-        {
-            T(status.x, 0, 0, 0, 0),
-            T(status.x, 0, 0, 1, 1),
-            T(status.x, 0, 1, 1, 0),
-            T(status.x, 0, 0, 0, 0),
-        },
-        h - 4
-    };
-}
-
-TetrisNode create_Z(int w, int h)
-{
-    TetrisBlockStatus status =
-    {
-        'Z', w / 2, h - 2, 1
-    };
-    return
-    {
-        status,
-        {},
-        {
-            T(status.x, 0, 0, 0, 0),
-            T(status.x, 0, 1, 1, 0),
-            T(status.x, 0, 0, 1, 1),
-            T(status.x, 0, 0, 0, 0),
-        },
-        h - 4
-    };
-}
-
-TetrisNode create_L(int w, int h)
-{
-    TetrisBlockStatus status =
-    {
-        'L', w / 2, h - 2, 1
-    };
-    return
-    {
-        status,
-        {},
-        {
-            T(status.x, 0, 0, 0, 0),
-            T(status.x, 0, 1, 1, 1),
-            T(status.x, 0, 1, 0, 0),
-            T(status.x, 0, 0, 0, 0),
-        },
-        h - 4
-    };
-}
-
-TetrisNode create_J(int w, int h)
-{
-    TetrisBlockStatus status =
-    {
-        'J', w / 2, h - 2, 1
-    };
-    return
-    {
-        status,
-        {},
-        {
-            T(status.x, 0, 0, 0, 0),
-            T(status.x, 0, 1, 1, 1),
-            T(status.x, 0, 0, 0, 1),
-            T(status.x, 0, 0, 0, 0),
-        },
-        h - 4
-    };
-}
-
-TetrisNode create_T(int w, int h)
-{
-    TetrisBlockStatus status =
-    {
-        'T', w / 2, h - 2, 1
-    };
-    return
-    {
-        status,
-        {},
-        {
-            T(status.x, 0, 0, 0, 0),
-            T(status.x, 0, 1, 1, 1),
-            T(status.x, 0, 0, 1, 0),
-            T(status.x, 0, 0, 0, 0),
-        },
-        h - 4
-    };
-}
-
-bool rotate_I12(TetrisNode &node, TetrisMap const &map);
-bool rotate_I21(TetrisNode &node, TetrisMap const &map);
-
-bool rotate_S12(TetrisNode &node, TetrisMap const &map);
-bool rotate_S21(TetrisNode &node, TetrisMap const &map);
-
-bool rotate_Z12(TetrisNode &node, TetrisMap const &map);
-bool rotate_Z21(TetrisNode &node, TetrisMap const &map);
-
-bool rotate_L12(TetrisNode &node, TetrisMap const &map);
-bool rotate_L23(TetrisNode &node, TetrisMap const &map);
-bool rotate_L34(TetrisNode &node, TetrisMap const &map);
-bool rotate_L41(TetrisNode &node, TetrisMap const &map);
-bool rotate_L14(TetrisNode &node, TetrisMap const &map);
-bool rotate_L43(TetrisNode &node, TetrisMap const &map);
-bool rotate_L32(TetrisNode &node, TetrisMap const &map);
-bool rotate_L21(TetrisNode &node, TetrisMap const &map);
-
-bool rotate_J12(TetrisNode &node, TetrisMap const &map);
-bool rotate_J23(TetrisNode &node, TetrisMap const &map);
-bool rotate_J34(TetrisNode &node, TetrisMap const &map);
-bool rotate_J41(TetrisNode &node, TetrisMap const &map);
-bool rotate_J14(TetrisNode &node, TetrisMap const &map);
-bool rotate_J43(TetrisNode &node, TetrisMap const &map);
-bool rotate_J32(TetrisNode &node, TetrisMap const &map);
-bool rotate_J21(TetrisNode &node, TetrisMap const &map);
-
-bool rotate_T12(TetrisNode &node, TetrisMap const &map);
-bool rotate_T23(TetrisNode &node, TetrisMap const &map);
-bool rotate_T34(TetrisNode &node, TetrisMap const &map);
-bool rotate_T41(TetrisNode &node, TetrisMap const &map);
-bool rotate_T14(TetrisNode &node, TetrisMap const &map);
-bool rotate_T43(TetrisNode &node, TetrisMap const &map);
-bool rotate_T32(TetrisNode &node, TetrisMap const &map);
-bool rotate_T21(TetrisNode &node, TetrisMap const &map);
-
-bool rotate_I12(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 2
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_I21,
-            rotate_I21,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 1, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
+        ++node.row;
+        --node.height;
+        memmove(&node.data[0], &node.data[1], node.height * sizeof(int));
+        node.data[node.height] = 0;
     }
-    return false;
-}
-
-bool rotate_I21(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
+    while(node.data[node.height - 1] == 0)
     {
-        {
-            node.status.t, node.status.x, node.status.y, 1
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_I12,
-            rotate_I12,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 0, 0),
-            T(node.status.x, 1, 1, 1, 1),
-            T(node.status.x, 0, 0, 0, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
+        --node.height;
     }
-    return false;
-}
-
-bool rotate_S12(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
+    while(!((node.data[0] >> node.col) & 1) && !((node.data[1] >> node.col) & 1) && !((node.data[2] >> node.col) & 1) && !((node.data[3] >> node.col) & 1))
     {
-        {
-            node.status.t, node.status.x, node.status.y, 2
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_S21,
-            rotate_S21,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 1, 1),
-            T(node.status.x, 0, 0, 0, 1),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
+        ++node.col;
+        --node.width;
     }
-    return false;
-}
-
-bool rotate_S21(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
+    while(!((node.data[0] >> (node.col + node.width - 1)) & 1) && !((node.data[1] >> (node.col + node.width - 1)) & 1) && !((node.data[2] >> (node.col + node.width - 1)) & 1) && !((node.data[3] >> (node.col + node.width - 1)) & 1))
     {
-        {
-            node.status.t, node.status.x, node.status.y, 1
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_S12,
-            rotate_S12,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 0, 0),
-            T(node.status.x, 0, 0, 1, 1),
-            T(node.status.x, 0, 1, 1, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
+        --node.width;
     }
-    return false;
-}
-
-bool rotate_Z12(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
+    for(int x = node.col; x < node.col + node.width; ++x)
     {
+        int y;
+        for(y = node.height; y > 0; --y)
         {
-            node.status.t, node.status.x, node.status.y, 2
-        },
+            if((node.data[y - 1] >> x) & 1)
+            {
+                break;
+            }
+        }
+        node.top[x - node.col] = node.row + y;
+        for(y = 0; y < node.height; ++y)
         {
-            node.op.create,
-            node.op.generate,
-            rotate_Z21,
-            rotate_Z21,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 0, 1),
-            T(node.status.x, 0, 0, 1, 1),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
+            if((node.data[y] >> x) & 1)
+            {
+                break;
+            }
+        }
+        node.bottom[x - node.col] = node.row + y;
     }
-    return false;
+    return node;
 }
-
-bool rotate_Z21(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 1
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_Z12,
-            rotate_Z12,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 0, 0),
-            T(node.status.x, 0, 1, 1, 0),
-            T(node.status.x, 0, 0, 1, 1),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-
-bool rotate_L12(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 2
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_L21,
-            rotate_L23,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 1, 1),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_L23(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 3
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_L32,
-            rotate_L34,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 0, 1),
-            T(node.status.x, 0, 1, 1, 1),
-            T(node.status.x, 0, 0, 0, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_L34(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 4
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_L43,
-            rotate_L41,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 1, 1, 0),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_L41(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 1
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_L14,
-            rotate_L12,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 0, 0),
-            T(node.status.x, 0, 1, 1, 1),
-            T(node.status.x, 0, 1, 0, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_L14(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 4
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_L43,
-            rotate_L41,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 1, 1, 0),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_L43(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 3
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_L32,
-            rotate_L34,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 0, 1),
-            T(node.status.x, 0, 1, 1, 1),
-            T(node.status.x, 0, 0, 0, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_L32(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 2
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_L21,
-            rotate_L23,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 1, 1),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_L21(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 1
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_L14,
-            rotate_L12,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 0, 0),
-            T(node.status.x, 0, 1, 1, 1),
-            T(node.status.x, 0, 1, 0, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-
-bool rotate_J12(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 2
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_J21,
-            rotate_J23,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 1, 1),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_J23(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 3
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_J32,
-            rotate_J34,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 1, 0, 0),
-            T(node.status.x, 0, 1, 1, 1),
-            T(node.status.x, 0, 0, 0, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_J34(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 4
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_J43,
-            rotate_J41,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 1, 1, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_J41(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 1
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_J14,
-            rotate_J12,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 0, 0),
-            T(node.status.x, 0, 1, 1, 1),
-            T(node.status.x, 0, 0, 0, 1),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_J14(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 4
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_J43,
-            rotate_J41,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 1, 1, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_J43(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 3
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_J32,
-            rotate_J34,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 1, 0, 0),
-            T(node.status.x, 0, 1, 1, 1),
-            T(node.status.x, 0, 0, 0, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_J32(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 2
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_J21,
-            rotate_J23,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 1, 1),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_J21(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 1
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_J14,
-            rotate_J12,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 0, 0),
-            T(node.status.x, 0, 1, 1, 1),
-            T(node.status.x, 0, 0, 0, 1),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-
-bool rotate_T12(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 2
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_T21,
-            rotate_T23,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 1, 1),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_T23(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 3
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_T32,
-            rotate_T34,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 1, 1, 1),
-            T(node.status.x, 0, 0, 0, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_T34(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 4
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_T43,
-            rotate_T41,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 1, 1, 0),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_T41(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 1
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_T14,
-            rotate_T12,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 0, 0),
-            T(node.status.x, 0, 1, 1, 1),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_T14(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 4
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_T43,
-            rotate_T41,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 1, 1, 0),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_T43(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 3
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_T32,
-            rotate_T34,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 1, 1, 1),
-            T(node.status.x, 0, 0, 0, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_T32(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 2
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_T21,
-            rotate_T23,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 1, 1),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-bool rotate_T21(TetrisNode &node, TetrisMap const &map)
-{
-    TetrisNode new_node =
-    {
-        {
-            node.status.t, node.status.x, node.status.y, 1
-        },
-        {
-            node.op.create,
-            node.op.generate,
-            rotate_T14,
-            rotate_T12,
-            node.op.rotate_opposite,
-            node.op.move_left,
-            node.op.move_right,
-            node.op.move_down
-        },
-        {
-            T(node.status.x, 0, 0, 0, 0),
-            T(node.status.x, 0, 1, 1, 1),
-            T(node.status.x, 0, 0, 1, 0),
-            T(node.status.x, 0, 0, 0, 0),
-        },
-        node.row
-    };
-    if(new_node.valid(map))
-    {
-        node = new_node;
-        return true;
-    }
-    return false;
-}
-
-
-#undef T
 
 template<unsigned char T>
 TetrisNode const *generate_template(TetrisMap const &map)
 {
-    TetrisBlockStatus s =
+    TetrisBlockStatus status =
     {
         T, map.width / 2, map.height - 2, 1
     };
-    return get(s);
+    return get(status);
 }
+
 bool move_left(TetrisNode &node, TetrisMap const &map)
 {
     if((node.data[0] & 1) || (node.data[1] & 1) || (node.data[2] & 1) || (node.data[3] & 1))
@@ -1377,9 +330,11 @@ bool move_left(TetrisNode &node, TetrisMap const &map)
     node.data[1] >>= 1;
     node.data[2] >>= 1;
     node.data[3] >>= 1;
+    --node.col;
     --node.status.x;
     return true;
 }
+
 bool move_right(TetrisNode &node, TetrisMap const &map)
 {
     const int check = 1 << (map.width - 1);
@@ -1391,17 +346,64 @@ bool move_right(TetrisNode &node, TetrisMap const &map)
     node.data[1] <<= 1;
     node.data[2] <<= 1;
     node.data[3] <<= 1;
+    ++node.col;
     ++node.status.x;
     return true;
 }
+
 bool move_down(TetrisNode &node, TetrisMap const &map)
 {
-    if(node.row <= 0 && node.data[3 + node.row] != 0)
+    if(node.row == 0)
     {
         return false;
     }
+    for(int x = 0; x < node.width; ++x)
+    {
+        --node.top[x];
+        --node.bottom[x];
+    }
     --node.row;
     --node.status.y;
+    return true;
+}
+
+template<unsigned char R>
+bool rotate_template(TetrisNode &node, TetrisMap const &map)
+{
+    TetrisBlockStatus status =
+    {
+        node.status.t, node.status.x, node.status.y, R
+    };
+    TetrisNode const *cache = get(status);
+    if(cache != nullptr)
+    {
+        node = *cache;
+        return true;
+    }
+    TetrisOpertion op = init_op[std::make_pair(node.status.t, R)];
+    TetrisNode new_node = op.create(map.width, map.height, op);
+    while(new_node.status.x > node.status.x)
+    {
+        if(!move_left(new_node, map))
+        {
+            return false;
+        }
+    }
+    while(new_node.status.x < node.status.x)
+    {
+        if(!move_right(new_node, map))
+        {
+            return false;
+        }
+    }
+    while(new_node.status.y > node.status.y)
+    {
+        if(!move_down(new_node, map))
+        {
+            return false;
+        }
+    }
+    node = new_node;
     return true;
 }
 
@@ -1418,9 +420,14 @@ using ege::mtsrand;
 
 extern "C" void attach_init()
 {
-    TetrisOpertion op_O = 
+#define T(a, b, c, d) (((a) ? 1 : 0) | ((b) ? 2 : 0) | ((c) ? 4 : 0) | ((d) ? 8 : 0))
+    TetrisOpertion op_O1 =
     {
-        create_O,
+        create_template<'O', 1,
+        T(0, 0, 0, 0),
+        T(0, 1, 1, 0),
+        T(0, 1, 1, 0),
+        T(0, 0, 0, 0)>,
         generate_template<'O'>,
         nullptr,
         nullptr,
@@ -1429,79 +436,303 @@ extern "C" void attach_init()
         move_right,
         move_down,
     };
-    TetrisOpertion op_I =
+    TetrisOpertion op_I1 =
     {
-        create_I,
+        create_template<'I', 1,
+        T(0, 0, 0, 0),
+        T(1, 1, 1, 1),
+        T(0, 0, 0, 0),
+        T(0, 0, 0, 0)>,
         generate_template<'I'>,
-        rotate_I12,
-        rotate_I12,
+        rotate_template<2>,
+        rotate_template<2>,
         nullptr,
         move_left,
         move_right,
         move_down,
     };
-    TetrisOpertion op_S =
+    TetrisOpertion op_I2 =
     {
-        create_S,
+        create_template<'I', 2,
+        T(0, 0, 1, 0),
+        T(0, 0, 1, 0),
+        T(0, 0, 1, 0),
+        T(0, 0, 1, 0)>,
+        generate_template<'I'>,
+        rotate_template<1>,
+        rotate_template<1>,
+        nullptr,
+        move_left,
+        move_right,
+        move_down,
+    };
+    TetrisOpertion op_S1 =
+    {
+        create_template<'S', 1,
+        T(0, 0, 0, 0),
+        T(0, 0, 1, 1),
+        T(0, 1, 1, 0),
+        T(0, 0, 0, 0)>,
         generate_template<'S'>,
-        rotate_S12,
-        rotate_S12,
+        rotate_template<2>,
+        rotate_template<2>,
         nullptr,
         move_left,
         move_right,
         move_down,
     };
-    TetrisOpertion op_Z =
+    TetrisOpertion op_S2 =
     {
-        create_Z,
+        create_template<'S', 2,
+        T(0, 0, 1, 0),
+        T(0, 0, 1, 1),
+        T(0, 0, 0, 1),
+        T(0, 0, 0, 0)>,
+        generate_template<'S'>,
+        rotate_template<1>,
+        rotate_template<1>,
+        nullptr,
+        move_left,
+        move_right,
+        move_down,
+    };
+    TetrisOpertion op_Z1 =
+    {
+        create_template<'Z', 1,
+        T(0, 0, 0, 0),
+        T(0, 1, 1, 0),
+        T(0, 0, 1, 1),
+        T(0, 0, 0, 0)>,
         generate_template<'Z'>,
-        rotate_Z12,
-        rotate_Z12,
+        rotate_template<2>,
+        rotate_template<2>,
         nullptr,
         move_left,
         move_right,
         move_down,
     };
-    TetrisOpertion op_L =
+    TetrisOpertion op_Z2 =
     {
-        create_L,
+        create_template<'Z', 2,
+        T(0, 0, 0, 1),
+        T(0, 0, 1, 1),
+        T(0, 0, 1, 0),
+        T(0, 0, 0, 0)>,
+        generate_template<'Z'>,
+        rotate_template<1>,
+        rotate_template<1>,
+        nullptr,
+        move_left,
+        move_right,
+        move_down,
+    };
+    TetrisOpertion op_L1 =
+    {
+        create_template<'L', 1,
+        T(0, 0, 0, 0),
+        T(0, 1, 1, 1),
+        T(0, 1, 0, 0),
+        T(0, 0, 0, 0)>,
         generate_template<'L'>,
-        rotate_L14,
-        rotate_L12,
+        rotate_template<4>,
+        rotate_template<2>,
         nullptr,
         move_left,
         move_right,
         move_down,
     };
-    TetrisOpertion op_J =
+    TetrisOpertion op_L2 =
     {
-        create_J,
+        create_template<'L', 2,
+        T(0, 0, 1, 0),
+        T(0, 0, 1, 0),
+        T(0, 0, 1, 1),
+        T(0, 0, 0, 0)>,
+        generate_template<'L'>,
+        rotate_template<1>,
+        rotate_template<3>,
+        nullptr,
+        move_left,
+        move_right,
+        move_down,
+    };
+    TetrisOpertion op_L3 =
+    {
+        create_template<'L', 3,
+        T(0, 0, 0, 1),
+        T(0, 1, 1, 1),
+        T(0, 0, 0, 0),
+        T(0, 0, 0, 0)>,
+        generate_template<'L'>,
+        rotate_template<2>,
+        rotate_template<4>,
+        nullptr,
+        move_left,
+        move_right,
+        move_down,
+    };
+    TetrisOpertion op_L4 =
+    {
+        create_template<'L', 4,
+        T(0, 1, 1, 0),
+        T(0, 0, 1, 0),
+        T(0, 0, 1, 0),
+        T(0, 0, 0, 0)>,
+        generate_template<'L'>,
+        rotate_template<3>,
+        rotate_template<1>,
+        nullptr,
+        move_left,
+        move_right,
+        move_down,
+    };
+    TetrisOpertion op_J1 =
+    {
+        create_template<'J', 1,
+        T(0, 0, 0, 0),
+        T(0, 1, 1, 1),
+        T(0, 0, 0, 1),
+        T(0, 0, 0, 0)>,
         generate_template<'J'>,
-        rotate_J14,
-        rotate_J12,
+        rotate_template<4>,
+        rotate_template<2>,
         nullptr,
         move_left,
         move_right,
         move_down,
     };
-    TetrisOpertion op_T =
+    TetrisOpertion op_J2 =
     {
-        create_T,
-        generate_template<'T'>,
-        rotate_T14,
-        rotate_T12,
+        create_template<'J', 2,
+        T(0, 0, 1, 1),
+        T(0, 0, 1, 0),
+        T(0, 0, 1, 0),
+        T(0, 0, 0, 0)>,
+        generate_template<'J'>,
+        rotate_template<1>,
+        rotate_template<3>,
         nullptr,
         move_left,
         move_right,
         move_down,
     };
-    op.insert(std::make_pair('O', op_O));
-    op.insert(std::make_pair('I', op_I));
-    op.insert(std::make_pair('S', op_S));
-    op.insert(std::make_pair('Z', op_Z));
-    op.insert(std::make_pair('L', op_L));
-    op.insert(std::make_pair('J', op_J));
-    op.insert(std::make_pair('T', op_T));
+    TetrisOpertion op_J3 =
+    {
+        create_template<'J', 3,
+        T(0, 1, 0, 0),
+        T(0, 1, 1, 1),
+        T(0, 0, 0, 0),
+        T(0, 0, 0, 0)>,
+        generate_template<'J'>,
+        rotate_template<2>,
+        rotate_template<4>,
+        nullptr,
+        move_left,
+        move_right,
+        move_down,
+    };
+    TetrisOpertion op_J4 =
+    {
+        create_template<'J', 4,
+        T(0, 0, 1, 0),
+        T(0, 0, 1, 0),
+        T(0, 1, 1, 0),
+        T(0, 0, 0, 0)>,
+        generate_template<'J'>,
+        rotate_template<3>,
+        rotate_template<1>,
+        nullptr,
+        move_left,
+        move_right,
+        move_down,
+    };
+    TetrisOpertion op_T1 =
+    {
+        create_template<'T', 1,
+        T(0, 0, 0, 0),
+        T(0, 1, 1, 1),
+        T(0, 0, 1, 0),
+        T(0, 0, 0, 0)>,
+        generate_template<'T'>,
+        rotate_template<4>,
+        rotate_template<2>,
+        nullptr,
+        move_left,
+        move_right,
+        move_down,
+    };
+    TetrisOpertion op_T2 =
+    {
+        create_template<'T', 2,
+        T(0, 0, 1, 0),
+        T(0, 0, 1, 1),
+        T(0, 0, 1, 0),
+        T(0, 0, 0, 0)>,
+        generate_template<'T'>,
+        rotate_template<1>,
+        rotate_template<3>,
+        nullptr,
+        move_left,
+        move_right,
+        move_down,
+    };
+    TetrisOpertion op_T3 =
+    {
+        create_template<'T', 3,
+        T(0, 0, 1, 0),
+        T(0, 1, 1, 1),
+        T(0, 0, 0, 0),
+        T(0, 0, 0, 0)>,
+        generate_template<'T'>,
+        rotate_template<2>,
+        rotate_template<4>,
+        nullptr,
+        move_left,
+        move_right,
+        move_down,
+    };
+    TetrisOpertion op_T4 =
+    {
+        create_template<'T', 4,
+        T(0, 0, 1, 0),
+        T(0, 1, 1, 0),
+        T(0, 0, 1, 0),
+        T(0, 0, 0, 0)>,
+        generate_template<'T'>,
+        rotate_template<3>,
+        rotate_template<1>,
+        nullptr,
+        move_left,
+        move_right,
+        move_down,
+    };
+#undef T
+    init_op.insert(std::make_pair(std::make_pair('O', 1), op_O1));
+    init_op.insert(std::make_pair(std::make_pair('I', 1), op_I1));
+    init_op.insert(std::make_pair(std::make_pair('I', 2), op_I2));
+    init_op.insert(std::make_pair(std::make_pair('S', 1), op_S1));
+    init_op.insert(std::make_pair(std::make_pair('S', 2), op_S2));
+    init_op.insert(std::make_pair(std::make_pair('Z', 1), op_Z1));
+    init_op.insert(std::make_pair(std::make_pair('Z', 2), op_Z2));
+    init_op.insert(std::make_pair(std::make_pair('L', 1), op_L1));
+    init_op.insert(std::make_pair(std::make_pair('L', 2), op_L2));
+    init_op.insert(std::make_pair(std::make_pair('L', 3), op_L3));
+    init_op.insert(std::make_pair(std::make_pair('L', 4), op_L4));
+    init_op.insert(std::make_pair(std::make_pair('J', 1), op_J1));
+    init_op.insert(std::make_pair(std::make_pair('J', 2), op_J2));
+    init_op.insert(std::make_pair(std::make_pair('J', 3), op_J3));
+    init_op.insert(std::make_pair(std::make_pair('J', 4), op_J4));
+    init_op.insert(std::make_pair(std::make_pair('T', 1), op_T1));
+    init_op.insert(std::make_pair(std::make_pair('T', 2), op_T2));
+    init_op.insert(std::make_pair(std::make_pair('T', 3), op_T3));
+    init_op.insert(std::make_pair(std::make_pair('T', 4), op_T4));
+    op.insert(std::make_pair('O', &generate_template<'O'>));
+    op.insert(std::make_pair('I', &generate_template<'I'>));
+    op.insert(std::make_pair('S', &generate_template<'S'>));
+    op.insert(std::make_pair('Z', &generate_template<'Z'>));
+    op.insert(std::make_pair('L', &generate_template<'L'>));
+    op.insert(std::make_pair('J', &generate_template<'J'>));
+    op.insert(std::make_pair('T', &generate_template<'T'>));
     mtsrand(unsigned int(time(nullptr)));
 }
 
@@ -1513,7 +744,7 @@ bool init_ai(int w, int h)
     {
         return true;
     }
-    if(w > 30 || h > 30)
+    if(w > 32 || h > 32)
     {
         return false;
     }
@@ -1522,15 +753,13 @@ bool init_ai(int w, int h)
     map_height = h;
 
     std::vector<TetrisBlockStatus> check;
-    unsigned char init[] = "OISZLJT";
-    for(int i = 0; i < 7; ++i)
+    for(auto cit = init_op.begin(); cit != init_op.end(); ++cit)
     {
-        TetrisNode node = op[init[i]].create(w, h);
-        node.op = op[init[i]];
+        TetrisNode node = cit->second.create(w, h, cit->second);
         check.push_back(node.status);
         node_cache.insert(std::make_pair(node.status, node));
     }
-    TetrisMap map = {{}, 0, w, h};
+    TetrisMap map = {{}, {}, w, h};
     size_t check_index = 0;
     do
     {
@@ -1541,7 +770,7 @@ bool init_ai(int w, int h)
 /**/do{\
 /**//**/TetrisNode copy =\
 /**//**/{\
-/**//**//**/node.status, node.op, {node.data[0], node.data[1], node.data[2], node.data[3]}, node.row\
+/**//**//**/node.status, node.op, {node.data[0], node.data[1], node.data[2], node.data[3]}, {node.top[0], node.top[1], node.top[2], node.top[3]}, {node.bottom[0], node.bottom[1], node.bottom[2], node.bottom[3]}, node.row, node.height, node.col, node.width\
 /**//**/};\
 /**//**/if(copy.op.func != nullptr && copy.op.func(copy, map))\
 /**//**/{\
@@ -1582,19 +811,18 @@ void build_map(char board[], int w, int h, TetrisMap &map)
         {
             if(board[x + add] == '1')
             {
+                map.top[x] = map.roof = y + 1;
                 map.row[y] |= 1 << x;
-                map.top = y + 1;
                 ++map.count;
             }
         }
     }
 }
 
-int do_ai_score(TetrisNode const *node, TetrisMap const &map, TetrisMap const &old_map, size_t clear[], size_t clear_length)
+int do_ai_score(TetrisNode const *node, TetrisMap const &map, TetrisMap const &old_map, size_t *clear, size_t clear_length)
 {
-
     int value = 0;
-    int top = map.top;
+    int top = map.roof;
 
     const int width = map.width;
 
@@ -1644,6 +872,14 @@ int do_ai_score(TetrisNode const *node, TetrisMap const &map, TetrisMap const &o
 namespace ai_simple
 {
     std::vector<std::vector<TetrisNode const *>> check_cache;
+    struct
+    {
+        std::map<unsigned char, std::vector<TetrisNode const *>> check;
+        int width, height;
+    } search_cache =
+    {
+        {}, 0, 0
+    };
     std::vector<size_t> clear;
 
     std::pair<TetrisNode const *, int> do_ai(TetrisMap const &map, TetrisNode const *node, int next[], size_t next_count)
@@ -1656,45 +892,61 @@ namespace ai_simple
         {
             check_cache.resize(next_count + 1);
         }
-        std::vector<TetrisNode const *> &check = check_cache[next_count];
-        check.clear();
-        while(node->row > map.top && node->move_down)
-        {
-            node = node->move_down;
-        }
-        TetrisNode const *rotate = node;
+        std::vector<TetrisNode const *> *check = &check_cache[next_count];
         do
         {
-            check.push_back(rotate);
-            TetrisNode const *left = rotate->move_left;
-            while(left != nullptr && (left->row >= map.top || left->check(map)))
+            if(map.height - map.roof >= 4 && map.width == search_cache.width && map.height == search_cache.width)
             {
-                check.push_back(left);
-                left = left->move_left;
+                auto find = search_cache.check.find(node->status.t);
+                if(find != search_cache.check.end())
+                {
+                    std::vector<TetrisNode const *> *check = &check_cache[next_count];
+                    check = &find->second;
+                    break;
+                }
             }
-            TetrisNode const *right = rotate->move_right;
-            while(right != nullptr && (right->row >= map.top || right->check(map)))
+            check->clear();
+            TetrisNode const *rotate = node;
+            do
             {
-                check.push_back(right);
-                right = right->move_right;
+                check->push_back(rotate);
+                TetrisNode const *left = rotate->move_left;
+                while(left != nullptr && left->check(map))
+                {
+                    check->push_back(left);
+                    left = left->move_left;
+                }
+                TetrisNode const *right = rotate->move_right;
+                while(right != nullptr && right->check(map))
+                {
+                    check->push_back(right);
+                    right = right->move_right;
+                }
+                rotate = rotate->rotate_counterclockwise;
             }
-            rotate = rotate->rotate_counterclockwise;
+            while(rotate != nullptr  && rotate != node && rotate->check(map));
+            if(map.height - map.roof >= 4)
+            {
+                if(map.width != search_cache.width || map.height != search_cache.width)
+                {
+                    search_cache.width = map.width;
+                    search_cache.height = map.height;
+                    search_cache.check.clear();
+                }
+                search_cache.check.insert(std::make_pair(node->status.t, *check));
+            }
         }
-        while(rotate != nullptr  && rotate != node && (rotate->row >= map.top || rotate->check(map)));
+        while(false);
         int score = std::numeric_limits<int>::min();
         TetrisNode const *beat_node = node;
         size_t best = 0;
         TetrisMap map_copy;
-        for(size_t i = 0; i < check.size(); ++i)
+        for(size_t i = 0; i < check->size(); ++i)
         {
-            node = check[i];
-            while(node->move_down != nullptr && (node->row >= map.top || node->move_down->check(map)))
-            {
-                node = node->move_down;
-            }
+            node = drop((*check)[i], map);
             map_copy = map;
             clear.push_back(node->attach(map_copy));
-            int new_score = next_count == 0 ? do_ai_score(node, map_copy, map, clear.data(), clear.size()) : do_ai(map_copy, op[*next].generate(map_copy), next + 1, next_count - 1).second;
+            int new_score = next_count == 0 ? do_ai_score(node, map_copy, map, clear.data(), clear.size()) : do_ai(map_copy, op[*next](map_copy), next + 1, next_count - 1).second;
             clear.pop_back();
             if(new_score > score)
             {
@@ -1707,7 +959,7 @@ namespace ai_simple
     }
 }
 
-namespace ai_path_full
+namespace ai_path
 {
     struct TetrisNodePathCacheTool_t
     {
@@ -1728,207 +980,348 @@ namespace ai_path_full
     };
     std::vector<std::unordered_map<TetrisNode const *, std::pair<TetrisNode const *, char>, TetrisNodePathCacheTool_t::Hash, TetrisNodePathCacheTool_t::Equal>> node_path_cache;
     std::vector<std::vector<TetrisNode const *>> node_search_cache;
+    std::vector<std::vector<TetrisNode const *>> bottom_cache;
     std::vector<std::vector<TetrisNode const *>> check_cache;
+    struct
+    {
+        std::map<unsigned char, std::vector<TetrisNode const *>> check;
+        int width, height;
+    } search_cache =
+    {
+        {}, 0, 0
+    };
     std::vector<size_t> clear;
 
-    std::tuple<TetrisNode const *, int, std::vector<char>> do_ai(TetrisMap const &map, TetrisNode const *node, int next[], size_t next_count, bool find_path = true)
+    std::vector<char> make_path(TetrisNode const *from, TetrisNode const *to, TetrisMap const &map)
+    {
+        if(check_cache.size() == 0)
+        {
+            node_path_cache.resize(1);
+            node_search_cache.resize(1);
+            bottom_cache.resize(1);
+            check_cache.resize(1);
+        }
+        std::unordered_map<TetrisNode const *, std::pair<TetrisNode const *, char>, TetrisNodePathCacheTool_t::Hash, TetrisNodePathCacheTool_t::Equal> &node_path = node_path_cache[0];
+        std::vector<TetrisNode const *> &node_search = node_search_cache[0];
+        node_path.clear();
+        node_search.clear();
+
+        auto build_path = [&node_path, to]()->std::vector<char>
+        {
+            std::vector<char> path;
+            TetrisNode const *node = to;
+            do
+            {
+                path.push_back('\0');
+                std::tie(node, path.back()) = node_path.find(node)->second;
+            }
+            while(node != nullptr);
+            path.pop_back();
+            std::reverse(path.begin(), path.end());
+            while(!path.empty() && (path.back() == 'd' || path.back() == 'D'))
+            {
+                path.pop_back();
+            }
+            path.push_back('\0');
+            return path;
+        };
+        node_search.push_back(from);
+        node_path.insert(std::make_pair(from, std::make_pair(nullptr, '\0')));
+        size_t cache_index = 0;
+        do
+        {
+            for(size_t max_index = node_search.size(); cache_index < max_index; ++cache_index)
+            {
+                TetrisNode const *node = node_search[cache_index];
+                //x
+                if(node->rotate_opposite && node_path.find(node->rotate_opposite) == node_path.end() && node->rotate_opposite->check(map))
+                {
+                    node_search.push_back(node->rotate_opposite);
+                    node_path.insert(std::make_pair(node->rotate_opposite, std::make_pair(node, 'x')));
+                    if(node->rotate_opposite == to)
+                    {
+                        return build_path();
+                    }
+                }
+                //z
+                if(node->rotate_counterclockwise && node_path.find(node->rotate_counterclockwise) == node_path.end() && node->rotate_counterclockwise->check(map))
+                {
+                    node_search.push_back(node->rotate_counterclockwise);
+                    node_path.insert(std::make_pair(node->rotate_counterclockwise, std::make_pair(node, 'z')));
+                    if(node->rotate_counterclockwise == to)
+                    {
+                        return build_path();
+                    }
+                    //zz
+                    TetrisNode const *node_r = node->rotate_counterclockwise;
+                    if(node_r->rotate_counterclockwise && node_path.find(node_r->rotate_counterclockwise) == node_path.end() && node_r->rotate_counterclockwise->check(map))
+                    {
+                        node_search.push_back(node_r->rotate_counterclockwise);
+                        node_path.insert(std::make_pair(node_r->rotate_counterclockwise, std::make_pair(node_r, 'z')));
+                        if(node_r->rotate_counterclockwise == to)
+                        {
+                            return build_path();
+                        }
+                    }
+                }
+                //c
+                if(node->rotate_clockwise && node_path.find(node->rotate_clockwise) == node_path.end() && node->rotate_clockwise->check(map))
+                {
+                    node_search.push_back(node->rotate_clockwise);
+                    node_path.insert(std::make_pair(node->rotate_clockwise, std::make_pair(node, 'c')));
+                    if(node->rotate_clockwise == to)
+                    {
+                        return build_path();
+                    }
+                    //cc
+                    TetrisNode const *node_r = node->rotate_clockwise;
+                    if(node_r->rotate_clockwise && node_path.find(node_r->rotate_clockwise) == node_path.end() && node_r->rotate_clockwise->check(map))
+                    {
+                        node_search.push_back(node_r->rotate_clockwise);
+                        node_path.insert(std::make_pair(node_r->rotate_clockwise, std::make_pair(node_r, 'c')));
+                        if(node_r->rotate_clockwise == to)
+                        {
+                            return build_path();
+                        }
+                    }
+                }
+                //l
+                if(node->move_left && node_path.find(node->move_left) == node_path.end() && node->move_left->check(map))
+                {
+                    node_search.push_back(node->move_left);
+                    node_path.insert(std::make_pair(node->move_left, std::make_pair(node, 'l')));
+                    if(node->move_left == to)
+                    {
+                        return build_path();
+                    }
+                }
+                //r
+                if(node->move_right && node_path.find(node->move_right) == node_path.end() && node->move_right->check(map))
+                {
+                    node_search.push_back(node->move_right);
+                    node_path.insert(std::make_pair(node->move_right, std::make_pair(node, 'r')));
+                    if(node->move_right == to)
+                    {
+                        return build_path();
+                    }
+                }
+                //L
+                if(node->move_left && node->move_left->check(map))
+                {
+                    TetrisNode const *node_L = node->move_left;
+                    while(node_L->move_left && node_L->move_left->check(map))
+                    {
+                        node_L = node_L->move_left;
+                    }
+                    if(node_L != node->move_left && node_path.find(node_L) == node_path.end())
+                    {
+                        node_search.push_back(node_L);
+                        node_path.insert(std::make_pair(node_L, std::make_pair(node, 'L')));
+                        if(node_L == to)
+                        {
+                            return build_path();
+                        }
+                    }
+                }
+                //R
+                if(node->move_right && node->move_right->check(map))
+                {
+                    TetrisNode const *node_R = node->move_right;
+                    while(node_R->move_right && node_R->move_right->check(map))
+                    {
+                        node_R = node_R->move_right;
+                    }
+                    if(node_R != node->move_right && node_path.find(node_R) == node_path.end())
+                    {
+                        node_search.push_back(node_R);
+                        node_path.insert(std::make_pair(node_R, std::make_pair(node, 'R')));
+                        if(node_R == to)
+                        {
+                            return build_path();
+                        }
+                    }
+                }
+                //d
+                if(node->move_down && node_path.find(node->move_down) == node_path.end() && node->move_down->check(map))
+                {
+                    node_search.push_back(node->move_down);
+                    node_path.insert(std::make_pair(node->move_down, std::make_pair(node, 'd')));
+                    if(node->move_down == to)
+                    {
+                        return build_path();
+                    }
+                    //D
+                    TetrisNode const *node_D = drop(node, map);
+                    if(node_path.find(node_D) == node_path.end())
+                    {
+                        node_search.push_back(node_D);
+                        node_path.insert(std::make_pair(node_D, std::make_pair(node, 'D')));
+                        if(node_D == to)
+                        {
+                            return build_path();
+                        }
+                    }
+                }
+            }
+        }
+        while(node_search.size() > cache_index);
+        return std::vector<char>();
+    }
+
+    std::pair<TetrisNode const *, int> do_ai(TetrisMap const &map, TetrisNode const *node, int next[], size_t next_count)
     {
         if(node == nullptr || !node->check(map))
         {
-            return std::make_tuple(nullptr, std::numeric_limits<int>::min(), std::vector<char>());
-        }
-        if(node_path_cache.size() <= next_count)
-        {
-            node_path_cache.resize(next_count + 1);
-        }
-        if(node_search_cache.size() <= next_count)
-        {
-            node_search_cache.resize(next_count + 1);
+            return std::make_pair(nullptr, std::numeric_limits<int>::min());
         }
         if(check_cache.size() <= next_count)
         {
+            node_path_cache.resize(next_count + 1);
+            node_search_cache.resize(next_count + 1);
+            bottom_cache.resize(next_count + 1);
             check_cache.resize(next_count + 1);
         }
         std::unordered_map<TetrisNode const *, std::pair<TetrisNode const *, char>, TetrisNodePathCacheTool_t::Hash, TetrisNodePathCacheTool_t::Equal> &node_path = node_path_cache[next_count];
         std::vector<TetrisNode const *> &node_search = node_search_cache[next_count];
-        std::vector<TetrisNode const *> &check = check_cache[next_count];
+        std::vector<TetrisNode const *> &bottom = bottom_cache[next_count];
+        std::vector<TetrisNode const *> *check = &check_cache[next_count];
         node_path.clear();
         node_search.clear();
-        check.clear();
-        size_t cache_index = 0;
-        if(find_path)
+        bottom.clear();
+        if(map.height - map.roof >= 4)
         {
-            node_search.push_back(node);
-            node_path.insert(std::make_pair(node, std::make_pair(nullptr, '\0')));
             do
             {
-                for(size_t max_index = node_search.size(); cache_index < max_index; ++cache_index)
+                if(map.width == search_cache.width && map.height == search_cache.height)
                 {
-                    node = node_search[cache_index];
-                    if(!node->move_down || !node->move_down->check(map))
+                    auto find = search_cache.check.find(node->status.t);
+                    if(find != search_cache.check.end())
                     {
-                        check.push_back(node);
+                        check = &find->second;
+                        break;
                     }
-                    //x
-                    if(node->rotate_opposite && node_path.find(node->rotate_opposite) == node_path.end() && (node->row > map.top || node->rotate_opposite->check(map)))
+                }
+                check->clear();
+                TetrisNode const *rotate = node;
+                do
+                {
+                    TetrisNode const *left = rotate;
+                    while(left->move_left != nullptr)
                     {
-                        node_search.push_back(node->rotate_opposite);
-                        node_path.insert(std::make_pair(node->rotate_opposite, std::make_pair(node, 'x')));
+                        left = left->move_left;
                     }
-                    //z
-                    if(node->rotate_counterclockwise && node_path.find(node->rotate_counterclockwise) == node_path.end() && (node->row > map.top || node->rotate_counterclockwise->check(map)))
+                    do
                     {
-                        node_search.push_back(node->rotate_counterclockwise);
-                        node_path.insert(std::make_pair(node->rotate_counterclockwise, std::make_pair(node, 'z')));
-                        //zz
-                        TetrisNode const *node_r = node->rotate_counterclockwise;
-                        if(node_r->rotate_counterclockwise && node_path.find(node_r->rotate_counterclockwise) == node_path.end() && (node_r->row > map.top || node_r->rotate_counterclockwise->check(map)))
+                        check->push_back(left);
+                        left = left->move_right;
+                    }
+                    while(left != nullptr);
+                    rotate = rotate->rotate_counterclockwise;
+                }
+                while(rotate != nullptr  && rotate != node);
+                if(map.width != search_cache.width || map.height != search_cache.height)
+                {
+                    search_cache.width = map.width;
+                    search_cache.height = map.height;
+                    search_cache.check.clear();
+                }
+                search_cache.check.insert(std::make_pair(node->status.t, *check));
+            }
+            while(false);
+            for(size_t i = 0; i < check->size(); ++i)
+            {
+                bottom.push_back(drop((*check)[i], map));
+            }
+            TetrisBlockStatus const *last_status = nullptr;
+            for(auto cit = bottom.begin(); cit != bottom.end(); ++cit)
+            {
+                if(last_status == nullptr)
+                {
+                    last_status = &node->status;
+                }
+                else
+                {
+                    if(last_status->r == node->status.r && std::abs(last_status->x - node->status.x) == 1)
+                    {
+                        if(last_status->y - node->status.y >= 2)
                         {
-                            node_search.push_back(node_r->rotate_counterclockwise);
-                            node_path.insert(std::make_pair(node_r->rotate_counterclockwise, std::make_pair(node_r, 'z')));
+                            node_search.push_back(get(last_status->t, node->status.x, last_status->y - 1, last_status->r));
+                            node_path.insert(std::make_pair(node_search.back(), std::make_pair(nullptr, 0)));
                         }
-                    }
-                    //c
-                    if(node->rotate_clockwise && node_path.find(node->rotate_clockwise) == node_path.end() && (node->row > map.top || node->rotate_clockwise->check(map)))
-                    {
-                        node_search.push_back(node->rotate_clockwise);
-                        node_path.insert(std::make_pair(node->rotate_clockwise, std::make_pair(node, 'c')));
-                        //cc
-                        TetrisNode const *node_r = node->rotate_clockwise;
-                        if(node_r->rotate_clockwise && node_path.find(node_r->rotate_clockwise) == node_path.end() && (node_r->row > map.top || node_r->rotate_clockwise->check(map)))
+                        else if(node->status.y - last_status->y >= -2)
                         {
-                            node_search.push_back(node_r->rotate_clockwise);
-                            node_path.insert(std::make_pair(node_r->rotate_clockwise, std::make_pair(node_r, 'c')));
-                        }
-                    }
-                    //l
-                    if(node->move_left && node_path.find(node->move_left) == node_path.end() && (node->row >= map.top || node->move_left->check(map)))
-                    {
-                        node_search.push_back(node->move_left);
-                        node_path.insert(std::make_pair(node->move_left, std::make_pair(node, 'l')));
-                    }
-                    //r
-                    if(node->move_right && node_path.find(node->move_right) == node_path.end() && (node->row >= map.top || node->move_right->check(map)))
-                    {
-                        node_search.push_back(node->move_right);
-                        node_path.insert(std::make_pair(node->move_right, std::make_pair(node, 'r')));
-                    }
-                    //L
-                    if(node->move_left && (node->row >= map.top || node->move_left->check(map)))
-                    {
-                        TetrisNode const *node_L = node->move_left;
-                        while(node_L->move_left && (node_L->row >= map.top || node_L->move_left->check(map)))
-                        {
-                            node_L = node_L->move_left;
-                        }
-                        if(node_L != node->move_left && node_path.find(node_L) == node_path.end())
-                        {
-                            node_search.push_back(node_L);
-                            node_path.insert(std::make_pair(node_L, std::make_pair(node, 'L')));
-                        }
-                    }
-                    //R
-                    if(node->move_right && (node->row >= map.top || node->move_right->check(map)))
-                    {
-                        TetrisNode const *node_R = node->move_right;
-                        while(node_R->move_right && (node_R->row >= map.top || node_R->move_right->check(map)))
-                        {
-                            node_R = node_R->move_right;
-                        }
-                        if(node_R != node->move_right && node_path.find(node_R) == node_path.end())
-                        {
-                            node_search.push_back(node_R);
-                            node_path.insert(std::make_pair(node_R, std::make_pair(node, 'R')));
-                        }
-                    }
-                    //d
-                    if(node->move_down && node_path.find(node->move_down) == node_path.end() && (node->row > map.top || node->move_down->check(map)))
-                    {
-                        node_search.push_back(node->move_down);
-                        node_path.insert(std::make_pair(node->move_down, std::make_pair(node, 'd')));
-                        //D
-                        TetrisNode const *node_D = node->move_down;
-                        while(node_D->move_down && (node_D->row > map.top || node_D->move_down->check(map)))
-                        {
-                            node_D = node_D->move_down;
-                        }
-                        if(node_D != node->move_down && node_path.find(node_D) == node_path.end())
-                        {
-                            node_search.push_back(node_D);
-                            node_path.insert(std::make_pair(node_D, std::make_pair(node, 'D')));
+                            node_search.push_back(get(last_status->t, last_status->x, node->status.y - 1, last_status->r));
+                            node_path.insert(std::make_pair(node_search.back(), std::make_pair(nullptr, 0)));
                         }
                     }
                 }
             }
-            while(node_search.size() > cache_index);
         }
         else
         {
-            while(node->row > map.top && node->move_down)
-            {
-                node = node->move_down;
-            }
+            check->clear();
             node_search.push_back(node);
             node_path.insert(std::make_pair(node, std::make_pair(nullptr, 0)));
-            do
+        }
+        size_t cache_index = 0;
+        do
+        {
+            for(size_t max_index = node_search.size(); cache_index < max_index; ++cache_index)
             {
-                for(size_t max_index = node_search.size(); cache_index < max_index; ++cache_index)
+                node = node_search[cache_index];
+                if(!node->move_down || !node->move_down->check(map))
                 {
-                    node = node_search[cache_index];
-                    if(!node->move_down || !node->move_down->check(map))
-                    {
-                        check.push_back(node);
-                    }
-                    //x
-                    if(node->rotate_opposite && node_path.find(node->rotate_opposite) == node_path.end() && (node->row > map.top || node->rotate_opposite->check(map)))
-                    {
-                        node_search.push_back(node->rotate_opposite);
-                        node_path.insert(std::make_pair(node->rotate_opposite, std::make_pair(node, 'x')));
-                    }
-                    //z
-                    if(node->rotate_counterclockwise && node_path.find(node->rotate_counterclockwise) == node_path.end() && (node->row > map.top || node->rotate_counterclockwise->check(map)))
-                    {
-                        node_search.push_back(node->rotate_counterclockwise);
-                        node_path.insert(std::make_pair(node->rotate_counterclockwise, std::make_pair(node, 'z')));
-                    }
-                    //c
-                    if(node->rotate_clockwise && node_path.find(node->rotate_clockwise) == node_path.end() && (node->row > map.top || node->rotate_clockwise->check(map)))
-                    {
-                        node_search.push_back(node->rotate_clockwise);
-                        node_path.insert(std::make_pair(node->rotate_clockwise, std::make_pair(node, 'c')));
-                    }
-                    //l
-                    if(node->move_left && node_path.find(node->move_left) == node_path.end() && (node->row >= map.top || node->move_left->check(map)))
-                    {
-                        node_search.push_back(node->move_left);
-                        node_path.insert(std::make_pair(node->move_left, std::make_pair(node, 'l')));
-                    }
-                    //r
-                    if(node->move_right && node_path.find(node->move_right) == node_path.end() && (node->row >= map.top || node->move_right->check(map)))
-                    {
-                        node_search.push_back(node->move_right);
-                        node_path.insert(std::make_pair(node->move_right, std::make_pair(node, 'r')));
-                    }
-                    //d
-                    if(node->move_down && node_path.find(node->move_down) == node_path.end() && (node->row > map.top || node->move_down->check(map)))
-                    {
-                        node_search.push_back(node->move_down);
-                        node_path.insert(std::make_pair(node->move_down, std::make_pair(node, 'd')));
-                    }
+                    bottom.push_back(node);
+                }
+                //x
+                if(node->rotate_opposite && node_path.find(node->rotate_opposite) == node_path.end() && node->rotate_opposite->check(map))
+                {
+                    node_search.push_back(node->rotate_opposite);
+                    node_path.insert(std::make_pair(node->rotate_opposite, std::make_pair(node, 'x')));
+                }
+                //z
+                if(node->rotate_counterclockwise && node_path.find(node->rotate_counterclockwise) == node_path.end() && node->rotate_counterclockwise->check(map))
+                {
+                    node_search.push_back(node->rotate_counterclockwise);
+                    node_path.insert(std::make_pair(node->rotate_counterclockwise, std::make_pair(node, 'z')));
+                }
+                //c
+                if(node->rotate_clockwise && node_path.find(node->rotate_clockwise) == node_path.end() && node->rotate_clockwise->check(map))
+                {
+                    node_search.push_back(node->rotate_clockwise);
+                    node_path.insert(std::make_pair(node->rotate_clockwise, std::make_pair(node, 'c')));
+                }
+                //l
+                if(node->move_left && node_path.find(node->move_left) == node_path.end() && node->move_left->check(map))
+                {
+                    node_search.push_back(node->move_left);
+                    node_path.insert(std::make_pair(node->move_left, std::make_pair(node, 'l')));
+                }
+                //r
+                if(node->move_right && node_path.find(node->move_right) == node_path.end() && node->move_right->check(map))
+                {
+                    node_search.push_back(node->move_right);
+                    node_path.insert(std::make_pair(node->move_right, std::make_pair(node, 'r')));
+                }
+                //d
+                if(node->move_down && node_path.find(node->move_down) == node_path.end() && node->move_down->check(map))
+                {
+                    node_search.push_back(node->move_down);
+                    node_path.insert(std::make_pair(node->move_down, std::make_pair(node, 'd')));
                 }
             }
-            while(node_search.size() > cache_index);
         }
+        while(node_search.size() > cache_index);
         int score = std::numeric_limits<int>::min();
         TetrisNode const *beat_node = node;
         size_t best = 0;
         TetrisMap map_copy;
-        for(size_t i = 0; i < check.size(); ++i)
+        for(size_t i = 0; i < bottom.size(); ++i)
         {
-            node = check[i];
+            node = bottom[i];
             map_copy = map;
             clear.push_back(node->attach(map_copy));
-            int new_score = next_count == 0 ? do_ai_score(node, map_copy, map, clear.data(), clear.size()) : std::get<1>(do_ai(map_copy, op[*next].generate(map_copy), next + 1, next_count - 1, false));
+            int new_score = next_count == 0 ? do_ai_score(node, map_copy, map, clear.data(), clear.size()) : std::get<1>(do_ai(map_copy, op[*next](map_copy), next + 1, next_count - 1));
             clear.pop_back();
             if(new_score > score)
             {
@@ -1937,29 +1330,8 @@ namespace ai_path_full
                 score = new_score;
             }
         }
-        if(find_path)
-        {
-            std::vector<char> path;
-            node = beat_node;
-            do
-            {
-                path.push_back('\0');
-                std::tie(node, path.back()) = node_path.find(node)->second;
-            }
-            while(path.back() != '\0');
-            path.pop_back();
-            std::reverse(path.begin(), path.end());
-            while(!path.empty() && (path.back() == 'd' || path.back() == 'D'))
-            {
-                path.pop_back();
-            }
-            path.push_back('\0');
-            return std::make_tuple(beat_node, score, path);
-        }
-        else
-        {
-            return std::make_tuple(beat_node, score, std::vector<char>());
-        }
+        return std::make_pair(beat_node, score);
+
     }
 }
 
@@ -2056,14 +1428,14 @@ DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[], char cur
     }
 
     build_map(board, boardW, boardH, map);
-    auto result = ai_path_full::do_ai(map, get(status), &next, next_count);
+    TetrisNode const *node = get(status);
+    auto result = ai_path::do_ai(map, node, &next, next_count);
 
-    if(std::get<0>(result) != nullptr)
+    if(result.first != nullptr)
     {
-        std::vector<char> &ai_path = std::get<2>(result);
+        std::vector<char>&ai_path = ai_path::make_path(node, result.first, map);
         memcpy(path, ai_path.data(), ai_path.size());
     }
-
     return 0;
 }
 
@@ -2149,7 +1521,7 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
     int w = 10, h = 20;
     TetrisMap map =
     {
-        {}, 0, w, h, 0
+        {}, {}, w, h
     };
     char *param_map = new char[w * h];
     char *path = new char[1024];
@@ -2169,7 +1541,7 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
     while(true)
     {
         unsigned char const tetris[] = "OISZLJT";
-        TetrisNode const *node = op[tetris[size_t(mtdrand() * 7)]].generate(map);
+        TetrisNode const *node = op[tetris[size_t(mtdrand() * 7)]](map);
         log_new_time = clock();
         if(log_new_time - log_time > log_interval)
         {
@@ -2189,7 +1561,8 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
             printf("{\"avg\":%.2lf,\"max\":%lld,\"count\":%lld,\"current\":%lld}\n", game_count == 0 ? 0. : double(total_lines) / game_count, max_line, game_count, this_lines);
             this_lines = 0;
             map.count = 0;
-            map.top = 0;
+            map.roof = 0;
+            memset(map.top, 0, sizeof map.top);
             memset(map.row, 0, sizeof map.row);
         }
         for(int y = 0; y < h; ++y)
@@ -2212,55 +1585,52 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
                 switch(*move++)
                 {
                 case 'l':
-                    if(node->move_left && (node->row >= map.top || node->move_left->check(map)))
+                    if(node->move_left && (node->row >= map.roof || node->move_left->check(map)))
                     {
                         node = node->move_left;
                     }
                     break;
                 case 'r':
-                    if(node->move_right && (node->row >= map.top || node->move_right->check(map)))
+                    if(node->move_right && (node->row >= map.roof || node->move_right->check(map)))
                     {
                         node = node->move_right;
                     }
                     break;
                 case 'd':
-                    if(node->move_down && (node->row > map.top || node->move_down->check(map)))
+                    if(node->move_down && (node->row > map.roof || node->move_down->check(map)))
                     {
                         node = node->move_down;
                     }
                     break;
                 case 'L':
-                    while(node->move_left && (node->row >= map.top || node->move_left->check(map)))
+                    while(node->move_left && (node->row >= map.roof || node->move_left->check(map)))
                     {
                         node = node->move_left;
                     }
                     break;
                 case 'R':
-                    while(node->move_right && (node->row >= map.top || node->move_right->check(map)))
+                    while(node->move_right && (node->row >= map.roof || node->move_right->check(map)))
                     {
                         node = node->move_right;
                     }
                     break;
                 case 'D':
-                    while(node->move_down && (node->row > map.top || node->move_down->check(map)))
-                    {
-                        node = node->move_down;
-                    }
+                    node = drop(node, map);
                     break;
                 case 'z':
-                    if(node->rotate_counterclockwise && (node->row >= map.top || node->rotate_counterclockwise->check(map)))
+                    if(node->rotate_counterclockwise && node->rotate_counterclockwise->check(map))
                     {
                         node = node->rotate_counterclockwise;
                     }
                     break;
                 case 'c':
-                    if(node->rotate_clockwise && (node->row >= map.top || node->rotate_clockwise->check(map)))
+                    if(node->rotate_clockwise && node->rotate_clockwise->check(map))
                     {
                         node = node->rotate_clockwise;
                     }
                     break;
                 case 'x':
-                    if(node->rotate_opposite && (node->row >= map.top || node->rotate_opposite->check(map)))
+                    if(node->rotate_opposite && node->rotate_opposite->check(map))
                     {
                         node = node->rotate_opposite;
                     }
@@ -2288,19 +1658,16 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
                 --r;
                 node = node->rotate_clockwise;
             }
-            while(best_x > node->status.x && node->move_right && node->move_right->check(map))
+            while(best_x > node->status.x && node->move_right && (node->row >= map.roof || node->move_right->check(map)))
             {
                 node = node->move_right;
             }
-            while(best_x < node->status.x && node->move_left && node->move_left->check(map))
+            while(best_x < node->status.x && node->move_left && (node->row >= map.roof || node->move_left->check(map)))
             {
                 node = node->move_left;
             }
         }
-        while(node->move_down && node->move_down->check(map))
-        {
-            node = node->move_down;
-        }
+        node = drop(node, map);
         int clear = node->attach(map);
         this_lines += clear;
         log_rows += clear;
