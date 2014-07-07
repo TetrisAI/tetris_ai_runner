@@ -1521,21 +1521,22 @@ bool init_ai(int w, int h)
     map_width = w;
     map_height = h;
 
+    std::vector<TetrisBlockStatus> check;
     unsigned char init[] = "OISZLJT";
     for(int i = 0; i < 7; ++i)
     {
         TetrisNode node = op[init[i]].create(w, h);
         node.op = op[init[i]];
+        check.push_back(node.status);
         node_cache.insert(std::make_pair(node.status, node));
     }
-    bool redo;
     TetrisMap map = {{}, 0, w, h};
+    size_t check_index = 0;
     do
     {
-        redo = false;
-        for(auto it = node_cache.begin(); it != node_cache.end(); ++it)
+        for(size_t max_index = check.size(); check_index < max_index; ++check_index)
         {
-            TetrisNode &node = it->second;
+            TetrisNode &node = node_cache.find(check[check_index])->second;
 #define D(func)\
 /**/do{\
 /**//**/TetrisNode copy =\
@@ -1545,9 +1546,12 @@ bool init_ai(int w, int h)
 /**//**/if(copy.op.func != nullptr && copy.op.func(copy, map))\
 /**//**/{\
 /**//**//**/auto result = node_cache.insert(std::make_pair(copy.status, copy));\
+/**//**//**/if(result.second)\
+/**//**//**/{\
+/**//**//**//**/check.push_back(copy.status);\
+/**//**//**/}\
 /**//**//**/if(node.func == nullptr)\
 /**//**//**/{\
-/**//**//**//**/redo = true;\
 /**//**//**//**/node.func = &result.first->second;\
 /**//**//**/}\
 /**//**/}\
@@ -1563,7 +1567,7 @@ bool init_ai(int w, int h)
 #undef D
         }
     }
-    while(redo);
+    while(check.size() > check_index);
     return true;
 }
 
@@ -1586,14 +1590,61 @@ void build_map(char board[], int w, int h, TetrisMap &map)
     }
 }
 
-int do_ai_score(TetrisNode const *node, TetrisMap const &map, TetrisMap const &old_map, size_t clear)
+int do_ai_score(TetrisNode const *node, TetrisMap const &map, TetrisMap const &old_map, size_t clear[], size_t clear_length)
 {
-    return 0;
+
+    int value = 0;
+    int top = map.top;
+
+    const int width = map.width;
+
+    for(int x = 0; x < width; ++x)
+    {
+        for(int y = 0; y < top; ++y)
+        {
+            if(map.full(x, y))
+            {
+                continue;
+            }
+            if(x == 0 || map.full(x + 1, y))
+            {
+                value -= 3 * y + 3;
+            }
+            if(x == width - 1 || map.full(x - 1, y))
+            {
+                value -= 3 * y + 3;
+            }
+            if(map.full(x, y + 1))
+            {
+                value -= 20 * y + 20;
+                if(map.full(x, y + 2))
+                {
+                    value -= 4;
+                    if(map.full(x, y + 3))
+                    {
+                        value -= 3;
+                        if(map.full(x, y + 4))
+                        {
+                            value -= 2;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    for(size_t i = 0; i < clear_length; ++i)
+    {
+        value += clear[i] * (clear_length - 1);
+    }
+
+    return value;
 }
 
 namespace ai_simple
 {
     std::vector<std::vector<TetrisNode const *>> check_cache;
+    std::vector<size_t> clear;
 
     std::pair<TetrisNode const *, int> do_ai(TetrisMap const &map, TetrisNode const *node, int next[], size_t next_count)
     {
@@ -1607,6 +1658,10 @@ namespace ai_simple
         }
         std::vector<TetrisNode const *> &check = check_cache[next_count];
         check.clear();
+        while(node->row > map.top && node->move_down)
+        {
+            node = node->move_down;
+        }
         TetrisNode const *rotate = node;
         do
         {
@@ -1638,8 +1693,9 @@ namespace ai_simple
                 node = node->move_down;
             }
             map_copy = map;
-            size_t clear = node->attach(map_copy);
-            int new_score = next_count == 0 ? do_ai_score(node, map_copy, map, clear) : do_ai(map_copy, op[*next].generate(map_copy), next + 1, next_count - 1).second;
+            clear.push_back(node->attach(map_copy));
+            int new_score = next_count == 0 ? do_ai_score(node, map_copy, map, clear.data(), clear.size()) : do_ai(map_copy, op[*next].generate(map_copy), next + 1, next_count - 1).second;
+            clear.pop_back();
             if(new_score > score)
             {
                 best = i;
@@ -1673,6 +1729,7 @@ namespace ai_path_full
     std::vector<std::unordered_map<TetrisNode const *, std::pair<TetrisNode const *, char>, TetrisNodePathCacheTool_t::Hash, TetrisNodePathCacheTool_t::Equal>> node_path_cache;
     std::vector<std::vector<TetrisNode const *>> node_search_cache;
     std::vector<std::vector<TetrisNode const *>> check_cache;
+    std::vector<size_t> clear;
 
     std::tuple<TetrisNode const *, int, std::vector<char>> do_ai(TetrisMap const &map, TetrisNode const *node, int next[], size_t next_count, bool find_path = true)
     {
@@ -1818,6 +1875,10 @@ namespace ai_path_full
                 for(size_t max_index = node_search.size(); cache_index < max_index; ++cache_index)
                 {
                     node = node_search[cache_index];
+                    if(!node->move_down || !node->move_down->check(map))
+                    {
+                        check.push_back(node);
+                    }
                     //x
                     if(node->rotate_opposite && node_path.find(node->rotate_opposite) == node_path.end() && (node->row > map.top || node->rotate_opposite->check(map)))
                     {
@@ -1866,8 +1927,9 @@ namespace ai_path_full
         {
             node = check[i];
             map_copy = map;
-            size_t clear = node->attach(map_copy);
-            int new_score = next_count == 0 ? do_ai_score(node, map_copy, map, clear) : std::get<1>(do_ai(map_copy, op[*next].generate(map_copy), next + 1, next_count - 1, false));
+            clear.push_back(node->attach(map_copy));
+            int new_score = next_count == 0 ? do_ai_score(node, map_copy, map, clear.data(), clear.size()) : std::get<1>(do_ai(map_copy, op[*next].generate(map_copy), next + 1, next_count - 1, false));
+            clear.pop_back();
             if(new_score > score)
             {
                 best = i;
@@ -1929,7 +1991,7 @@ extern "C" {
  *       若中间有阻挡而AI程序没有判断则会导致错误摆放。
  *       该函数在出现新方块的时候被调用，一个方块调用一次。
  */
-DECLSPEC_EXPORT int WINAPI AI(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char nextPiece, int* bestX, int* bestRotation)
+DECLSPEC_EXPORT int WINAPI AI(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char nextPiece, int *bestX, int *bestRotation)
 {
     if(!init_ai(boardW, boardH))
     {
@@ -1974,50 +2036,41 @@ DECLSPEC_EXPORT int WINAPI AI(int boardW, int boardH, char board[], char curPiec
  *
  * 本函数支持任意路径操作，若不需要此函数只想使用上面一个的话，则删掉本函数即可
  */
-//DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char nextPiece, char path[])
-//{
-//    return 0;
-//}
+DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char nextPiece, char path[])
+{
+    if(!init_ai(boardW, boardH))
+    {
+        return 0;
+    }
+    TetrisMap map;
+    TetrisBlockStatus status =
+    {
+        curPiece, curX - 1, curY - 1, curR
+    };
+    int next_count = 0;
+    int next;
+    if(nextPiece != ' ')
+    {
+        next = nextPiece;
+        next_count = 1;
+    }
+
+    build_map(board, boardW, boardH, map);
+    auto result = ai_path_full::do_ai(map, get(status), &next, next_count);
+
+    if(std::get<0>(result) != nullptr)
+    {
+        std::vector<char> &ai_path = std::get<2>(result);
+        memcpy(path, ai_path.data(), ai_path.size());
+    }
+
+    return 0;
+}
 
 #ifdef __cplusplus
 }
 #endif
 
-void zzz_ai_run()
-{
-    int w = 10, h = 20;
-    TetrisMap map =
-    {
-        {}, 0, w, h, 0
-    };
-    init_ai(w, h);
-    clock_t start = clock();
-    size_t lines = 0, piece = 0;
-    while(true)
-    {
-        unsigned char const tetris[] = "OISZLJT";
-        TetrisNode const *node = ai_simple::do_ai(map, op[tetris[size_t(mtdrand() * 7)]].generate(map), nullptr, 0).first;
-        if(node != nullptr)
-        {
-            int clear = node->attach(map);
-            lines += clear;
-            ++piece;
-            if(clock() - start > 10000)
-            {
-                start += 10000;
-                printf("speed = %d rowa / s, %d piecea / s\n", lines / 10, piece / 10);
-                lines = 0;
-                piece = 0;
-            }
-        }
-        else
-        {
-            map.count = 0;
-            map.top = 0;
-            memset(map.row, 0, sizeof map.row);
-        }
-    }
-}
 
 
 #ifndef WINVER                          // 指定要求的最低平台是 Windows Vista。
