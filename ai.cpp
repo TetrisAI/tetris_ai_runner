@@ -1188,7 +1188,7 @@ namespace ai_path
         node_path.clear();
         node_search.clear();
         bottom.clear();
-        if(map.height - map.roof >= 4)
+        if(map.height - map.roof >= 4 && node == op[node->status.t](map))
         {
             do
             {
@@ -1321,7 +1321,7 @@ namespace ai_path
             node = bottom[i];
             map_copy = map;
             clear.push_back(node->attach(map_copy));
-            int new_score = next_count == 0 ? do_ai_score(node, map_copy, map, clear.data(), clear.size()) : std::get<1>(do_ai(map_copy, op[*next](map_copy), next + 1, next_count - 1));
+            int new_score = next_count == 0 ? do_ai_score(node, map_copy, map, clear.data(), clear.size()) : do_ai(map_copy, op[*next](map_copy), next + 1, next_count - 1).second;
             clear.pop_back();
             if(new_score > score)
             {
@@ -1433,7 +1433,7 @@ DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[], char cur
 
     if(result.first != nullptr)
     {
-        std::vector<char>&ai_path = ai_path::make_path(node, result.first, map);
+        std::vector<char> ai_path = ai_path::make_path(node, result.first, map);
         memcpy(path, ai_path.data(), ai_path.size());
     }
     return 0;
