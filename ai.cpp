@@ -967,25 +967,12 @@ namespace ai_simple
                 if(*next == ' ')
                 {
                     double guess_score = 0;
-                    int temp_score = std::numeric_limits<int>::min();
                     unsigned char const tetris[] = "OISZLJT";
                     for(int ti = 0; ti < 7; ++ti)
                     {
-                        temp_score = do_ai(map_copy, op[tetris[ti]](map_copy), next + 1, next_count - 1).second;
-                        if(temp_score == std::numeric_limits<int>::min())
-                        {
-                            break;
-                        }
-                        guess_score += temp_score;
+                        guess_score += do_ai(map_copy, op[tetris[ti]](map_copy), next + 1, next_count - 1).second;
                     }
-                    if(temp_score == std::numeric_limits<int>::min())
-                    {
-                        new_score = std::numeric_limits<int>::min();
-                    }
-                    else
-                    {
-                        new_score = int(guess_score / 7);
-                    }
+                    new_score = int(guess_score / 8);
                 }
                 else
                 {
@@ -1425,25 +1412,12 @@ namespace ai_path
                 if(*next == ' ')
                 {
                     double guess_score = 0;
-                    int temp_score = std::numeric_limits<int>::min();
                     unsigned char const tetris[] = "OISZLJT";
                     for(int ti = 0; ti < 7; ++ti)
                     {
-                        temp_score = do_ai(map_copy, op[tetris[ti]](map_copy), next + 1, next_count - 1).second;
-                        if(temp_score == std::numeric_limits<int>::min())
-                        {
-                            break;
-                        }
-                        guess_score += temp_score;
+                        guess_score += do_ai(map_copy, op[tetris[ti]](map_copy), next + 1, next_count - 1).second;
                     }
-                    if(temp_score == std::numeric_limits<int>::min())
-                    {
-                        new_score = std::numeric_limits<int>::min();
-                    }
-                    else
-                    {
-                        new_score = int(guess_score / 7);
-                    }
+                    new_score = int(guess_score / 8);
                 }
                 else
                 {
@@ -1547,7 +1521,7 @@ DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[], char cur
         curPiece, curX - 1, curY - 1, curR
     };
     int next_count = 0;
-    int next;
+    unsigned char next;
     if(nextPiece != ' ')
     {
         next = nextPiece;
