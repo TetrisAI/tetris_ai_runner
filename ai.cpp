@@ -106,6 +106,7 @@ struct TetrisNode
     int top[4];
     int bottom[4];
     char row, height, col, width;
+    int low;
 
     TetrisNode const *rotate_clockwise;
     TetrisNode const *rotate_counterclockwise;
@@ -265,7 +266,7 @@ TetrisNode create_template(int w, int h, TetrisOpertion op)
     };
     TetrisNode node =
     {
-        status, op, {line4 << (status.x - 2), line3 << (status.x - 2), line2 << (status.x - 2), line1 << (status.x - 2)}, {}, {}, h - 4, 4, w / 2 - 2, 4
+        status, op, {line4 << (status.x - 2), line3 << (status.x - 2), line2 << (status.x - 2), line1 << (status.x - 2)}, {}, {}, h - 4, 4, w / 2 - 2, 4, h - 4
     };
     while(node.data[0] == 0)
     {
@@ -362,6 +363,7 @@ bool move_down(TetrisNode &node, TetrisMap const &map)
         --node.top[x];
         --node.bottom[x];
     }
+    --node.low;
     --node.row;
     --node.status.y;
     return true;
@@ -767,10 +769,11 @@ bool init_ai(int w, int h)
         {
             TetrisNode &node = node_cache.find(check[check_index])->second;
 #define D(func)\
-/**/do{\
+/**/do\
+/**/{\
 /**//**/TetrisNode copy =\
 /**//**/{\
-/**//**//**/node.status, node.op, {node.data[0], node.data[1], node.data[2], node.data[3]}, {node.top[0], node.top[1], node.top[2], node.top[3]}, {node.bottom[0], node.bottom[1], node.bottom[2], node.bottom[3]}, node.row, node.height, node.col, node.width\
+/**//**//**/node.status, node.op, {node.data[0], node.data[1], node.data[2], node.data[3]}, {node.top[0], node.top[1], node.top[2], node.top[3]}, {node.bottom[0], node.bottom[1], node.bottom[2], node.bottom[3]}, node.row, node.height, node.col, node.width, node.low\
 /**//**/};\
 /**//**/if(copy.op.func != nullptr && copy.op.func(copy, map))\
 /**//**/{\
@@ -784,8 +787,7 @@ bool init_ai(int w, int h)
 /**//**//**//**/node.func = &result.first->second;\
 /**//**//**/}\
 /**//**/}\
-/**/}\
-/**/while(false)\
+/**/} while(false)\
 /**/
             D(rotate_clockwise);
             D(rotate_counterclockwise);
@@ -895,7 +897,7 @@ namespace ai_simple
         std::vector<TetrisNode const *> *check = &check_cache[next_count];
         do
         {
-            if(map.height - map.roof >= 4 && map.width == search_cache.width && map.height == search_cache.width)
+            if(node->low >= map.roof && map.width == search_cache.width && map.height == search_cache.width)
             {
                 auto find = search_cache.check.find(node->status.t);
                 if(find != search_cache.check.end())
@@ -923,9 +925,8 @@ namespace ai_simple
                     right = right->move_right;
                 }
                 rotate = rotate->rotate_counterclockwise;
-            }
-            while(rotate != nullptr  && rotate != node && rotate->check(map));
-            if(map.height - map.roof >= 4)
+            } while(rotate != nullptr  && rotate != node && rotate->check(map));
+            if(map.height - map.roof >= 4 && node == op[node->status.t](map))
             {
                 if(map.width != search_cache.width || map.height != search_cache.width)
                 {
@@ -935,8 +936,7 @@ namespace ai_simple
                 }
                 search_cache.check.insert(std::make_pair(node->status.t, *check));
             }
-        }
-        while(false);
+        } while(false);
         int score = std::numeric_limits<int>::min();
         TetrisNode const *beat_node = node;
         size_t best = 0;
@@ -1014,8 +1014,7 @@ namespace ai_path
             {
                 path.push_back('\0');
                 std::tie(node, path.back()) = node_path.find(node)->second;
-            }
-            while(node != nullptr);
+            } while(node != nullptr);
             path.pop_back();
             std::reverse(path.begin(), path.end());
             while(!path.empty() && (path.back() == 'd' || path.back() == 'D'))
@@ -1163,8 +1162,7 @@ namespace ai_path
                     }
                 }
             }
-        }
-        while(node_search.size() > cache_index);
+        } while(node_search.size() > cache_index);
         return std::vector<char>();
     }
 
@@ -1188,11 +1186,11 @@ namespace ai_path
         node_path.clear();
         node_search.clear();
         bottom.clear();
-        if(map.height - map.roof >= 4 && node == op[node->status.t](map))
+        if(node->low >= map.roof)
         {
             do
             {
-                if(map.width == search_cache.width && map.height == search_cache.height)
+                if(map.height - map.roof >= 4 && map.width == search_cache.width && map.height == search_cache.height)
                 {
                     auto find = search_cache.check.find(node->status.t);
                     if(find != search_cache.check.end())
@@ -1214,20 +1212,20 @@ namespace ai_path
                     {
                         check->push_back(left);
                         left = left->move_right;
-                    }
-                    while(left != nullptr);
+                    } while(left != nullptr);
                     rotate = rotate->rotate_counterclockwise;
-                }
-                while(rotate != nullptr  && rotate != node);
-                if(map.width != search_cache.width || map.height != search_cache.height)
+                } while(rotate != nullptr  && rotate != node);
+                if(map.height - map.roof >= 4 && node == op[node->status.t](map))
                 {
-                    search_cache.width = map.width;
-                    search_cache.height = map.height;
-                    search_cache.check.clear();
+                    if(map.width != search_cache.width || map.height != search_cache.height)
+                    {
+                        search_cache.width = map.width;
+                        search_cache.height = map.height;
+                        search_cache.check.clear();
+                    }
+                    search_cache.check.insert(std::make_pair(node->status.t, *check));
                 }
-                search_cache.check.insert(std::make_pair(node->status.t, *check));
-            }
-            while(false);
+            } while(false);
             for(size_t i = 0; i < check->size(); ++i)
             {
                 bottom.push_back(drop((*check)[i], map));
@@ -1310,8 +1308,7 @@ namespace ai_path
                     node_path.insert(std::make_pair(node->move_down, std::make_pair(node, 'd')));
                 }
             }
-        }
-        while(node_search.size() > cache_index);
+        } while(node_search.size() > cache_index);
         int score = std::numeric_limits<int>::min();
         TetrisNode const *beat_node = node;
         size_t best = 0;
