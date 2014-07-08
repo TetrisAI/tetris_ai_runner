@@ -957,7 +957,41 @@ namespace ai_simple
             node = drop((*check)[i], map);
             map_copy = map;
             clear.push_back(node->attach(map_copy));
-            int new_score = next_count == 0 ? do_ai_score(node, map_copy, map, clear.data(), clear.size()) : do_ai(map_copy, op[*next](map_copy), next + 1, next_count - 1).second;
+            int new_score;
+            if(next_count == 0)
+            {
+                new_score = do_ai_score(node, map_copy, map, clear.data(), clear.size());
+            }
+            else
+            {
+                if(*next == ' ')
+                {
+                    double guess_score = 0;
+                    int temp_score = std::numeric_limits<int>::min();
+                    unsigned char const tetris[] = "OISZLJT";
+                    for(int ti = 0; ti < 7; ++ti)
+                    {
+                        temp_score = do_ai(map_copy, op[tetris[ti]](map_copy), next + 1, next_count - 1).second;
+                        if(temp_score == std::numeric_limits<int>::min())
+                        {
+                            break;
+                        }
+                        guess_score += temp_score;
+                    }
+                    if(temp_score == std::numeric_limits<int>::min())
+                    {
+                        new_score = std::numeric_limits<int>::min();
+                    }
+                    else
+                    {
+                        new_score = int(guess_score / 7);
+                    }
+                }
+                else
+                {
+                    new_score = do_ai(map_copy, op[*next](map_copy), next + 1, next_count - 1).second;
+                }
+            }
             clear.pop_back();
             if(new_score > score)
             {
@@ -1333,7 +1367,41 @@ namespace ai_path
             node = bottom[i];
             map_copy = map;
             clear.push_back(node->attach(map_copy));
-            int new_score = next_count == 0 ? do_ai_score(node, map_copy, map, clear.data(), clear.size()) : do_ai(map_copy, op[*next](map_copy), next + 1, next_count - 1).second;
+            int new_score;
+            if(next_count == 0)
+            {
+                new_score = do_ai_score(node, map_copy, map, clear.data(), clear.size());
+            }
+            else
+            {
+                if(*next == ' ')
+                {
+                    double guess_score = 0;
+                    int temp_score = std::numeric_limits<int>::min();
+                    unsigned char const tetris[] = "OISZLJT";
+                    for(int ti = 0; ti < 7; ++ti)
+                    {
+                        temp_score = do_ai(map_copy, op[tetris[ti]](map_copy), next + 1, next_count - 1).second;
+                        if(temp_score == std::numeric_limits<int>::min())
+                        {
+                            break;
+                        }
+                        guess_score += temp_score;
+                    }
+                    if(temp_score == std::numeric_limits<int>::min())
+                    {
+                        new_score = std::numeric_limits<int>::min();
+                    }
+                    else
+                    {
+                        new_score = int(guess_score / 7);
+                    }
+                }
+                else
+                {
+                    new_score = do_ai(map_copy, op[*next](map_copy), next + 1, next_count - 1).second;
+                }
+            }
             clear.pop_back();
             if(new_score > score)
             {
