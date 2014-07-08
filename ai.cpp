@@ -119,6 +119,10 @@ struct TetrisNode
     {
         return !(check_row(0, map) || check_row(1, map) || check_row(2, map) || check_row(3, map));
     }
+    bool open(TetrisMap const &map) const
+    {
+        return open_row(0, map) && open_row(1, map) && open_row(2, map) && open_row(3, map);
+    }
     size_t attach(TetrisMap &map) const
     {
         const int full = (1 << map.width) - 1;
@@ -174,6 +178,14 @@ private:
             return map.row[row + offset] & data[offset];
         }
         return 0;
+    }
+    inline int open_row(int offset, TetrisMap const &map) const
+    {
+        if(offset < width)
+        {
+            return bottom[offset] >= map.top[col + offset];
+        }
+        return true;
     }
     inline void update_top(int offset, TetrisMap &map) const
     {
@@ -1239,13 +1251,19 @@ namespace ai_path
                     {
                         if(last_status->y - node->status.y >= 2)
                         {
-                            node_search.push_back(get(last_status->t, node->status.x, last_status->y - 1, last_status->r));
-                            node_path.insert(std::make_pair(node_search.back(), std::make_pair(nullptr, 0)));
+                            TetrisNode const *check_node = get(last_status->t, node->status.x, last_status->y - 1, last_status->r);
+                            if(node_path.insert(std::make_pair(check_node, std::make_pair(nullptr, 0))).second)
+                            {
+                                node_search.push_back(check_node);
+                            }
                         }
                         else if(node->status.y - last_status->y >= 2)
                         {
-                            node_search.push_back(get(last_status->t, last_status->x, node->status.y - 1, last_status->r));
-                            node_path.insert(std::make_pair(node_search.back(), std::make_pair(nullptr, 0)));
+                            TetrisNode const *check_node = get(last_status->t, last_status->x, node->status.y - 1, last_status->r);
+                            if(node_path.insert(std::make_pair(check_node, std::make_pair(nullptr, 0))).second)
+                            {
+                                node_search.push_back(check_node);
+                            }
                         }
                     }
                 }
@@ -1264,36 +1282,36 @@ namespace ai_path
             for(size_t max_index = node_search.size(); cache_index < max_index; ++cache_index)
             {
                 node = node_search[cache_index];
-                if(!node->move_down || !node->move_down->check(map))
+                if(!node->open(map) && (!node->move_down || !node->move_down->check(map)))
                 {
                     bottom.push_back(node);
                 }
                 //x
-                if(node->rotate_opposite && node_path.find(node->rotate_opposite) == node_path.end() && node->rotate_opposite->check(map))
+                if(node->rotate_opposite && !node->rotate_opposite->open(map) && node_path.find(node->rotate_opposite) == node_path.end() && node->rotate_opposite->check(map))
                 {
                     node_search.push_back(node->rotate_opposite);
                     node_path.insert(std::make_pair(node->rotate_opposite, std::make_pair(node, 'x')));
                 }
                 //z
-                if(node->rotate_counterclockwise && node_path.find(node->rotate_counterclockwise) == node_path.end() && node->rotate_counterclockwise->check(map))
+                if(node->rotate_counterclockwise && !node->rotate_counterclockwise->open(map) && node_path.find(node->rotate_counterclockwise) == node_path.end() && node->rotate_counterclockwise->check(map))
                 {
                     node_search.push_back(node->rotate_counterclockwise);
                     node_path.insert(std::make_pair(node->rotate_counterclockwise, std::make_pair(node, 'z')));
                 }
                 //c
-                if(node->rotate_clockwise && node_path.find(node->rotate_clockwise) == node_path.end() && node->rotate_clockwise->check(map))
+                if(node->rotate_clockwise && !node->rotate_clockwise->open(map) && node_path.find(node->rotate_clockwise) == node_path.end() && node->rotate_clockwise->check(map))
                 {
                     node_search.push_back(node->rotate_clockwise);
                     node_path.insert(std::make_pair(node->rotate_clockwise, std::make_pair(node, 'c')));
                 }
                 //l
-                if(node->move_left && node_path.find(node->move_left) == node_path.end() && node->move_left->check(map))
+                if(node->move_left && !node->move_left->open(map) && node_path.find(node->move_left) == node_path.end() && node->move_left->check(map))
                 {
                     node_search.push_back(node->move_left);
                     node_path.insert(std::make_pair(node->move_left, std::make_pair(node, 'l')));
                 }
                 //r
-                if(node->move_right && node_path.find(node->move_right) == node_path.end() && node->move_right->check(map))
+                if(node->move_right && !node->move_right->open(map) && node_path.find(node->move_right) == node_path.end() && node->move_right->check(map))
                 {
                     node_search.push_back(node->move_right);
                     node_path.insert(std::make_pair(node->move_right, std::make_pair(node, 'r')));
@@ -1306,8 +1324,6 @@ namespace ai_path
                 }
             }
         } while(node_search.size() > cache_index);
-        std::sort(bottom.begin(), bottom.end());
-        bottom.resize(std::distance(bottom.begin(), std::unique(bottom.begin(), bottom.end())));
         int score = std::numeric_limits<int>::min();
         TetrisNode const *beat_node = node;
         size_t best = 0;
