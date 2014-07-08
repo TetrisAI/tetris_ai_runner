@@ -12,13 +12,13 @@ char gName[64]; // 返回名字用，必须全局
 extern "C" {
 #endif
 
-    // 返回AI名字，会显示在界面上
-    DECLSPEC_EXPORT
-        char* WINAPI Name()
-    {
-        strcpy(gName, "ZouZhiZhang v0.1");
-        return gName;
-    }
+// 返回AI名字，会显示在界面上
+DECLSPEC_EXPORT
+char* WINAPI Name()
+{
+	strcpy(gName, "ZouZhiZhang v0.2");
+	return gName;
+}
 
 #ifdef __cplusplus
 }
@@ -895,7 +895,7 @@ namespace ai_simple
     };
     std::vector<size_t> clear;
 
-    std::pair<TetrisNode const *, int> do_ai(TetrisMap const &map, TetrisNode const *node, int next[], size_t next_count)
+    std::pair<TetrisNode const *, int> do_ai(TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count)
     {
         if(node == nullptr || !node->check(map))
         {
@@ -1476,7 +1476,7 @@ DECLSPEC_EXPORT int WINAPI AI(int boardW, int boardH, char board[], char curPiec
         curPiece, curX - 1, curY - 1, curR
     };
     int next_count = 0;
-    int next;
+    unsigned char next;
     if(nextPiece != ' ')
     {
         next = nextPiece;
@@ -1520,17 +1520,10 @@ DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[], char cur
     {
         curPiece, curX - 1, curY - 1, curR
     };
-    int next_count = 0;
-    unsigned char next;
-    if(nextPiece != ' ')
-    {
-        next = nextPiece;
-        next_count = 1;
-    }
-
+    unsigned char next[] = { nextPiece };
     build_map(board, boardW, boardH, map);
     TetrisNode const *node = get(status);
-    auto result = ai_path::do_ai(map, node, &next, next_count);
+    auto result = ai_path::do_ai(map, node, next, 1);
 
     if(result.first != nullptr)
     {
