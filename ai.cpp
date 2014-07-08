@@ -1211,7 +1211,7 @@ namespace ai_path
         return std::vector<char>();
     }
 
-    std::pair<TetrisNode const *, int> do_ai(TetrisMap const &map, TetrisNode const *node, int next[], size_t next_count)
+    std::pair<TetrisNode const *, int> do_ai(TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count)
     {
         if(node == nullptr || !node->check(map))
         {
@@ -1303,61 +1303,109 @@ namespace ai_path
                 }
                 last_status = &node->status;
             }
+            size_t cache_index = 0;
+            do
+            {
+                for(size_t max_index = node_search.size(); cache_index < max_index; ++cache_index)
+                {
+                    node = node_search[cache_index];
+                    if(!node->open(map) && (!node->move_down || !node->move_down->check(map)))
+                    {
+                        bottom.push_back(node);
+                    }
+                    //x
+                    if(node->rotate_opposite && !node->rotate_opposite->open(map) && node_path.find(node->rotate_opposite) == node_path.end() && node->rotate_opposite->check(map))
+                    {
+                        node_search.push_back(node->rotate_opposite);
+                        node_path.insert(std::make_pair(node->rotate_opposite, std::make_pair(node, 'x')));
+                    }
+                    //z
+                    if(node->rotate_counterclockwise && !node->rotate_counterclockwise->open(map) && node_path.find(node->rotate_counterclockwise) == node_path.end() && node->rotate_counterclockwise->check(map))
+                    {
+                        node_search.push_back(node->rotate_counterclockwise);
+                        node_path.insert(std::make_pair(node->rotate_counterclockwise, std::make_pair(node, 'z')));
+                    }
+                    //c
+                    if(node->rotate_clockwise && !node->rotate_clockwise->open(map) && node_path.find(node->rotate_clockwise) == node_path.end() && node->rotate_clockwise->check(map))
+                    {
+                        node_search.push_back(node->rotate_clockwise);
+                        node_path.insert(std::make_pair(node->rotate_clockwise, std::make_pair(node, 'c')));
+                    }
+                    //l
+                    if(node->move_left && !node->move_left->open(map) && node_path.find(node->move_left) == node_path.end() && node->move_left->check(map))
+                    {
+                        node_search.push_back(node->move_left);
+                        node_path.insert(std::make_pair(node->move_left, std::make_pair(node, 'l')));
+                    }
+                    //r
+                    if(node->move_right && !node->move_right->open(map) && node_path.find(node->move_right) == node_path.end() && node->move_right->check(map))
+                    {
+                        node_search.push_back(node->move_right);
+                        node_path.insert(std::make_pair(node->move_right, std::make_pair(node, 'r')));
+                    }
+                    //d
+                    if(node->move_down && node_path.find(node->move_down) == node_path.end() && node->move_down->check(map))
+                    {
+                        node_search.push_back(node->move_down);
+                        node_path.insert(std::make_pair(node->move_down, std::make_pair(node, 'd')));
+                    }
+                }
+            } while(node_search.size() > cache_index);
         }
         else
         {
             check->clear();
             node_search.push_back(node);
             node_path.insert(std::make_pair(node, std::make_pair(nullptr, 0)));
-        }
-        size_t cache_index = 0;
-        do
-        {
-            for(size_t max_index = node_search.size(); cache_index < max_index; ++cache_index)
+            size_t cache_index = 0;
+            do
             {
-                node = node_search[cache_index];
-                if(!node->open(map) && (!node->move_down || !node->move_down->check(map)))
+                for(size_t max_index = node_search.size(); cache_index < max_index; ++cache_index)
                 {
-                    bottom.push_back(node);
+                    node = node_search[cache_index];
+                    if(!node->move_down || !node->move_down->check(map))
+                    {
+                        bottom.push_back(node);
+                    }
+                    //x
+                    if(node->rotate_opposite && node_path.find(node->rotate_opposite) == node_path.end() && node->rotate_opposite->check(map))
+                    {
+                        node_search.push_back(node->rotate_opposite);
+                        node_path.insert(std::make_pair(node->rotate_opposite, std::make_pair(node, 'x')));
+                    }
+                    //z
+                    if(node->rotate_counterclockwise && node_path.find(node->rotate_counterclockwise) == node_path.end() && node->rotate_counterclockwise->check(map))
+                    {
+                        node_search.push_back(node->rotate_counterclockwise);
+                        node_path.insert(std::make_pair(node->rotate_counterclockwise, std::make_pair(node, 'z')));
+                    }
+                    //c
+                    if(node->rotate_clockwise && node_path.find(node->rotate_clockwise) == node_path.end() && node->rotate_clockwise->check(map))
+                    {
+                        node_search.push_back(node->rotate_clockwise);
+                        node_path.insert(std::make_pair(node->rotate_clockwise, std::make_pair(node, 'c')));
+                    }
+                    //l
+                    if(node->move_left && node_path.find(node->move_left) == node_path.end() && node->move_left->check(map))
+                    {
+                        node_search.push_back(node->move_left);
+                        node_path.insert(std::make_pair(node->move_left, std::make_pair(node, 'l')));
+                    }
+                    //r
+                    if(node->move_right && node_path.find(node->move_right) == node_path.end() && node->move_right->check(map))
+                    {
+                        node_search.push_back(node->move_right);
+                        node_path.insert(std::make_pair(node->move_right, std::make_pair(node, 'r')));
+                    }
+                    //d
+                    if(node->move_down && node_path.find(node->move_down) == node_path.end() && node->move_down->check(map))
+                    {
+                        node_search.push_back(node->move_down);
+                        node_path.insert(std::make_pair(node->move_down, std::make_pair(node, 'd')));
+                    }
                 }
-                //x
-                if(node->rotate_opposite && !node->rotate_opposite->open(map) && node_path.find(node->rotate_opposite) == node_path.end() && node->rotate_opposite->check(map))
-                {
-                    node_search.push_back(node->rotate_opposite);
-                    node_path.insert(std::make_pair(node->rotate_opposite, std::make_pair(node, 'x')));
-                }
-                //z
-                if(node->rotate_counterclockwise && !node->rotate_counterclockwise->open(map) && node_path.find(node->rotate_counterclockwise) == node_path.end() && node->rotate_counterclockwise->check(map))
-                {
-                    node_search.push_back(node->rotate_counterclockwise);
-                    node_path.insert(std::make_pair(node->rotate_counterclockwise, std::make_pair(node, 'z')));
-                }
-                //c
-                if(node->rotate_clockwise && !node->rotate_clockwise->open(map) && node_path.find(node->rotate_clockwise) == node_path.end() && node->rotate_clockwise->check(map))
-                {
-                    node_search.push_back(node->rotate_clockwise);
-                    node_path.insert(std::make_pair(node->rotate_clockwise, std::make_pair(node, 'c')));
-                }
-                //l
-                if(node->move_left && !node->move_left->open(map) && node_path.find(node->move_left) == node_path.end() && node->move_left->check(map))
-                {
-                    node_search.push_back(node->move_left);
-                    node_path.insert(std::make_pair(node->move_left, std::make_pair(node, 'l')));
-                }
-                //r
-                if(node->move_right && !node->move_right->open(map) && node_path.find(node->move_right) == node_path.end() && node->move_right->check(map))
-                {
-                    node_search.push_back(node->move_right);
-                    node_path.insert(std::make_pair(node->move_right, std::make_pair(node, 'r')));
-                }
-                //d
-                if(node->move_down && node_path.find(node->move_down) == node_path.end() && node->move_down->check(map))
-                {
-                    node_search.push_back(node->move_down);
-                    node_path.insert(std::make_pair(node->move_down, std::make_pair(node, 'd')));
-                }
-            }
-        } while(node_search.size() > cache_index);
+            } while(node_search.size() > cache_index);
+        }
         int score = std::numeric_limits<int>::min();
         TetrisNode const *beat_node = node;
         size_t best = 0;
