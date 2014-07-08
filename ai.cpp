@@ -12,13 +12,13 @@ char gName[64]; // 返回名字用，必须全局
 extern "C" {
 #endif
 
-// 返回AI名字，会显示在界面上
-DECLSPEC_EXPORT
-char* WINAPI Name()
-{
-	strcpy(gName, "ZouZhiZhang v0.1");
-	return gName;
-}
+    // 返回AI名字，会显示在界面上
+    DECLSPEC_EXPORT
+        char* WINAPI Name()
+    {
+        strcpy(gName, "ZouZhiZhang v0.1");
+        return gName;
+    }
 
 #ifdef __cplusplus
 }
@@ -266,7 +266,7 @@ TetrisNode create_template(int w, int h, TetrisOpertion op)
     };
     TetrisNode node =
     {
-        status, op, {line4 << (status.x - 2), line3 << (status.x - 2), line2 << (status.x - 2), line1 << (status.x - 2)}, {}, {}, h - 4, 4, w / 2 - 2, 4, h - 4
+        status, op, { line4 << (status.x - 2), line3 << (status.x - 2), line2 << (status.x - 2), line1 << (status.x - 2) }, {}, {}, h - 4, 4, w / 2 - 2, 4, h - 4
     };
     while(node.data[0] == 0)
     {
@@ -761,7 +761,7 @@ bool init_ai(int w, int h)
         check.push_back(node.status);
         node_cache.insert(std::make_pair(node.status, node));
     }
-    TetrisMap map = {{}, {}, w, h};
+    TetrisMap map = { {}, {}, w, h };
     size_t check_index = 0;
     do
     {
@@ -797,8 +797,7 @@ bool init_ai(int w, int h)
             D(move_down);
 #undef D
         }
-    }
-    while(check.size() > check_index);
+    } while(check.size() > check_index);
     return true;
 }
 
@@ -1233,11 +1232,8 @@ namespace ai_path
             TetrisBlockStatus const *last_status = nullptr;
             for(auto cit = bottom.begin(); cit != bottom.end(); ++cit)
             {
-                if(last_status == nullptr)
-                {
-                    last_status = &node->status;
-                }
-                else
+                node = *cit;
+                if(last_status != nullptr)
                 {
                     if(last_status->r == node->status.r && std::abs(last_status->x - node->status.x) == 1)
                     {
@@ -1246,13 +1242,14 @@ namespace ai_path
                             node_search.push_back(get(last_status->t, node->status.x, last_status->y - 1, last_status->r));
                             node_path.insert(std::make_pair(node_search.back(), std::make_pair(nullptr, 0)));
                         }
-                        else if(node->status.y - last_status->y >= -2)
+                        else if(node->status.y - last_status->y >= 2)
                         {
                             node_search.push_back(get(last_status->t, last_status->x, node->status.y - 1, last_status->r));
                             node_path.insert(std::make_pair(node_search.back(), std::make_pair(nullptr, 0)));
                         }
                     }
                 }
+                last_status = &node->status;
             }
         }
         else
@@ -1309,6 +1306,8 @@ namespace ai_path
                 }
             }
         } while(node_search.size() > cache_index);
+        std::sort(bottom.begin(), bottom.end());
+        bottom.resize(std::distance(bottom.begin(), std::unique(bottom.begin(), bottom.end())));
         int score = std::numeric_limits<int>::min();
         TetrisNode const *beat_node = node;
         size_t best = 0;
@@ -1328,7 +1327,6 @@ namespace ai_path
             }
         }
         return std::make_pair(beat_node, score);
-
     }
 }
 
@@ -1496,7 +1494,7 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
     {
         ai[1] = GetProcAddress(hDll, "AI");
     }
-    
+
     if(name == nullptr)
     {
         return 0;
