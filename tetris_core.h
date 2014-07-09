@@ -90,7 +90,7 @@ public:
     }
     bool open(TetrisMap const &map) const
     {
-        return open_row(0, map) && open_row(1, map) && open_row(2, map) && open_row(3, map);
+        return open_col(0, map) && open_col(1, map) && open_col(2, map) && open_col(3, map);
     }
     size_t attach(TetrisMap &map) const
     {
@@ -104,6 +104,10 @@ public:
         clear += clear_row(2, full, map);
         clear += clear_row(1, full, map);
         clear += clear_row(0, full, map);
+        update_top(0, map);
+        update_top(1, map);
+        update_top(2, map);
+        update_top(3, map);
         map.roof -= clear;
         map.count += 4 - clear * map.width;
         if(clear > 0)
@@ -121,22 +125,15 @@ public:
                 }
             }
         }
-        else
-        {
-            update_top(0, map);
-            update_top(1, map);
-            update_top(2, map);
-            update_top(3, map);
-        }
         return clear;
     }
     size_t drop(TetrisMap const &map) const
     {
         int value = map.height;
-        drop_rows(0, value, map);
-        drop_rows(1, value, map);
-        drop_rows(2, value, map);
-        drop_rows(3, value, map);
+        drop_col(0, value, map);
+        drop_col(1, value, map);
+        drop_col(2, value, map);
+        drop_col(3, value, map);
         return value > 0 ? value : 0;
     }
 private:
@@ -148,7 +145,7 @@ private:
         }
         return 0;
     }
-    inline int open_row(int offset, TetrisMap const &map) const
+    inline int open_col(int offset, TetrisMap const &map) const
     {
         if(offset < width)
         {
@@ -190,7 +187,7 @@ private:
         }
         return 0;
     }
-    inline void drop_rows(int offset, int &value, TetrisMap const &map) const
+    inline void drop_col(int offset, int &value, TetrisMap const &map) const
     {
         if(offset < width)
         {
