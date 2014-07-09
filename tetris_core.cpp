@@ -7,7 +7,7 @@
 std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> init_op;
 std::map<unsigned char, TetrisNode const *(*)(TetrisMap const &)> op;
 std::unordered_map<TetrisBlockStatus, TetrisNode> node_cache;
-
+unsigned char const tetris[] = "OISZLJT";
 
 
 template<unsigned char T, unsigned char R, int line1, int line2, int line3, int line4>
@@ -197,6 +197,16 @@ inline TetrisNode const *drop(TetrisNode const *node, TetrisMap const &map)
 inline TetrisNode const *generate(unsigned char type, TetrisMap const &map)
 {
     return op[type](map);
+}
+
+inline TetrisNode const *generate(TetrisMap const &map)
+{
+    size_t index = mtirand() & 7;
+    while(index >= 7)
+    {
+        index = mtirand() & 7;
+    }
+    return generate(tetris[index], map);
 }
 
 extern "C" void attach_init()
@@ -628,12 +638,11 @@ namespace ai_simple
         std::vector<TetrisNode const *> *check = &check_cache[next_count];
         do
         {
-            if(node->low >= map.roof && map.width == search_cache.width && map.height == search_cache.width)
+            if(node->low >= map.roof && map.width == search_cache.width && map.height == search_cache.height)
             {
                 auto find = search_cache.check.find(node->status.t);
                 if(find != search_cache.check.end())
                 {
-                    std::vector<TetrisNode const *> *check = &check_cache[next_count];
                     check = &find->second;
                     break;
                 }
@@ -659,7 +668,7 @@ namespace ai_simple
             } while(rotate != nullptr  && rotate != node && rotate->check(map));
             if(map.height - map.roof >= 4 && node == generate(node->status.t, map))
             {
-                if(map.width != search_cache.width || map.height != search_cache.width)
+                if(map.width != search_cache.width || map.height != search_cache.height)
                 {
                     search_cache.width = map.width;
                     search_cache.height = map.height;
@@ -687,7 +696,6 @@ namespace ai_simple
                 if(*next == ' ')
                 {
                     long long guess_score = 0;
-                    unsigned char const tetris[] = "OISZLJT";
                     for(int ti = 0; ti < 7; ++ti)
                     {
                         guess_score += do_ai(old_map, map_copy, generate(tetris[ti], map_copy), next + 1, next_count - 1).second;
@@ -1169,7 +1177,6 @@ namespace ai_path
                 if(*next == ' ')
                 {
                     long long guess_score = 0;
-                    unsigned char const tetris[] = "OISZLJT";
                     for(int ti = 0; ti < 7; ++ti)
                     {
                         guess_score += do_ai(old_map, map_copy, op[tetris[ti]](map_copy), next + 1, next_count - 1).second;

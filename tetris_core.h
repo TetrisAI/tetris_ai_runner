@@ -5,7 +5,6 @@
 #include <algorithm>
 
 
-
 struct TetrisNode;
 struct TetrisOpertion;
 struct TetrisMap;
@@ -200,10 +199,11 @@ private:
     }
 };
 
-inline TetrisNode const *get(TetrisBlockStatus const &status);
-inline TetrisNode const *get(unsigned char t, char x, char y, unsigned r);
-inline TetrisNode const *drop(TetrisNode const *node, TetrisMap const &map);
-inline TetrisNode const *generate(unsigned char type, TetrisMap const &map);
+extern inline TetrisNode const *get(TetrisBlockStatus const &status);
+extern inline TetrisNode const *get(unsigned char t, char x, char y, unsigned r);
+extern inline TetrisNode const *drop(TetrisNode const *node, TetrisMap const &map);
+extern inline TetrisNode const *generate(unsigned char type, TetrisMap const &map);
+extern inline TetrisNode const *generate(TetrisMap const &map);
 
 extern "C" void attach_init();
 bool init_ai(int w, int h);
@@ -212,13 +212,13 @@ void build_map(char board[], int w, int h, TetrisMap &map);
 
 namespace ai_simple
 {
-    std::pair<TetrisNode const *, int> do_ai(TetrisMap const &old_map, TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count);
+    extern std::pair<TetrisNode const *, int> do_ai(TetrisMap const &old_map, TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count);
 }
 
 namespace ai_path
 {
-    std::vector<char> make_path(TetrisNode const *from, TetrisNode const *to, TetrisMap const &map);
-    std::pair<TetrisNode const *, int> do_ai(TetrisMap const &old_map, TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count);
+    extern std::vector<char> make_path(TetrisNode const *from, TetrisNode const *to, TetrisMap const &map);
+    extern std::pair<TetrisNode const *, int> do_ai(TetrisMap const &old_map, TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count);
 }
 
 namespace ege

@@ -129,10 +129,10 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
 #include <windows.h>
 #include <ctime>
 
+
 int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
 {
     attach_init();
-    //zzz_ai_run();
     if(argc < 2)
     {
         return 0;
@@ -212,8 +212,7 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
 
     while(true)
     {
-        unsigned char const tetris[] = "OISZLJT";
-        TetrisNode const *node = generate(tetris[size_t(mtdrand() * 7)], map);
+        TetrisNode const *node = generate(map);
         log_new_time = clock();
         if(log_new_time - log_time > log_interval)
         {
