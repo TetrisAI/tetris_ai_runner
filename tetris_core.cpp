@@ -713,23 +713,6 @@ namespace ai_simple
 
 namespace ai_path
 {
-    struct TetrisNodePathCacheTool_t
-    {
-        struct Equal
-        {
-            bool operator()(TetrisNode const *const &left, TetrisNode const *const &right)
-            {
-                return std::equal_to<size_t>()(left->status.status, right->status.status);
-            }
-        };
-        struct Hash
-        {
-            size_t operator()(TetrisNode const *const &node)
-            {
-                return std::hash<size_t>()(node->status.status);
-            }
-        };
-    };
     struct
     {
         size_t version;
