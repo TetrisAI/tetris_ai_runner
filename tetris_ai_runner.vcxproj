@@ -11,9 +11,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="tetris_core.h" />
+  </ItemGroup>
+  <ItemGroup>
     <ClCompile Include="ai.cpp" />
     <ClCompile Include="dllmain.c" />
+    <ClCompile Include="eval.cpp" />
     <ClCompile Include="random.cpp" />
+    <ClCompile Include="tetris_core.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{2EF25942-7BE9-41F8-B540-DAE8034BE8F7}</ProjectGuid>

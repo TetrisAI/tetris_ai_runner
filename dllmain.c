@@ -1,13 +1,12 @@
-#ifndef WINVER                          // 指定要求的最低平台是 Windows Vista。
-#define WINVER 0x0500           // 将此值更改为相应的值，以适用于 Windows 的其他版本。
+#ifndef WINVER
+#define WINVER 0x0500
 #endif
 
-#ifndef _WIN32_WINNT            // 指定要求的最低平台是 Windows Vista。
-#define _WIN32_WINNT 0x0501     // 将此值更改为相应的值，以适用于 Windows 的其他版本。
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0501
 #endif
-#define WIN32_LEAN_AND_MEAN             // 从 Windows 头中排除极少使用的资料
+#define WIN32_LEAN_AND_MEAN
 
-// Windows 头文件:
 #include <windows.h>
 
 void attach_init();
