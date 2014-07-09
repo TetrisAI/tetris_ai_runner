@@ -12,7 +12,7 @@ char gName[64]; // 返回名字用，必须全局
 // 返回AI名字，会显示在界面上
 extern "C" DECLSPEC_EXPORT char *WINAPI Name()
 {
-    strcpy(gName, "ZouZhiZhang v0.2");
+    strcpy(gName, "ZouZhiZhang v0.3");
     return gName;
 }
 
@@ -94,17 +94,16 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     {
         curPiece, curX - 1, curY - 1, curR
     };
-    size_t next_length = 0;
+    size_t next_length = 1;
     unsigned char next[] = {nextPiece, ' '};
     build_map(board, boardW, boardH, map);
-    switch(map.height - map.roof)
+    if(map.roof + 6 > map.height)
     {
-    case 0: case 1: case 2: case 3: case 4: case 5:
         next_length = 2;
-        break;
-    default:
-        next_length = 1;
-        break;
+    }
+    else if(map.roof + 2 < map.height / 2 && nextPiece == ' ')
+    {
+        next_length = 0;
     }
     TetrisNode const *node = get(status);
     auto result = ai_path::do_ai(map, map, node, next, next_length);
@@ -128,7 +127,6 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
 
 #include <windows.h>
 #include <ctime>
-
 
 int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
 {
