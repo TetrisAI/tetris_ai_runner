@@ -770,7 +770,7 @@ namespace ai_path
     {
         1, {0}, {}
     };
-    std::vector<std::vector<TetrisNode const *>> node_search_cache;
+    std::vector<TetrisNode const *> node_search;
     std::vector<std::vector<TetrisNode const *>> bottom_cache;
     std::vector<std::vector<TetrisNode const *>> check_cache;
     struct
@@ -787,11 +787,9 @@ namespace ai_path
     {
         if(check_cache.size() == 0)
         {
-            node_search_cache.resize(1);
             bottom_cache.resize(1);
             check_cache.resize(1);
         }
-        std::vector<TetrisNode const *> &node_search = node_search_cache[0];
         node_path.clear();
         node_search.clear();
 
@@ -985,11 +983,9 @@ namespace ai_path
         }
         if(check_cache.size() <= next_count)
         {
-            node_search_cache.resize(next_count + 1);
             bottom_cache.resize(next_count + 1);
             check_cache.resize(next_count + 1);
         }
-        std::vector<TetrisNode const *> &node_search = node_search_cache[next_count];
         std::vector<TetrisNode const *> &bottom = bottom_cache[next_count];
         std::vector<TetrisNode const *> *check = &check_cache[next_count];
         node_path.clear();
@@ -1179,7 +1175,7 @@ namespace ai_path
                     long long guess_score = 0;
                     for(int ti = 0; ti < 7; ++ti)
                     {
-                        guess_score += do_ai(old_map, map_copy, op[tetris[ti]](map_copy), next + 1, next_count - 1).second;
+                        guess_score += do_ai(old_map, map_copy, generate(tetris[ti], map_copy), next + 1, next_count - 1).second;
                     }
                     new_score = int(guess_score / 7);
                 }
