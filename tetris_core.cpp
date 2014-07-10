@@ -800,10 +800,9 @@ namespace ai_path
             TetrisNode const *node = to;
             do
             {
-                path.push_back('\0');
                 auto p = node_path.get(node);
                 node = p.first;
-                path.back() = p.second;
+                path.push_back( p.second );
             } while(node != nullptr);
             path.pop_back();
             std::reverse(path.begin(), path.end());
