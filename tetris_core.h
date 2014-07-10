@@ -112,7 +112,7 @@ public:
     //以是指针网的数据
     //对应操作所造成的数据改变全都预置好,不需要再计算
     //如果为空,表示已经到达场景边界或者不支持该操作
-    
+
     TetrisNode const *rotate_clockwise;
     TetrisNode const *rotate_counterclockwise;
     TetrisNode const *rotate_opposite;
@@ -282,7 +282,18 @@ using ege::mtdrand;
 using ege::mtirand;
 using ege::mtsrand;
 
-//最坏的评分...ai_eval最差也只能这样了...返回值为(-1.0e+20, -99999999);
-extern inline int ai_bad();
-//eval函数...返回<评分,优先级>(评分高的优先使用,评分相等使用优先级高的
-extern int ai_eval(TetrisNode const *current, TetrisMap const &map, TetrisMap const &last_map, TetrisMap const &primeval_map, size_t *clear, size_t clear_length);
+//eavl参数
+struct EvalParam
+{
+    EvalParam(TetrisNode const *_node, size_t _clear, TetrisMap const &_map) : node(_node), clear(_clear), map(_map)
+    {
+    }
+    //当前块
+    TetrisNode const *node;
+    //消行数
+    size_t clear;
+    //合并前的场景
+    TetrisMap const &map;
+};
+//eval函数...返回评价值(history参数,越早的历史数据操作越靠前)
+extern int ai_eval(TetrisMap const &map, EvalParam *history, size_t history_length);

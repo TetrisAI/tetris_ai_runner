@@ -623,7 +623,7 @@ namespace ai_simple
     {
         std::map<unsigned char, std::vector<TetrisNode const *>>(), 0, 0
     };
-    std::vector<size_t> clear;
+    std::vector<EvalParam> history;
 
     std::pair<TetrisNode const *, int> do_ai(TetrisMap const &primeval_map, TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count)
     {
@@ -685,11 +685,11 @@ namespace ai_simple
         {
             node = drop((*check)[i], map);
             copy = map;
-            clear.push_back(node->attach(copy));
+            history.push_back(EvalParam(node, node->attach(copy), map));
             int new_eval;
             if(next_count == 0)
             {
-                new_eval = ai_eval(node, copy, map, primeval_map, clear.data(), clear.size());
+                new_eval = ai_eval(copy, history.data(), history.size());
             }
             else
             {
@@ -707,7 +707,7 @@ namespace ai_simple
                     new_eval = do_ai(primeval_map, copy, generate(*next, copy), next + 1, next_count - 1).second;
                 }
             }
-            clear.pop_back();
+            history.pop_back();
             if(new_eval > eval)
             {
                 best = i;
@@ -782,7 +782,7 @@ namespace ai_path
     {
         std::map<unsigned char, std::vector<TetrisNode const *>>(), 0, 0
     };
-    std::vector<size_t> clear;
+    std::vector<EvalParam> history;
 
     std::vector<char> make_path(TetrisNode const *from, TetrisNode const *to, TetrisMap const &map)
     {
@@ -1164,11 +1164,11 @@ namespace ai_path
         {
             node = bottom[i];
             copy = map;
-            clear.push_back(node->attach(copy));
+            history.push_back(EvalParam(node, node->attach(copy), map));
             int new_eval;
             if(next_count == 0)
             {
-                new_eval = ai_eval(node, copy, map, primeval_map, clear.data(), clear.size());
+                new_eval = ai_eval(copy, history.data(), history.size());
             }
             else
             {
@@ -1186,7 +1186,7 @@ namespace ai_path
                     new_eval = do_ai(primeval_map, copy, generate(*next, copy), next + 1, next_count - 1).second;
                 }
             }
-            clear.pop_back();
+            history.pop_back();
             if(new_eval > eval)
             {
                 best = i;

@@ -2,7 +2,7 @@
 
 #include "tetris_core.h"
 
-int ai_eval(TetrisNode const *current, TetrisMap const &map, TetrisMap const &last_map, TetrisMap const &primeval_map, size_t *clear, size_t clear_length)
+int ai_eval(TetrisMap const &map, EvalParam *history, size_t history_length)
 {
     int value = 0;
     int top = map.roof;
@@ -43,7 +43,7 @@ int ai_eval(TetrisNode const *current, TetrisMap const &map, TetrisMap const &la
             }
         }
     }
-    value -= map.count * (primeval_map.roof + 8);
+    value -= map.count * (history->map.roof + 8);
 
     return value;
 }
