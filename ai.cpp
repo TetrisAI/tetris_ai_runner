@@ -94,16 +94,21 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     {
         curPiece, curX - 1, curY - 1, curR
     };
-    size_t next_length = 1;
+    size_t next_length = 0;
     unsigned char next[] = {nextPiece, ' '};
     build_map(board, boardW, boardH, map);
-    if(map.roof + 6 > map.height)
+    int free_block = 0;
+    for(int x = 0; x < map.width; ++x)
+    {
+        free_block += map.height - map.top[x];
+    }
+    if(free_block < map.width * 6)
     {
         next_length = 2;
     }
-    else if(map.roof + 2 < map.height / 2 && nextPiece == ' ')
+    else if(nextPiece != ' ' || free_block < map.width * 10)
     {
-        next_length = 0;
+        next_length = 1;
     }
     TetrisNode const *node = get(status);
     auto result = ai_path::do_ai(map, map, node, next, next_length);

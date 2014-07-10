@@ -800,10 +800,9 @@ namespace ai_path
             TetrisNode const *node = to;
             do
             {
-                path.push_back('\0');
-                auto p = node_path.get(node);
-                node = p.first;
-                path.back() = p.second;
+                auto result = node_path.get(node);
+                node = result.first;
+                path.push_back(result.second);
             } while(node != nullptr);
             path.pop_back();
             std::reverse(path.begin(), path.end());
@@ -1023,7 +1022,7 @@ namespace ai_path
                     } while(left != nullptr);
                     rotate = rotate->rotate_counterclockwise;
                 } while(rotate != nullptr  && rotate != node);
-                if(map.height - map.roof >= 4 && node == op[node->status.t](map))
+                if(map.height - map.roof >= 4 && node == generate(node->status.t, map))
                 {
                     if(map.width != search_cache.width || map.height != search_cache.height)
                     {
@@ -1184,7 +1183,7 @@ namespace ai_path
                 }
                 else
                 {
-                    new_eval = do_ai(primeval_map, copy, op[*next](copy), next + 1, next_count - 1).second;
+                    new_eval = do_ai(primeval_map, copy, generate(*next, copy), next + 1, next_count - 1).second;
                 }
             }
             clear.pop_back();
