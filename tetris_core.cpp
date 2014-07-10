@@ -7,7 +7,7 @@
 std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> init_op;
 std::map<unsigned char, TetrisNode const *(*)(TetrisMap const &)> op;
 std::unordered_map<TetrisBlockStatus, TetrisNode> node_cache;
-unsigned char const tetris[] = "OISZLJT";
+unsigned char const tetris[] = {'O', 'I', 'S', 'Z', 'L', 'J', 'T'};
 
 
 template<unsigned char T, unsigned char R, int line1, int line2, int line3, int line4>
@@ -625,7 +625,7 @@ namespace ai_simple
     };
     std::vector<size_t> clear;
 
-    std::pair<TetrisNode const *, int> do_ai(TetrisMap const &old_map, TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count)
+    std::pair<TetrisNode const *, int> do_ai(TetrisMap const &primeval_map, TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count)
     {
         if(node == nullptr || !node->check(map))
         {
@@ -677,45 +677,45 @@ namespace ai_simple
                 search_cache.check.insert(std::make_pair(node->status.t, *check));
             }
         } while(false);
-        int score = std::numeric_limits<int>::min();
+        int eval = std::numeric_limits<int>::min();
         TetrisNode const *beat_node = node;
         size_t best = 0;
-        TetrisMap map_copy;
+        TetrisMap copy;
         for(size_t i = 0; i < check->size(); ++i)
         {
             node = drop((*check)[i], map);
-            map_copy = map;
-            clear.push_back(node->attach(map_copy));
-            int new_score;
+            copy = map;
+            clear.push_back(node->attach(copy));
+            int new_eval;
             if(next_count == 0)
             {
-                new_score = do_ai_score(map_copy, old_map, clear.data(), clear.size());
+                new_eval = ai_eval(node, copy, map, primeval_map, clear.data(), clear.size());
             }
             else
             {
                 if(*next == ' ')
                 {
-                    long long guess_score = 0;
+                    long long guess_eval = 0;
                     for(int ti = 0; ti < 7; ++ti)
                     {
-                        guess_score += do_ai(old_map, map_copy, generate(tetris[ti], map_copy), next + 1, next_count - 1).second;
+                        guess_eval += do_ai(primeval_map, copy, generate(tetris[ti], copy), next + 1, next_count - 1).second;
                     }
-                    new_score = int(guess_score / 7);
+                    new_eval = int(guess_eval / 7);
                 }
                 else
                 {
-                    new_score = do_ai(old_map, map_copy, generate(*next, map_copy), next + 1, next_count - 1).second;
+                    new_eval = do_ai(primeval_map, copy, generate(*next, copy), next + 1, next_count - 1).second;
                 }
             }
             clear.pop_back();
-            if(new_score > score)
+            if(new_eval > eval)
             {
                 best = i;
                 beat_node = node;
-                score = new_score;
+                eval = new_eval;
             }
         }
-        return std::make_pair(beat_node, score);
+        return std::make_pair(beat_node, eval);
     }
 }
 
@@ -975,7 +975,7 @@ namespace ai_path
         return std::vector<char>();
     }
 
-    std::pair<TetrisNode const *, int> do_ai(TetrisMap const &old_map, TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count)
+    std::pair<TetrisNode const *, int> do_ai(TetrisMap const &primeval_map, TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count)
     {
         if(node == nullptr || !node->check(map))
         {
@@ -1154,44 +1154,44 @@ namespace ai_path
                 }
             } while(node_search.size() > cache_index);
         }
-        int score = std::numeric_limits<int>::min();
+        int eval = std::numeric_limits<int>::min();
         TetrisNode const *beat_node = node;
         size_t best = 0;
-        TetrisMap map_copy;
+        TetrisMap copy;
         for(size_t i = 0; i < bottom.size(); ++i)
         {
             node = bottom[i];
-            map_copy = map;
-            clear.push_back(node->attach(map_copy));
-            int new_score;
+            copy = map;
+            clear.push_back(node->attach(copy));
+            int new_eval;
             if(next_count == 0)
             {
-                new_score = do_ai_score(map_copy, old_map, clear.data(), clear.size());
+                new_eval = ai_eval(node, copy, map, primeval_map, clear.data(), clear.size());
             }
             else
             {
                 if(*next == ' ')
                 {
-                    long long guess_score = 0;
+                    long long guess_eval = 0;
                     for(int ti = 0; ti < 7; ++ti)
                     {
-                        guess_score += do_ai(old_map, map_copy, generate(tetris[ti], map_copy), next + 1, next_count - 1).second;
+                        guess_eval += do_ai(primeval_map, copy, generate(tetris[ti], copy), next + 1, next_count - 1).second;
                     }
-                    new_score = int(guess_score / 7);
+                    new_eval = int(guess_eval / 7);
                 }
                 else
                 {
-                    new_score = do_ai(old_map, map_copy, op[*next](map_copy), next + 1, next_count - 1).second;
+                    new_eval = do_ai(primeval_map, copy, op[*next](copy), next + 1, next_count - 1).second;
                 }
             }
             clear.pop_back();
-            if(new_score > score)
+            if(new_eval > eval)
             {
                 best = i;
                 beat_node = node;
-                score = new_score;
+                eval = new_eval;
             }
         }
-        return std::make_pair(beat_node, score);
+        return std::make_pair(beat_node, eval);
     }
 }
