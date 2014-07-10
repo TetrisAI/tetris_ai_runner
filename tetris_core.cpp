@@ -621,7 +621,7 @@ namespace ai_simple
         int width, height;
     } search_cache =
     {
-        {}, 0, 0
+        std::map<unsigned char, std::vector<TetrisNode const *>>(), 0, 0
     };
     std::vector<size_t> clear;
 
@@ -721,14 +721,15 @@ namespace ai_simple
 
 namespace ai_path
 {
+    struct CacheNode
+    {
+        size_t version;
+        std::pair<TetrisNode const *, char> data;
+    };
     struct
     {
         size_t version;
-        struct CacheNode
-        {
-            size_t version;
-            std::pair<TetrisNode const *, char> data;
-        } empty;
+        CacheNode empty;
         std::vector<CacheNode> data;
 
         inline void clear()
@@ -768,7 +769,7 @@ namespace ai_path
         }
     } node_path =
     {
-        1, {0}, {}
+        1, {0}, std::vector<CacheNode>()
     };
     std::vector<TetrisNode const *> node_search;
     std::vector<std::vector<TetrisNode const *>> bottom_cache;
@@ -779,7 +780,7 @@ namespace ai_path
         int width, height;
     } search_cache =
     {
-        {}, 0, 0
+        std::map<unsigned char, std::vector<TetrisNode const *>>(), 0, 0
     };
     std::vector<size_t> clear;
 
@@ -800,7 +801,9 @@ namespace ai_path
             do
             {
                 path.push_back('\0');
-                std::tie(node, path.back()) = node_path.get(node);
+                auto p = node_path.get(node);
+                node = p.first;
+                path.back() = p.second;
             } while(node != nullptr);
             path.pop_back();
             std::reverse(path.begin(), path.end());
