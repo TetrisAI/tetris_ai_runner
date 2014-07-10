@@ -239,7 +239,7 @@ private:
 //从状态获取指针网节点
 extern inline TetrisNode const *get(TetrisBlockStatus const &status);
 //从状态获取指针网节点
-extern inline TetrisNode const *get(unsigned char t, char x, char y, unsigned r);
+extern inline TetrisNode const *get(unsigned char t, char x, char y, unsigned char r);
 //把一个方块下落到阻挡位置
 extern inline TetrisNode const *drop(TetrisNode const *node, TetrisMap const &map);
 //获取指定方块(参数必须是OISZLJT之一)

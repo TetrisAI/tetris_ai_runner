@@ -176,7 +176,7 @@ inline TetrisNode const *get(TetrisBlockStatus const &status)
     }
 }
 
-inline TetrisNode const *get(unsigned char t, char x, char y, unsigned r)
+inline TetrisNode const *get(unsigned char t, char x, char y, unsigned char r)
 {
     TetrisBlockStatus status =
     {
