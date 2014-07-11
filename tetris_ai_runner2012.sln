@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tetris_ai_runner2012", "tetris_ai_runner2012.vcxproj", "{2EF25942-7BE9-41F8-B540-DAE8034BE8F7}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tetris_ai_runner2012dll", "tetris_ai_runner2012dll.vcxproj", "{C38566A8-FB8C-4526-9330-E2A7C1442EB7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2EF25942-7BE9-41F8-B540-DAE8034BE8F7}.Debug|Win32.ActiveCfg = Debug|Win32
+		{2EF25942-7BE9-41F8-B540-DAE8034BE8F7}.Debug|Win32.Build.0 = Debug|Win32
+		{2EF25942-7BE9-41F8-B540-DAE8034BE8F7}.Release|Win32.ActiveCfg = Release|Win32
+		{2EF25942-7BE9-41F8-B540-DAE8034BE8F7}.Release|Win32.Build.0 = Release|Win32
+		{C38566A8-FB8C-4526-9330-E2A7C1442EB7}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C38566A8-FB8C-4526-9330-E2A7C1442EB7}.Debug|Win32.Build.0 = Debug|Win32
+		{C38566A8-FB8C-4526-9330-E2A7C1442EB7}.Release|Win32.ActiveCfg = Release|Win32
+		{C38566A8-FB8C-4526-9330-E2A7C1442EB7}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
