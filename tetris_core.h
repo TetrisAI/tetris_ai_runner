@@ -124,30 +124,125 @@ public:
     //检查当前块是否能够合并入场景
     bool check(TetrisMap const &map) const
     {
-        return !(check_row(0, map) || check_row(1, map) || check_row(2, map) || check_row(3, map));
+        if(map.row[row] & data[0])
+        {
+            return false;
+        }
+        if(height == 1)
+        {
+            return true;
+        }
+        if(map.row[row + 1] & data[1])
+        {
+            return false;
+        }
+        if(height == 2)
+        {
+            return true;
+        }
+        if(map.row[row + 2] & data[2])
+        {
+            return false;
+        }
+        if(height == 3)
+        {
+            return true;
+        }
+        if(map.row[row + 3] & data[3])
+        {
+            return false;
+        }
+        return true;
     }
     //检查当前块是否是露天的
     bool open(TetrisMap const &map) const
     {
-        return open_col(0, map) && open_col(1, map) && open_col(2, map) && open_col(3, map);
+        if(bottom[0] < map.top[col])
+        {
+            return false;
+        }
+        if(width == 1)
+        {
+            return true;
+        }
+        if(bottom[1] < map.top[col + 1])
+        {
+            return false;
+        }
+        if(width == 2)
+        {
+            return true;
+        }
+        if(bottom[2] < map.top[col + 2])
+        {
+            return false;
+        }
+        if(width == 3)
+        {
+            return true;
+        }
+        if(bottom[3] < map.top[col + 3])
+        {
+            return false;
+        }
+        return true;
     }
     //当前块合并入场景,同时更新场景数据
     size_t attach(TetrisMap &map) const
     {
         const int full = (1 << map.width) - 1;
-        attach_row(0, map);
-        attach_row(1, map);
-        attach_row(2, map);
-        attach_row(3, map);
+        map.row[row] |= data[0];
+        if(height > 1)
+        {
+            map.row[row + 1] |= data[1];
+            if(height > 2)
+            {
+                map.row[row + 2] |= data[2];
+                if(height > 3)
+                {
+                    map.row[row + 3] |= data[3];
+                }
+            }
+        }
         int clear = 0;
-        clear += clear_row(3, full, map);
-        clear += clear_row(2, full, map);
-        clear += clear_row(1, full, map);
-        clear += clear_row(0, full, map);
-        update_top(0, map);
-        update_top(1, map);
-        update_top(2, map);
-        update_top(3, map);
+        for(int i = height; i > 0; --i)
+        {
+            if(map.row[row + i - 1] == full)
+            {
+                memmove(&map.row[row + i - 1], &map.row[row + i], (map.height - i) * sizeof(int));
+                map.row[map.height - 1] = 0;
+                ++clear;
+            }
+        }
+        if(top[0] > map.top[col])
+        {
+            map.top[col] = top[0];
+            map.roof = std::max(top[0], map.roof);
+        }
+        if(width > 1)
+        {
+            if(top[1] > map.top[col + 1])
+            {
+                map.top[col + 1] = top[1];
+                map.roof = std::max(top[1], map.roof);
+            }
+            if(width > 2)
+            {
+                if(top[2] > map.top[col + 2])
+                {
+                    map.top[col + 2] = top[2];
+                    map.roof = std::max(top[2], map.roof);
+                }
+                if(width > 3)
+                {
+                    if(top[3] > map.top[col + 3])
+                    {
+                        map.top[col + 3] = top[3];
+                        map.roof = std::max(top[3], map.roof);
+                    }
+                }
+            }
+        }
         map.roof -= clear;
         map.count += 4 - clear * map.width;
         if(clear > 0)
@@ -170,11 +265,19 @@ public:
     //计算当前块软降位置
     TetrisNode const * drop(TetrisMap const &map) const
     {
-        int value = map.height;
-        drop_col(0, value, map);
-        drop_col(1, value, map);
-        drop_col(2, value, map);
-        drop_col(3, value, map);
+        int value = bottom[0] - map.top[col];
+        if(width > 1)
+        {
+            value = std::min<int>(value, bottom[1] - map.top[col + 1]);
+            if(width > 2)
+            {
+                value = std::min<int>(value, bottom[2] - map.top[col + 2]);
+                if(width > 3)
+                {
+                    value = std::min<int>(value, bottom[3] - map.top[col + 3]);
+                }
+            }
+        }
         if(value >= 0)
         {
             return move_down_multi[value];
@@ -187,64 +290,6 @@ public:
                 node = node->move_down;
             }
             return node;
-        }
-    }
-private:
-    inline int check_row(int offset, TetrisMap const &map) const
-    {
-        if(offset < height)
-        {
-            return map.row[row + offset] & data[offset];
-        }
-        return 0;
-    }
-    inline int open_col(int offset, TetrisMap const &map) const
-    {
-        if(offset < width)
-        {
-            return bottom[offset] >= map.top[col + offset];
-        }
-        return true;
-    }
-    inline void update_top(int offset, TetrisMap &map) const
-    {
-        if(offset < width)
-        {
-            int &value = map.top[col + offset];
-            value = std::max<int>(value, top[offset]);
-            if(value > map.roof)
-            {
-                map.roof = value;
-            }
-        }
-    }
-    inline void attach_row(int offset, TetrisMap &map) const
-    {
-        if(offset < height)
-        {
-            map.row[row + offset] |= data[offset];
-        }
-    }
-    inline int clear_row(int offset, int const full, TetrisMap &map) const
-    {
-        if(offset >= height)
-        {
-            return 0;
-        }
-        int index = row + offset;
-        if(map.row[index] == full)
-        {
-            memmove(&map.row[index], &map.row[index + 1], (map.height - index - 1) * sizeof(int));
-            map.row[map.height - 1] = 0;
-            return 1;
-        }
-        return 0;
-    }
-    inline void drop_col(int offset, int &value, TetrisMap const &map) const
-    {
-        if(offset < width)
-        {
-            value = std::min<int>(value, bottom[offset] - map.top[offset + col]);
         }
     }
 };
