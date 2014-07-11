@@ -212,7 +212,7 @@ inline TetrisNode const *generate(TetrisMap const &map)
     {
         index = mtirand() & 7;
     }
-    return generate(tetris[index], map);
+    return generate(index, map);
 }
 
 extern "C" void attach_init()

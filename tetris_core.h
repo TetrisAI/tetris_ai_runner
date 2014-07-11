@@ -167,7 +167,7 @@ public:
         }
         return clear;
     }
-    //计算当前块可以下落多少格
+    //计算当前块软降位置
     TetrisNode const * drop(TetrisMap const &map) const
     {
         int value = map.height;
@@ -175,7 +175,19 @@ public:
         drop_col(1, value, map);
         drop_col(2, value, map);
         drop_col(3, value, map);
-        return move_down_multi[value];
+        if(value >= 0)
+        {
+            return move_down_multi[value];
+        }
+        else
+        {
+            TetrisNode const *node = this;
+            while(node->move_down != nullptr && node->move_down->check(map))
+            {
+                node = node->move_down;
+            }
+            return node;
+        }
     }
 private:
     inline int check_row(int offset, TetrisMap const &map) const
