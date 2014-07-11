@@ -12,6 +12,7 @@ extern "C" DECLSPEC_EXPORT char const *WINAPI Name()
     return name.c_str();
 }
 
+//数据转换
 void build_map(char board[], int w, int h, TetrisMap &map)
 {
     memset(&map, 0, sizeof map);
@@ -109,6 +110,8 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     size_t next_length = 0;
     unsigned char next[] = {nextPiece, ' '};
     build_map(board, boardW, boardH, map);
+    /////////////////////////////////////////////////
+    //这里计算空闲方块数,局势比较差开启vp计算
     int free_block = 0;
     for(int x = 0; x < map.width; ++x)
     {
@@ -122,6 +125,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     {
         next_length = 1;
     }
+    /////////////////////////////////////////////////
     TetrisNode const *node = get(status);
     auto result = ai_path::do_ai(map, node, next, next_length);
 
@@ -145,6 +149,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
 #include <windows.h>
 #include <ctime>
 
+//这是一个家在dll测试数据的控制台,优先调用AIPath,找不到则调用AI
 int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
 {
     attach_init();
@@ -204,7 +209,7 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
     {
         return 0;
     }
-    SetWindowTextA(GetConsoleWindow(), ((char *(*)())name)());
+    SetWindowTextA(GetConsoleWindow(), ((char const *(*)())name)());
     int w = 10, h = 20;
     TetrisMap map =
     {

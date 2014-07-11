@@ -109,7 +109,7 @@ public:
     //指针网索引
     size_t index;
 
-    //以是指针网的数据
+    //以下是指针网的数据
     //对应操作所造成的数据改变全都预置好,不需要再计算
     //如果为空,表示已经到达场景边界或者不支持该操作
 
@@ -263,7 +263,7 @@ public:
         return clear;
     }
     //计算当前块软降位置
-    TetrisNode const * drop(TetrisMap const &map) const
+    TetrisNode const *drop(TetrisMap const &map) const
     {
         int value = bottom[0] - map.top[col];
         if(width > 1)
@@ -307,23 +307,23 @@ extern inline TetrisNode const *generate(size_t index, TetrisMap const &map);
 //随机一个方块
 extern inline TetrisNode const *generate(TetrisMap const &map);
 
-//AI初始化
+//AI初始化(需要调用,且只调用一次)
 extern "C" void attach_init();
 
-//初始化宽度和高度(重复调用没有额外成本)
+//初始化宽度和高度,这里最大支持32x32的场景(重复调用没有额外成本)
 bool init_ai(int w, int h);
 
-//简单落点搜索(旋转,平移,坠地)
+//简单落点搜索,无软降(旋转,平移,坠地)
 namespace ai_simple
 {
     //AI入口
     extern std::pair<TetrisNode const *, int> do_ai(TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count);
 }
 
-//复杂落点搜索(寻找所有可到达的位置)
+//复杂落点搜索,软降(寻找所有可到达的位置),性能比无软降版略低(仅仅是低一点而已)
 namespace ai_path
 {
-    //创建一个操作路径(为空表示无法到达,末尾自带\0,路径原则是尽可能短)
+    //创建一个操作路径(为空表示无法到达,末尾自带\0,路径原则是操作尽可能少)
     extern std::vector<char> make_path(TetrisNode const *from, TetrisNode const *to, TetrisMap const &map);
     //AI入口
     extern std::pair<TetrisNode const *, int> do_ai(TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count);

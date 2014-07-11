@@ -4,6 +4,16 @@
 #include <map>
 #include <ctime>
 
+//这里就懒得标记注释了...
+//有心读的话...可以试试看调试跟踪一下...
+//大概指针网比较复杂吧?
+//搜索都是广度优先...
+//缓存了一些中间结果提升性能...
+
+//vp的策略不明白
+//目前只是尝试使用7次评估的平均值作为结果
+//来研究vp的策略吧!
+
 std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> init_op;
 std::map<unsigned char, TetrisNode const *(*)(TetrisMap const &)> op;
 std::unordered_map<TetrisBlockStatus, TetrisNode> node_cache;
