@@ -1,22 +1,16 @@
-#define _CRT_SECURE_NO_DEPRECATE
-#define _CRT_SECURE_NO_WARNINGS
-
-#include <string.h>
 
 #define DECLSPEC_EXPORT __declspec(dllexport)
 #define WINAPI __stdcall
 
-char gName[64]; // 返回名字用，必须全局
-
-
-// 返回AI名字，会显示在界面上
-extern "C" DECLSPEC_EXPORT char *WINAPI Name()
-{
-    strcpy(gName, "ZouZhiZhang v0.3");
-    return gName;
-}
-
 #include "tetris_core.h"
+
+
+//返回AI名字，会显示在界面上
+extern "C" DECLSPEC_EXPORT char const *WINAPI Name()
+{
+    static std::string name = ai_name();
+    return name.c_str();
+}
 
 void build_map(char board[], int w, int h, TetrisMap &map)
 {

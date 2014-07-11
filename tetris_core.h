@@ -353,5 +353,7 @@ struct EvalParam
     //合并前的场景
     TetrisMap const &map;
 };
+//给你的AI返回一个名字吧...
+extern std::string ai_name();
 //eval函数...返回评价值(history参数,越早的历史数据操作越靠前)
 extern int ai_eval(TetrisMap const &map, EvalParam *history, size_t history_length);
