@@ -625,7 +625,7 @@ namespace ai_simple
     };
     std::vector<EvalParam> history;
 
-    std::pair<TetrisNode const *, int> do_ai(TetrisMap const &primeval_map, TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count)
+    std::pair<TetrisNode const *, int> do_ai(TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count)
     {
         if(node == nullptr || !node->check(map))
         {
@@ -698,13 +698,13 @@ namespace ai_simple
                     long long guess_eval = 0;
                     for(int ti = 0; ti < 7; ++ti)
                     {
-                        guess_eval += do_ai(primeval_map, copy, generate(tetris[ti], copy), next + 1, next_count - 1).second;
+                        guess_eval += do_ai(copy, generate(tetris[ti], copy), next + 1, next_count - 1).second;
                     }
                     new_eval = int(guess_eval / 7);
                 }
                 else
                 {
-                    new_eval = do_ai(primeval_map, copy, generate(*next, copy), next + 1, next_count - 1).second;
+                    new_eval = do_ai(copy, generate(*next, copy), next + 1, next_count - 1).second;
                 }
             }
             history.pop_back();
@@ -977,7 +977,7 @@ namespace ai_path
         return std::vector<char>();
     }
 
-    std::pair<TetrisNode const *, int> do_ai(TetrisMap const &primeval_map, TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count)
+    std::pair<TetrisNode const *, int> do_ai(TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count)
     {
         if(node == nullptr || !node->check(map))
         {
@@ -1177,13 +1177,13 @@ namespace ai_path
                     long long guess_eval = 0;
                     for(int ti = 0; ti < 7; ++ti)
                     {
-                        guess_eval += do_ai(primeval_map, copy, generate(tetris[ti], copy), next + 1, next_count - 1).second;
+                        guess_eval += do_ai(copy, generate(tetris[ti], copy), next + 1, next_count - 1).second;
                     }
                     new_eval = int(guess_eval / 7);
                 }
                 else
                 {
-                    new_eval = do_ai(primeval_map, copy, generate(*next, copy), next + 1, next_count - 1).second;
+                    new_eval = do_ai(copy, generate(*next, copy), next + 1, next_count - 1).second;
                 }
             }
             history.pop_back();

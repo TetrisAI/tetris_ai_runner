@@ -259,7 +259,7 @@ void build_map(char board[], int w, int h, TetrisMap &map);
 namespace ai_simple
 {
     //AI入口
-    extern std::pair<TetrisNode const *, int> do_ai(TetrisMap const &primeval_map, TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count);
+    extern std::pair<TetrisNode const *, int> do_ai(TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count);
 }
 
 //复杂落点搜索(寻找所有可到达的位置)
@@ -268,7 +268,7 @@ namespace ai_path
     //创建一个操作路径(为空表示无法到达,末尾自带\0,路径原则是尽可能短)
     extern std::vector<char> make_path(TetrisNode const *from, TetrisNode const *to, TetrisMap const &map);
     //AI入口
-    extern std::pair<TetrisNode const *, int> do_ai(TetrisMap const &primeval_map, TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count);
+    extern std::pair<TetrisNode const *, int> do_ai(TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count);
 }
 
 //misakamm那里得到的mt随机

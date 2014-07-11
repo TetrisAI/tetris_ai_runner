@@ -59,7 +59,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AI(int boardW, int boardH, char board[], c
         next_count = 1;
     }
     build_map(board, boardW, boardH, map);
-    auto result = ai_simple::do_ai(map, map, get(status), &next, next_count).first;
+    auto result = ai_simple::do_ai(map, get(status), &next, next_count).first;
 
     if(result != nullptr)
     {
@@ -111,7 +111,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
         next_length = 1;
     }
     TetrisNode const *node = get(status);
-    auto result = ai_path::do_ai(map, map, node, next, next_length);
+    auto result = ai_path::do_ai(map, node, next, next_length);
 
     if(result.first != nullptr)
     {
