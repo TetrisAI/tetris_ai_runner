@@ -119,6 +119,7 @@ public:
     TetrisNode const *move_left;
     TetrisNode const *move_right;
     TetrisNode const *move_down;
+    TetrisNode const *move_down_multi[32];
 
     //检查当前块是否能够合并入场景
     bool check(TetrisMap const &map) const
@@ -167,14 +168,14 @@ public:
         return clear;
     }
     //计算当前块可以下落多少格
-    size_t drop(TetrisMap const &map) const
+    TetrisNode const * drop(TetrisMap const &map) const
     {
         int value = map.height;
         drop_col(0, value, map);
         drop_col(1, value, map);
         drop_col(2, value, map);
         drop_col(3, value, map);
-        return value > 0 ? value : 0;
+        return move_down_multi[value];
     }
 private:
     inline int check_row(int offset, TetrisMap const &map) const
@@ -244,6 +245,8 @@ extern inline TetrisNode const *get(unsigned char t, char x, char y, unsigned ch
 extern inline TetrisNode const *drop(TetrisNode const *node, TetrisMap const &map);
 //获取指定方块(参数必须是OISZLJT之一)
 extern inline TetrisNode const *generate(unsigned char type, TetrisMap const &map);
+//获取指定方块(参数下标,OISZLJT)
+extern inline TetrisNode const *generate(size_t index, TetrisMap const &map);
 //随机一个方块
 extern inline TetrisNode const *generate(TetrisMap const &map);
 
@@ -252,8 +255,6 @@ extern "C" void attach_init();
 
 //初始化宽度和高度(重复调用没有额外成本)
 bool init_ai(int w, int h);
-//从char array构建一个场景
-void build_map(char board[], int w, int h, TetrisMap &map);
 
 //简单落点搜索(旋转,平移,坠地)
 namespace ai_simple

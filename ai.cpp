@@ -18,6 +18,24 @@ extern "C" DECLSPEC_EXPORT char *WINAPI Name()
 
 #include "tetris_core.h"
 
+void build_map(char board[], int w, int h, TetrisMap &map)
+{
+    memset(&map, 0, sizeof map);
+    map.width = w;
+    map.height = h;
+    for(int y = 0, add = 0; y < h; ++y, add += w)
+    {
+        for(int x = 0; x < w; ++x)
+        {
+            if(board[x + add] == '1')
+            {
+                map.top[x] = map.roof = y + 1;
+                map.row[y] |= 1 << x;
+                ++map.count;
+            }
+        }
+    }
+}
 
 /*
  * board是一个boardW*boardH长度用01组成的字符串，原点于左下角，先行后列。
@@ -289,7 +307,7 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
                     }
                     break;
                 case 'D':
-                    node = drop(node, map);
+                    node = node->drop(map);
                     break;
                 case 'z':
                     if(node->rotate_counterclockwise && node->rotate_counterclockwise->check(map))
@@ -341,7 +359,7 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
                 node = node->move_left;
             }
         }
-        node = drop(node, map);
+        node = node->drop(map);
         int clear = node->attach(map);
         this_lines += clear;
         log_rows += clear;
