@@ -948,25 +948,25 @@ namespace ai_path
             {
                 bottom.push_back((*check)[i]->drop(map));
             }
-            TetrisBlockStatus const *last_status = nullptr;
+            TetrisNode const *last_node = nullptr;
             for(auto cit = bottom.begin(); cit != bottom.end(); ++cit)
             {
                 node = *cit;
-                if(last_status != nullptr)
+                if(last_node != nullptr)
                 {
-                    if(last_status->r == node->status.r && std::abs(last_status->x - node->status.x) == 1)
+                    if(last_node->status.r == node->status.r && std::abs(last_node->status.x - node->status.x) == 1 && std::abs(last_node->status.y - node->status.y) > 1)
                     {
-                        if(last_status->y - node->status.y >= 2)
+                        if(last_node->status.y > node->status.y)
                         {
-                            TetrisNode const *check_node = get(last_status->t, node->status.x, last_status->y - 1, last_status->r);
+                            TetrisNode const *check_node = (last_node->*(last_node->status.x > node->status.x ? &TetrisNode::move_left : &TetrisNode::move_right))->move_down->move_down;
                             if(node_path.set(check_node, nullptr, '\0'))
                             {
                                 node_search.push_back(check_node);
                             }
                         }
-                        else if(node->status.y - last_status->y >= 2)
+                        else
                         {
-                            TetrisNode const *check_node = get(last_status->t, last_status->x, node->status.y - 1, last_status->r);
+                            TetrisNode const *check_node = (node->*(node->status.x > last_node->status.x ? &TetrisNode::move_left : &TetrisNode::move_right))->move_down->move_down;
                             if(node_path.set(check_node, nullptr, '\0'))
                             {
                                 node_search.push_back(check_node);
@@ -974,7 +974,7 @@ namespace ai_path
                         }
                     }
                 }
-                last_status = &node->status;
+                last_node = node;
             }
             size_t cache_index = 0;
             do
