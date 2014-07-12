@@ -309,8 +309,8 @@ extern inline TetrisNode const *generate(unsigned char type, TetrisMap const &ma
 extern inline TetrisNode const *generate(size_t index, TetrisMap const &map);
 //随机一个方块
 extern inline TetrisNode const *generate(TetrisMap const &map);
-//场景危险(下一块出现可能就挂了)
-extern inline bool map_in_danger(TetrisMap const &map);
+//场景危险(下一块出现可能就挂了),返回7中方块有几种会挂掉
+extern inline size_t map_in_danger(TetrisMap const &map);
 
 //AI初始化(需要调用,且只调用一次)
 extern "C" void attach_init();

@@ -1,6 +1,6 @@
 
 //Code by ax_pokl
-//modify by ZouZhiZhang
+//Modify by ZouZhiZhang
 
 #include "tetris_core.h"
 
@@ -137,14 +137,7 @@ int ai_eval(TetrisMap const &map, EvalParam *history, size_t history_length)
     }
 
     //ËÀÍö¾¯½ä
-    int BoardDeadZone = 0;
-    for(size_t i = 0; i < 7; ++i)
-    {
-        if(!generate(i, map)->check(map))
-        {
-            BoardDeadZone = 1;
-        }
-    }
+    int BoardDeadZone = map_in_danger(map);
 
     int hl = history_length;
     return int(0
