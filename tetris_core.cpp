@@ -31,6 +31,7 @@ template<> struct TypeToIndex<'T'>{ enum { value = 6 }; };
 struct
 {
     TetrisNode const *data[7];
+    int danger[4];
 } generate_cache;
 
 
@@ -223,6 +224,11 @@ inline TetrisNode const *generate(TetrisMap const &map)
         index = mtirand() & 7;
     }
     return generate(index, map);
+}
+
+inline bool map_in_danger(TetrisMap const &map)
+{
+    return generate_cache.danger[0] & map.row[map.height - 4] || generate_cache.danger[1] & map.row[map.height - 3] || generate_cache.danger[2] & map.row[map.height - 2] || generate_cache.danger[3] & map.row[map.height - 1];
 }
 
 extern "C" void attach_init()
@@ -1195,7 +1201,11 @@ bool init_ai(int w, int h)
         {
             tetris[i], map_width / 2, map_height - 2, 1
         };
-        generate_cache.data[i] = get(status);
+        TetrisNode const *node = get(status);
+        generate_cache.data[i] = node;
+        node->attach(map);
     }
+    memcpy(generate_cache.danger, &map.row[map.height - 4], sizeof generate_cache.danger);
+    generate_cache.danger[3] |= generate_cache.danger[2];
     return true;
 }
