@@ -64,15 +64,23 @@ extern "C" DECLSPEC_EXPORT int WINAPI AI(int boardW, int boardH, char board[], c
     {
         curPiece, curX - 1, curY - 1, curR
     };
-    int next_count = 0;
-    unsigned char next;
-    if(nextPiece != ' ')
-    {
-        next = nextPiece;
-        next_count = 1;
-    }
+    size_t next_length = 0;
+    unsigned char next[] = {nextPiece, ' '};
     build_map(board, boardW, boardH, map);
-    auto result = ai_simple::do_ai(map, get(status), &next, next_count).first;
+    int free_block = 0;
+    for(int x = 0; x < map.width; ++x)
+    {
+        free_block += map.height - map.top[x];
+    }
+    if(free_block < map.width * 6)
+    {
+        next_length = 2;
+    }
+    else if(nextPiece != ' ' || free_block < map.width * 10)
+    {
+        next_length = 1;
+    }
+    auto result = ai_simple::do_ai(map, get(status), next, next_length).first;
 
     if(result != nullptr)
     {

@@ -2,6 +2,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <vector>
 #include <algorithm>
 
 
@@ -104,12 +105,14 @@ public:
     int bottom[4];
     //方块在场景中的矩形位置
     char row, height, col, width;
-    //原始矩形在场景中的下沿
+    //各种变形会触及到的最低高度
     int low;
     //指针网索引
     size_t index;
+    //用于落点搜索优化
+    std::vector<TetrisNode const *> const *place;
 
-    //以下是指针网的数据
+    //以是指针网的数据
     //对应操作所造成的数据改变全都预置好,不需要再计算
     //如果为空,表示已经到达场景边界或者不支持该操作
 
@@ -122,7 +125,7 @@ public:
     TetrisNode const *move_down_multi[32];
 
     //检查当前块是否能够合并入场景
-    bool check(TetrisMap const &map) const
+    inline bool check(TetrisMap const &map) const
     {
         if(map.row[row] & data[0])
         {
@@ -155,7 +158,7 @@ public:
         return true;
     }
     //检查当前块是否是露天的
-    bool open(TetrisMap const &map) const
+    inline bool open(TetrisMap const &map) const
     {
         if(bottom[0] < map.top[col])
         {
@@ -188,7 +191,7 @@ public:
         return true;
     }
     //当前块合并入场景,同时更新场景数据
-    size_t attach(TetrisMap &map) const
+    inline size_t attach(TetrisMap &map) const
     {
         const int full = (1 << map.width) - 1;
         map.row[row] |= data[0];
@@ -263,7 +266,7 @@ public:
         return clear;
     }
     //计算当前块软降位置
-    TetrisNode const *drop(TetrisMap const &map) const
+    inline TetrisNode const *drop(TetrisMap const &map) const
     {
         int value = bottom[0] - map.top[col];
         if(width > 1)
