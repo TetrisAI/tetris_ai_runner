@@ -322,6 +322,8 @@ bool init_ai(int w, int h);
 //简单落点搜索,无软降(旋转,平移,坠地)
 namespace ai_simple
 {
+    //创建一个操作路径(为空表示无法到达,末尾自带\0)
+    extern std::vector<char> make_path(TetrisNode const *from, TetrisNode const *to, TetrisMap const &map);
     //AI入口
     extern std::pair<TetrisNode const *, int> do_ai(TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count);
 }
@@ -330,6 +332,15 @@ namespace ai_simple
 namespace ai_path
 {
     //创建一个操作路径(为空表示无法到达,末尾自带\0,路径原则是操作尽可能少)
+    extern std::vector<char> make_path(TetrisNode const *from, TetrisNode const *to, TetrisMap const &map);
+    //AI入口
+    extern std::pair<TetrisNode const *, int> do_ai(TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count);
+}
+
+//高级落点搜索,软降,踢墙(这里就不解释了),性能还不知道...TODO
+namespace ai_senior
+{
+    //创建一个操作路径(为空表示无法到达,末尾自带\0)
     extern std::vector<char> make_path(TetrisNode const *from, TetrisNode const *to, TetrisMap const &map);
     //AI入口
     extern std::pair<TetrisNode const *, int> do_ai(TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count);

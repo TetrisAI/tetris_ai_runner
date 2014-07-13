@@ -231,15 +231,15 @@ inline TetrisNode const *generate(TetrisMap const &map)
 
 inline size_t map_in_danger(TetrisMap const &map)
 {
-    size_t die_count = 0;
-    for(size_t i = 0; i < 7; ++i)
-    {
-        if(map_danger_data[i].data[0] & map.row[map.height - 4] || map_danger_data[i].data[1] & map.row[map.height - 3] || map_danger_data[i].data[2] & map.row[map.height - 2] || map_danger_data[i].data[3] & map.row[map.height - 1])
-        {
-            ++die_count;
-        }
-    }
-    return die_count;
+    return (0
+            + !!(map_danger_data[0].data[0] & map.row[map.height - 4] || map_danger_data[0].data[1] & map.row[map.height - 3] || map_danger_data[0].data[2] & map.row[map.height - 2] || map_danger_data[0].data[3] & map.row[map.height - 1])
+            + !!(map_danger_data[1].data[0] & map.row[map.height - 4] || map_danger_data[1].data[1] & map.row[map.height - 3] || map_danger_data[1].data[2] & map.row[map.height - 2] || map_danger_data[1].data[3] & map.row[map.height - 1])
+            + !!(map_danger_data[2].data[0] & map.row[map.height - 4] || map_danger_data[2].data[1] & map.row[map.height - 3] || map_danger_data[2].data[2] & map.row[map.height - 2] || map_danger_data[2].data[3] & map.row[map.height - 1])
+            + !!(map_danger_data[3].data[0] & map.row[map.height - 4] || map_danger_data[3].data[1] & map.row[map.height - 3] || map_danger_data[3].data[2] & map.row[map.height - 2] || map_danger_data[3].data[3] & map.row[map.height - 1])
+            + !!(map_danger_data[4].data[0] & map.row[map.height - 4] || map_danger_data[4].data[1] & map.row[map.height - 3] || map_danger_data[4].data[2] & map.row[map.height - 2] || map_danger_data[4].data[3] & map.row[map.height - 1])
+            + !!(map_danger_data[5].data[0] & map.row[map.height - 4] || map_danger_data[5].data[1] & map.row[map.height - 3] || map_danger_data[5].data[2] & map.row[map.height - 2] || map_danger_data[5].data[3] & map.row[map.height - 1])
+            + !!(map_danger_data[6].data[0] & map.row[map.height - 4] || map_danger_data[6].data[1] & map.row[map.height - 3] || map_danger_data[6].data[2] & map.row[map.height - 2] || map_danger_data[6].data[3] & map.row[map.height - 1])
+            );
 }
 
 extern "C" void attach_init()
@@ -1069,6 +1069,19 @@ namespace ai_path
             }
         }
         return std::make_pair(beat_node, eval);
+    }
+}
+
+namespace ai_senior
+{
+    std::vector<char> make_path(TetrisNode const *from, TetrisNode const *to, TetrisMap const &map)
+    {
+        //TODO
+    }
+
+    std::pair<TetrisNode const *, int> do_ai(TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_count)
+    {
+        //TODO
     }
 }
 
