@@ -221,11 +221,11 @@ inline TetrisNode const *generate(size_t index, TetrisMap const &map)
 
 inline TetrisNode const *generate(TetrisMap const &map)
 {
-    size_t index = mtirand() & 7;
-    while(index >= 7)
+    size_t index;
+    do
     {
         index = mtirand() & 7;
-    }
+    } while(index >= 7);
     return generate(index, map);
 }
 
@@ -562,6 +562,35 @@ extern "C" void attach_init()
 
 namespace ai_simple
 {
+    std::vector<char> make_path(TetrisNode const *from, TetrisNode const *to, TetrisMap const &map)
+    {
+        std::vector<char> path;
+        if(from->status.t != to->status.t || from->status.y < to->status.y)
+        {
+            return path;
+        }
+        while(from->status.r != to->status.r && from->rotate_counterclockwise && from->rotate_counterclockwise->check(map))
+        {
+            path.push_back('z');
+            from = from->rotate_counterclockwise;
+        }
+        while(from->status.x < to->status.x && from->move_right && from->move_right->check(map))
+        {
+            path.push_back('r');
+            from = from->move_right;
+        }
+        while(from->status.x > to->status.x && from->move_left && from->move_left->check(map))
+        {
+            path.push_back('l');
+            from = from->move_left;
+        }
+        if(from->drop(map) != to)
+        {
+            return std::vector<char>();
+        }
+        path.push_back('\0');
+        return path;
+    }
 
     std::pair<TetrisNode const *, int> do_ai(TetrisMap const &map, TetrisNode const *node, unsigned char next[], size_t next_length)
     {
@@ -902,18 +931,18 @@ namespace ai_path
         {
             place_cache.resize(next_length + 1);
         }
-        std::vector<TetrisNode const *> *place_make = &place_cache[next_length];
+        std::vector<TetrisNode const *> *place = &place_cache[next_length];
         node_path.clear();
         node_search.clear();
-        place_make->clear();
+        place->clear();
         if(node->low >= map.roof)
         {
             for(auto cit = node->place->begin(); cit != node->place->end(); ++cit)
             {
-                place_make->push_back((*cit)->drop(map));
+                place->push_back((*cit)->drop(map));
             }
             TetrisNode const *last_node = nullptr;
-            for(auto cit = place_make->begin(); cit != place_make->end(); ++cit)
+            for(auto cit = place->begin(); cit != place->end(); ++cit)
             {
                 node = *cit;
                 if(last_node != nullptr)
@@ -948,7 +977,7 @@ namespace ai_path
                     node = node_search[cache_index];
                     if(!node->open(map) && (!node->move_down || !node->move_down->check(map)))
                     {
-                        place_make->push_back(node);
+                        place->push_back(node);
                     }
                     //x
                     if(node->rotate_opposite && node_path.mark(node->rotate_opposite) && !node->rotate_opposite->open(map) && node->rotate_opposite->check(map))
@@ -995,7 +1024,7 @@ namespace ai_path
                     node = node_search[cache_index];
                     if(!node->move_down || !node->move_down->check(map))
                     {
-                        place_make->push_back(node);
+                        place->push_back(node);
                     }
                     //x
                     if(node->rotate_opposite && node_path.mark(node->rotate_opposite) && node->rotate_opposite->check(map))
@@ -1034,9 +1063,9 @@ namespace ai_path
         TetrisNode const *beat_node = node;
         size_t best = 0;
         TetrisMap copy;
-        for(size_t i = 0; i < place_make->size(); ++i)
+        for(size_t i = 0; i < place->size(); ++i)
         {
-            node = (*place_make)[i];
+            node = (*place)[i];
             copy = map;
             history.push_back(EvalParam(node, node->attach(copy), map));
             int new_eval;
