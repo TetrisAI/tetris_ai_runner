@@ -47,3 +47,6 @@ Icon
 *.exp
 *.lib
 *.manifest
+*.lastbuildstate
+*.TMP
+*.ilk
