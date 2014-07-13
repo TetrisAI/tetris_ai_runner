@@ -31,6 +31,8 @@ struct TetrisMap
     {
         return (row[y] >> x) & 1;
     }
+    //满行
+    static int full_row;
 };
 
 //方块字符
@@ -193,7 +195,6 @@ public:
     //当前块合并入场景,同时更新场景数据
     inline size_t attach(TetrisMap &map) const
     {
-        const int full = (1 << map.width) - 1;
         map.row[row] |= data[0];
         if(height > 1)
         {
@@ -210,7 +211,7 @@ public:
         int clear = 0;
         for(int i = height; i > 0; --i)
         {
-            if(map.row[row + i - 1] == full)
+            if(map.row[row + i - 1] == TetrisMap::full_row)
             {
                 memmove(&map.row[row + i - 1], &map.row[row + i], (map.height - i) * sizeof(int));
                 map.row[map.height - 1] = 0;

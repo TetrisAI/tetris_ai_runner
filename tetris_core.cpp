@@ -18,6 +18,7 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> init_op;
 std::map<unsigned char, TetrisNode const *(*)(TetrisMap const &)> op;
 std::unordered_map<TetrisBlockStatus, TetrisNode> node_cache;
 unsigned char const tetris[] = {'O', 'I', 'S', 'Z', 'L', 'J', 'T'};
+int TetrisMap::full_row = 0;
 
 template<unsigned char T> struct TypeToIndex{};
 template<> struct TypeToIndex<'O'>{ enum { value = 0 }; };
@@ -1079,7 +1080,7 @@ bool init_ai(int w, int h)
     {
         return true;
     }
-    if(w > 32 || h > 32)
+    if(w > 32 || h > 32 || w < 4 || h < 4)
     {
         return false;
     }
@@ -1087,6 +1088,14 @@ bool init_ai(int w, int h)
     node_cache.clear();
     map_width = w;
     map_height = h;
+    if(w < 32)
+    {
+        TetrisMap::full_row = (1 << w) - 1;
+    }
+    else
+    {
+        TetrisMap::full_row = std::numeric_limits<size_t>::max();
+    }
 
     std::vector<TetrisBlockStatus> check;
     for(auto cit = init_op.begin(); cit != init_op.end(); ++cit)
