@@ -1161,7 +1161,7 @@ bool init_ai(int w, int h)
         generate_cache[i] = node;
         TetrisMap copy = map;
         node->attach(copy);
-        memcpy(map_danger_data[i].data, &map.row[map.height - 4], sizeof map_danger_data[i].data);
+        memcpy(map_danger_data[i].data, &copy.row[map.height - 4], sizeof map_danger_data[i].data);
         for(int y = 0; y < 3; ++y)
         {
             map_danger_data[i].data[y + 1] |= map_danger_data[i].data[y];
