@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="ai.cpp" />
+    <ClCompile Include="dllmain.c" />
+    <ClCompile Include="eval.cpp" />
+    <ClCompile Include="random.cpp" />
+    <ClCompile Include="tetris_core.cpp" />
+    <ClCompile Include="rule_st.cpp">
+      <Filter>rules\st</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="tetris_core.h" />
+    <ClInclude Include="rule_st.h">
+      <Filter>rules\st</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="rules">
+      <UniqueIdentifier>{fc1e0c2f-f7c4-48a1-9bfa-c4c831f891f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="rules\st">
+      <UniqueIdentifier>{677e0567-341f-404a-83af-d9615b4522fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="land_point_search_engine">
+      <UniqueIdentifier>{2c7d56ab-e7cb-4726-b343-411785ace0b8}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
