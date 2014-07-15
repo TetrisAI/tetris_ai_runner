@@ -136,16 +136,48 @@ namespace m_tetris
         inline TetrisNode const *drop(TetrisMap const &map) const;
     };
 
+    class TetrisNodeMark
+    {
+    private:
+        struct Mark
+        {
+            Mark() : version(0)
+            {
+            }
+            size_t version;
+            std::pair<TetrisNode const *, char> data;
+        };
+        size_t version_;
+        std::vector<Mark> data_;
+
+    public:
+        void init(size_t size);
+        inline void clear();
+        inline std::pair<TetrisNode const *, char> get(TetrisNode const *key);
+        inline bool set(TetrisNode const *key, TetrisNode const *node, char op);
+        inline bool mark(TetrisNode const *key);
+    };
+
     class TetrisContext
     {
     private:
         std::unordered_map<TetrisBlockStatus, TetrisNode, TetrisBlockStatusHash, TetrisBlockStatusEqual> node_cache_;
         std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> init_opertion_;
-        std::map<unsigned char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> init_generate_;
+        std::map<unsigned char, TetrisBlockStatus(*)(TetrisContext const *)> init_generate_;
         int width_, height_;
         int full_;
 
-        std::vector<TetrisNode const *> place_cache_;
+        std::map<unsigned char, std::vector<TetrisNode const *>> place_cache_;
+        TetrisNodeMark node_mark_;
+        size_t type_max_;
+        TetrisNode const *generate_cache_[256];
+        struct
+        {
+            int data[4];
+        } map_danger_data_[256];
+        unsigned char index_to_type_[256];
+        unsigned char type_to_index_[256];
+
     public:
         bool prepare(int width, int height);
         int width() const;
@@ -153,6 +185,11 @@ namespace m_tetris
         int full() const;
         TetrisOpertion get_opertion(unsigned char t, unsigned char r) const;
         TetrisNode const *get(TetrisBlockStatus const &status) const;
+        TetrisNode const *get(unsigned char t, char x, char y, unsigned char r) const;
+        inline TetrisNode const *generate(unsigned char type) const;
+        inline TetrisNode const *generate(size_t index) const;
+        inline TetrisNode const *generate() const;
+        inline size_t map_in_danger(TetrisMap const &map) const;
     };
 
 

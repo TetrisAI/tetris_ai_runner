@@ -16,35 +16,31 @@
 
 using namespace m_tetris;
 
+
 inline bool TetrisNode::check(TetrisMap const &map) const
 {
-    if(map.row[row] & data[0])
+    switch(height)
     {
-        return false;
-    }
-    if(height == 1)
-    {
-        return true;
-    }
-    if(map.row[row + 1] & data[1])
-    {
-        return false;
-    }
-    if(height == 2)
-    {
-        return true;
-    }
-    if(map.row[row + 2] & data[2])
-    {
-        return false;
-    }
-    if(height == 3)
-    {
-        return true;
-    }
-    if(map.row[row + 3] & data[3])
-    {
-        return false;
+    case 4:
+        if(map.row[row + 3] & data[3])
+        {
+            return false;
+        }
+    case 3:
+        if(map.row[row + 2] & data[2])
+        {
+            return false;
+        }
+    case 2:
+        if(map.row[row + 1] & data[1])
+        {
+            return false;
+        }
+    default:
+        if(map.row[row] & data[0])
+        {
+            return false;
+        }
     }
     return true;
 }
@@ -186,6 +182,49 @@ inline TetrisNode const *TetrisNode::drop(TetrisMap const &map) const
     }
 }
 
+void TetrisNodeMark::init(size_t size)
+{
+    data_.clear();
+    data_.resize(size);
+}
+
+inline void TetrisNodeMark::clear()
+{
+    if(++version_ == std::numeric_limits<size_t>::max())
+    {
+        version_ = 1;
+        for(auto it = data_.begin(); it != data_.end(); ++it)
+        {
+            it->version = 0;
+        }
+    }
+}
+inline std::pair<TetrisNode const *, char> TetrisNodeMark::get(TetrisNode const *key)
+{
+    return data_[key->index].data;
+}
+inline bool TetrisNodeMark::set(TetrisNode const *key, TetrisNode const *node, char op)
+{
+    Mark &mark = data_[key->index];
+    if(mark.version == version_)
+    {
+        return false;
+    }
+    mark.version = version_;
+    mark.data.first = node;
+    mark.data.second = op;
+    return true;
+}
+inline bool TetrisNodeMark::mark(TetrisNode const *key)
+{
+    Mark &mark = data_[key->index];
+    if(mark.version == version_)
+    {
+        return false;
+    }
+    mark.version = version_;
+    return true;
+}
 
 bool TetrisContext::prepare(int width, int height)
 {
@@ -197,10 +236,12 @@ bool TetrisContext::prepare(int width, int height)
     {
         return false;
     }
-    block_place_cache.clear();
+    place_cache_.clear();
     node_cache_.clear();
+    memset(&map_danger_data_, 0, sizeof map_danger_data_);
     width_ = width;
     height_ = height;
+    type_max_ = 0;
     if(width < 32)
     {
         full_ = (1 << width) - 1;
@@ -234,7 +275,7 @@ bool TetrisContext::prepare(int width, int height)
 /**//**/};\
 /**//**/if(copy.op.func != nullptr && copy.op.func(copy, map))\
 /**//**/{\
-/**//**//**/auto result = node_cache.insert(std::make_pair(copy.status, copy));\
+/**//**//**/auto result = node_cache_.insert(std::make_pair(copy.status, copy));\
 /**//**//**/if(result.second)\
 /**//**//**/{\
 /**//**//**//**/check.push_back(copy.status);\
@@ -272,28 +313,25 @@ bool TetrisContext::prepare(int width, int height)
 #undef D
         }
     } while(check.size() > check_index);
-    ai_path::node_path.data.resize(node_cache.size(), ai_path::NodePath::CacheNode());
+    node_mark_.init(node_cache_.size());
     for(size_t i = 0; i < 7; ++i)
     {
-        TetrisBlockStatus status =
-        {
-            tetris[i], map_width / 2, map_height - 2, 1
-        };
+        TetrisBlockStatus status = init_generate_[tetris[i]](this);
         TetrisNode const *node = get(status);
-        generate_cache[i] = node;
+        generate_cache_[i] = node;
         TetrisMap copy = map;
         node->attach(copy);
-        memcpy(map_danger_data[i].data, &copy.row[map.height - 4], sizeof map_danger_data[i].data);
+        memcpy(map_danger_data_[i].data, &copy.row[map.height - 4], sizeof map_danger_data_[i].data);
         for(int y = 0; y < 3; ++y)
         {
-            map_danger_data[i].data[y + 1] |= map_danger_data[i].data[y];
+            map_danger_data_[i].data[y + 1] |= map_danger_data_[i].data[y];
         }
     }
     for(size_t i = 0; i < 7; ++i)
     {
-        TetrisNode const *node = generate(i, map);
-        block_place_cache.insert(std::make_pair(node->status.t, std::vector<TetrisNode const *>()));
-        std::vector<TetrisNode const *> *place = &block_place_cache.find(node->status.t)->second;
+        TetrisNode const *node = generate(i);
+        place_cache_.insert(std::make_pair(node->status.t, std::vector<TetrisNode const *>()));
+        std::vector<TetrisNode const *> *place = &place_cache_.find(node->status.t)->second;
         TetrisNode const *rotate = node;
         do
         {
@@ -390,6 +428,15 @@ TetrisNode const *TetrisContext::get(TetrisBlockStatus const &status) const
     }
 }
 
+TetrisNode const *TetrisContext::get(unsigned char t, char x, char y, unsigned char r) const
+{
+    TetrisBlockStatus status =
+    {
+        t, x, y, r
+    };
+    return get(status);
+}
+
 bool move_left(TetrisNode &node, TetrisMap const &map)
 {
     if((node.data[0] & 1) || (node.data[1] & 1) || (node.data[2] & 1) || (node.data[3] & 1))
@@ -456,8 +503,7 @@ bool move_down(TetrisNode &node, TetrisMap const &map)
 
 
 
-unsigned char const tetris[] = {'O', 'I', 'S', 'Z', 'L', 'J', 'T'};
-int TetrisMap::full_row = 0;
+
 
 template<unsigned char T> struct TypeToIndex{};
 template<> struct TypeToIndex<'O'>{ enum { value = 0 }; };
@@ -468,77 +514,38 @@ template<> struct TypeToIndex<'L'>{ enum { value = 4 }; };
 template<> struct TypeToIndex<'J'>{ enum { value = 5 }; };
 template<> struct TypeToIndex<'T'>{ enum { value = 6 }; };
 
-TetrisNode const *generate_cache[7];
-struct
-{
-    int data[4];
-} map_danger_data[7];
-std::map<unsigned char, std::vector<TetrisNode const *>> block_place_cache;
-std::vector<std::vector<TetrisNode const *>> place_cache;
-std::vector<TetrisNode const *> node_search;
-std::vector<EvalParam> history;
 
-
-template<unsigned char T>
-TetrisNode const *generate_template(TetrisMap const &map)
+inline TetrisNode const *TetrisContext::generate(unsigned char type) const
 {
-    return generate_cache[TypeToIndex<T>::value];
+    return generate_cache_[type_to_index_[type]];
 }
 
-
-inline TetrisNode const *get(TetrisBlockStatus const &status)
+inline TetrisNode const *TetrisContext::generate(size_t index) const
 {
-    auto find = node_cache.find(status);
-    if(find == node_cache.end())
-    {
-        return nullptr;
-    }
-    else
-    {
-        return &find->second;
-    }
+    return generate_cache_[index];
 }
 
-inline TetrisNode const *get(unsigned char t, char x, char y, unsigned char r)
-{
-    TetrisBlockStatus status =
-    {
-        t, x, y, r
-    };
-    return get(status);
-}
-
-inline TetrisNode const *generate(unsigned char type, TetrisMap const &map)
-{
-    return op[type](map);
-}
-
-inline TetrisNode const *generate(size_t index, TetrisMap const &map)
-{
-    return generate_cache[index];
-}
-
-inline TetrisNode const *generate(TetrisMap const &map)
+inline TetrisNode const *TetrisContext::generate() const
 {
     size_t index;
     do
     {
         index = mtirand() & 7;
     } while(index >= 7);
-    return generate(index, map);
+    return generate(index);
 }
 
-inline size_t map_in_danger(TetrisMap const &map)
+inline size_t TetrisContext::map_in_danger(TetrisMap const &map) const
 {
-    return (0
-            + !!(map_danger_data[0].data[0] & map.row[map.height - 4] || map_danger_data[0].data[1] & map.row[map.height - 3] || map_danger_data[0].data[2] & map.row[map.height - 2] || map_danger_data[0].data[3] & map.row[map.height - 1])
-            + !!(map_danger_data[1].data[0] & map.row[map.height - 4] || map_danger_data[1].data[1] & map.row[map.height - 3] || map_danger_data[1].data[2] & map.row[map.height - 2] || map_danger_data[1].data[3] & map.row[map.height - 1])
-            + !!(map_danger_data[2].data[0] & map.row[map.height - 4] || map_danger_data[2].data[1] & map.row[map.height - 3] || map_danger_data[2].data[2] & map.row[map.height - 2] || map_danger_data[2].data[3] & map.row[map.height - 1])
-            + !!(map_danger_data[3].data[0] & map.row[map.height - 4] || map_danger_data[3].data[1] & map.row[map.height - 3] || map_danger_data[3].data[2] & map.row[map.height - 2] || map_danger_data[3].data[3] & map.row[map.height - 1])
-            + !!(map_danger_data[4].data[0] & map.row[map.height - 4] || map_danger_data[4].data[1] & map.row[map.height - 3] || map_danger_data[4].data[2] & map.row[map.height - 2] || map_danger_data[4].data[3] & map.row[map.height - 1])
-            + !!(map_danger_data[5].data[0] & map.row[map.height - 4] || map_danger_data[5].data[1] & map.row[map.height - 3] || map_danger_data[5].data[2] & map.row[map.height - 2] || map_danger_data[5].data[3] & map.row[map.height - 1])
-            + !!(map_danger_data[6].data[0] & map.row[map.height - 4] || map_danger_data[6].data[1] & map.row[map.height - 3] || map_danger_data[6].data[2] & map.row[map.height - 2] || map_danger_data[6].data[3] & map.row[map.height - 1])
-            );
+    size_t count = 0;
+    for(size_t i = 0; i < type_max_; ++i)
+    {
+        if(map_danger_data_[i].data[0] & map.row[map.height - 4] || map_danger_data_[i].data[1] & map.row[map.height - 3] || map_danger_data_[i].data[2] & map.row[map.height - 2] || map_danger_data_[i].data[3] & map.row[map.height - 1])
+        {
+            ++count;
+        }
+    }
+    return count;
 }
 
 extern "C" void attach_init()
@@ -661,61 +668,6 @@ namespace ai_simple
 
 namespace ai_path
 {
-    struct NodePath
-    {
-        NodePath() : version(1)
-        {
-        }
-        struct CacheNode
-        {
-            CacheNode() : version(0)
-            {
-            }
-            size_t version;
-            std::pair<TetrisNode const *, char> data;
-        };
-        size_t version;
-        std::vector<CacheNode> data;
-
-        inline void clear()
-        {
-            if(++version == std::numeric_limits<size_t>::max())
-            {
-                version = 1;
-                for(auto it = data.begin(); it != data.end(); ++it)
-                {
-                    it->version = 0;
-                }
-            }
-        }
-        inline std::pair<TetrisNode const *, char> get(TetrisNode const *key)
-        {
-            return data[key->index].data;
-        }
-        inline bool set(TetrisNode const *key, TetrisNode const *node, char op)
-        {
-            CacheNode &cache = data[key->index];
-            if(cache.version == version)
-            {
-                return false;
-            }
-            cache.version = version;
-            cache.data.first = node;
-            cache.data.second = op;
-            return true;
-        }
-        inline bool mark(TetrisNode const *key)
-        {
-            CacheNode &cache = data[key->index];
-            if(cache.version == version)
-            {
-                return false;
-            }
-            cache.version = version;
-            return true;
-        }
-    } node_path;
-
     std::vector<char> make_path(TetrisNode const *from, TetrisNode const *to, TetrisMap const &map)
     {
         node_path.clear();
