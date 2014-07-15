@@ -2,18 +2,29 @@
 #define DECLSPEC_EXPORT __declspec(dllexport)
 #define WINAPI __stdcall
 
+#include <ctime>
 #include "tetris_core.h"
+#include "land_point_search_simple.h"
+#include "ai_ax.h"
+#include "rule_st.h"
+#include "random.h"
 
+m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_ax::AI, land_point_search_simple::Simple<ai_ax::AI>> tetris_ai;
+
+extern "C" void attach_init()
+{
+    ege::mtsrand(unsigned int(time(nullptr)));
+}
 
 //返回AI名字，会显示在界面上
 extern "C" DECLSPEC_EXPORT char const *WINAPI Name()
 {
-    static std::string name = ai_name();
+    static std::string name = tetris_ai.ai_name();
     return name.c_str();
 }
 
 //数据转换
-void build_map(char board[], int w, int h, TetrisMap &map)
+void build_map(char board[], int w, int h, m_tetris::TetrisMap &map)
 {
     memset(&map, 0, sizeof map);
     map.width = w;
@@ -55,12 +66,12 @@ void build_map(char board[], int w, int h, TetrisMap &map)
  */
 extern "C" DECLSPEC_EXPORT int WINAPI AI(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char nextPiece, int *bestX, int *bestRotation)
 {
-    if(!init_ai(boardW, boardH))
+    if(!tetris_ai.prepare(boardW, boardH))
     {
         return 0;
     }
-    TetrisMap map;
-    TetrisBlockStatus status =
+    m_tetris::TetrisMap map;
+    m_tetris::TetrisBlockStatus status =
     {
         curPiece, curX - 1, curY - 1, curR
     };
@@ -83,7 +94,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AI(int boardW, int boardH, char board[], c
         next_length = 1;
     }
     /////////////////////////////////////////////////
-    auto result = ai_simple::do_ai(map, get(status), next, next_length).first;
+    auto result = tetris_ai.run(map, tetris_ai.get(status), next, next_length);
 
     if(result != nullptr)
     {
@@ -109,12 +120,12 @@ extern "C" DECLSPEC_EXPORT int WINAPI AI(int boardW, int boardH, char board[], c
  */
 extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char nextPiece, char path[])
 {
-    if(!init_ai(boardW, boardH))
+    if(!tetris_ai.prepare(boardW, boardH))
     {
         return 0;
     }
-    TetrisMap map;
-    TetrisBlockStatus status =
+    m_tetris::TetrisMap map;
+    m_tetris::TetrisBlockStatus status =
     {
         curPiece, curX - 1, curY - 1, curR
     };
@@ -137,12 +148,11 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
         next_length = 1;
     }
     /////////////////////////////////////////////////
-    TetrisNode const *node = get(status);
-    auto result = ai_path::do_ai(map, node, next, next_length);
-
-    if(result.first != nullptr)
+    m_tetris::TetrisNode const *node = tetris_ai.get(status);
+    auto result = tetris_ai.run(map, node, next, next_length);
+    if(result != nullptr)
     {
-        std::vector<char> ai_path = ai_path::make_path(node, result.first, map);
+        std::vector<char> ai_path = tetris_ai.path(node, result, map);
         memcpy(path, ai_path.data(), ai_path.size());
     }
     return 0;
@@ -222,13 +232,13 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
     }
     SetWindowTextA(GetConsoleWindow(), ((char const *(*)())name)());
     int w = 10, h = 20;
-    TetrisMap map =
+    m_tetris::TetrisMap map =
     {
         {}, {}, w, h
     };
     char *param_map = new char[w * h];
     char *path = new char[1024];
-    init_ai(w, h);
+    tetris_ai.prepare(w, h);
     clock_t log_start = clock();
     clock_t log_time = log_start;
     clock_t log_new_time;
@@ -243,7 +253,7 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
 
     while(true)
     {
-        TetrisNode const *node = generate(map);
+        m_tetris::TetrisNode const *node = tetris_ai.context()->generate();
         log_new_time = clock();
         if(log_new_time - log_time > log_interval)
         {

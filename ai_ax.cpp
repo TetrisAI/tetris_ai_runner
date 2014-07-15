@@ -3,13 +3,50 @@
 //Modify by ZouZhiZhang
 
 #include "tetris_core.h"
+#include "ai_ax.h"
 
-std::string ai_name()
+using namespace m_tetris;
+using namespace ai_ax;
+
+
+void AI::init(m_tetris::TetrisContext const *context)
 {
-    return "Tetris_ax_C Mod ZZZ v1";
+    context_ = context;
+    map_danger_data_.resize(context->type_max());
+    for(size_t i = 0; i < context->type_max(); ++i)
+    {
+        TetrisMap map =
+        {
+            {}, {}, context->width(), context->height()
+        };
+        TetrisNode const *node = context->generate(i);
+        node->attach(map);
+        memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
+        for(int y = 0; y < 3; ++y)
+        {
+            map_danger_data_[i].data[y + 1] |= map_danger_data_[i].data[y];
+        }
+    }
 }
 
-int ai_eval(TetrisMap const &map, EvalParam *history, size_t history_length)
+std::string AI::ai_name() const
+{
+    return "Tetris_ax_C (ZZZ Mod v1.1)";
+}
+
+void AI::eval_land_point(TetrisNode const *node, TetrisMap const &map, size_t clear, LandPointEval &out_eval) const
+{
+    double LandHeight = node->status.y + 1;
+    double Middle = std::abs((node->status.x + 1) * 2 - map.width);
+    double EraseCount = clear;
+    out_eval = (0
+                - LandHeight * 200 / map.height
+                + Middle  * 0.2
+                + EraseCount * 6
+                );
+}
+
+void AI::eval_map(TetrisMap const &map, EvalParam<LandPointEval> const *history, size_t history_length, MapEval &out_result) const
 {
     //ÐÐÁÐ±ä»»
     int ColTrans = 2 * (map.height - map.roof);
@@ -140,29 +177,52 @@ int ai_eval(TetrisMap const &map, EvalParam *history, size_t history_length)
             }
         }
     }
+    double land_point_value = 0;
     for(size_t i = 0; i < history_length; ++i)
     {
-        TetrisNode const *node = history[i].node;
-        v.LandHeight += node->status.y + 1;
-        v.Middle += std::abs((node->status.x + 1) * 2 - map.width);
-        v.EraseCount += history[i].clear;
+        land_point_value += history[i].eval;
     }
 
     //ËÀÍö¾¯½ä
-    int BoardDeadZone = map_in_danger(map);
+    int BoardDeadZone = map_in_danger_(map);
 
-    int hl = history_length;
-    return int(0
-               - v.LandHeight * 200 / map.height / hl
-               + v.EraseCount * 6 / hl
-               - ColTrans * 8
-               - RowTrans * 8
-               - v.HoleCount * 6
-               - v.HoleLine * 38
-               - v.WellDepth * 10
-               - v.HoleDepth * 4
-               - v.HolePiece * 0.5
-               + v.Middle * 0.2 / hl
-               - BoardDeadZone * 5000
-               );
+    out_result = (0
+                  - land_point_value / history_length
+                  - ColTrans * 8
+                  - RowTrans * 8
+                  - v.HoleCount * 6
+                  - v.HoleLine * 38
+                  - v.WellDepth * 10
+                  - v.HoleDepth * 4
+                  - v.HolePiece * 0.5
+                  - BoardDeadZone * 5000
+                  );
+}
+
+bool AI::map_eval_greater(MapEval const &left, MapEval const &right) const
+{
+    return left > right;
+}
+
+AI::MapEval AI::get_vritual_eval(MapEval const *eval, size_t eval_length) const
+{
+    MapEval result = 0;
+    for(size_t i = 0; i < eval_length; ++i)
+    {
+        result += eval[i];
+    }
+    return result / eval_length;
+}
+
+size_t AI::map_in_danger_(m_tetris::TetrisMap const &map) const
+{
+    size_t danger = 0;
+    for(size_t i = 0; i < context_->type_max(); ++i)
+    {
+        if(map_danger_data_[i].data[0] & map.row[map.height - 4] || map_danger_data_[i].data[1] & map.row[map.height - 3] || map_danger_data_[i].data[2] & map.row[map.height - 2] || map_danger_data_[i].data[3] & map.row[map.height - 1])
+        {
+            ++danger;
+        }
+    }
+    return danger;
 }

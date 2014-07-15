@@ -3,17 +3,27 @@
   <ItemGroup>
     <ClCompile Include="ai.cpp" />
     <ClCompile Include="dllmain.c" />
-    <ClCompile Include="eval.cpp" />
     <ClCompile Include="random.cpp" />
     <ClCompile Include="tetris_core.cpp" />
     <ClCompile Include="rule_st.cpp">
       <Filter>rules\st</Filter>
+    </ClCompile>
+    <ClCompile Include="ai_ax.cpp">
+      <Filter>default_ai</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tetris_core.h" />
     <ClInclude Include="rule_st.h">
       <Filter>rules\st</Filter>
+    </ClInclude>
+    <ClInclude Include="type_slist.h" />
+    <ClInclude Include="random.h" />
+    <ClInclude Include="land_point_search_simple.h">
+      <Filter>land_point_search_engine</Filter>
+    </ClInclude>
+    <ClInclude Include="ai_ax.h">
+      <Filter>default_ai</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -25,6 +35,9 @@
     </Filter>
     <Filter Include="land_point_search_engine">
       <UniqueIdentifier>{2c7d56ab-e7cb-4726-b343-411785ace0b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="default_ai">
+      <UniqueIdentifier>{824db86c-fbb6-4f7b-9b4d-24bde6f0501b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

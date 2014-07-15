@@ -5,7 +5,17 @@
 
 using namespace rule_st;
 using namespace m_tetris;
-using namespace m_tetris_rule_toole;
+using namespace m_tetris_rule_tools;
+
+template<unsigned char T>
+TetrisBlockStatus generate_template(TetrisContext const *context)
+{
+    TetrisBlockStatus status =
+    {
+        T, context->width() / 2, context->height() - 1, 1
+    };
+    return status;
+}
 
 std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet::get_opertion_info()
 {
@@ -13,7 +23,7 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet:
 #define T(a, b, c, d) (((a) ? 1 : 0) | ((b) ? 2 : 0) | ((c) ? 4 : 0) | ((d) ? 8 : 0))
     TetrisOpertion op_O1 =
     {
-        create_node<'O', 1,
+        create_node<'O', 2, 1, 1,
         T(0, 0, 0, 0),
         T(0, 1, 1, 0),
         T(0, 1, 1, 0),
@@ -27,7 +37,7 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet:
     };
     TetrisOpertion op_I1 =
     {
-        create_node<'I', 1,
+        create_node<'I', 2, 1, 1,
         T(0, 0, 0, 0),
         T(1, 1, 1, 1),
         T(0, 0, 0, 0),
@@ -41,7 +51,7 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet:
     };
     TetrisOpertion op_I2 =
     {
-        create_node<'I', 2,
+        create_node<'I', 2, 1, 2,
         T(0, 0, 1, 0),
         T(0, 0, 1, 0),
         T(0, 0, 1, 0),
@@ -55,7 +65,7 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet:
     };
     TetrisOpertion op_S1 =
     {
-        create_node<'S', 1,
+        create_node<'S', 2, 1, 1,
         T(0, 0, 0, 0),
         T(0, 0, 1, 1),
         T(0, 1, 1, 0),
@@ -69,7 +79,7 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet:
     };
     TetrisOpertion op_S2 =
     {
-        create_node<'S', 2,
+        create_node<'S', 2, 1, 2,
         T(0, 0, 1, 0),
         T(0, 0, 1, 1),
         T(0, 0, 0, 1),
@@ -83,7 +93,7 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet:
     };
     TetrisOpertion op_Z1 =
     {
-        create_node<'Z', 1,
+        create_node<'Z', 2, 1, 1,
         T(0, 0, 0, 0),
         T(0, 1, 1, 0),
         T(0, 0, 1, 1),
@@ -97,7 +107,7 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet:
     };
     TetrisOpertion op_Z2 =
     {
-        create_node<'Z', 2,
+        create_node<'Z', 2, 1, 2,
         T(0, 0, 0, 1),
         T(0, 0, 1, 1),
         T(0, 0, 1, 0),
@@ -111,7 +121,7 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet:
     };
     TetrisOpertion op_L1 =
     {
-        create_node<'L', 1,
+        create_node<'L', 2, 1, 1,
         T(0, 0, 0, 0),
         T(0, 1, 1, 1),
         T(0, 1, 0, 0),
@@ -125,7 +135,7 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet:
     };
     TetrisOpertion op_L2 =
     {
-        create_node<'L', 2,
+        create_node<'L', 2, 1, 2,
         T(0, 0, 1, 0),
         T(0, 0, 1, 0),
         T(0, 0, 1, 1),
@@ -139,7 +149,7 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet:
     };
     TetrisOpertion op_L3 =
     {
-        create_node<'L', 3,
+        create_node<'L', 2, 1, 3,
         T(0, 0, 0, 1),
         T(0, 1, 1, 1),
         T(0, 0, 0, 0),
@@ -153,7 +163,7 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet:
     };
     TetrisOpertion op_L4 =
     {
-        create_node<'L', 4,
+        create_node<'L', 2, 1, 4,
         T(0, 1, 1, 0),
         T(0, 0, 1, 0),
         T(0, 0, 1, 0),
@@ -167,7 +177,7 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet:
     };
     TetrisOpertion op_J1 =
     {
-        create_node<'J', 1,
+        create_node<'J', 2, 1, 1,
         T(0, 0, 0, 0),
         T(0, 1, 1, 1),
         T(0, 0, 0, 1),
@@ -181,7 +191,7 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet:
     };
     TetrisOpertion op_J2 =
     {
-        create_node<'J', 2,
+        create_node<'J', 2, 1, 2,
         T(0, 0, 1, 1),
         T(0, 0, 1, 0),
         T(0, 0, 1, 0),
@@ -195,7 +205,7 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet:
     };
     TetrisOpertion op_J3 =
     {
-        create_node<'J', 3,
+        create_node<'J', 2, 1, 3,
         T(0, 1, 0, 0),
         T(0, 1, 1, 1),
         T(0, 0, 0, 0),
@@ -209,7 +219,7 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet:
     };
     TetrisOpertion op_J4 =
     {
-        create_node<'J', 4,
+        create_node<'J', 2, 1, 4,
         T(0, 0, 1, 0),
         T(0, 0, 1, 0),
         T(0, 1, 1, 0),
@@ -223,7 +233,7 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet:
     };
     TetrisOpertion op_T1 =
     {
-        create_node<'T', 1,
+        create_node<'T', 2, 1, 1,
         T(0, 0, 0, 0),
         T(0, 1, 1, 1),
         T(0, 0, 1, 0),
@@ -237,7 +247,7 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet:
     };
     TetrisOpertion op_T2 =
     {
-        create_node<'T', 2,
+        create_node<'T', 2, 1, 2,
         T(0, 0, 1, 0),
         T(0, 0, 1, 1),
         T(0, 0, 1, 0),
@@ -251,7 +261,7 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet:
     };
     TetrisOpertion op_T3 =
     {
-        create_node<'T', 3,
+        create_node<'T', 2, 1, 3,
         T(0, 0, 1, 0),
         T(0, 1, 1, 1),
         T(0, 0, 0, 0),
@@ -265,12 +275,11 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet:
     };
     TetrisOpertion op_T4 =
     {
-        create_node<'T', 4,
+        create_node<'T', 2, 1, 4,
         T(0, 0, 1, 0),
         T(0, 1, 1, 0),
         T(0, 0, 1, 0),
         T(0, 0, 0, 0)>,
-        generate_template<'T'>,
         rotate_template<3>,
         rotate_template<1>,
         nullptr,
@@ -301,9 +310,16 @@ std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet:
     return info;
 }
 
-std::map<unsigned char, m_tetris::TetrisBlockStatus(*)(m_tetris::TetrisMap const &)> TetrisRuleSet::get_generate_info()
+std::map<unsigned char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> TetrisRuleSet::get_generate_info()
 {
-
-
+    std::map<unsigned char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> info;
+    info.insert(std::make_pair('O', &generate_template<'O'>));
+    info.insert(std::make_pair('I', &generate_template<'I'>));
+    info.insert(std::make_pair('S', &generate_template<'S'>));
+    info.insert(std::make_pair('Z', &generate_template<'Z'>));
+    info.insert(std::make_pair('L', &generate_template<'L'>));
+    info.insert(std::make_pair('J', &generate_template<'J'>));
+    info.insert(std::make_pair('T', &generate_template<'T'>));
+    return info;
 }
 

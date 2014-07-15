@@ -11,14 +11,17 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ai_ax.h" />
+    <ClInclude Include="land_point_search_simple.h" />
+    <ClInclude Include="random.h" />
     <ClInclude Include="rule_st.h" />
     <ClInclude Include="tetris_core.h" />
     <ClInclude Include="type_slist.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ai.cpp" />
+    <ClCompile Include="ai_ax.cpp" />
     <ClCompile Include="dllmain.c" />
-    <ClCompile Include="eval.cpp" />
     <ClCompile Include="random.cpp" />
     <ClCompile Include="rule_st.cpp" />
     <ClCompile Include="tetris_core.cpp" />
