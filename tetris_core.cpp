@@ -316,7 +316,6 @@ namespace m_tetris
 #undef D
             }
         } while(check.size() > check_index);
-        node_mark_.init(node_cache_.size());
         for(size_t i = 0; i < 7; ++i)
         {
             TetrisNode const *node = generate(i);

@@ -176,7 +176,6 @@ namespace m_tetris
         int full_;
 
         std::map<unsigned char, std::vector<TetrisNode const *>> place_cache_;
-        TetrisNodeMark node_mark_;
         size_t type_max_;
         TetrisNode const *generate_cache_[256];
         unsigned char index_to_type_[256];
