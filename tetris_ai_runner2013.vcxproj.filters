@@ -9,7 +9,7 @@
       <Filter>rules\st</Filter>
     </ClCompile>
     <ClCompile Include="ai_ax.cpp">
-      <Filter>default_ai</Filter>
+      <Filter>ai</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -20,10 +20,10 @@
     <ClInclude Include="type_slist.h" />
     <ClInclude Include="random.h" />
     <ClInclude Include="land_point_search_simple.h">
-      <Filter>land_point_search_engine</Filter>
+      <Filter>land_point_search</Filter>
     </ClInclude>
     <ClInclude Include="ai_ax.h">
-      <Filter>default_ai</Filter>
+      <Filter>ai</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -33,11 +33,11 @@
     <Filter Include="rules\st">
       <UniqueIdentifier>{677e0567-341f-404a-83af-d9615b4522fb}</UniqueIdentifier>
     </Filter>
-    <Filter Include="land_point_search_engine">
-      <UniqueIdentifier>{2c7d56ab-e7cb-4726-b343-411785ace0b8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="default_ai">
+    <Filter Include="ai">
       <UniqueIdentifier>{824db86c-fbb6-4f7b-9b4d-24bde6f0501b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="land_point_search">
+      <UniqueIdentifier>{2c7d56ab-e7cb-4726-b343-411785ace0b8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

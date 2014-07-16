@@ -6,6 +6,8 @@
 #include <map>
 #include <algorithm>
 
+#include <typeinfo>
+
 namespace m_tetris
 {
 
@@ -241,7 +243,43 @@ namespace m_tetris
             return context;
         }
     };
-
+    
+    template<class TetrisAI>
+    struct TetrisAICallInit
+    {
+        template<class T>
+        struct CallInit
+        {
+            CallInit(TetrisAI &ai, TetrisContext const *context)
+            {
+            }
+        };
+        template<>
+        struct CallInit<std::true_type>
+        {
+            CallInit(TetrisAI &ai, TetrisContext const *context)
+            {
+                ai.init(context);
+            }
+        };
+        struct Fallback
+        {
+            void init(TetrisContext const *);
+        };
+        struct Derived : TetrisAI, Fallback
+        {
+        };
+        template<typename U, U> struct Check;
+        template<typename U>
+        static std::false_type func(Check<void (Fallback::*)(TetrisContext const *), &U::init> *);
+        template<typename U>
+        static std::true_type func(...);
+    public:
+        TetrisAICallInit(TetrisAI &ai, TetrisContext const *context)
+        {
+            CallInit<decltype(func<Derived>(nullptr))>(ai, context);
+        }
+    };
 
     template<class TetrisRuleSet, class TetrisAI, class TetrisLandPointSearchEngine>
     class TetrisEngine
@@ -276,7 +314,7 @@ namespace m_tetris
         {
             if(context_.prepare(width, height))
             {
-                ai_.init(&context_);
+                TetrisAICallInit<TetrisAI>(ai_, &context_);
                 return true;
             }
             return false;
