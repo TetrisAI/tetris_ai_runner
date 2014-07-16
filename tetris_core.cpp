@@ -17,28 +17,33 @@ namespace m_tetris
 {
     bool TetrisNode::check(TetrisMap const &map) const
     {
-        switch(height)
+        if(map.row[row] & data[0])
         {
-        case 4:
-            if(map.row[row + 3] & data[3])
-            {
-                return false;
-            }
-        case 3:
-            if(map.row[row + 2] & data[2])
-            {
-                return false;
-            }
-        case 2:
-            if(map.row[row + 1] & data[1])
-            {
-                return false;
-            }
-        default:
-            if(map.row[row] & data[0])
-            {
-                return false;
-            }
+            return false;
+        }
+        if(height == 1)
+        {
+            return true;
+        }
+        if(map.row[row + 1] & data[1])
+        {
+            return false;
+        }
+        if(height == 2)
+        {
+            return true;
+        }
+        if(map.row[row + 2] & data[2])
+        {
+            return false;
+        }
+        if(height == 3)
+        {
+            return true;
+        }
+        if(map.row[row + 3] & data[3])
+        {
+            return false;
         }
         return true;
     }
@@ -186,7 +191,7 @@ namespace m_tetris
         data_.resize(size);
     }
 
-    inline void TetrisNodeMark::clear()
+    void TetrisNodeMark::clear()
     {
         if(++version_ == std::numeric_limits<size_t>::max())
         {
@@ -197,11 +202,11 @@ namespace m_tetris
             }
         }
     }
-    inline std::pair<TetrisNode const *, char> TetrisNodeMark::get(TetrisNode const *key)
+    std::pair<TetrisNode const *, char> TetrisNodeMark::get(TetrisNode const *key)
     {
         return data_[key->index].data;
     }
-    inline bool TetrisNodeMark::set(TetrisNode const *key, TetrisNode const *node, char op)
+    bool TetrisNodeMark::set(TetrisNode const *key, TetrisNode const *node, char op)
     {
         Mark &mark = data_[key->index];
         if(mark.version == version_)
@@ -213,7 +218,7 @@ namespace m_tetris
         mark.data.second = op;
         return true;
     }
-    inline bool TetrisNodeMark::mark(TetrisNode const *key)
+    bool TetrisNodeMark::mark(TetrisNode const *key)
     {
         Mark &mark = data_[key->index];
         if(mark.version == version_)
@@ -224,15 +229,15 @@ namespace m_tetris
         return true;
     }
 
-    bool TetrisContext::prepare(int width, int height)
+    TetrisContext::PrepareResult TetrisContext::prepare(int width, int height)
     {
         if(width == width_ && height == height_)
         {
-            return true;
+            return ok;
         }
         if(width > 32 || height > 40 || width < 4 || height < 4)
         {
-            return false;
+            return fail;
         }
         place_cache_.clear();
         node_cache_.clear();
@@ -316,7 +321,7 @@ namespace m_tetris
         {
             TetrisNode const *node = generate(i);
             place_cache_.insert(std::make_pair(node->status.t, std::vector<TetrisNode const *>()));
-            std::vector<TetrisNode const *> *place = &place_cache_.find(node->status.t)->second;
+            std::vector<TetrisNode const *> *land_point = &place_cache_.find(node->status.t)->second;
             TetrisNode const *rotate = node;
             do
             {
@@ -327,7 +332,7 @@ namespace m_tetris
                 }
                 do
                 {
-                    place->push_back(move);
+                    land_point->push_back(move);
                     move = move->move_right;
                 } while(move != nullptr);
                 rotate = rotate->rotate_counterclockwise;
@@ -342,13 +347,13 @@ namespace m_tetris
                 }
                 rotate = rotate->rotate_counterclockwise;
             } while(rotate != nullptr  && rotate != node);
-            auto set_column_data = [place](TetrisNode const *node, int low)->void
+            auto set_column_data = [land_point](TetrisNode const *node, int low)->void
             {
                 do
                 {
                     TetrisNode *set_node = const_cast<TetrisNode *>(node);
                     set_node->low = low--;
-                    set_node->place = place;
+                    set_node->land_point = land_point;
                     node = set_node->move_down;
                 } while(node != nullptr);
             };
@@ -368,7 +373,7 @@ namespace m_tetris
                 rotate = rotate->rotate_counterclockwise;
             } while(rotate != nullptr  && rotate != node);
         }
-        return true;
+        return rebuild;
     }
 
     int TetrisContext::width() const
@@ -389,6 +394,11 @@ namespace m_tetris
     size_t TetrisContext::type_max() const
     {
         return type_max_;
+    }
+
+    size_t TetrisContext::node_max() const
+    {
+        return node_cache_.size();
     }
 
     TetrisOpertion TetrisContext::get_opertion(unsigned char t, unsigned char r) const

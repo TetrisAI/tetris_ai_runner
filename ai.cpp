@@ -5,11 +5,12 @@
 #include <ctime>
 #include "tetris_core.h"
 #include "land_point_search_simple.h"
+#include "land_point_search_path.h"
 #include "ai_ax.h"
 #include "rule_st.h"
 #include "random.h"
 
-m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_ax::AI, land_point_search_simple::Simple<ai_ax::AI>> tetris_ai;
+m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_ax_0::AI, land_point_search_path::Search, 0> tetris_ai;
 
 extern "C" void attach_init()
 {

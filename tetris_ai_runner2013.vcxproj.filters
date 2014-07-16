@@ -8,8 +8,14 @@
     <ClCompile Include="rule_st.cpp">
       <Filter>rules\st</Filter>
     </ClCompile>
+    <ClCompile Include="land_point_search_simple.cpp">
+      <Filter>land_point_search\simple</Filter>
+    </ClCompile>
+    <ClCompile Include="land_point_search_path.cpp">
+      <Filter>land_point_search\path</Filter>
+    </ClCompile>
     <ClCompile Include="ai_ax.cpp">
-      <Filter>ai</Filter>
+      <Filter>ai\ax</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -20,10 +26,13 @@
     <ClInclude Include="type_slist.h" />
     <ClInclude Include="random.h" />
     <ClInclude Include="land_point_search_simple.h">
-      <Filter>land_point_search</Filter>
+      <Filter>land_point_search\simple</Filter>
+    </ClInclude>
+    <ClInclude Include="land_point_search_path.h">
+      <Filter>land_point_search\path</Filter>
     </ClInclude>
     <ClInclude Include="ai_ax.h">
-      <Filter>ai</Filter>
+      <Filter>ai\ax</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -38,6 +47,15 @@
     </Filter>
     <Filter Include="land_point_search">
       <UniqueIdentifier>{2c7d56ab-e7cb-4726-b343-411785ace0b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="land_point_search\simple">
+      <UniqueIdentifier>{24cb6bc2-0abf-4c72-826f-c433aa2d31b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="land_point_search\path">
+      <UniqueIdentifier>{e174a12c-a5e5-458a-90aa-72fcc63c0f03}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ai\ax">
+      <UniqueIdentifier>{6813cfa7-88df-4217-a710-edeb76ffb8de}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

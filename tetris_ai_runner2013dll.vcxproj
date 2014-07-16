@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ai_ax.h" />
+    <ClInclude Include="land_point_search_path.h" />
     <ClInclude Include="land_point_search_simple.h" />
     <ClInclude Include="random.h" />
     <ClInclude Include="rule_st.h" />
@@ -22,6 +23,8 @@
     <ClCompile Include="ai.cpp" />
     <ClCompile Include="ai_ax.cpp" />
     <ClCompile Include="dllmain.c" />
+    <ClCompile Include="land_point_search_path.cpp" />
+    <ClCompile Include="land_point_search_simple.cpp" />
     <ClCompile Include="random.cpp" />
     <ClCompile Include="rule_st.cpp" />
     <ClCompile Include="tetris_core.cpp" />
