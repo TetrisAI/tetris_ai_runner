@@ -7,7 +7,7 @@ using namespace m_tetris;
 
 namespace land_point_search_simple
 {
-    std::vector<char> Search::make_path(TetrisContext const *context, TetrisNode const *node, TetrisNode const *land_point, TetrisMap const &map)
+    std::vector<char> Search::make_path(TetrisNode const *node, TetrisNode const *land_point, TetrisMap const &map)
     {
         std::vector<char> path;
         if(node->status.t != land_point->status.t || node->status.y < land_point->status.y)

@@ -31,7 +31,7 @@ namespace ai_ax_1
 
     std::string AI::ai_name() const
     {
-        return "Tetris_ax_C (ZZZ Mod v1.1)";
+        return "Tetris_ax_C ZZZ Mod v1.2";
     }
 
     double AI::eval_land_point(TetrisNode const *node, TetrisMap const &map, size_t clear) const
@@ -44,6 +44,11 @@ namespace ai_ax_1
                 + Middle  * 0.2
                 + EraseCount * 6
                 );
+    }
+
+    double AI::eval_map_bad() const
+    {
+        return -99999999;
     }
 
     double AI::eval_map(TetrisMap const &map, EvalParam<double> const *history, size_t history_length) const
@@ -248,7 +253,12 @@ namespace ai_ax_0
 
     std::string AI::ai_name() const
     {
-        return "Tetris_ax_C (ZZZ Mod v1.1)";
+        return "Tetris_ax_C ZZZ Mod v1.2";
+    }
+
+    double AI::eval_map_bad() const
+    {
+        return -99999999;
     }
     
     double AI::eval_map(TetrisMap const &map, EvalParam<> const *history, size_t history_length) const
@@ -386,9 +396,9 @@ namespace ai_ax_0
         for(size_t i = 0; i < history_length; ++i)
         {
             TetrisNode const *node = history[i].node;
-            v.LandHeight = node->status.y + 1;
-            v.Middle = std::abs((node->status.x + 1) * 2 - map.width);
-            v.EraseCount = history[i].clear;
+            v.LandHeight += node->status.y + 1;
+            v.Middle += std::abs((node->status.x + 1) * 2 - map.width);
+            v.EraseCount += history[i].clear;
         }
 
         //ËÀÍö¾¯½ä

@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <algorithm>
+#include <functional>
 
 namespace m_tetris
 {
@@ -328,9 +329,55 @@ namespace m_tetris
         static std::true_type func(...);
     public:
         template<class Data, class... Param>
-        static Data invoke(Type &type, Param const &... param)
+        static Data invoke(Type &type, Data const &data, Param const &... param)
         {
-            return CallProcess<decltype(func<Derived>(nullptr))>::invoke<Data>(type, param...);
+            return CallProcess<decltype(func<Derived>(nullptr))>::invoke(type, data, param...);
+        }
+    };
+
+    template<class Type>
+    struct TetrisGetVirtualValue
+    {
+        template<class T>
+        struct CallGetVirtualValue
+        {
+            template<class Eval>
+            static Eval invoke(Type &type, Eval const *eval, size_t eval_length)
+            {
+                Eval value = 0;
+                for(size_t i = 0; i < eval_length; ++i)
+                {
+                    value += eval[i];
+                }
+                return value / eval_length;
+            }
+        };
+        template<>
+        struct CallGetVirtualValue<std::true_type>
+        {
+            template<class Eval>
+            static Eval invoke(Type &type, Eval const *eval, size_t eval_length)
+            {
+                return type.get_vritual_eval(eval, eval_length);
+            }
+        };
+        struct Fallback
+        {
+            int get_vritual_eval;
+        };
+        struct Derived : Type, Fallback
+        {
+        };
+        template<typename U, U> struct Check;
+        template<typename U>
+        static std::false_type func(Check<int Fallback::*, &U::get_vritual_eval> *);
+        template<typename U>
+        static std::true_type func(...);
+    public:
+        template<class Eval>
+        static Eval invoke(Type &type, Eval const *eval, size_t eval_length)
+        {
+            return CallGetVirtualValue<decltype(func<Derived>(nullptr))>::invoke(type, eval, eval_length);
         }
     };
 
@@ -353,138 +400,244 @@ namespace m_tetris
         typedef decltype(func<Derived>(nullptr)) type;
     };
 
-    template<class TetrisAI, class TetrisLandPointSearchEngine, size_t MaxDeep>
-    class TetrisAIRunner
-    {
-    };
-
-    template<class TetrisAI, class TetrisLandPointSearchEngine>
-    class TetrisAIRunner<TetrisAI, TetrisLandPointSearchEngine, 0>
+    template<class TetrisAI, class TetrisLandPointSearchEngine, size_t NextLength, class HasLandPointEval>
+    class TetrisCore
     {
     public:
         typedef decltype(TetrisAI().eval_map(TetrisMap(), nullptr, 0)) MapEval;
-        TetrisAIRunner(TetrisContext const *context, TetrisAI const &ai, TetrisLandPointSearchEngine &search) : context_(context), ai_(ai), search_(search)
+        typedef EvalParam<> EvalParam;
+        typedef std::function<std::pair<TetrisNode const *, MapEval>(TetrisMap const &, TetrisNode const *, std::vector<EvalParam> &history, unsigned char *)> CallAI;
+        TetrisCore(TetrisContext const *context, TetrisAI &ai, std::vector<CallAI> &call_ai) : context_(context), ai_(ai), next_(context, ai, call_ai)
         {
-            core_.search_ = &search;
+            call_ai.push_back(std::bind(&TetrisCore::run, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+        }
+        void init(TetrisContext const *context)
+        {
+            virtual_eval_.resize(context->type_max());
+            TetrisCallInit<TetrisLandPointSearchEngine>(search_, context);
+            next_.init(context);
+        }
+        std::pair<TetrisNode const *, MapEval> run(TetrisMap const &map, TetrisNode const *node, std::vector<EvalParam> &history, unsigned char *next)
+        {
+            std::vector<TetrisNode const *> const *land_point = search_.search(map, node);
+            TetrisMap copy;
+            MapEval eval = ai_.eval_map_bad();
+            TetrisNode const *best_node = node;
+            for(auto cit = land_point->begin(); cit != land_point->end(); ++cit)
+            {
+                node = TetrisCallProcess<TetrisLandPointSearchEngine>::invoke(search_, *cit, map);
+                copy = map;
+                history.push_back(EvalParam(node, node->attach(copy), map));
+                MapEval new_eval;
+                if(*next == ' ')
+                {
+                    for(size_t i = 0; i < context_->type_max(); ++i)
+                    {
+                        TetrisNode const *next_node = context_->generate(i);
+                        virtual_eval_[i] = next_node->check(copy) ? next_.run(copy, next_node, history, next + 1).second : ai_.eval_map_bad();
+                    }
+                    new_eval = TetrisGetVirtualValue<TetrisAI>::invoke(ai_, virtual_eval_.data(), virtual_eval_.size());
+                }
+                else
+                {
+                    TetrisNode const *next_node = context_->generate(*next);
+                    new_eval = next_node->check(copy) ? next_.run(copy, next_node, history, next + 1).second : ai_.eval_map_bad();
+                }
+                history.pop_back();
+                if(new_eval > eval)
+                {
+                    eval = new_eval;
+                    best_node = node;
+                }
+            }
+            return std::make_pair(best_node, eval);
         }
     private:
-        template<class U, class T>
-        struct RunnerCore
-        {
-            typedef EvalParam<> EvalParam;
-            std::vector<TetrisNode const *> const *land_point;
-            TetrisLandPointSearchEngine *search_;
-            std::pair<TetrisNode const *, MapEval> run(TetrisAI const &ai, TetrisMap const &map, std::vector<EvalParam> &history)
-            {
-                TetrisNode const *node = TetrisCallProcess<TetrisLandPointSearchEngine>::invoke<TetrisNode const *>(*search_, land_point->front(), map);
-                TetrisMap copy = map;
-                size_t clear = node->attach(copy);
-                history.push_back(EvalParam(node, clear, map));
-                MapEval eval = ai.eval_map(copy, history.data(), history.size());
-                TetrisNode const *best_node = node;
-                for(auto cit = land_point->begin() + 1; cit != land_point->end(); ++cit)
-                {
-                    history.back().node = node = TetrisCallProcess<TetrisLandPointSearchEngine>::invoke<TetrisNode const *>(*search_, *cit, map);
-                    copy = map;
-                    history.back().clear = node->attach(copy);
-                    MapEval new_eval = ai.eval_map(copy, history.data(), history.size());
-                    if(new_eval > eval)
-                    {
-                        eval = new_eval;
-                        best_node = node;
-                    }
-                }
-                history.pop_back();
-                return std::make_pair(best_node, eval);
-            }
-        };
-        template<class T>
-        struct RunnerCore<std::true_type, T>
-        {
-            typedef decltype(T().eval_land_point(nullptr, TetrisMap(), 0)) LandPointEval;
-            typedef EvalParam<LandPointEval> EvalParam;
-            std::vector<TetrisNode const *> const *land_point;
-            TetrisLandPointSearchEngine *search_;
-            std::pair<TetrisNode const *, MapEval> run(TetrisAI const &ai, TetrisMap const &map, std::vector<EvalParam> &history)
-            {
-                TetrisNode const *node = TetrisCallProcess<TetrisLandPointSearchEngine>::invoke<TetrisNode const *>(*search_, land_point->front(), map);
-                TetrisMap copy = map;
-                size_t clear = node->attach(copy);
-                LandPointEval eval_land_point = ai.eval_land_point(node, copy, clear);
-                history.push_back(EvalParam(node, clear, map, eval_land_point));
-                MapEval eval = ai.eval_map(copy, history.data(), history.size());
-                TetrisNode const *best_node = node;
-                for(auto cit = land_point->begin() + 1; cit != land_point->end(); ++cit)
-                {
-                    history.back().node = node = TetrisCallProcess<TetrisLandPointSearchEngine>::invoke<TetrisNode const *>(*search_, *cit, map);
-                    copy = map;
-                    history.back().clear = clear = node->attach(copy);
-                    eval_land_point = ai.eval_land_point(node, copy, clear);
-                    MapEval new_eval = ai.eval_map(copy, history.data(), history.size());
-                    if(new_eval > eval)
-                    {
-                        eval = new_eval;
-                        best_node = node;
-                    }
-                }
-                history.pop_back();
-                return std::make_pair(best_node, eval);
-            }
-        };
-    public:
-        typedef RunnerCore<typename TetrisAIHasLandPointEval<TetrisAI>::type, TetrisAI> Core;
-    private:
-        TetrisLandPointSearchEngine &search_;
-        Core core_;
+        TetrisLandPointSearchEngine search_;
         TetrisContext const *context_;
-        TetrisAI const &ai_;
-    public:
-        Core &core()
-        {
-            return core_;
-        }
-        TetrisContext const *context()
-        {
-            return context_;
-        }
-        TetrisNode const *run(TetrisMap const &map, TetrisNode const *node, unsigned char *next, size_t next_length)
-        {
-            if(node == nullptr || !node->check(map))
-            {
-                return nullptr;
-            }
-            core_.land_point = search_.search(map, node);
-            std::vector<typename Core::EvalParam> history;
-            return core_.run(ai_, map, history).first;
-        }
-        std::vector<char> path(TetrisNode const *node, TetrisNode const *land_point, TetrisMap const &map)
-        {
-            return search_.make_path(context_, node, land_point, map);
-        }
+        TetrisAI &ai_;
+        std::vector<MapEval> virtual_eval_;
+        TetrisCore<TetrisAI, TetrisLandPointSearchEngine, NextLength - 1, HasLandPointEval> next_;
     };
 
-    template<class TetrisRuleSet, class TetrisAI, class TetrisLandPointSearchEngine, size_t MaxDeep>
+    template<class TetrisAI, class TetrisLandPointSearchEngine, class HasLandPointEval>
+    class TetrisCore<TetrisAI, TetrisLandPointSearchEngine, 0, HasLandPointEval>
+    {
+    public:
+        typedef decltype(TetrisAI().eval_map(TetrisMap(), nullptr, 0)) MapEval;
+        typedef EvalParam<> EvalParam;
+        typedef std::function<std::pair<TetrisNode const *, MapEval>(TetrisMap const &, TetrisNode const *, std::vector<EvalParam> &history, unsigned char *)> CallAI;
+        TetrisCore(TetrisContext const *context, TetrisAI &ai, std::vector<CallAI> &call_ai) : context_(context), ai_(ai)
+        {
+            call_ai.push_back(std::bind(&TetrisCore::run, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+        }
+        void init(TetrisContext const *context)
+        {
+            TetrisCallInit<TetrisLandPointSearchEngine>(search_, context);
+        }
+        std::pair<TetrisNode const *, MapEval> run(TetrisMap const &map, TetrisNode const *node, std::vector<EvalParam> &history, unsigned char *)
+        {
+            std::vector<TetrisNode const *> const *land_point = search_.search(map, node);
+            MapEval eval = ai_.eval_map_bad();
+            TetrisNode const *best_node = node;
+            for(auto cit = land_point->begin(); cit != land_point->end(); ++cit)
+            {
+                node = TetrisCallProcess<TetrisLandPointSearchEngine>::invoke(search_, *cit, map);
+                TetrisMap copy = map;
+                history.push_back(EvalParam(node, node->attach(copy), map));
+                MapEval new_eval = ai_.eval_map(copy, history.data(), history.size());
+                history.pop_back();
+                if(new_eval > eval)
+                {
+                    eval = new_eval;
+                    best_node = node;
+                }
+            }
+            return std::make_pair(best_node, eval);
+        }
+    private:
+        TetrisLandPointSearchEngine search_;
+        TetrisContext const *context_;
+        TetrisAI &ai_;
+    };
+
+    template<class TetrisAI, class TetrisLandPointSearchEngine, size_t NextLength>
+    class TetrisCore<TetrisAI, TetrisLandPointSearchEngine, NextLength, std::true_type>
+    {
+    public:
+        typedef decltype(TetrisAI().eval_land_point(nullptr, TetrisMap(), 0)) LandPointEval;
+        typedef decltype(TetrisAI().eval_map(TetrisMap(), nullptr, 0)) MapEval;
+        typedef EvalParam<LandPointEval> EvalParam;
+        typedef std::function<std::pair<TetrisNode const *, MapEval>(TetrisMap const &, TetrisNode const *, std::vector<EvalParam> &history, unsigned char *)> CallAI;
+        TetrisCore(TetrisContext const *context, TetrisAI &ai, std::vector<CallAI> &call_ai) : context_(context), ai_(ai), next_(context, ai, call_ai)
+        {
+            call_ai.push_back(std::bind(&TetrisCore::run, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+        }
+        void init(TetrisContext const *context)
+        {
+            virtual_eval_.resize(context->type_max());
+            TetrisCallInit<TetrisLandPointSearchEngine>(search_, context);
+            next_.init(context);
+        }
+        std::pair<TetrisNode const *, MapEval> run(TetrisMap const &map, TetrisNode const *node, std::vector<EvalParam> &history, unsigned char *next)
+        {
+            std::vector<TetrisNode const *> const *land_point = search_.search(map, node);
+            MapEval eval = ai_.eval_map_bad();
+            TetrisNode const *best_node = node;
+            for(auto cit = land_point->begin(); cit != land_point->end(); ++cit)
+            {
+                node = TetrisCallProcess<TetrisLandPointSearchEngine>::invoke(search_, *cit, map);
+                TetrisMap copy = map;
+                size_t clear = node->attach(copy);
+                history.push_back(EvalParam(node, clear, map, ai_.eval_land_point(node, copy, clear)));
+                MapEval new_eval;
+                if(*next == ' ')
+                {
+                    for(size_t i = 0; i < context_->type_max(); ++i)
+                    {
+                        TetrisNode const *next_node = context_->generate(i);
+                        if(next_node->check(map))
+                        {
+                            virtual_eval_[i] = next_.run(copy, next_node, history, next + 1).second;
+                        }
+                        else
+                        {
+                            virtual_eval_[i] = ai_.eval_map_bad();
+                        }
+                    }
+                    new_eval = TetrisGetVirtualValue<TetrisAI>::invoke(ai_, virtual_eval_.data(), virtual_eval_.size());
+                }
+                else
+                {
+                    TetrisNode const *next_node = context_->generate(*next);
+                    if(next_node->check(map))
+                    {
+                        new_eval = next_.run(copy, next_node, history, next + 1).second;
+                    }
+                    else
+                    {
+                        new_eval = ai_.eval_map_bad();
+                    }
+                }
+                history.pop_back();
+                if(new_eval > eval)
+                {
+                    eval = new_eval;
+                    best_node = node;
+                }
+            }
+            return std::make_pair(best_node, eval);
+        }
+    private:
+        TetrisLandPointSearchEngine search_;
+        TetrisContext const *context_;
+        TetrisAI &ai_;
+        std::vector<MapEval> virtual_eval_;
+        TetrisCore<TetrisAI, TetrisLandPointSearchEngine, NextLength - 1, std::true_type> next_;
+    };
+
+    template<class TetrisAI, class TetrisLandPointSearchEngine>
+    class TetrisCore<TetrisAI, TetrisLandPointSearchEngine, 0, std::true_type>
+    {
+    public:
+        typedef decltype(TetrisAI().eval_land_point(nullptr, TetrisMap(), 0)) LandPointEval;
+        typedef decltype(TetrisAI().eval_map(TetrisMap(), nullptr, 0)) MapEval;
+        typedef EvalParam<LandPointEval> EvalParam;
+        typedef std::function<std::pair<TetrisNode const *, MapEval>(TetrisMap const &, TetrisNode const *, std::vector<EvalParam> &history, unsigned char *)> CallAI;
+        TetrisCore(TetrisContext const *context, TetrisAI &ai, std::vector<CallAI> &call_ai) : context_(context), ai_(ai)
+        {
+            call_ai.push_back(std::bind(&TetrisCore::run, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+        }
+        void init(TetrisContext const *context)
+        {
+            TetrisCallInit<TetrisLandPointSearchEngine>(search_, context);
+        }
+        std::pair<TetrisNode const *, MapEval> run(TetrisMap const &map, TetrisNode const *node, std::vector<EvalParam> &history, unsigned char *)
+        {
+            std::vector<TetrisNode const *> const *land_point = search_.search(map, node);
+            MapEval eval = ai_.eval_map_bad();
+            TetrisNode const *best_node = node;
+            for(auto cit = land_point->begin(); cit != land_point->end(); ++cit)
+            {
+                node = TetrisCallProcess<TetrisLandPointSearchEngine>::invoke(search_, *cit, map);
+                TetrisMap copy = map;
+                size_t clear = node->attach(copy);
+                history.push_back(EvalParam(node, clear, map, ai_.eval_land_point(node, copy, clear)));
+                MapEval new_eval = ai_.eval_map(copy, history.data(), history.size());
+                history.pop_back();
+                if(new_eval > eval)
+                {
+                    eval = new_eval;
+                    best_node = node;
+                }
+            }
+            return std::make_pair(best_node, eval);
+        }
+    private:
+        TetrisLandPointSearchEngine search_;
+        TetrisContext const *context_;
+        TetrisAI &ai_;
+    };
+
+    template<class TetrisRuleSet, class TetrisAI, class TetrisLandPointSearchEngine, size_t MaxNext>
     class TetrisEngine
     {
     private:
-        typedef TetrisAIRunner<TetrisAI, TetrisLandPointSearchEngine, MaxDeep> TetrisAIRunner_t;
+        typedef TetrisCore<TetrisAI, TetrisLandPointSearchEngine, MaxNext, typename TetrisAIHasLandPointEval<TetrisAI>::type> Core;
         TetrisContext context_;
-        TetrisLandPointSearchEngine search_;
-        TetrisAIRunner_t runner_;
         TetrisAI ai_;
-        std::vector<typename TetrisAIRunner_t::Core::EvalParam> history_;
+        TetrisLandPointSearchEngine search_;
+        std::vector<typename Core::CallAI> call_ai_;
+        Core core_;
+        std::vector<typename Core::EvalParam> history_;
 
     public:
-        TetrisEngine() : context_(TetrisContextBuilder<TetrisRuleSet>::build_context()), ai_(), search_(), runner_(&context_, ai_, search_)
+        TetrisEngine() : context_(TetrisContextBuilder<TetrisRuleSet>::build_context()), ai_(), call_ai_(), core_(&context_, ai_, call_ai_), history_()
         {
         }
         TetrisNode const *get(TetrisBlockStatus const &status) const
         {
             return context_.get(status);
-        }
-        TetrisAI const &ai() const
-        {
-            return ai_;
         }
         TetrisContext const *context() const
         {
@@ -501,6 +654,7 @@ namespace m_tetris
             {
                 TetrisCallInit<TetrisAI>(ai_, &context_);
                 TetrisCallInit<TetrisLandPointSearchEngine>(search_, &context_);
+                TetrisCallInit<Core>(core_, &context_);
                 return true;
             }
             else if(result == TetrisContext::fail)
@@ -511,11 +665,15 @@ namespace m_tetris
         }
         TetrisNode const *run(TetrisMap const &map, TetrisNode const *node, unsigned char *next, size_t next_length)
         {
-            return runner_.run(map, node, next, next_length);
+            if(node == nullptr || !node->check(map))
+            {
+                return nullptr;
+            }
+            return call_ai_[std::min(MaxNext, next_length)](map, node, history_, next).first;
         }
         std::vector<char> path(TetrisNode const *node, TetrisNode const *land_point, TetrisMap const &map)
         {
-            return runner_.path(node, land_point, map);
+            return search_.make_path(node, land_point, map);
         }
     };
 

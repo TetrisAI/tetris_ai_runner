@@ -12,7 +12,7 @@ namespace land_point_search_path
         node_mark.init(context->node_max());
     }
 
-    std::vector<char> Search::make_path(TetrisContext const *context, TetrisNode const *node, TetrisNode const *land_point, TetrisMap const &map)
+    std::vector<char> Search::make_path(TetrisNode const *node, TetrisNode const *land_point, TetrisMap const &map)
     {
         node_mark.clear();
         node_search.clear();
