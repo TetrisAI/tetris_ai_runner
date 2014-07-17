@@ -6,8 +6,6 @@
 #include <map>
 #include <algorithm>
 
-#include <typeinfo>
-
 namespace m_tetris
 {
     const int max_height = 40;
@@ -529,7 +527,7 @@ namespace m_tetris_rule_tools
     template<unsigned char T, char X, char Y, unsigned char R, int line1, int line2, int line3, int line4>
     TetrisNode create_node(int w, int h, TetrisOpertion op)
     {
-        static_assert(X < 0 || X >= 4 || Y < 0 || Y >= 3 || (line1 || line2 || line3 || line3), "data error");
+        static_assert(X < 0 || X >= 4 || Y < 0 || Y >= 4 || (line1 || line2 || line3 || line3), "data error");
         TetrisBlockStatus status =
         {
             T, X, h - Y - 1, R

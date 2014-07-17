@@ -8,6 +8,7 @@
 #include "land_point_search_path.h"
 #include "ai_ax.h"
 #include "rule_st.h"
+#include "rule_qq.h"
 #include "random.h"
 
 m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_ax_0::AI, land_point_search_path::Search, 0> tetris_ai;

@@ -15,6 +15,7 @@
     <ClInclude Include="land_point_search_path.h" />
     <ClInclude Include="land_point_search_simple.h" />
     <ClInclude Include="random.h" />
+    <ClInclude Include="rule_qq.h" />
     <ClInclude Include="rule_st.h" />
     <ClInclude Include="tetris_core.h" />
     <ClInclude Include="type_slist.h" />
@@ -26,6 +27,7 @@
     <ClCompile Include="land_point_search_path.cpp" />
     <ClCompile Include="land_point_search_simple.cpp" />
     <ClCompile Include="random.cpp" />
+    <ClCompile Include="rule_qq.cpp" />
     <ClCompile Include="rule_st.cpp" />
     <ClCompile Include="tetris_core.cpp" />
   </ItemGroup>

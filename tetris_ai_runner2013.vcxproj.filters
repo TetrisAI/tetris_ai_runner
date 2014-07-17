@@ -17,6 +17,9 @@
     <ClCompile Include="ai_ax.cpp">
       <Filter>ai\ax</Filter>
     </ClCompile>
+    <ClCompile Include="rule_qq.cpp">
+      <Filter>rules\qq</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tetris_core.h" />
@@ -33,6 +36,9 @@
     </ClInclude>
     <ClInclude Include="ai_ax.h">
       <Filter>ai\ax</Filter>
+    </ClInclude>
+    <ClInclude Include="rule_qq.h">
+      <Filter>rules\qq</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -56,6 +62,9 @@
     </Filter>
     <Filter Include="ai\ax">
       <UniqueIdentifier>{6813cfa7-88df-4217-a710-edeb76ffb8de}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="rules\qq">
+      <UniqueIdentifier>{28b595c2-95a3-4b60-840c-3d0620ee04e0}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
