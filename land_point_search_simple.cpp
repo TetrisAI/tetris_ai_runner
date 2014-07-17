@@ -67,4 +67,9 @@ namespace land_point_search_simple
             return &land_point_cache;
         }
     }
+
+    TetrisNode const *Search::process(TetrisNode const *node, TetrisMap const &map)
+    {
+        return node->drop(map);
+    }
 }

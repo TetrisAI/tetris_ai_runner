@@ -13,5 +13,6 @@ namespace land_point_search_simple
     public:
         std::vector<char> make_path(m_tetris::TetrisContext const *context, m_tetris::TetrisNode const *node, m_tetris::TetrisNode const *land_point, m_tetris::TetrisMap const &map);
         std::vector<m_tetris::TetrisNode const *> const *search(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
+        m_tetris::TetrisNode const *process(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map);
     };
 }

@@ -17,84 +17,72 @@ namespace m_tetris
 {
     bool TetrisNode::check(TetrisMap const &map) const
     {
-        if(map.row[row] & data[0])
+        switch(height)
         {
-            return false;
-        }
-        if(height == 1)
-        {
-            return true;
-        }
-        if(map.row[row + 1] & data[1])
-        {
-            return false;
-        }
-        if(height == 2)
-        {
-            return true;
-        }
-        if(map.row[row + 2] & data[2])
-        {
-            return false;
-        }
-        if(height == 3)
-        {
-            return true;
-        }
-        if(map.row[row + 3] & data[3])
-        {
-            return false;
+        case 4:
+            if(map.row[row + 3] & data[3])
+            {
+                return false;
+            }
+        case 3:
+            if(map.row[row + 2] & data[2])
+            {
+                return false;
+            }
+        case 2:
+            if(map.row[row + 1] & data[1])
+            {
+                return false;
+            }
+        default:
+            if(map.row[row] & data[0])
+            {
+                return false;
+            }
         }
         return true;
     }
 
     bool TetrisNode::open(TetrisMap const &map) const
     {
-        if(bottom[0] < map.top[col])
+        switch(width)
         {
-            return false;
-        }
-        if(width == 1)
-        {
-            return true;
-        }
-        if(bottom[1] < map.top[col + 1])
-        {
-            return false;
-        }
-        if(width == 2)
-        {
-            return true;
-        }
-        if(bottom[2] < map.top[col + 2])
-        {
-            return false;
-        }
-        if(width == 3)
-        {
-            return true;
-        }
-        if(bottom[3] < map.top[col + 3])
-        {
-            return false;
+        case 4:
+            if(bottom[3] < map.top[col + 3])
+            {
+                return false;
+            }
+        case 3:
+            if(bottom[2] < map.top[col + 2])
+            {
+                return false;
+            }
+        case 2:
+            if(bottom[1] < map.top[col + 1])
+            {
+                return false;
+            }
+        default:
+            if(bottom[0] < map.top[col])
+            {
+                return false;
+            }
         }
         return true;
     }
 
     size_t TetrisNode::attach(TetrisMap &map) const
     {
-        map.row[row] |= data[0];
-        if(height > 1)
+        switch(height)
         {
+        case 4:
+            map.row[row + 3] |= data[3];
+        case 3:
+            map.row[row + 2] |= data[2];
+        case 2:
             map.row[row + 1] |= data[1];
-            if(height > 2)
-            {
-                map.row[row + 2] |= data[2];
-                if(height > 3)
-                {
-                    map.row[row + 3] |= data[3];
-                }
-            }
+        default:
+            map.row[row] |= data[0];
         }
         int clear = 0;
         for(int i = height; i > 0; --i)
@@ -106,33 +94,31 @@ namespace m_tetris
                 ++clear;
             }
         }
-        if(top[0] > map.top[col])
+        switch(width)
         {
-            map.top[col] = top[0];
-            map.roof = std::max(top[0], map.roof);
-        }
-        if(width > 1)
-        {
+        case 4:
+            if(top[3] > map.top[col + 3])
+            {
+                map.top[col + 3] = top[3];
+                map.roof = std::max(top[3], map.roof);
+            }
+        case 3:
+            if(top[2] > map.top[col + 2])
+            {
+                map.top[col + 2] = top[2];
+                map.roof = std::max(top[2], map.roof);
+            }
+        case 2:
             if(top[1] > map.top[col + 1])
             {
                 map.top[col + 1] = top[1];
                 map.roof = std::max(top[1], map.roof);
             }
-            if(width > 2)
+        default:
+            if(top[0] > map.top[col])
             {
-                if(top[2] > map.top[col + 2])
-                {
-                    map.top[col + 2] = top[2];
-                    map.roof = std::max(top[2], map.roof);
-                }
-                if(width > 3)
-                {
-                    if(top[3] > map.top[col + 3])
-                    {
-                        map.top[col + 3] = top[3];
-                        map.roof = std::max(top[3], map.roof);
-                    }
-                }
+                map.top[col] = top[0];
+                map.roof = std::max(top[0], map.roof);
             }
         }
         map.roof -= clear;
@@ -235,7 +221,7 @@ namespace m_tetris
         {
             return ok;
         }
-        if(width > 32 || height > 40 || width < 4 || height < 4)
+        if(width > 32 || height > max_height || width < 4 || height < 4)
         {
             return fail;
         }

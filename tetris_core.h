@@ -10,6 +10,7 @@
 
 namespace m_tetris
 {
+    const int max_height = 40;
 
     struct TetrisNode;
     struct TetrisOpertion;
@@ -21,7 +22,7 @@ namespace m_tetris
     struct TetrisMap
     {
         //行数据,具体用法看full函数吧...
-        int row[40];
+        int row[max_height];
         //每一列的高度
         int top[32];
         //场景宽
@@ -122,7 +123,7 @@ namespace m_tetris
         TetrisNode const *move_left;
         TetrisNode const *move_right;
         TetrisNode const *move_down;
-        TetrisNode const *move_down_multi[32];
+        TetrisNode const *move_down_multi[max_height];
 
         TetrisContext const *context;
 
@@ -294,6 +295,47 @@ namespace m_tetris
         }
     };
 
+    template<class Type>
+    struct TetrisCallProcess
+    {
+        template<class T>
+        struct CallProcess
+        {
+            template<class Data, class... Param>
+            static Data invoke(Type &type, Data const &data, Param const &... param)
+            {
+                return data;
+            }
+        };
+        template<>
+        struct CallProcess<std::true_type>
+        {
+            template<class Data, class... Param>
+            static Data invoke(Type &type, Data const &data, Param const &... param)
+            {
+                return type.process(data, param...);
+            }
+        };
+        struct Fallback
+        {
+            int process;
+        };
+        struct Derived : Type, Fallback
+        {
+        };
+        template<typename U, U> struct Check;
+        template<typename U>
+        static std::false_type func(Check<int Fallback::*, &U::process> *);
+        template<typename U>
+        static std::true_type func(...);
+    public:
+        template<class Data, class... Param>
+        static Data invoke(Type &type, Param const &... param)
+        {
+            return CallProcess<decltype(func<Derived>(nullptr))>::invoke<Data>(type, param...);
+        }
+    };
+
     template<class TetrisAI>
     struct TetrisAIHasLandPointEval
     {
@@ -325,6 +367,7 @@ namespace m_tetris
         typedef decltype(TetrisAI().eval_map(TetrisMap(), nullptr, 0)) MapEval;
         TetrisAIRunner(TetrisContext const *context, TetrisAI const &ai, TetrisLandPointSearchEngine &search) : context_(context), ai_(ai), search_(search)
         {
+            core_.search_ = &search;
         }
     private:
         template<class U, class T>
@@ -332,9 +375,10 @@ namespace m_tetris
         {
             typedef EvalParam<> EvalParam;
             std::vector<TetrisNode const *> const *land_point;
+            TetrisLandPointSearchEngine *search_;
             std::pair<TetrisNode const *, MapEval> run(TetrisAI const &ai, TetrisMap const &map, std::vector<EvalParam> &history)
             {
-                TetrisNode const *node = land_point->front()->drop(map);
+                TetrisNode const *node = TetrisCallProcess<TetrisLandPointSearchEngine>::invoke<TetrisNode const *>(*search_, land_point->front(), map);
                 TetrisMap copy = map;
                 size_t clear = node->attach(copy);
                 history.push_back(EvalParam(node, clear, map));
@@ -342,7 +386,7 @@ namespace m_tetris
                 TetrisNode const *best_node = node;
                 for(auto cit = land_point->begin() + 1; cit != land_point->end(); ++cit)
                 {
-                    history.back().node = node = (*cit)->drop(map);
+                    history.back().node = node = TetrisCallProcess<TetrisLandPointSearchEngine>::invoke<TetrisNode const *>(*search_, *cit, map);
                     copy = map;
                     history.back().clear = node->attach(copy);
                     MapEval new_eval = ai.eval_map(copy, history.data(), history.size());
@@ -362,9 +406,10 @@ namespace m_tetris
             typedef decltype(T().eval_land_point(nullptr, TetrisMap(), 0)) LandPointEval;
             typedef EvalParam<LandPointEval> EvalParam;
             std::vector<TetrisNode const *> const *land_point;
+            TetrisLandPointSearchEngine *search_;
             std::pair<TetrisNode const *, MapEval> run(TetrisAI const &ai, TetrisMap const &map, std::vector<EvalParam> &history)
             {
-                TetrisNode const *node = land_point->front()->drop(map);
+                TetrisNode const *node = TetrisCallProcess<TetrisLandPointSearchEngine>::invoke<TetrisNode const *>(*search_, land_point->front(), map);
                 TetrisMap copy = map;
                 size_t clear = node->attach(copy);
                 LandPointEval eval_land_point = ai.eval_land_point(node, copy, clear);
@@ -373,7 +418,7 @@ namespace m_tetris
                 TetrisNode const *best_node = node;
                 for(auto cit = land_point->begin() + 1; cit != land_point->end(); ++cit)
                 {
-                    history.back().node = node = (*cit)->drop(map);
+                    history.back().node = node = TetrisCallProcess<TetrisLandPointSearchEngine>::invoke<TetrisNode const *>(*search_, *cit, map);
                     copy = map;
                     history.back().clear = clear = node->attach(copy);
                     eval_land_point = ai.eval_land_point(node, copy, clear);
