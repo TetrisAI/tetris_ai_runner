@@ -13,6 +13,7 @@ ax_pokl<br/>
 基于位运算,最大支持32x40的游戏场景<br/>
 这里为了性能使用了各种优化!<br/>
 目前处于研究虚拟计算next的阶段.<br/>
+AI排行榜参见[http://misakamm.com/blog/504](http://misakamm.com/blog/504).<br/>
 如果你有什么想法,请联系我们!<br/>
 默认AI为ax_pokl贡献,再次感谢!<br/>
 最后...联系我们请进QQ群314343655...<br/>
