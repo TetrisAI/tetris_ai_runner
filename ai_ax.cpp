@@ -29,29 +29,29 @@ namespace ai_ax_1
         }
     }
 
-    std::string AI::ai_name() const
+    std::string AI::ai_name()
     {
         return "Tetris_ax_C ZZZ Mod v1.2";
     }
 
-    double AI::eval_land_point(TetrisNode const *node, TetrisMap const &map, size_t clear) const
+    double AI::eval_land_point(TetrisNode const *node, TetrisMap const &map, size_t clear)
     {
         double LandHeight = node->status.y + 1;
         double Middle = std::abs((node->status.x + 1) * 2 - map.width);
         double EraseCount = clear;
         return (0
-                - LandHeight * 200 / map.height
-                + Middle  * 0.2
-                + EraseCount * 6
-                );
+            - LandHeight * 200 / map.height
+            + Middle  * 0.2
+            + EraseCount * 6
+            );
     }
 
-    double AI::eval_map_bad() const
+    double AI::eval_map_bad()
     {
         return -99999999;
     }
 
-    double AI::eval_map(TetrisMap const &map, EvalParam<double> const *history, size_t history_length) const
+    double AI::eval_map(TetrisMap const &map, EvalParam<double> const *history, size_t history_length)
     {
         //ÐÐÁÐ±ä»»
         int ColTrans = 2 * (map.height - map.roof);
@@ -191,19 +191,19 @@ namespace ai_ax_1
         //ËÀÍö¾¯½ä
         int BoardDeadZone = map_in_danger_(map);
         return (0
-                + land_point_value / history_length
-                - ColTrans * 8
-                - RowTrans * 8
-                - v.HoleCount * 6
-                - v.HoleLine * 38
-                - v.WellDepth * 10
-                - v.HoleDepth * 4
-                - v.HolePiece * 0.5
-                - BoardDeadZone * 5000
-                );
+            + land_point_value / history_length
+            - ColTrans * 8
+            - RowTrans * 8
+            - v.HoleCount * 6
+            - v.HoleLine * 38
+            - v.WellDepth * 10
+            - v.HoleDepth * 4
+            - v.HolePiece * 0.5
+            - BoardDeadZone * 5000
+            );
     }
 
-    double AI::get_vritual_eval(double const *eval, size_t eval_length) const
+    double AI::get_vritual_eval(double const *eval, size_t eval_length)
     {
         double result = 0;
         for(size_t i = 0; i < eval_length; ++i)
@@ -213,7 +213,25 @@ namespace ai_ax_1
         return result / eval_length;
     }
 
-    size_t AI::map_in_danger_(m_tetris::TetrisMap const &map) const
+    void AI::prune_map(m_tetris::PruneParam<double> *prune, size_t prune_length, size_t next_length)
+    {
+        prune_sort_.resize(prune_length);
+        auto dst = prune_sort_.data();
+        for(auto it = prune, end = prune + prune_length; it != end; ++it, ++dst)
+        {
+            *dst = it;
+        }
+        std::sort(prune_sort_.begin(), prune_sort_.end(), [](m_tetris::PruneParam<double> *const &left, m_tetris::PruneParam<double> *const &right)
+        {
+            return left->eval > right->eval;
+        });
+        for(auto it = prune_sort_.begin() + std::min<size_t>(prune_length, context_->width() - 2); it != prune_sort_.end(); ++it)
+        {
+            (*it)->pruned = true;
+        }
+    }
+
+    size_t AI::map_in_danger_(m_tetris::TetrisMap const &map)
     {
         size_t danger = 0;
         for(size_t i = 0; i < context_->type_max(); ++i)
