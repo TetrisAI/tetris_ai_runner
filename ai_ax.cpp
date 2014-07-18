@@ -203,7 +203,7 @@ namespace ai_ax_1
             );
     }
 
-    double AI::get_vritual_eval(double const *eval, size_t eval_length)
+    double AI::get_virtual_eval(double const *eval, size_t eval_length)
     {
         double result = 0;
         for(size_t i = 0; i < eval_length; ++i)

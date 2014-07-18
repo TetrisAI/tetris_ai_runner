@@ -12,7 +12,7 @@ namespace ai_ax_1
         double eval_land_point(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, size_t clear);
         double eval_map_bad();
         double eval_map(m_tetris::TetrisMap const &map, m_tetris::EvalParam<double> const *history, size_t history_length);
-        double get_vritual_eval(double const *eval, size_t eval_length);
+        double get_virtual_eval(double const *eval, size_t eval_length);
         void prune_map(m_tetris::PruneParam<double> *prune, size_t prune_length, size_t next_length);
 
     private:

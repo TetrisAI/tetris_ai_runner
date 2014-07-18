@@ -256,7 +256,7 @@ namespace m_tetris
             return context;
         }
     };
-    
+
     template<class Type>
     struct TetrisCallInit
     {
@@ -359,14 +359,14 @@ namespace m_tetris
     {
         struct Fallback
         {
-            int get_vritual_eval;
+            int get_virtual_eval;
         };
         struct Derived : TetrisAI, Fallback
         {
         };
         template<typename U, U> struct Check;
         template<typename U>
-        static std::false_type func(Check<int Fallback::*, &U::get_vritual_eval> *);
+        static std::false_type func(Check<int Fallback::*, &U::get_virtual_eval> *);
         template<typename U>
         static std::true_type func(...);
     public:
@@ -612,7 +612,6 @@ namespace m_tetris
         }
         void init(TetrisContext const *context)
         {
-            virtual_eval_.resize(context->type_max());
             TetrisCallInit<TetrisLandPointSearchEngine>(search_, context);
             next_.init(context);
         }
@@ -657,7 +656,6 @@ namespace m_tetris
         TetrisLandPointSearchEngine search_;
         TetrisContext const *context_;
         TetrisAI &ai_;
-        std::vector<MapEval> virtual_eval_;
         typename TetrisCoreSelect<TetrisAI, TetrisLandPointSearchEngine, NextLength - 1, std::true_type, std::false_type, std::false_type>::type next_;
     };
 
@@ -679,7 +677,6 @@ namespace m_tetris
         }
         void init(TetrisContext const *context)
         {
-            virtual_eval_.resize(context->type_max());
             TetrisCallInit<TetrisLandPointSearchEngine>(search_, context);
             next_.init(context);
         }
@@ -740,7 +737,6 @@ namespace m_tetris
         TetrisLandPointSearchEngine search_;
         TetrisContext const *context_;
         TetrisAI &ai_;
-        std::vector<MapEval> virtual_eval_;
         std::vector<PruneParam<MapEval>> prune_param_;
         typename TetrisCoreSelect<TetrisAI, TetrisLandPointSearchEngine, NextLength - 1, std::true_type, std::false_type, std::true_type>::type next_;
     };
@@ -909,7 +905,7 @@ namespace m_tetris
                         TetrisNode const *next_node = context_->generate(i);
                         virtual_eval_[i] = next_node->check(copy) ? next_.run(copy, next_node, history, next + 1).second : ai_.eval_map_bad();
                     }
-                    new_eval = ai_.get_virtual_value(virtual_eval_.data(), virtual_eval_.size());
+                    new_eval = ai_.get_virtual_eval(virtual_eval_.data(), virtual_eval_.size());
                 }
                 else
                 {
@@ -975,7 +971,7 @@ namespace m_tetris
                         TetrisNode const *next_node = context_->generate(i);
                         virtual_eval_[i] = next_node->check(map) ? next_.run(copy, next_node, history, next + 1).second : ai_.eval_map_bad();
                     }
-                    new_eval = ai_.get_vritual_eval(virtual_eval_.data(), virtual_eval_.size());
+                    new_eval = ai_.get_virtual_eval(virtual_eval_.data(), virtual_eval_.size());
                 }
                 else
                 {
@@ -1056,7 +1052,7 @@ namespace m_tetris
                         TetrisNode const *next_node = context_->generate(i);
                         virtual_eval_[i] = next_node->check(map) ? next_.run(copy, next_node, history, next + 1).second : ai_.eval_map_bad();
                     }
-                    new_eval = ai_.get_vritual_eval(virtual_eval_.data(), virtual_eval_.size());
+                    new_eval = ai_.get_virtual_eval(virtual_eval_.data(), virtual_eval_.size());
                 }
                 else
                 {
