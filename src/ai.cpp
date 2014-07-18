@@ -11,7 +11,7 @@
 #include "rule_qq.h"
 #include "random.h"
 
-m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_ax_1::AI, land_point_search_path::Search, 3> tetris_ai;
+m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_ax_1::AI, land_point_search_path::Search, 2> tetris_ai;
 
 extern "C" void attach_init()
 {

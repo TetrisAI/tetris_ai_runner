@@ -11,40 +11,41 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ai_ax.h" />
-    <ClInclude Include="land_point_search_path.h" />
-    <ClInclude Include="land_point_search_simple.h" />
-    <ClInclude Include="random.h" />
-    <ClInclude Include="rule_qq.h" />
-    <ClInclude Include="rule_st.h" />
-    <ClInclude Include="tetris_core.h" />
-    <ClInclude Include="type_slist.h" />
+    <ClInclude Include="src/ai_ax.h" />
+    <ClInclude Include="src/land_point_search_path.h" />
+    <ClInclude Include="src/land_point_search_simple.h" />
+    <ClInclude Include="src/random.h" />
+    <ClInclude Include="src/rule_qq.h" />
+    <ClInclude Include="src/rule_st.h" />
+    <ClInclude Include="src/tetris_core.h" />
+    <ClInclude Include="src/type_slist.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ai.cpp" />
-    <ClCompile Include="ai_ax.cpp" />
-    <ClCompile Include="dllmain.c" />
-    <ClCompile Include="land_point_search_path.cpp" />
-    <ClCompile Include="land_point_search_simple.cpp" />
-    <ClCompile Include="random.cpp" />
-    <ClCompile Include="rule_qq.cpp" />
-    <ClCompile Include="rule_st.cpp" />
-    <ClCompile Include="tetris_core.cpp" />
+    <ClCompile Include="src/ai.cpp" />
+    <ClCompile Include="src/ai_ax.cpp" />
+    <ClCompile Include="src/dllmain.c" />
+    <ClCompile Include="src/land_point_search_path.cpp" />
+    <ClCompile Include="src/land_point_search_simple.cpp" />
+    <ClCompile Include="src/random.cpp" />
+    <ClCompile Include="src/rule_qq.cpp" />
+    <ClCompile Include="src/rule_st.cpp" />
+    <ClCompile Include="src/tetris_core.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{7190EA95-4DF4-4F70-AC20-194B0FB7B6E2}</ProjectGuid>
+    <ProjectGuid>{2EF25942-7BE9-41F8-B540-DAE8034BE8F7}</ProjectGuid>
     <RootNamespace>AI</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <ProjectName>tetris_ai_runner</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>v120</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>v120</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -87,8 +88,10 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
-      <OutputFile>$(OutDir)..\$(TargetName)$(TargetExt)</OutputFile>
     </Link>
+    <PostBuildEvent>
+      <Command>copy $(TargetPath) $(SolutionDir)$(TargetFileName)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -104,8 +107,10 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
-      <OutputFile>$(OutDir)..\$(TargetName)$(TargetExt)</OutputFile>
     </Link>
+    <PostBuildEvent>
+      <Command>copy $(TargetPath) $(SolutionDir)$(TargetFileName)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

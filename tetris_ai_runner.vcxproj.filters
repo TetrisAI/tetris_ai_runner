@@ -1,43 +1,43 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="ai.cpp" />
-    <ClCompile Include="dllmain.c" />
-    <ClCompile Include="random.cpp" />
-    <ClCompile Include="tetris_core.cpp" />
-    <ClCompile Include="rule_st.cpp">
-      <Filter>rules\st</Filter>
-    </ClCompile>
-    <ClCompile Include="land_point_search_simple.cpp">
-      <Filter>land_point_search\simple</Filter>
-    </ClCompile>
-    <ClCompile Include="land_point_search_path.cpp">
-      <Filter>land_point_search\path</Filter>
-    </ClCompile>
-    <ClCompile Include="ai_ax.cpp">
+    <ClCompile Include="src/ai.cpp" />
+    <ClCompile Include="src/dllmain.c" />
+    <ClCompile Include="src/random.cpp" />
+    <ClCompile Include="src/tetris_core.cpp" />
+    <ClCompile Include="src/ai_ax.cpp">
       <Filter>ai\ax</Filter>
     </ClCompile>
-    <ClCompile Include="rule_qq.cpp">
+    <ClCompile Include="src/land_point_search_path.cpp">
+      <Filter>land_point_search\path</Filter>
+    </ClCompile>
+    <ClCompile Include="src/land_point_search_simple.cpp">
+      <Filter>land_point_search\simple</Filter>
+    </ClCompile>
+    <ClCompile Include="src/rule_st.cpp">
+      <Filter>rules\st</Filter>
+    </ClCompile>
+    <ClCompile Include="src/rule_qq.cpp">
       <Filter>rules\qq</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="tetris_core.h" />
-    <ClInclude Include="rule_st.h">
-      <Filter>rules\st</Filter>
-    </ClInclude>
-    <ClInclude Include="type_slist.h" />
-    <ClInclude Include="random.h" />
-    <ClInclude Include="land_point_search_simple.h">
-      <Filter>land_point_search\simple</Filter>
-    </ClInclude>
-    <ClInclude Include="land_point_search_path.h">
-      <Filter>land_point_search\path</Filter>
-    </ClInclude>
-    <ClInclude Include="ai_ax.h">
+    <ClInclude Include="src/random.h" />
+    <ClInclude Include="src/tetris_core.h" />
+    <ClInclude Include="src/type_slist.h" />
+    <ClInclude Include="src/ai_ax.h">
       <Filter>ai\ax</Filter>
     </ClInclude>
-    <ClInclude Include="rule_qq.h">
+    <ClInclude Include="src/land_point_search_path.h">
+      <Filter>land_point_search\path</Filter>
+    </ClInclude>
+    <ClInclude Include="src/land_point_search_simple.h">
+      <Filter>land_point_search\simple</Filter>
+    </ClInclude>
+    <ClInclude Include="src/rule_st.h">
+      <Filter>rules\st</Filter>
+    </ClInclude>
+    <ClInclude Include="src/rule_qq.h">
       <Filter>rules\qq</Filter>
     </ClInclude>
   </ItemGroup>

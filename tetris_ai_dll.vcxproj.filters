@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="src/ai.cpp" />
+    <ClCompile Include="src/dllmain.c" />
+    <ClCompile Include="src/random.cpp" />
+    <ClCompile Include="src/tetris_core.cpp" />
+    <ClCompile Include="src/ai_ax.cpp">
+      <Filter>ai\ax</Filter>
+    </ClCompile>
+    <ClCompile Include="src/land_point_search_path.cpp">
+      <Filter>land_point_search\path</Filter>
+    </ClCompile>
+    <ClCompile Include="src/land_point_search_simple.cpp">
+      <Filter>land_point_search\simple</Filter>
+    </ClCompile>
+    <ClCompile Include="src/rule_qq.cpp">
+      <Filter>rules\qq</Filter>
+    </ClCompile>
+    <ClCompile Include="src/rule_st.cpp">
+      <Filter>rules\st</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src/random.h" />
+    <ClInclude Include="src/rule_qq.h" />
+    <ClInclude Include="src/tetris_core.h" />
+    <ClInclude Include="src/type_slist.h" />
+    <ClInclude Include="src/ai_ax.h">
+      <Filter>ai\ax</Filter>
+    </ClInclude>
+    <ClInclude Include="src/land_point_search_path.h">
+      <Filter>land_point_search\path</Filter>
+    </ClInclude>
+    <ClInclude Include="src/land_point_search_simple.h">
+      <Filter>land_point_search\simple</Filter>
+    </ClInclude>
+    <ClInclude Include="src/rule_st.h">
+      <Filter>rules\st</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="rules">
+      <UniqueIdentifier>{fc1e0c2f-f7c4-48a1-9bfa-c4c831f891f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="rules\st">
+      <UniqueIdentifier>{677e0567-341f-404a-83af-d9615b4522fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ai">
+      <UniqueIdentifier>{824db86c-fbb6-4f7b-9b4d-24bde6f0501b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="land_point_search">
+      <UniqueIdentifier>{2c7d56ab-e7cb-4726-b343-411785ace0b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="land_point_search\simple">
+      <UniqueIdentifier>{24cb6bc2-0abf-4c72-826f-c433aa2d31b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="land_point_search\path">
+      <UniqueIdentifier>{e174a12c-a5e5-458a-90aa-72fcc63c0f03}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ai\ax">
+      <UniqueIdentifier>{6813cfa7-88df-4217-a710-edeb76ffb8de}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="rules\qq">
+      <UniqueIdentifier>{28b595c2-95a3-4b60-840c-3d0620ee04e0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
