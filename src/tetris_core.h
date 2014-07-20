@@ -72,6 +72,7 @@ namespace m_tetris
         };
     };
 
+    //踢墙表
     struct TetrisWallKickOpertion
     {
         struct WallKickNode
@@ -124,10 +125,13 @@ namespace m_tetris
         char row, height, col, width;
         //各种变形会触及到的最低高度
         int low;
+
         //指针网索引
+        //用于取代哈希表的hash
+
         size_t index;
-        //指针网索引
         size_t index_filtered;
+
         //用于落点搜索优化
         std::vector<TetrisNode const *> const *land_point;
 
@@ -142,10 +146,15 @@ namespace m_tetris
         TetrisNode const *move_right;
         TetrisNode const *move_down;
         TetrisNode const *move_down_multi[max_height];
+
+        //踢墙序列,依次尝试
+        //遇到nullptr,表示序列结束
+
         TetrisNode const *wall_kick_clockwise[max_wall_kick];
         TetrisNode const *wall_kick_counterclockwise[max_wall_kick];
         TetrisNode const *wall_kick_opposite[max_wall_kick];
 
+        //上下文...这个需要解释么?
         TetrisContext const *context;
 
         //检查当前块是否能够合并入场景
@@ -158,6 +167,7 @@ namespace m_tetris
         TetrisNode const *drop(TetrisMap const &map) const;
     };
 
+    //节点标记.广搜的时候使用
     class TetrisNodeMark
     {
     private:
@@ -181,6 +191,7 @@ namespace m_tetris
         bool mark(TetrisNode const *key);
     };
 
+    //节点标记.过滤了位置相同的节点
     class TetrisNodeMarkFiltered
     {
     private:
@@ -207,6 +218,7 @@ namespace m_tetris
     template<class T>
     struct TetrisContextBuilder;
 
+    //上下文对象.场景大小改变了需要重新初始化上下文
     class TetrisContext
     {
         template<class T>
@@ -215,13 +227,21 @@ namespace m_tetris
         TetrisContext()
         {
         }
+        //指针网数据
         std::unordered_map<TetrisBlockStatus, TetrisNode, TetrisBlockStatusHash, TetrisBlockStatusEqual> node_cache_;
+
+        //规则信息
+
         std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> init_opertion_;
         std::map<unsigned char, TetrisBlockStatus(*)(TetrisContext const *)> init_generate_;
         std::map<unsigned char, TetrisBlockStatus(*)(TetrisContext const *)> game_generate_;
+
+        //宽,高什么的...
         int width_, height_;
+        //满行
         int full_;
 
+        //一些用于加速的数据...
         std::map<unsigned char, std::vector<TetrisNode const *>> place_cache_;
         size_t type_max_;
         TetrisNode const *generate_cache_[256];
@@ -233,7 +253,9 @@ namespace m_tetris
         {
             fail = 0, ok = 1, rebuild = 2,
         };
+        //准备好上下文,返回fail表示上下错误
         PrepareResult prepare(int width, int height);
+
         int width() const;
         int height() const;
         int full() const;
@@ -248,6 +270,7 @@ namespace m_tetris
         bool TetrisContext::create(TetrisBlockStatus const &status, TetrisNode &node) const;
     };
     
+    //场景评价参数...
     template<class... types>
     struct EvalParam;
     template<class LandPointEval>
@@ -272,6 +295,7 @@ namespace m_tetris
         TetrisMap const &map;
     };
 
+    //剪枝参数...
     template<class MapEval>
     struct PruneParam
     {
@@ -427,7 +451,7 @@ namespace m_tetris
         typedef decltype(func<Derived>(nullptr)) type;
     };
 
-
+    //之后是一堆为了性能搞的奇葩玩意...
     template<class TetrisAI, class TetrisLandPointSearchEngine, size_t NextLength, class HasLandPointEval, class HasGetVirtualValue, class HasPruneMap>
     class TetrisCore;
 
@@ -1128,18 +1152,22 @@ namespace m_tetris
         TetrisEngine() : context_(TetrisContextBuilder<TetrisRuleSet>::build_context()), ai_(), call_ai_(), core_(&context_, ai_, call_ai_), history_()
         {
         }
+        //从状态获取当前块
         TetrisNode const *get(TetrisBlockStatus const &status) const
         {
             return context_.get(status);
         }
+        //上下文对象...用来做什么呢= =?
         TetrisContext const *context() const
         {
             return &context_;
         }
+        //AI名称
         std::string ai_name()
         {
             return ai_.ai_name();
         }
+        //准备好上下文
         bool prepare(int width, int height)
         {
             if(!TetrisRuleInit<TetrisRuleSet>::init(TetrisRuleSet(), width, height))
@@ -1160,6 +1188,7 @@ namespace m_tetris
             }
             return true;
         }
+        //run!
         TetrisNode const *run(TetrisMap const &map, TetrisNode const *node, unsigned char *next, size_t next_length)
         {
             if(node == nullptr || !node->check(map))
@@ -1168,6 +1197,7 @@ namespace m_tetris
             }
             return call_ai_[std::min(MaxNextLength, next_length)](map, node, history_, next).first;
         }
+        //带hold的run!
         std::pair<TetrisNode const *, bool> run(TetrisMap const &map, TetrisNode const *node, unsigned char hold, unsigned char *next, size_t next_length)
         {
             if(node == nullptr || !node->check(map))
@@ -1177,6 +1207,7 @@ namespace m_tetris
             //TODO
             return call_ai_[std::min(MaxNextLength, next_length)](map, node, history_, next).first;
         }
+        //根据run的结果得到一个操作路径
         std::vector<char> path(TetrisNode const *node, TetrisNode const *land_point, TetrisMap const &map)
         {
             return search_.make_path(node, land_point, map);
@@ -1188,6 +1219,8 @@ namespace m_tetris
 namespace m_tetris_rule_tools
 {
     using namespace m_tetris;
+
+    //创建一个节点(只支持4x4矩阵,这里包含了矩阵收缩)
     template<unsigned char T, char X, char Y, unsigned char R, int line1, int line2, int line3, int line4>
     TetrisNode create_node(int w, int h, TetrisOpertion op)
     {
@@ -1243,6 +1276,7 @@ namespace m_tetris_rule_tools
         return node;
     }
 
+    //一个通用的旋转模板
     template<unsigned char R>
     bool rotate_template(TetrisNode &node, TetrisContext const *context)
     {
@@ -1252,6 +1286,8 @@ namespace m_tetris_rule_tools
         };
         return context->create(status, node);
     }
+
+    //左移,右移,下移...
 
     bool move_left(TetrisNode &node, TetrisContext const *context);
     bool move_right(TetrisNode &node, TetrisContext const *context);

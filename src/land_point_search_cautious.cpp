@@ -18,12 +18,12 @@ namespace land_point_search_cautious
         node_mark_.clear();
         node_search_.clear();
         const int index = land_point->index_filtered;
-        auto build_path = [](TetrisNode const *node, decltype(node_mark_) &node_mark_)->std::vector<char>
+        auto build_path = [](TetrisNode const *node, decltype(node_mark_) &node_mark)->std::vector<char>
         {
             std::vector<char> path;
             while(true)
             {
-                auto result = node_mark_.get(node);
+                auto result = node_mark.get(node);
                 node = result.first;
                 if(node == nullptr)
                 {
