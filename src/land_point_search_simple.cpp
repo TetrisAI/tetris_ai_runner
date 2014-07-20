@@ -7,6 +7,11 @@ using namespace m_tetris;
 
 namespace land_point_search_simple
 {
+    void Search::init(m_tetris::TetrisContext const *context)
+    {
+        node_mark_filtered_.init(context->node_max());
+    }
+
     std::vector<char> Search::make_path(TetrisNode const *node, TetrisNode const *land_point, TetrisMap const &map)
     {
         std::vector<char> path;
@@ -33,43 +38,45 @@ namespace land_point_search_simple
         {
             return std::vector<char>();
         }
-        path.push_back('\0');
         return path;
     }
 
     std::vector<TetrisNode const *> const *Search::search(TetrisMap const &map, TetrisNode const *node)
     {
+        node_mark_filtered_.clear();
+        land_point_cache_.clear();
         if(node->low >= map.roof)
         {
-            return node->land_point;
+            for(auto cit = node->land_point->begin(); cit != node->land_point->end(); ++cit)
+            {
+                TetrisNode const *land_point = (*cit)->drop(map);
+                if(node_mark_filtered_.mark(land_point))
+                {
+                    land_point_cache_.push_back(land_point);
+                }
+            }
         }
         else
         {
-            land_point_cache.clear();
             TetrisNode const *rotate = node;
             do
             {
-                land_point_cache.push_back(rotate);
+                land_point_cache_.push_back(rotate);
                 TetrisNode const *left = rotate->move_left;
                 while(left != nullptr && left->check(map))
                 {
-                    land_point_cache.push_back(left);
+                    land_point_cache_.push_back(left);
                     left = left->move_left;
                 }
                 TetrisNode const *right = rotate->move_right;
                 while(right != nullptr && right->check(map))
                 {
-                    land_point_cache.push_back(right);
+                    land_point_cache_.push_back(right);
                     right = right->move_right;
                 }
                 rotate = rotate->rotate_counterclockwise;
             } while(rotate != nullptr  && rotate != node && rotate->check(map));
-            return &land_point_cache;
         }
-    }
-
-    TetrisNode const *Search::process(TetrisNode const *node, TetrisMap const &map)
-    {
-        return node->drop(map);
+        return &land_point_cache_;
     }
 }

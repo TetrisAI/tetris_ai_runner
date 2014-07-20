@@ -225,7 +225,7 @@ namespace ai_ax_1
         {
             return left->eval > right->eval;
         });
-        for(auto it = prune_sort_.begin() + std::min<size_t>(prune_length, context_->width() - 2); it != prune_sort_.end(); ++it)
+        for(auto it = prune_sort_.begin() + std::min<size_t>(prune_length, 8); it != prune_sort_.end(); ++it)
         {
             (*it)->pruned = true;
         }

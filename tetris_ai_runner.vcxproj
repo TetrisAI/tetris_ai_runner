@@ -11,25 +11,31 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src/ai_ax.h" />
-    <ClInclude Include="src/land_point_search_path.h" />
-    <ClInclude Include="src/land_point_search_simple.h" />
-    <ClInclude Include="src/random.h" />
-    <ClInclude Include="src/rule_qq.h" />
-    <ClInclude Include="src/rule_st.h" />
-    <ClInclude Include="src/tetris_core.h" />
-    <ClInclude Include="src/type_slist.h" />
+    <ClInclude Include="src\ai_ax.h" />
+    <ClInclude Include="src\ai_zzz.h" />
+    <ClInclude Include="src\land_point_search_cautious.h" />
+    <ClInclude Include="src\land_point_search_path.h" />
+    <ClInclude Include="src\land_point_search_simple.h" />
+    <ClInclude Include="src\random.h" />
+    <ClInclude Include="src\rule_qq.h" />
+    <ClInclude Include="src\rule_st.h" />
+    <ClInclude Include="src\tetris_core.h" />
+    <ClInclude Include="src\type_slist.h" />
+    <ClInclude Include="src\rule_srs.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src/ai.cpp" />
-    <ClCompile Include="src/ai_ax.cpp" />
-    <ClCompile Include="src/dllmain.c" />
-    <ClCompile Include="src/land_point_search_path.cpp" />
-    <ClCompile Include="src/land_point_search_simple.cpp" />
-    <ClCompile Include="src/random.cpp" />
-    <ClCompile Include="src/rule_qq.cpp" />
-    <ClCompile Include="src/rule_st.cpp" />
-    <ClCompile Include="src/tetris_core.cpp" />
+    <ClCompile Include="src\ai.cpp" />
+    <ClCompile Include="src\ai_ax.cpp" />
+    <ClCompile Include="src\ai_zzz.cpp" />
+    <ClCompile Include="src\dllmain.c" />
+    <ClCompile Include="src\land_point_search_cautious.cpp" />
+    <ClCompile Include="src\land_point_search_path.cpp" />
+    <ClCompile Include="src\land_point_search_simple.cpp" />
+    <ClCompile Include="src\random.cpp" />
+    <ClCompile Include="src\rule_qq.cpp" />
+    <ClCompile Include="src\rule_st.cpp" />
+    <ClCompile Include="src\tetris_core.cpp" />
+    <ClCompile Include="src\rule_srs.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{2EF25942-7BE9-41F8-B540-DAE8034BE8F7}</ProjectGuid>

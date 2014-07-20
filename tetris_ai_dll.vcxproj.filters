@@ -1,41 +1,61 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="src/ai.cpp" />
-    <ClCompile Include="src/dllmain.c" />
-    <ClCompile Include="src/random.cpp" />
-    <ClCompile Include="src/tetris_core.cpp" />
-    <ClCompile Include="src/ai_ax.cpp">
+    <ClCompile Include="src\rule_srs.cpp">
+      <Filter>rules\srs</Filter>
+    </ClCompile>
+    <ClCompile Include="src\land_point_search_cautious.cpp">
+      <Filter>land_point_search\cautious</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ai_zzz.cpp">
+      <Filter>ai\zzz</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ai.cpp" />
+    <ClCompile Include="src\dllmain.c" />
+    <ClCompile Include="src\random.cpp" />
+    <ClCompile Include="src\tetris_core.cpp" />
+    <ClCompile Include="src\ai_ax.cpp">
       <Filter>ai\ax</Filter>
     </ClCompile>
-    <ClCompile Include="src/land_point_search_path.cpp">
+    <ClCompile Include="src\land_point_search_path.cpp">
       <Filter>land_point_search\path</Filter>
     </ClCompile>
-    <ClCompile Include="src/land_point_search_simple.cpp">
+    <ClCompile Include="src\land_point_search_simple.cpp">
       <Filter>land_point_search\simple</Filter>
     </ClCompile>
-    <ClCompile Include="src/rule_qq.cpp">
+    <ClCompile Include="src\rule_qq.cpp">
       <Filter>rules\qq</Filter>
     </ClCompile>
-    <ClCompile Include="src/rule_st.cpp">
+    <ClCompile Include="src\rule_st.cpp">
       <Filter>rules\st</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src/random.h" />
-    <ClInclude Include="src/rule_qq.h" />
-    <ClInclude Include="src/tetris_core.h" />
-    <ClInclude Include="src/type_slist.h" />
-    <ClInclude Include="src/ai_ax.h">
+    <ClInclude Include="src\rule_srs.h">
+      <Filter>rules\srs</Filter>
+    </ClInclude>
+    <ClInclude Include="src\land_point_search_cautious.h">
+      <Filter>land_point_search\cautious</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ai_zzz.h">
+      <Filter>ai\zzz</Filter>
+    </ClInclude>
+    <ClInclude Include="src\random.h" />
+    <ClInclude Include="src\tetris_core.h" />
+    <ClInclude Include="src\type_slist.h" />
+    <ClInclude Include="src\ai_ax.h">
       <Filter>ai\ax</Filter>
     </ClInclude>
-    <ClInclude Include="src/land_point_search_path.h">
+    <ClInclude Include="src\land_point_search_path.h">
       <Filter>land_point_search\path</Filter>
     </ClInclude>
-    <ClInclude Include="src/land_point_search_simple.h">
+    <ClInclude Include="src\land_point_search_simple.h">
       <Filter>land_point_search\simple</Filter>
     </ClInclude>
-    <ClInclude Include="src/rule_st.h">
+    <ClInclude Include="src\rule_qq.h">
+      <Filter>rules\qq</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rule_st.h">
       <Filter>rules\st</Filter>
     </ClInclude>
   </ItemGroup>
@@ -63,6 +83,15 @@
     </Filter>
     <Filter Include="rules\qq">
       <UniqueIdentifier>{28b595c2-95a3-4b60-840c-3d0620ee04e0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="rules\srs">
+      <UniqueIdentifier>{b1ce4a2e-25d6-4aa1-a0b0-66d9f14af61a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="land_point_search\cautious">
+      <UniqueIdentifier>{775064df-78a2-4425-aabb-52778b1e0ecb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ai\zzz">
+      <UniqueIdentifier>{c29372d2-b3b3-460a-9960-6b2952e42a27}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

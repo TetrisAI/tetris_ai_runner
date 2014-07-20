@@ -6,12 +6,15 @@
 #include "tetris_core.h"
 #include "land_point_search_simple.h"
 #include "land_point_search_path.h"
+#include "land_point_search_cautious.h"
 #include "ai_ax.h"
+#include "ai_zzz.h"
 #include "rule_st.h"
 #include "rule_qq.h"
+#include "rule_srs.h"
 #include "random.h"
 
-m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_ax_1::AI, land_point_search_path::Search, 2> tetris_ai;
+m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_ax_1::AI, land_point_search_path::Search, 3> tetris_ai;
 
 extern "C" void attach_init()
 {
@@ -75,7 +78,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AI(int boardW, int boardH, char board[], c
     m_tetris::TetrisMap map;
     m_tetris::TetrisBlockStatus status =
     {
-        curPiece, curX - 1, curY - 1, curR
+        curPiece, curX - 1, curY - 1, curR - 1
     };
     size_t next_length = 0;
     unsigned char next[] = {nextPiece, ' ', ' '};
@@ -101,7 +104,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AI(int boardW, int boardH, char board[], c
     if(result != nullptr)
     {
         *bestX = result->status.x + 1;
-        *bestRotation = result->status.r;
+        *bestRotation = result->status.r + 1;
     }
     return 0;
 }
@@ -129,10 +132,10 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     m_tetris::TetrisMap map;
     m_tetris::TetrisBlockStatus status =
     {
-        curPiece, curX - 1, curY - 1, curR
+        curPiece, curX - 1, curY - 1, curR - 1
     };
     size_t next_length = 0;
-    unsigned char next[] = {nextPiece, ' '};
+    unsigned char next[] = {nextPiece, ' ', ' '};
     build_map(board, boardW, boardH, map);
     /////////////////////////////////////////////////
     //这里计算空闲方块数,局势比较差开启vp计算
@@ -156,9 +159,95 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     {
         std::vector<char> ai_path = tetris_ai.path(node, result, map);
         memcpy(path, ai_path.data(), ai_path.size());
+        path[ai_path.size()] = '\0';
     }
     return 0;
 }
+
+
+m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_cautious::Search, 8> srs_ai;
+
+extern "C" DECLSPEC_EXPORT int AIDllVersion()
+{
+    return 2;
+}
+
+extern "C" DECLSPEC_EXPORT char *AIName(int level)
+{
+    static char name[200];
+    strcpy_s(name, srs_ai.ai_name().c_str());
+    return name;
+}
+
+/*
+all 'char' type is using the characters in ' ITLJZSO'
+
+field data like this:
+00........   -> 0x3
+00.0......   -> 0xb
+00000.....   -> 0x1f
+
+b2b: the count of special attack, the first one set b2b=1, but no extra attack. Have extra attacks when b2b>=2
+combo: first clear set combo=1, so the comboTable in toj rule is [0, 0, 0, 1, 1, 2, 2, 3, ...]
+next: array size is 'maxDepth'
+x, y, spin: the active piece's x/y/orientation,
+x/y is the up-left corner's position of the active piece.
+see tetris_gem.cpp for the bitmaps.
+curCanHold: indicates whether you can use hold on current move.
+might be caused by re-think after a hold move.
+canhold: false if hold is completely disabled.
+comboTable: -1 is the end of the table.
+*/
+extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, int level, int player)
+{
+    static char result_buffer[8][1024];
+    char *result = result_buffer[player];
+    result[0] = '\0';
+
+    if(field_w != 10 || field_h != 22 || !srs_ai.prepare(10, 40))
+    {
+        return result;
+    }
+    m_tetris::TetrisMap map =
+    {
+        {}, {}, 10, 40
+    };
+    for(size_t d = 0, s = 22; d < 23; ++d, --s)
+    {
+        map.row[d] = field[s];
+    }
+    for(size_t d = 23, s = 0; s < 8; ++d, ++s)
+    {
+        map.row[d] = overfield[s];
+    }
+    for(int my = 0; my < map.height; ++my)
+    {
+        for(int mx = 0; mx < map.width; ++mx)
+        {
+            if(map.full(mx, my))
+            {
+                map.top[mx] = map.roof = my + 1;
+                map.row[my] |= 1 << mx;
+                ++map.count;
+            }
+        }
+    }
+    m_tetris::TetrisBlockStatus status =
+    {
+        active, x, 22 - y, (4 - spin) % 4
+    };
+    m_tetris::TetrisNode const *node = srs_ai.get(status);
+    auto target = srs_ai.run(map, node, reinterpret_cast<unsigned char *>(next), maxDepth);
+    if(target != nullptr)
+    {
+        std::vector<char> ai_path = srs_ai.path(node, target, map);
+        memcpy(result, ai_path.data(), ai_path.size());
+        result[ai_path.size()] = 'V';
+        result[ai_path.size() + 1] = '\0';
+    }
+    return result;
+}
+
 
 #ifndef WINVER
 #define WINVER 0x0500

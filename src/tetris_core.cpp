@@ -188,10 +188,17 @@ namespace m_tetris
             }
         }
     }
+
+    std::pair<TetrisNode const *, char> TetrisNodeMark::get(size_t index)
+    {
+        return data_[index].data;
+    }
+
     std::pair<TetrisNode const *, char> TetrisNodeMark::get(TetrisNode const *key)
     {
         return data_[key->index].data;
     }
+
     bool TetrisNodeMark::set(TetrisNode const *key, TetrisNode const *node, char op)
     {
         Mark &mark = data_[key->index];
@@ -204,9 +211,62 @@ namespace m_tetris
         mark.data.second = op;
         return true;
     }
+    
     bool TetrisNodeMark::mark(TetrisNode const *key)
     {
         Mark &mark = data_[key->index];
+        if(mark.version == version_)
+        {
+            return false;
+        }
+        mark.version = version_;
+        return true;
+    }
+
+    void TetrisNodeMarkFiltered::init(size_t size)
+    {
+        data_.clear();
+        data_.resize(size);
+    }
+
+    void TetrisNodeMarkFiltered::clear()
+    {
+        if(++version_ == std::numeric_limits<size_t>::max())
+        {
+            version_ = 1;
+            for(auto it = data_.begin(); it != data_.end(); ++it)
+            {
+                it->version = 0;
+            }
+        }
+    }
+
+    std::pair<TetrisNode const *, char> TetrisNodeMarkFiltered::get(size_t index)
+    {
+        return data_[index].data;
+    }
+
+    std::pair<TetrisNode const *, char> TetrisNodeMarkFiltered::get(TetrisNode const *key)
+    {
+        return data_[key->index_filtered].data;
+    }
+
+    bool TetrisNodeMarkFiltered::set(TetrisNode const *key, TetrisNode const *node, char op)
+    {
+        Mark &mark = data_[key->index_filtered];
+        if(mark.version == version_)
+        {
+            return false;
+        }
+        mark.version = version_;
+        mark.data.first = node;
+        mark.data.second = op;
+        return true;
+    }
+
+    bool TetrisNodeMarkFiltered::mark(TetrisNode const *key)
+    {
+        Mark &mark = data_[key->index_filtered];
         if(mark.version == version_)
         {
             return false;
@@ -246,6 +306,23 @@ namespace m_tetris
             check.push_back(node.status);
             generate_cache_[i] = &node_cache_.insert(std::make_pair(node.status, node)).first->second;
         }
+        struct IndexFilter
+        {
+            IndexFilter(TetrisNode const &node)
+            {
+                memcpy(data, node.data, sizeof node.data);
+                data[4] = node.row;
+            }
+            int data[5];
+            struct Less
+            {
+                bool operator()(IndexFilter const &left, IndexFilter const &right)
+                {
+                    return memcmp(left.data, right.data, sizeof left.data) < 0;
+                }
+            };
+        };
+        std::map<IndexFilter, int, IndexFilter::Less> index_filter;
         TetrisMap map = {{}, {}, width, height};
         size_t check_index = 0;
         do
@@ -254,6 +331,7 @@ namespace m_tetris
             {
                 TetrisNode &node = node_cache_.find(check[check_index])->second;
                 node.index = check_index;
+                node.index_filtered = index_filter.insert(std::make_pair(node, check_index)).first->second;
                 node.context = this;
 #define D(func)\
 /**/do\
@@ -304,7 +382,9 @@ namespace m_tetris
         } while(check.size() > check_index);
         for(size_t i = 0; i < 7; ++i)
         {
-            TetrisNode const *node = generate(i);
+            TetrisNode node_generate;
+            create(game_generate_[index_to_type_[i]](this), node_generate);
+            TetrisNode const *node = generate_cache_[i] = get(node_generate.status);
             place_cache_.insert(std::make_pair(node->status.t, std::vector<TetrisNode const *>()));
             std::vector<TetrisNode const *> *land_point = &place_cache_.find(node->status.t)->second;
             TetrisNode const *rotate = node;
@@ -357,6 +437,36 @@ namespace m_tetris
                 } while(move != nullptr);
                 rotate = rotate->rotate_counterclockwise;
             } while(rotate != nullptr  && rotate != node);
+        }
+        for(auto it = node_cache_.begin(); it != node_cache_.end(); ++it)
+        {
+            TetrisNode &node = it->second;
+#define D(func)\
+/**//**//**/do\
+/**//**//**/{\
+/**//**//**//**/if(node.op.rotate_##func != nullptr)\
+/**//**//**//**/{\
+/**//**//**//**//**/TetrisNode copy = *generate(node.status.t);\
+/**//**//**//**//**/node.op.rotate_##func(copy, this);\
+/**//**//**//**//**/TetrisBlockStatus status = copy.status;\
+/**//**//**//**//**/size_t wall_kick_index = 0;\
+/**//**//**//**//**/for(TetrisWallKickOpertion::WallKickNode &n : node.op.wall_kick_##func.data)\
+/**//**//**//**//**/{\
+/**//**//**//**//**//**/TetrisBlockStatus wall_kick_status =\
+/**//**//**//**//**//**/{\
+/**//**//**//**//**//**//**/status.t, node.status.x + n.x, node.status.y + n.y, status.r\
+/**//**//**//**//**//**/};\
+/**//**//**//**//**//**/if(create(wall_kick_status, copy))\
+/**//**//**//**//**//**/{\
+/**//**//**//**//**//**//**/node.wall_kick_##func[wall_kick_index++] = get(copy.status);\
+/**//**//**//**//**//**/}\
+/**//**//**//**//**/}\
+/**//**//**//**/}\
+/**//**//**/} while(false)\
+/**//**//**/
+            D(clockwise);
+            D(counterclockwise);
+            D(opposite);
         }
         return rebuild;
     }
