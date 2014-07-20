@@ -165,7 +165,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
 }
 
 
-m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_cautious::Search, 8> srs_ai;
+m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::Dig, land_point_search_cautious::Search, 8> srs_ai;
 
 extern "C" DECLSPEC_EXPORT int AIDllVersion()
 {
@@ -202,7 +202,6 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
 {
     static char result_buffer[8][1024];
     char *result = result_buffer[player];
-    result[0] = '\0';
 
     if(field_w != 10 || field_h != 22 || !srs_ai.prepare(10, 40))
     {
@@ -237,15 +236,42 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
         active, x, 22 - y, (4 - spin) % 4
     };
     m_tetris::TetrisNode const *node = srs_ai.get(status);
-    auto target = srs_ai.run(map, node, reinterpret_cast<unsigned char *>(next), maxDepth);
-    if(target != nullptr)
+    if(canhold && curCanHold)
     {
-        std::vector<char> ai_path = srs_ai.path(node, target, map);
-        memcpy(result, ai_path.data(), ai_path.size());
-        result[ai_path.size()] = 'V';
-        result[ai_path.size() + 1] = '\0';
+        auto target = srs_ai.run_hold(map, node, hold, reinterpret_cast<unsigned char *>(next), maxDepth);
+        if(target.second)
+        {
+            result++[0] = 'v';
+            if(target.first != nullptr)
+            {
+                std::vector<char> ai_path = srs_ai.path(srs_ai.context()->generate(target.first->status.t), target.first, map);
+                memcpy(result, ai_path.data(), ai_path.size());
+                result += ai_path.size();
+            }
+        }
+        else
+        {
+            if(target.first != nullptr)
+            {
+                std::vector<char> ai_path = srs_ai.path(node, target.first, map);
+                memcpy(result, ai_path.data(), ai_path.size());
+                result += ai_path.size();
+            }
+        }
     }
-    return result;
+    else
+    {
+        auto target = srs_ai.run(map, node, reinterpret_cast<unsigned char *>(next), maxDepth);
+        if(target != nullptr)
+        {
+            std::vector<char> ai_path = srs_ai.path(node, target, map);
+            memcpy(result, ai_path.data(), ai_path.size());
+            result += ai_path.size();
+        }
+    }
+    result[0] = 'V';
+    result[1] = '\0';
+    return result_buffer[player];
 }
 
 

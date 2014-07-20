@@ -1198,14 +1198,49 @@ namespace m_tetris
             return call_ai_[std::min(MaxNextLength, next_length)](map, node, history_, next).first;
         }
         //带hold的run!
-        std::pair<TetrisNode const *, bool> run(TetrisMap const &map, TetrisNode const *node, unsigned char hold, unsigned char *next, size_t next_length)
+        std::pair<TetrisNode const *, bool> run_hold(TetrisMap const &map, TetrisNode const *node, unsigned char hold, unsigned char *next, size_t next_length)
         {
             if(node == nullptr || !node->check(map))
             {
-                return nullptr;
+                return std::make_pair(nullptr, false);
             }
+            next_length = std::min(MaxNextLength, next_length);
+            if(hold == ' ' && next_length == 0)
+            {
+                return std::make_pair(nullptr, true);
+            }
+            if(hold == ' ')
+            {
+                auto this_result = call_ai_[next_length - 1](map, node, history_, next);
+                auto hold_result = call_ai_[next_length](map, context_.generate(*next), history_, next + 1);
+                if(hold_result.second > this_result.second)
+                {
+                    return std::make_pair(hold_result.first, true);
+                }
+                else
+                {
+                    return std::make_pair(this_result.first, false);
+                }
+            }
+            else
+            {
+                auto this_result = call_ai_[next_length](map, node, history_, next);
+                auto hold_result = call_ai_[next_length](map, context_.generate(hold), history_, next);
+                if(hold_result.second > this_result.second)
+                {
+                    return std::make_pair(hold_result.first, true);
+                }
+                else
+                {
+                    return std::make_pair(this_result.first, false);
+                }
+            }
+        }
+        //带hold的run!(过分的!)
+        std::pair<TetrisNode const *, bool> run_hold_accurate(TetrisMap const &map, TetrisNode const *node, unsigned char hold, unsigned char *next, size_t next_length)
+        {
             //TODO
-            return call_ai_[std::min(MaxNextLength, next_length)](map, node, history_, next).first;
+            return run_hold(map, node, hold, next, next_length);
         }
         //根据run的结果得到一个操作路径
         std::vector<char> path(TetrisNode const *node, TetrisNode const *land_point, TetrisMap const &map)
