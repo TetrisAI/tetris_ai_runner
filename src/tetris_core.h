@@ -469,20 +469,20 @@ namespace m_tetris
     template<class CallRunHold>
     struct TetrisCallRun
     {
-        template<class Result, class Next, class... Params>
-        static Result run(Next &next, Params... params)
+        template<class Result, class NextCore, class EvalParam>
+        static Result run(NextCore &next_core, TetrisMap const &map, TetrisNode const *node, std::vector<EvalParam> &history, unsigned char *next)
         {
-            auto result = next.run_hold(params...);
+            auto result = next_core.run_hold(map, node, history, next);
             return result.second.second > result.first.second ? result.second : result.first;
         }
     };
     template<>
     struct TetrisCallRun<std::false_type>
     {
-        template<class Result, class Next, class... Params>
-        static Result run(Next &next, Params... params)
+        template<class Result, class NextCore, class EvalParam>
+        static Result run(NextCore &next_core, TetrisMap const &map, TetrisNode const *node, std::vector<EvalParam> &history, unsigned char *next)
         {
-            return next.run(params...);
+            return next_core.run(map, node, history, next);
         }
     };
 
