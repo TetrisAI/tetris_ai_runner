@@ -1487,6 +1487,10 @@ namespace m_tetris
         TetrisEngine() : context_(TetrisContextBuilder<TetrisRuleSet, TetrisAIParam>::build_context()), ai_(), call_ai_(), call_hold_ai_(), core_(context_, ai_, call_ai_, call_hold_ai_), history_()
         {
         }
+        ~TetrisEngine()
+        {
+            delete context_;
+        }
         //从状态获取当前块
         TetrisNode const *get(TetrisBlockStatus const &status) const
         {
