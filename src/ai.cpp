@@ -238,7 +238,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
     m_tetris::TetrisNode const *node = srs_ai.get(status);
     if(canhold && curCanHold)
     {
-        auto target = srs_ai.run_hold(map, node, hold, reinterpret_cast<unsigned char *>(next), maxDepth);
+        auto target = srs_ai.run_hold_accurate(map, node, hold, curCanHold, reinterpret_cast<unsigned char *>(next), maxDepth);
         if(target.second)
         {
             result++[0] = 'v';
