@@ -19,12 +19,12 @@ namespace ai_zzz
             }
         }
 
-        std::string Attack::ai_name()
+        std::string Attack::ai_name() const
         {
             return "ZZZ Attack v0.1";
         }
 
-        double Attack::eval_map_bad()
+        double Attack::eval_map_bad() const
         {
             return -99999999;
         }
@@ -180,33 +180,37 @@ namespace ai_zzz
             return value;
         }
 
-        void Attack::prune_map(m_tetris::PruneParam<double> *prune, size_t prune_length, size_t next_length)
+        size_t Attack::prune_map(m_tetris::PruneParam<double> *prune, size_t prune_length, TetrisNode const **after_pruning, size_t next_length)
         {
-            prune_sort_.resize(prune_length);
-            auto dst = prune_sort_.data();
-            for(auto it = prune, end = prune + prune_length; it != end; ++it, ++dst)
+            struct
             {
-                *dst = it;
+                bool operator()(m_tetris::PruneParam<double> const &left, m_tetris::PruneParam<double> const &right)
+                {
+                    return left.eval > right.eval;
+                }
+            } c;
+            std::sort(prune, prune + prune_length, c);
+            size_t hold_count = std::min<size_t>(prune_length, 4);
+            for(size_t i = 0; i < hold_count; ++i)
+            {
+                after_pruning[i] = prune[i].land_point;
             }
-            std::sort(prune_sort_.begin(), prune_sort_.end(), [](m_tetris::PruneParam<double> *const &left, m_tetris::PruneParam<double> *const &right)
-            {
-                return left->eval > right->eval;
-            });
-            for(auto it = prune_sort_.begin() + std::min<size_t>(prune_length, 4); it != prune_sort_.end(); ++it)
-            {
-                (*it)->pruned = true;
-            }
+            return hold_count;
         }
 
     }
 
-    
-    std::string Dig::ai_name()
+    void Dig::init(m_tetris::TetrisContext const *context, Param const *param)
     {
-        return "ZZZ Dig v0.1";
+        param_ = param;
+    }
+    
+    std::string Dig::ai_name() const
+    {
+        return "ZZZ Dig v0.2";
     }
 
-    double Dig::eval_map_bad()
+    double Dig::eval_map_bad() const
     {
         return -99999999;
     }
@@ -255,29 +259,55 @@ namespace ai_zzz
                 }
             }
         }
-
+        int combo = param_->combo;
+        int clear = 0;
         for(size_t i = 0; i < history_length; ++i)
         {
-            value += history[i].clear * (history_length - i + 1) * (history[i].clear >= 2 ? map.roof : 2);
+            ++clear;
+            if(history[i].clear > 0)
+            {
+                ++combo;
+            }
+            else
+            {
+                for(++i; i < history_length; ++i)
+                {
+                    ++clear;
+                }
+                break;
+            }
+        }
+        if(combo >= 5)
+        {
+            value += combo * 4096;
+        }
+        else
+        {
+            value -= clear * 256;
+        }
+        TetrisNode const *node = history->node;
+        if(map.width == 10 && map.height == 40 && node->row + node->height + 2 >= 20 && node->col >= 3 && node->col + width <= 6)
+        {
+            value -= 50000000;
         }
         return value;
     }
 
-    void Dig::prune_map(m_tetris::PruneParam<double> *prune, size_t prune_length, size_t next_length)
+    size_t Dig::prune_map(m_tetris::PruneParam<double> *prune, size_t prune_length, TetrisNode const **after_pruning, size_t next_length)
     {
-        prune_sort_.resize(prune_length);
-        auto dst = prune_sort_.data();
-        for(auto it = prune, end = prune + prune_length; it != end; ++it, ++dst)
+        struct
         {
-            *dst = it;
+            bool operator()(m_tetris::PruneParam<double> const &left, m_tetris::PruneParam<double> const &right)
+            {
+                return left.eval > right.eval;
+            }
+        } c;
+        std::sort(prune, prune + prune_length, c);
+        size_t hold_count = std::min<size_t>(prune_length, 2);
+        for(size_t i = 0; i < hold_count; ++i)
+        {
+            after_pruning[i] = prune[i].land_point;
         }
-        std::sort(prune_sort_.begin(), prune_sort_.end(), [](m_tetris::PruneParam<double> *const &left, m_tetris::PruneParam<double> *const &right)
-        {
-            return left->eval > right->eval;
-        });
-        for(auto it = prune_sort_.begin() + std::min<size_t>(prune_length, 2); it != prune_sort_.end(); ++it)
-        {
-            (*it)->pruned = true;
-        }
+        return hold_count;
     }
 }
