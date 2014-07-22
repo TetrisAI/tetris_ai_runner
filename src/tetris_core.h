@@ -1692,7 +1692,14 @@ namespace m_tetris_rule_tools
                     break;
                 }
             }
-            node.top[x - node.col] = node.row + y;
+            if(y == 0)
+            {
+                node.top[x - node.col] = 0;
+            }
+            else
+            {
+                node.top[x - node.col] = node.row + y;
+            }
             for(y = 0; y < node.height; ++y)
             {
                 if((node.data[y] >> x) & 1)
@@ -1700,7 +1707,14 @@ namespace m_tetris_rule_tools
                     break;
                 }
             }
-            node.bottom[x - node.col] = node.row + y;
+            if(y == node.height)
+            {
+                node.bottom[x - node.col] = h;
+            }
+            else
+            {
+                node.bottom[x - node.col] = node.row + y;
+            }
         }
         return node;
     }

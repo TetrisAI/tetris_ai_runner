@@ -631,8 +631,14 @@ namespace m_tetris_rule_tools
         }
         for(int x = 0; x < node.width; ++x)
         {
-            --node.top[x];
-            --node.bottom[x];
+            if(node.top[x] != 0)
+            {
+                --node.top[x];
+            }
+            if(node.bottom[x] != context->height())
+            {
+                --node.bottom[x];
+            }
         }
         --node.row;
         --node.status.y;
