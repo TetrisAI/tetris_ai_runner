@@ -303,7 +303,7 @@ namespace ai_zzz
             }
         } c;
         std::sort(prune, prune + prune_length, c);
-        size_t hold_count = std::min<size_t>(prune_length, 2);
+        size_t hold_count = std::min<size_t>(prune_length, next_length < 6 ? 1 : 6);
         for(size_t i = 0; i < hold_count; ++i)
         {
             after_pruning[i] = prune[i].land_point;
