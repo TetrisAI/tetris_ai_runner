@@ -1484,6 +1484,23 @@ namespace m_tetris
         std::vector<typename Core::EvalParam> history_;
 
     public:
+        struct RunResult
+        {
+            RunResult(typename Core::MapEval const &_eval) : target(), eval(_eval), change_hold()
+            {
+            }
+            RunResult(std::pair<TetrisNode const *, typename Core::MapEval> const &_result) : target(_result.first), eval(_result.second), change_hold()
+            {
+            }
+            RunResult(std::pair<TetrisNode const *, typename Core::MapEval> const &_result, bool _change_hold) : target(_result.first), eval(_result.second), change_hold(_change_hold)
+            {
+            }
+            TetrisNode const *target;
+            typename Core::MapEval eval;
+            bool change_hold;
+        };
+
+    public:
         TetrisEngine() : context_(TetrisContextBuilder<TetrisRuleSet, TetrisAIParam>::build_context()), ai_(), call_ai_(), call_hold_ai_(), core_(context_, ai_, call_ai_, call_hold_ai_), history_()
         {
         }
@@ -1532,16 +1549,16 @@ namespace m_tetris
             return true;
         }
         //run!
-        TetrisNode const *run(TetrisMap const &map, TetrisNode const *node, unsigned char *next, size_t next_length)
+        RunResult run(TetrisMap const &map, TetrisNode const *node, unsigned char *next, size_t next_length)
         {
             if(node == nullptr || !node->check(map))
             {
-                return nullptr;
+                return RunResult(ai_.eval_map_bad());
             }
-            return call_ai_[std::min(MaxNextLength, next_length)](map, node, history_, next).first;
+            return RunResult(call_ai_[std::min(MaxNextLength, next_length)](map, node, history_, next));
         }
         //带hold的run!
-        std::pair<TetrisNode const *, bool> run_hold(TetrisMap const &map, TetrisNode const *node, unsigned char hold, bool hold_free, unsigned char *next, size_t next_length)
+        RunResult run_hold(TetrisMap const &map, TetrisNode const *node, unsigned char hold, bool hold_free, unsigned char *next, size_t next_length)
         {
             if(node == nullptr || !node->check(map))
             {
@@ -1562,11 +1579,11 @@ namespace m_tetris
                 auto hold_result = call_ai_[next_length](map, context_->generate(*next), history_, next + 1);
                 if(hold_result.second > this_result.second)
                 {
-                    return std::make_pair(hold_result.first, true);
+                    return RunResult(hold_result, true);
                 }
                 else
                 {
-                    return std::make_pair(this_result.first, false);
+                    return RunResult(this_result, false);
                 }
             }
             else
@@ -1575,16 +1592,16 @@ namespace m_tetris
                 auto hold_result = call_ai_[next_length](map, context_->generate(hold), history_, next);
                 if(hold_result.second > this_result.second)
                 {
-                    return std::make_pair(hold_result.first, true);
+                    return RunResult(hold_result, true);
                 }
                 else
                 {
-                    return std::make_pair(this_result.first, false);
+                    return RunResult(this_result, false);
                 }
             }
         }
         //带hold的精准的run!(非常慢...慎用...)
-        std::pair<TetrisNode const *, bool> run_hold_accurate(TetrisMap const &map, TetrisNode const *node, unsigned char hold, bool hold_free, unsigned char *next, size_t next_length)
+        RunResult run_hold_accurate(TetrisMap const &map, TetrisNode const *node, unsigned char hold, bool hold_free, unsigned char *next, size_t next_length)
         {
             if(node == nullptr || !node->check(map))
             {
@@ -1596,7 +1613,7 @@ namespace m_tetris
             }
             if(hold == ' ' && !hold_free)
             {
-                return std::make_pair(run(map, node, next, next_length), false);
+                return run(map, node, next, next_length);
             }
             next_length = std::min(MaxNextLength, next_length);
             unsigned char hold_buffer[MaxNextLength + 1];
@@ -1607,16 +1624,16 @@ namespace m_tetris
             {
                 if(result.second.second > result.first.second)
                 {
-                    return std::make_pair(result.second.first, true);
+                    return RunResult(result.second, true);
                 }
                 else
                 {
-                    return std::make_pair(result.first.first, false);
+                    return RunResult(result.first, false);
                 }
             }
             else
             {
-                return std::make_pair(result.first.first, false);
+                return RunResult(result.first, false);
             }
         }
         //根据run的结果得到一个操作路径

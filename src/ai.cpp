@@ -99,12 +99,11 @@ extern "C" DECLSPEC_EXPORT int WINAPI AI(int boardW, int boardH, char board[], c
         next_length = 1;
     }
     /////////////////////////////////////////////////
-    auto result = tetris_ai.run(map, tetris_ai.get(status), next, next_length);
-
-    if(result != nullptr)
+    auto target = tetris_ai.run(map, tetris_ai.get(status), next, next_length).target;
+    if(target != nullptr)
     {
-        *bestX = result->status.x + 1;
-        *bestRotation = result->status.r + 1;
+        *bestX = target->status.x + 1;
+        *bestRotation = target->status.r + 1;
     }
     return 0;
 }
@@ -154,10 +153,10 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     }
     /////////////////////////////////////////////////
     m_tetris::TetrisNode const *node = tetris_ai.get(status);
-    auto result = tetris_ai.run(map, node, next, next_length);
-    if(result != nullptr)
+    auto target = tetris_ai.run(map, node, next, next_length).target;
+    if(target != nullptr)
     {
-        std::vector<char> ai_path = tetris_ai.path(node, result, map);
+        std::vector<char> ai_path = tetris_ai.path(node, target, map);
         memcpy(path, ai_path.data(), ai_path.size());
         path[ai_path.size()] = '\0';
     }
@@ -237,24 +236,24 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
     srs_ai.param()->b2b = b2b;
     srs_ai.param()->combo = combo;
     m_tetris::TetrisNode const *node = srs_ai.get(status);
-    if(canhold && curCanHold)
+    if(canhold)
     {
-        auto target = srs_ai.run_hold_accurate(map, node, hold, curCanHold, reinterpret_cast<unsigned char *>(next), maxDepth);
-        if(target.second)
+        auto run_result = srs_ai.run_hold_accurate(map, node, hold, curCanHold, reinterpret_cast<unsigned char *>(next), maxDepth);
+        if(run_result.change_hold)
         {
             result++[0] = 'v';
-            if(target.first != nullptr)
+            if(run_result.target != nullptr)
             {
-                std::vector<char> ai_path = srs_ai.path(srs_ai.context()->generate(target.first->status.t), target.first, map);
+                std::vector<char> ai_path = srs_ai.path(srs_ai.context()->generate(run_result.target->status.t), run_result.target, map);
                 memcpy(result, ai_path.data(), ai_path.size());
                 result += ai_path.size();
             }
         }
         else
         {
-            if(target.first != nullptr)
+            if(run_result.target != nullptr)
             {
-                std::vector<char> ai_path = srs_ai.path(node, target.first, map);
+                std::vector<char> ai_path = srs_ai.path(node, run_result.target, map);
                 memcpy(result, ai_path.data(), ai_path.size());
                 result += ai_path.size();
             }
@@ -262,7 +261,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
     }
     else
     {
-        auto target = srs_ai.run(map, node, reinterpret_cast<unsigned char *>(next), maxDepth);
+        auto target = srs_ai.run(map, node, reinterpret_cast<unsigned char *>(next), maxDepth).target;
         if(target != nullptr)
         {
             std::vector<char> ai_path = srs_ai.path(node, target, map);
