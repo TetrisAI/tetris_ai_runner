@@ -12,8 +12,8 @@ namespace ai_zzz
         void Attack::init(m_tetris::TetrisContext const *context)
         {
             check_line_.clear();
-            const int full = (1 << 10) - 1;
-            for(int x = 0; x <= 10; ++x)
+            const int full = context->full();
+            for(int x = 0; x < context->width(); ++x)
             {
                 check_line_.insert(full & ~(1 << x));
             }
@@ -31,10 +31,6 @@ namespace ai_zzz
 
         double Attack::eval_map(TetrisMap const &map, EvalParam<> const *history, size_t history_length)
         {
-            if(history->node->low >= 20)
-            {
-                return eval_map_bad();
-            }
             double value = 0;
             int top = map.roof;
 
@@ -163,6 +159,7 @@ namespace ai_zzz
                     break;
                 case 1:
                 case 2:
+                case 3:
                     if(danger == 0)
                     {
                         value -= 4 * history->map.roof * width * history[i].clear * 128 / width_mul;
@@ -190,7 +187,7 @@ namespace ai_zzz
                 }
             } c;
             std::sort(prune, prune + prune_length, c);
-            size_t hold_count = std::min<size_t>(prune_length, 4);
+            size_t hold_count = std::min<size_t>(prune_length, 2);
             for(size_t i = 0; i < hold_count; ++i)
             {
                 after_pruning[i] = prune[i].land_point;
@@ -200,9 +197,9 @@ namespace ai_zzz
 
     }
 
-    void Dig::init(m_tetris::TetrisContext const *context, Param const *param)
+    void Dig::init(m_tetris::TetrisContext const *context, size_t const *param)
     {
-        param_ = param;
+        next_length_ptr_ = param;
     }
     
     std::string Dig::ai_name() const
@@ -217,13 +214,9 @@ namespace ai_zzz
 
     double Dig::eval_map(TetrisMap const &map, EvalParam<> const *history, size_t history_length)
     {
-        if(history->node->low >= 20)
-        {
-            return eval_map_bad();
-        }
         double value = 0;
 
-        const int width = 10;
+        const int width = map.width;
         
         for(int x = 0; x < width; ++x)
         {
@@ -231,6 +224,7 @@ namespace ai_zzz
             {
                 if(map.full(x, y))
                 {
+                    value -= 2 * (y + 1);
                     continue;
                 }
                 if(x == width - 1 || map.full(x + 1, y))
@@ -259,37 +253,12 @@ namespace ai_zzz
                 }
             }
         }
-        int combo = param_->combo;
-        int clear = 0;
+        double clear = 0;
         for(size_t i = 0; i < history_length; ++i)
         {
-            ++clear;
-            if(history[i].clear > 0)
-            {
-                ++combo;
-            }
-            else
-            {
-                for(++i; i < history_length; ++i)
-                {
-                    ++clear;
-                }
-                break;
-            }
+            clear += history[i].clear;
         }
-        if(combo >= 5)
-        {
-            value += combo * 4096;
-        }
-        else
-        {
-            value -= clear * 256;
-        }
-        TetrisNode const *node = history->node;
-        if(map.width == 10 && map.height == 40 && node->row + node->height + 2 >= 20 && node->col >= 3 && node->col + width <= 6)
-        {
-            value -= 50000000;
-        }
+        value += clear * history->map.roof * 10 / history_length;
         return value;
     }
 
@@ -303,7 +272,7 @@ namespace ai_zzz
             }
         } c;
         std::sort(prune, prune + prune_length, c);
-        size_t hold_count = std::min<size_t>(prune_length, next_length < 6 ? 1 : 6);
+        size_t hold_count = std::min<size_t>(prune_length, next_length == *next_length_ptr_ ? prune_length : next_length == *next_length_ptr_ - 1 ? 2 : 1);
         for(size_t i = 0; i < hold_count; ++i)
         {
             after_pruning[i] = prune[i].land_point;

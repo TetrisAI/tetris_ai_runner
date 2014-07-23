@@ -1523,6 +1523,10 @@ namespace m_tetris
         {
             return ai_.ai_name();
         }
+        size_t max_next_length() const
+        {
+            return MaxNextLength;
+        }
         TetrisAIParam *param()
         {
             return context_->get_param();
@@ -1562,7 +1566,7 @@ namespace m_tetris
         {
             if(node == nullptr || !node->check(map))
             {
-                return std::make_pair(nullptr, false);
+                return RunResult(ai_.eval_map_bad());
             }
             next_length = std::min(MaxNextLength, next_length);
             if(!hold_free)
@@ -1571,7 +1575,7 @@ namespace m_tetris
             }
             if(hold == ' ' && next_length == 0)
             {
-                return std::make_pair(nullptr, true);
+                return RunResult(std::make_pair(nullptr, ai_.eval_map_bad()), true);
             }
             if(hold == ' ')
             {
@@ -1605,11 +1609,11 @@ namespace m_tetris
         {
             if(node == nullptr || !node->check(map))
             {
-                return std::make_pair(nullptr, false);
+                return RunResult(ai_.eval_map_bad());
             }
             if(hold == ' ' && hold_free && next_length == 0)
             {
-                return std::make_pair(nullptr, true);
+                return RunResult(ai_.eval_map_bad());
             }
             if(hold == ' ' && !hold_free)
             {

@@ -163,7 +163,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     return 0;
 }
 
-m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::Dig, land_point_search_cautious::Search, 8, ai_zzz::Dig::Param> srs_ai;
+m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_cautious::Search, 8> srs_ai;
 
 extern "C" DECLSPEC_EXPORT int AIDllVersion()
 {
@@ -233,8 +233,6 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
     {
         active, x, 22 - y, (4 - spin) % 4
     };
-    srs_ai.param()->b2b = b2b;
-    srs_ai.param()->combo = combo;
     m_tetris::TetrisNode const *node = srs_ai.get(status);
     if(canhold)
     {

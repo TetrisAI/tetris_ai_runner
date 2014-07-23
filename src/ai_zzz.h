@@ -16,7 +16,6 @@ namespace ai_zzz
             size_t prune_map(m_tetris::PruneParam<double> *prune, size_t prune_length, m_tetris::TetrisNode const **after_pruning, size_t next_length);
 
         private:
-            std::vector<m_tetris::PruneParam<double> *> prune_sort_;
             std::set<int> check_line_;
         };
     }
@@ -24,18 +23,14 @@ namespace ai_zzz
     class Dig
     {
     public:
-        struct Param
-        {
-            int b2b, combo;
-        };
-    public:
-        void init(m_tetris::TetrisContext const *context, Param const *param);
+        void init(m_tetris::TetrisContext const *context, size_t const *param);
         std::string ai_name() const;
         double eval_map_bad() const;
         double eval_map(m_tetris::TetrisMap const &map, m_tetris::EvalParam<> const *history, size_t history_length);
         size_t prune_map(m_tetris::PruneParam<double> *prune, size_t prune_length, m_tetris::TetrisNode const **after_pruning, size_t next_length);
 
     private:
-        Param const *param_;
+        size_t const *next_length_ptr_;
     };
+
 }
