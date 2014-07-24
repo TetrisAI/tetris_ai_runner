@@ -6,6 +6,7 @@
 #include "tetris_core.h"
 #include "land_point_search_simple.h"
 #include "land_point_search_path.h"
+#include "land_point_search_simulate.h"
 #include "land_point_search_cautious.h"
 #include "ai_ax.h"
 #include "ai_zzz.h"

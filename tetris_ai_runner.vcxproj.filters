@@ -29,6 +29,9 @@
     <ClCompile Include="src\land_point_search_cautious.cpp">
       <Filter>land_point_search\cautious</Filter>
     </ClCompile>
+    <ClCompile Include="src\land_point_search_simulate.cpp">
+      <Filter>land_point_search\simulate</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\rule_srs.h">
@@ -57,6 +60,9 @@
     </ClInclude>
     <ClInclude Include="src\land_point_search_cautious.h">
       <Filter>land_point_search\cautious</Filter>
+    </ClInclude>
+    <ClInclude Include="src\land_point_search_simulate.h">
+      <Filter>land_point_search\simulate</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -92,6 +98,9 @@
     </Filter>
     <Filter Include="land_point_search\cautious">
       <UniqueIdentifier>{6df7d9c8-f940-4473-a596-db2b0324de0c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="land_point_search\simulate">
+      <UniqueIdentifier>{3fd41077-54f2-4242-99d9-717889aa8de3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

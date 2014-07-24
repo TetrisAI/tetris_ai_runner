@@ -16,6 +16,7 @@
     <ClInclude Include="src\land_point_search_cautious.h" />
     <ClInclude Include="src\land_point_search_path.h" />
     <ClInclude Include="src\land_point_search_simple.h" />
+    <ClInclude Include="src\land_point_search_simulate.h" />
     <ClInclude Include="src\random.h" />
     <ClInclude Include="src\rule_qq.h" />
     <ClInclude Include="src\rule_st.h" />
@@ -31,6 +32,7 @@
     <ClCompile Include="src\land_point_search_cautious.cpp" />
     <ClCompile Include="src\land_point_search_path.cpp" />
     <ClCompile Include="src\land_point_search_simple.cpp" />
+    <ClCompile Include="src\land_point_search_simulate.cpp" />
     <ClCompile Include="src\random.cpp" />
     <ClCompile Include="src\rule_qq.cpp" />
     <ClCompile Include="src\rule_st.cpp" />
