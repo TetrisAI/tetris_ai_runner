@@ -10,8 +10,7 @@ namespace land_point_search_simulate
     {
     private:
         std::vector<m_tetris::TetrisNode const *> land_point_cache_;
-        std::vector<m_tetris::TetrisNode const *> node_search_1_;
-        std::vector<m_tetris::TetrisNode const *> node_search_2_;
+        std::vector<m_tetris::TetrisNode const *> node_search_;
         m_tetris::TetrisNodeMark node_mark_;
         m_tetris::TetrisNodeMarkFiltered node_mark_filtered_;
     public:

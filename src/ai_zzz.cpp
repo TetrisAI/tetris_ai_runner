@@ -162,7 +162,7 @@ namespace ai_zzz
                 case 3:
                     if(danger == 0)
                     {
-                        value -= 4 * history->map.roof * width * history[i].clear * 128 / width_mul;
+                        value -= 4 * history->map.roof * width * 128 / width_mul;
                     }
                     else if(danger >= 2)
                     {

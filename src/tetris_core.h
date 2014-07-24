@@ -1613,7 +1613,7 @@ namespace m_tetris
             }
             if(hold == ' ' && hold_free && next_length == 0)
             {
-                return RunResult(ai_.eval_map_bad());
+                return RunResult(std::make_pair(nullptr, ai_.eval_map_bad()), true);
             }
             if(hold == ' ' && !hold_free)
             {
