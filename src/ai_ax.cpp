@@ -7,6 +7,19 @@
 
 using namespace m_tetris;
 
+namespace
+{
+    int BitCount(unsigned int n)
+    {
+        n = (n & 0x55555555) + ((n >> 1) & 0x55555555);
+        n = (n & 0x33333333) + ((n >> 2) & 0x33333333);
+        n = (n & 0x0f0f0f0f) + ((n >> 4) & 0x0f0f0f0f);
+        n = (n & 0x00ff00ff) + ((n >> 8) & 0x00ff00ff);
+        n = (n & 0x0000ffff) + ((n >> 16) & 0x0000ffff);
+        return n;
+    }
+}
+
 namespace ai_ax_1
 {
     void AI::init(m_tetris::TetrisContext const *context)
@@ -27,6 +40,8 @@ namespace ai_ax_1
                 map_danger_data_[i].data[y + 1] |= map_danger_data_[i].data[y];
             }
         }
+        col_mask_ = context->full() & ~1;
+        row_mask_ = context->full();
     }
 
     std::string AI::ai_name() const
@@ -36,14 +51,18 @@ namespace ai_ax_1
 
     double AI::eval_land_point(TetrisNode const *node, TetrisMap const &map, size_t clear)
     {
+        //消行数
         double LandHeight = node->status.y + 1;
+        //设置左中右平衡破缺参数
         double Middle = std::abs((node->status.x + 1) * 2 - map.width);
+        //当前块行数
         double EraseCount = clear;
+
         return (0
-            - LandHeight * 200 / map.height
-            + Middle  * 0.2
-            + EraseCount * 6
-            );
+                - LandHeight * 200 / map.height
+                + Middle  * 0.2
+                + EraseCount * 6
+                );
     }
 
     double AI::eval_map_bad() const
@@ -53,6 +72,7 @@ namespace ai_ax_1
 
     double AI::eval_map(TetrisMap const &map, EvalParam<double> const *history, size_t history_length)
     {
+        const int width_m1 = map.width - 1;
         //行列变换
         int ColTrans = 2 * (map.height - map.roof);
         int RowTrans = map.roof == map.height ? 0 : map.width;
@@ -62,43 +82,18 @@ namespace ai_ax_1
             {
                 ++ColTrans;
             }
-            if(!map.full(map.width - 1, y))
+            if(!map.full(width_m1, y))
             {
                 ++ColTrans;
             }
-            int TransBits = map.row[y] ^ (map.row[y] << 1);
-            for(int x = 1; x < map.width; ++x)
+            ColTrans += BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+            if(y != 0)
             {
-                if((TransBits >> x) & 1)
-                {
-                    ++ColTrans;
-                }
+                RowTrans += BitCount(map.row[y - 1] ^ map.row[y]);
             }
         }
-        for(int y = 1; y < map.roof; ++y)
-        {
-            int TransBits = map.row[y - 1] ^ map.row[y];
-            for(int x = 0; x < map.width; ++x)
-            {
-                if((TransBits >> x) & 1)
-                {
-                    ++RowTrans;
-                }
-            }
-        }
-        int Row0Bits = ~map.row[0];
-        int Row1Bits = map.roof == map.height ? ~map.row[map.roof - 1] : map.row[map.roof - 1];
-        for(int x = 0; x < map.width; ++x)
-        {
-            if((Row0Bits >> x) & 1)
-            {
-                ++RowTrans;
-            }
-            if((Row1Bits >> x) & 1)
-            {
-                ++RowTrans;
-            }
-        }
+        RowTrans += BitCount(row_mask_ & ~map.row[0]);
+        RowTrans += BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
 
         struct
         {
@@ -119,13 +114,6 @@ namespace ai_ax_1
             int HoleNum[32];
             int WellNum[32];
 
-            //当前块行数
-            int LandHeight;
-            //设置左中右平衡破缺参数
-            int Middle;
-            //消行数
-            int EraseCount;
-
             int LineCoverBits;
             int TopHoleBits;
         } v;
@@ -137,6 +125,7 @@ namespace ai_ax_1
             int LineHole = v.LineCoverBits ^ map.row[y];
             if(LineHole != 0)
             {
+                v.HoleCount += BitCount(LineHole);
                 v.HoleLine++;
                 if(v.HolePosy == 0)
                 {
@@ -144,23 +133,44 @@ namespace ai_ax_1
                     v.TopHoleBits = LineHole;
                 }
             }
-            for(int x = 0; x < map.width; ++x)
+            for(int x = 1; x < width_m1; ++x)
             {
                 if((LineHole >> x) & 1)
                 {
-                    ++v.HoleCount;
-                    ++v.HoleNum[x];
+                    v.HoleDepth += ++v.HoleNum[x];
                 }
                 else
                 {
                     v.HoleNum[x] = 0;
                 }
-                v.HoleDepth += v.HoleNum[x];
-                if(!((v.LineCoverBits >> x) & 1) && (x == 0 || ((v.LineCoverBits >> (x - 1)) & 1)) && (x == map.width - 1 || ((v.LineCoverBits >> (x + 1)) & 1)))
+                if(((v.LineCoverBits >> (x - 1)) & 7) == 5)
                 {
-                    ++v.WellNum[x];
-                    v.WellDepth += v.WellNum[x];
+                    v.WellDepth += ++v.WellNum[x];
                 }
+            }
+            if(LineHole & 1)
+            {
+                v.HoleDepth += ++v.HoleNum[0];
+            }
+            else
+            {
+                v.HoleNum[0] = 0;
+            }
+            if((v.LineCoverBits & 3) == 2)
+            {
+                v.WellDepth += ++v.WellNum[0];
+            }
+            if((LineHole >> width_m1) & 1)
+            {
+                v.HoleDepth += ++v.HoleNum[width_m1];
+            }
+            else
+            {
+                v.HoleNum[width_m1] = 0;
+            }
+            if(((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
+            {
+                v.WellDepth += ++v.WellNum[width_m1];
             }
         }
         if(v.HolePosy != 0)
@@ -173,13 +183,7 @@ namespace ai_ax_1
                 {
                     break;
                 }
-                for(int x = 0; x < map.width; ++x)
-                {
-                    if((CheckLine >> x) & 1)
-                    {
-                        v.HolePiece += y + 1;
-                    }
-                }
+                v.HolePiece += (y + 1) * BitCount(CheckLine);
             }
         }
         double land_point_value = 0;
@@ -191,16 +195,16 @@ namespace ai_ax_1
         //死亡警戒
         int BoardDeadZone = map_in_danger_(map);
         return (0
-            + land_point_value / history_length
-            - ColTrans * 8
-            - RowTrans * 8
-            - v.HoleCount * 6
-            - v.HoleLine * 38
-            - v.WellDepth * 10
-            - v.HoleDepth * 4
-            - v.HolePiece * 0.5
-            - BoardDeadZone * 5000
-            );
+                + land_point_value / history_length
+                - ColTrans * 8
+                - RowTrans * 8
+                - v.HoleCount * 6
+                - v.HoleLine * 38
+                - v.WellDepth * 10
+                - v.HoleDepth * 4
+                - v.HolePiece * 0.5
+                - BoardDeadZone * 5000
+                );
     }
 
     double AI::get_virtual_eval(double const *eval, size_t eval_length)
@@ -267,6 +271,8 @@ namespace ai_ax_0
                 map_danger_data_[i].data[y + 1] |= map_danger_data_[i].data[y];
             }
         }
+        col_mask_ = context->full() & ~1;
+        row_mask_ = context->full();
     }
 
     std::string AI::ai_name() const
@@ -281,6 +287,7 @@ namespace ai_ax_0
     
     double AI::eval_map(TetrisMap const &map, EvalParam<> const *history, size_t history_length) const
     {
+        const int width_m1 = map.width - 1;
         //行列变换
         int ColTrans = 2 * (map.height - map.roof);
         int RowTrans = map.roof == map.height ? 0 : map.width;
@@ -290,43 +297,18 @@ namespace ai_ax_0
             {
                 ++ColTrans;
             }
-            if(!map.full(map.width - 1, y))
+            if(!map.full(width_m1, y))
             {
                 ++ColTrans;
             }
-            int TransBits = map.row[y] ^ (map.row[y] << 1);
-            for(int x = 1; x < map.width; ++x)
+            ColTrans += BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+            if(y != 0)
             {
-                if((TransBits >> x) & 1)
-                {
-                    ++ColTrans;
-                }
+                RowTrans += BitCount(map.row[y - 1] ^ map.row[y]);
             }
         }
-        for(int y = 1; y < map.roof; ++y)
-        {
-            int TransBits = map.row[y - 1] ^ map.row[y];
-            for(int x = 0; x < map.width; ++x)
-            {
-                if((TransBits >> x) & 1)
-                {
-                    ++RowTrans;
-                }
-            }
-        }
-        int Row0Bits = ~map.row[0];
-        int Row1Bits = map.roof == map.height ? ~map.row[map.roof - 1] : map.row[map.roof - 1];
-        for(int x = 0; x < map.width; ++x)
-        {
-            if((Row0Bits >> x) & 1)
-            {
-                ++RowTrans;
-            }
-            if((Row1Bits >> x) & 1)
-            {
-                ++RowTrans;
-            }
-        }
+        RowTrans += BitCount(row_mask_ & ~map.row[0]);
+        RowTrans += BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
 
         struct
         {
@@ -365,6 +347,7 @@ namespace ai_ax_0
             int LineHole = v.LineCoverBits ^ map.row[y];
             if(LineHole != 0)
             {
+                v.HoleCount += BitCount(LineHole);
                 v.HoleLine++;
                 if(v.HolePosy == 0)
                 {
@@ -372,23 +355,44 @@ namespace ai_ax_0
                     v.TopHoleBits = LineHole;
                 }
             }
-            for(int x = 0; x < map.width; ++x)
+            for(int x = 1; x < width_m1; ++x)
             {
                 if((LineHole >> x) & 1)
                 {
-                    ++v.HoleCount;
-                    ++v.HoleNum[x];
+                    v.HoleDepth += ++v.HoleNum[x];
                 }
                 else
                 {
                     v.HoleNum[x] = 0;
                 }
-                v.HoleDepth += v.HoleNum[x];
-                if(!((v.LineCoverBits >> x) & 1) && (x == 0 || ((v.LineCoverBits >> (x - 1)) & 1)) && (x == map.width - 1 || ((v.LineCoverBits >> (x + 1)) & 1)))
+                if(((v.LineCoverBits >> (x - 1)) & 7) == 5)
                 {
-                    ++v.WellNum[x];
-                    v.WellDepth += v.WellNum[x];
+                    v.WellDepth += ++v.WellNum[x];
                 }
+            }
+            if(LineHole & 1)
+            {
+                v.HoleDepth += ++v.HoleNum[0];
+            }
+            else
+            {
+                v.HoleNum[0] = 0;
+            }
+            if((v.LineCoverBits & 3) == 2)
+            {
+                v.WellDepth += ++v.WellNum[0];
+            }
+            if((LineHole >> width_m1) & 1)
+            {
+                v.HoleDepth += ++v.HoleNum[width_m1];
+            }
+            else
+            {
+                v.HoleNum[width_m1] = 0;
+            }
+            if(((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
+            {
+                v.WellDepth += ++v.WellNum[width_m1];
             }
         }
         if(v.HolePosy != 0)
@@ -401,13 +405,7 @@ namespace ai_ax_0
                 {
                     break;
                 }
-                for(int x = 0; x < map.width; ++x)
-                {
-                    if((CheckLine >> x) & 1)
-                    {
-                        v.HolePiece += y + 1;
-                    }
-                }
+                v.HolePiece += (y + 1) * BitCount(CheckLine);
             }
         }
 
@@ -436,7 +434,7 @@ namespace ai_ax_0
                 - BoardDeadZone * 5000
                 );
     }
-    
+
     size_t AI::map_in_danger_(m_tetris::TetrisMap const &map) const
     {
         size_t danger = 0;

@@ -24,6 +24,7 @@ namespace ai_ax_1
         std::vector<m_tetris::PruneParam<double> *> prune_sort_;
         m_tetris::TetrisContext const *context_;
         size_t map_in_danger_(m_tetris::TetrisMap const &map);
+        int col_mask_, row_mask_;
     };
 }
 
@@ -46,5 +47,6 @@ namespace ai_ax_0
         std::vector<MapInDangerData> map_danger_data_;
         m_tetris::TetrisContext const *context_;
         size_t map_in_danger_(m_tetris::TetrisMap const &map) const;
+        int col_mask_, row_mask_;
     };
 }

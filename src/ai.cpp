@@ -204,6 +204,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
 
     if(field_w != 10 || field_h != 22 || !srs_ai.prepare(10, 40))
     {
+        *result = '\0';
         return result;
     }
     m_tetris::TetrisMap map =
@@ -405,7 +406,7 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
         {
             memset(path, 0, 1024);
             typedef int(__stdcall *ai_run_t)(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char nextPiece, char path[]);
-            ((ai_run_t)ai[version])(w, h, param_map, node->status.t, node->status.x + 1, node->status.y + 1, node->status.r, ' ', path);
+            ((ai_run_t)ai[version])(w, h, param_map, node->status.t, node->status.x + 1, node->status.y + 1, node->status.r + 1, ' ', path);
             char *move = path, *move_end = path + 1024;
             //printf("%c->%s\n", node->status.t, path);
             while(move != move_end && *move != '\0')
@@ -472,9 +473,10 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
         else
         {
             typedef int(__stdcall *ai_run_t)(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char nextPiece, int *bestX, int *bestRotation);
-            int best_x = node->status.x + 1, best_r = node->status.r;
+            int best_x = node->status.x + 1, best_r = node->status.r + 1;
             ((ai_run_t)ai[version])(w, h, param_map, node->status.t, best_x, node->status.y + 1, best_r, ' ', &best_x, &best_r);
             --best_x;
+            --best_r;
             int r = node->status.r;
             while(best_r > r && node->rotate_counterclockwise && node->rotate_counterclockwise->check(map))
             {
