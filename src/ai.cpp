@@ -29,26 +29,6 @@ extern "C" DECLSPEC_EXPORT char const *WINAPI Name()
     return name.c_str();
 }
 
-//数据转换
-void build_map(char board[], int w, int h, m_tetris::TetrisMap &map)
-{
-    memset(&map, 0, sizeof map);
-    map.width = w;
-    map.height = h;
-    for(int y = 0, add = 0; y < h; ++y, add += w)
-    {
-        for(int x = 0; x < w; ++x)
-        {
-            if(board[x + add] == '1')
-            {
-                map.top[x] = map.roof = y + 1;
-                map.row[y] |= 1 << x;
-                ++map.count;
-            }
-        }
-    }
-}
-
 /*
  * board是一个boardW*boardH长度用01组成的字符串，原点于左下角，先行后列。
  * 例如8*3的场地实际形状：
@@ -76,14 +56,28 @@ extern "C" DECLSPEC_EXPORT int WINAPI AI(int boardW, int boardH, char board[], c
     {
         return 0;
     }
-    m_tetris::TetrisMap map;
+    m_tetris::TetrisMap map =
+    {
+        {}, {}, boardW, boardH
+    };
+    for(int y = 0, add = 0; y < boardH; ++y, add += boardW)
+    {
+        for(int x = 0; x < boardW; ++x)
+        {
+            if(board[x + add] == '1')
+            {
+                map.top[x] = map.roof = y + 1;
+                map.row[y] |= 1 << x;
+                ++map.count;
+            }
+        }
+    }
     m_tetris::TetrisBlockStatus status =
     {
         curPiece, curX - 1, curY - 1, curR - 1
     };
     size_t next_length = 0;
     unsigned char next[] = {nextPiece, ' ', ' '};
-    build_map(board, boardW, boardH, map);
     /////////////////////////////////////////////////
     //这里计算空闲方块数,局势比较差开启vp计算
     int free_block = 0;
@@ -129,14 +123,28 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     {
         return 0;
     }
-    m_tetris::TetrisMap map;
+    m_tetris::TetrisMap map =
+    {
+        {}, {}, boardW, boardH
+    };
+    for(int y = 0, add = 0; y < boardH; ++y, add += boardW)
+    {
+        for(int x = 0; x < boardW; ++x)
+        {
+            if(board[x + add] == '1')
+            {
+                map.top[x] = map.roof = y + 1;
+                map.row[y] |= 1 << x;
+                ++map.count;
+            }
+        }
+    }
     m_tetris::TetrisBlockStatus status =
     {
         curPiece, curX - 1, curY - 1, curR - 1
     };
     size_t next_length = 0;
     unsigned char next[] = {nextPiece, ' ', ' '};
-    build_map(board, boardW, boardH, map);
     /////////////////////////////////////////////////
     //这里计算空闲方块数,局势比较差开启vp计算
     int free_block = 0;
@@ -164,7 +172,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     return 0;
 }
 
-m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_cautious::Search, 8> srs_ai;
+m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_cautious::Search, 8, ai_zzz::qq::Attack::Param> srs_ai;
 
 extern "C" DECLSPEC_EXPORT int AIDllVersion()
 {
@@ -231,6 +239,8 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
             }
         }
     }
+    srs_ai.param()->level = level;
+    srs_ai.param()->next_length = maxDepth;
     m_tetris::TetrisBlockStatus status =
     {
         active, x, 22 - y, (4 - spin) % 4
@@ -274,6 +284,49 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
     return result_buffer[player];
 }
 
+m_tetris::TetrisEngine<rule_qq::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_simulate::Search, 10, ai_zzz::qq::Attack::Param> qq_ai;
+
+extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int level, int mode, char path[])
+{
+    if(boardH != 10 || boardH != 20 || !qq_ai.prepare(10, 20))
+    {
+        *path = '\0';
+        return 0;
+    }
+    m_tetris::TetrisMap map =
+    {
+        {}, {}, 10, 20
+    };
+    memcpy(map.row, board, boardH * sizeof(int));
+    for(int my = 0; my < map.height; ++my)
+    {
+        for(int mx = 0; mx < map.width; ++mx)
+        {
+            if(map.full(mx, my))
+            {
+                map.top[mx] = map.roof = my + 1;
+                map.row[my] |= 1 << mx;
+                ++map.count;
+            }
+        }
+    }
+    m_tetris::TetrisBlockStatus status =
+    {
+        nextPiece[0], curX, curY, (4 - curR) % 4
+    };
+    size_t next_length = std::strlen(nextPiece) - 1;
+    qq_ai.param()->next_length = next_length;
+    qq_ai.param()->level = level;
+    m_tetris::TetrisNode const *node = qq_ai.get(status);
+    auto target = qq_ai.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length).target;
+    if(target != nullptr)
+    {
+        std::vector<char> ai_path = qq_ai.path(node, target, map);
+        memcpy(path, ai_path.data(), ai_path.size());
+        path[ai_path.size()] = '\0';
+    }
+    return 0;
+}
 
 #ifndef WINVER
 #define WINVER 0x0500

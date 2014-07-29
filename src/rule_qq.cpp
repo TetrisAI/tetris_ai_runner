@@ -14,16 +14,7 @@ namespace rule_qq
     {
         TetrisBlockStatus status =
         {
-            T, context->width() / 2 - 1, context->height() - 1, 0
-        };
-        return status;
-    }
-    template<>
-    TetrisBlockStatus generate_template<'I'>(TetrisContext const *context)
-    {
-        TetrisBlockStatus status =
-        {
-            'I', context->width() / 2, context->height() - 1, 0
+            T, context->width() / 2 - 2, context->height(), 0
         };
         return status;
     }
@@ -34,7 +25,7 @@ namespace rule_qq
 #define T(a, b, c, d) (((a) ? 1 : 0) | ((b) ? 2 : 0) | ((c) ? 4 : 0) | ((d) ? 8 : 0))
         TetrisOpertion op_O1 =
         {
-            create_node<'O', 1, 1, 0,
+            create_node<'O', 0, 0, 0,
             T(0, 1, 1, 0),
             T(0, 1, 1, 0),
             T(0, 0, 0, 0),
@@ -48,7 +39,7 @@ namespace rule_qq
         };
         TetrisOpertion op_I1 =
         {
-            create_node<'I', 2, 1, 0,
+            create_node<'I', 0, 0, 0,
             T(0, 0, 0, 0),
             T(1, 1, 1, 1),
             T(0, 0, 0, 0),
@@ -62,7 +53,7 @@ namespace rule_qq
         };
         TetrisOpertion op_I2 =
         {
-            create_node<'I', 2, 1, 1,
+            create_node<'I', 0, 0, 1,
             T(0, 0, 1, 0),
             T(0, 0, 1, 0),
             T(0, 0, 1, 0),
@@ -76,7 +67,7 @@ namespace rule_qq
         };
         TetrisOpertion op_S1 =
         {
-            create_node<'S', 1, 1, 0,
+            create_node<'S', 0, 0, 0,
             T(0, 1, 1, 0),
             T(1, 1, 0, 0),
             T(0, 0, 0, 0),
@@ -90,7 +81,7 @@ namespace rule_qq
         };
         TetrisOpertion op_S2 =
         {
-            create_node<'S', 1, 1, 1,
+            create_node<'S', 0, 0, 1,
             T(1, 0, 0, 0),
             T(1, 1, 0, 0),
             T(0, 1, 0, 0),
@@ -104,7 +95,7 @@ namespace rule_qq
         };
         TetrisOpertion op_Z1 =
         {
-            create_node<'Z', 1, 1, 0,
+            create_node<'Z', 0, 0, 0,
             T(1, 1, 0, 0),
             T(0, 1, 1, 0),
             T(0, 0, 0, 0),
@@ -118,7 +109,7 @@ namespace rule_qq
         };
         TetrisOpertion op_Z2 =
         {
-            create_node<'Z', 1, 1, 1,
+            create_node<'Z', 0, 0, 1,
             T(0, 0, 1, 0),
             T(0, 1, 1, 0),
             T(0, 1, 0, 0),
@@ -132,7 +123,7 @@ namespace rule_qq
         };
         TetrisOpertion op_L1 =
         {
-            create_node<'L', 1, 1, 0,
+            create_node<'L', 0, 0, 0,
             T(1, 1, 0, 0),
             T(0, 1, 0, 0),
             T(0, 1, 0, 0),
@@ -146,7 +137,7 @@ namespace rule_qq
         };
         TetrisOpertion op_L2 =
         {
-            create_node<'L', 1, 1, 1,
+            create_node<'L', 0, 0, 1,
             T(0, 0, 0, 0),
             T(1, 1, 1, 0),
             T(1, 0, 0, 0),
@@ -160,7 +151,7 @@ namespace rule_qq
         };
         TetrisOpertion op_L3 =
         {
-            create_node<'L', 1, 1, 2,
+            create_node<'L', 0, 0, 2,
             T(0, 1, 0, 0),
             T(0, 1, 0, 0),
             T(0, 1, 1, 0),
@@ -174,7 +165,7 @@ namespace rule_qq
         };
         TetrisOpertion op_L4 =
         {
-            create_node<'L', 1, 1, 3,
+            create_node<'L', 0, 0, 3,
             T(0, 0, 1, 0),
             T(1, 1, 1, 0),
             T(0, 0, 0, 0),
@@ -188,7 +179,7 @@ namespace rule_qq
         };
         TetrisOpertion op_J1 =
         {
-            create_node<'J', 1, 1, 0,
+            create_node<'J', 0, 0, 0,
             T(0, 1, 1, 0),
             T(0, 1, 0, 0),
             T(0, 1, 0, 0),
@@ -202,7 +193,7 @@ namespace rule_qq
         };
         TetrisOpertion op_J2 =
         {
-            create_node<'J', 1, 1, 1,
+            create_node<'J', 0, 0, 1,
             T(1, 0, 0, 0),
             T(1, 1, 1, 0),
             T(0, 0, 0, 0),
@@ -216,7 +207,7 @@ namespace rule_qq
         };
         TetrisOpertion op_J3 =
         {
-            create_node<'J', 1, 1, 2,
+            create_node<'J', 0, 0, 2,
             T(0, 1, 0, 0),
             T(0, 1, 0, 0),
             T(1, 1, 0, 0),
@@ -230,7 +221,7 @@ namespace rule_qq
         };
         TetrisOpertion op_J4 =
         {
-            create_node<'J', 1, 1, 3,
+            create_node<'J', 0, 0, 3,
             T(0, 0, 0, 0),
             T(1, 1, 1, 0),
             T(0, 0, 1, 0),
@@ -244,7 +235,7 @@ namespace rule_qq
         };
         TetrisOpertion op_T1 =
         {
-            create_node<'T', 1, 1, 0,
+            create_node<'T', 0, 0, 0,
             T(0, 0, 0, 0),
             T(1, 1, 1, 0),
             T(0, 1, 0, 0),
@@ -258,7 +249,7 @@ namespace rule_qq
         };
         TetrisOpertion op_T2 =
         {
-            create_node<'T', 1, 1, 1,
+            create_node<'T', 0, 0, 1,
             T(0, 1, 0, 0),
             T(0, 1, 1, 0),
             T(0, 1, 0, 0),
@@ -272,7 +263,7 @@ namespace rule_qq
         };
         TetrisOpertion op_T3 =
         {
-            create_node<'T', 1, 1, 2,
+            create_node<'T', 0, 0, 2,
             T(0, 1, 0, 0),
             T(1, 1, 1, 0),
             T(0, 0, 0, 0),
@@ -286,7 +277,7 @@ namespace rule_qq
         };
         TetrisOpertion op_T4 =
         {
-            create_node<'T', 1, 1, 3,
+            create_node<'T', 0, 0, 3,
             T(0, 1, 0, 0),
             T(1, 1, 0, 0),
             T(0, 1, 0, 0),

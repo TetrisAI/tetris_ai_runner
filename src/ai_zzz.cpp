@@ -9,13 +9,30 @@ namespace ai_zzz
 {
     namespace qq
     {
-        void Attack::init(m_tetris::TetrisContext const *context)
+        void Attack::init(m_tetris::TetrisContext const *context, Param const *param)
         {
+            context_ = context;
+            param_ = param;
             check_line_.clear();
             const int full = context->full();
             for(int x = 0; x < context->width(); ++x)
             {
                 check_line_.insert(full & ~(1 << x));
+            }
+            map_danger_data_.resize(context->type_max());
+            for(size_t i = 0; i < context->type_max(); ++i)
+            {
+                TetrisMap map =
+                {
+                    {}, {}, context->width(), context->height()
+                };
+                TetrisNode const *node = context->generate(i);
+                node->attach(map);
+                memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
+                for(int y = 0; y < 3; ++y)
+                {
+                    map_danger_data_[i].data[y + 1] |= map_danger_data_[i].data[y];
+                }
             }
         }
 
@@ -31,6 +48,10 @@ namespace ai_zzz
 
         double Attack::eval_map(TetrisMap const &map, EvalParam<> const *history, size_t history_length)
         {
+            if(map.roof == map.height)
+            {
+                return eval_map_bad();
+            }
             double value = 0;
             int top = map.roof;
 
@@ -159,7 +180,6 @@ namespace ai_zzz
                     break;
                 case 1:
                 case 2:
-                case 3:
                     if(danger == 0)
                     {
                         value -= 4 * history->map.roof * width * 128 / width_mul;
@@ -169,12 +189,12 @@ namespace ai_zzz
                         value += danger * 16 * history->map.roof * width * history[i].clear * 2;
                     }
                     break;
+                case 3:
                 default:
                     value += (400 + (history_length - i) * 50) * history->map.roof * width * history[i].clear * 2;
                 }
             }
-
-            return value;
+            return value - map_in_danger_(map) * 5000000;
         }
 
         size_t Attack::prune_map(m_tetris::PruneParam<double> *prune, size_t prune_length, TetrisNode const **after_pruning, size_t next_length)
@@ -187,7 +207,28 @@ namespace ai_zzz
                 }
             } c;
             std::sort(prune, prune + prune_length, c);
-            size_t hold_count = std::min<size_t>(prune_length, 2);
+            size_t hold_count = prune_length;
+            switch(param_->next_length)
+            {
+            case 0: case 1: case 2:
+                break;
+            case 3: case 4:
+                if(next_length < 4){
+                    hold_count = std::min<size_t>(prune_length, 2);
+                }
+            default:
+                if(next_length <= param_->next_length)
+                {
+                    if(next_length > param_->next_length - 2)
+                    {
+                        hold_count = 2;
+                    }
+                    else
+                    {
+                        hold_count = 1;
+                    }
+                }
+            }
             for(size_t i = 0; i < hold_count; ++i)
             {
                 after_pruning[i] = prune[i].land_point;
@@ -195,7 +236,20 @@ namespace ai_zzz
             return hold_count;
         }
 
+        size_t Attack::map_in_danger_(m_tetris::TetrisMap const &map)
+        {
+            size_t danger = 0;
+            for(size_t i = 0; i < context_->type_max(); ++i)
+            {
+                if(map_danger_data_[i].data[0] & map.row[map.height - 4] || map_danger_data_[i].data[1] & map.row[map.height - 3] || map_danger_data_[i].data[2] & map.row[map.height - 2] || map_danger_data_[i].data[3] & map.row[map.height - 1])
+                {
+                    ++danger;
+                }
+            }
+            return danger;
+        }
     }
+
 
     void Dig::init(m_tetris::TetrisContext const *context, size_t const *param)
     {

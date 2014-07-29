@@ -9,7 +9,13 @@ namespace ai_zzz
         class Attack
         {
         public:
-            void init(m_tetris::TetrisContext const *context);
+            struct Param
+            {
+                size_t next_length;
+                size_t level;
+            };
+        public:
+            void init(m_tetris::TetrisContext const *context, Param const *param);
             std::string ai_name() const;
             double eval_map_bad() const;
             double eval_map(m_tetris::TetrisMap const &map, m_tetris::EvalParam<> const *history, size_t history_length);
@@ -17,6 +23,14 @@ namespace ai_zzz
 
         private:
             std::set<int> check_line_;
+            Param const *param_;
+            m_tetris::TetrisContext const *context_;
+            struct MapInDangerData
+            {
+                int data[4];
+            };
+            std::vector<MapInDangerData> map_danger_data_;
+            size_t map_in_danger_(m_tetris::TetrisMap const &map);
         };
     }
 
