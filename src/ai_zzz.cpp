@@ -60,7 +60,7 @@ namespace ai_zzz
             {
                 new_last_top -= history[i].clear;
             }
-            const int width = 10;
+            const int width = map.width;
             const int top_m4 = std::max(1, history->map.roof - 4);
             const int danger = std::max(history->map.roof + 4 - 20, 0);
             const int width_mul = 20 * 2560 / (width + 8) / (width + 8);
@@ -212,16 +212,12 @@ namespace ai_zzz
             {
             case 0: case 1: case 2:
                 break;
-            case 3: case 4:
-                if(next_length < 4){
-                    hold_count = std::min<size_t>(prune_length, 2);
-                }
             default:
                 if(next_length <= param_->next_length)
                 {
                     if(next_length > param_->next_length - 2)
                     {
-                        hold_count = 2;
+                        hold_count = 4;
                     }
                     else
                     {

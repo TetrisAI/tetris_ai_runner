@@ -181,6 +181,7 @@ namespace land_point_search_simulate
         node_mark_.clear();
         node_mark_filtered_.clear();
         land_point_cache_.clear();
+        land_point_add_.clear();
         node_search_.clear();
         if(node->low >= map.roof)
         {
@@ -224,7 +225,7 @@ namespace land_point_search_simulate
                                 node_check = node_check->drop(map);
                                 if(node_mark_filtered_.mark(node_check))
                                 {
-                                    land_point_cache_.push_back(node_check);
+                                    land_point_add_.push_back(node_check);
                                 }
                             }
                         }
@@ -240,7 +241,7 @@ namespace land_point_search_simulate
                                 node_check = node_check->drop(map);
                                 if(node_mark_filtered_.mark(node_check))
                                 {
-                                    land_point_cache_.push_back(node_check);
+                                    land_point_add_.push_back(node_check);
                                 }
                             }
                         }
@@ -248,6 +249,7 @@ namespace land_point_search_simulate
                 }
                 last_node = node;
             }
+            land_point_cache_.insert(land_point_cache_.end(), land_point_add_.begin(), land_point_add_.end());
         }
         else
         {

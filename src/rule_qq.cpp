@@ -82,9 +82,9 @@ namespace rule_qq
         TetrisOpertion op_S2 =
         {
             create_node<'S', 0, 0, 1,
-            T(1, 0, 0, 0),
-            T(1, 1, 0, 0),
             T(0, 1, 0, 0),
+            T(0, 1, 1, 0),
+            T(0, 0, 1, 0),
             T(0, 0, 0, 0)>,
             rotate_template<0>,
             rotate_template<0>,

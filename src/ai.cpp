@@ -284,18 +284,18 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
     return result_buffer[player];
 }
 
-m_tetris::TetrisEngine<rule_qq::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_simulate::Search, 10, ai_zzz::qq::Attack::Param> qq_ai;
+m_tetris::TetrisEngine<rule_qq::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_simulate::Search, 20, ai_zzz::qq::Attack::Param> qq_ai;
 
 extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int level, int mode, char path[])
 {
-    if(boardH != 10 || boardH != 20 || !qq_ai.prepare(10, 20))
+    if(!qq_ai.prepare(boardW, boardH))
     {
         *path = '\0';
         return 0;
     }
     m_tetris::TetrisMap map =
     {
-        {}, {}, 10, 20
+        {}, {}, boardW, boardH
     };
     memcpy(map.row, board, boardH * sizeof(int));
     for(int my = 0; my < map.height; ++my)
@@ -315,16 +315,24 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
         nextPiece[0], curX, curY, (4 - curR) % 4
     };
     size_t next_length = std::strlen(nextPiece) - 1;
+    //size_t next_length = std::min(2u, std::strlen(nextPiece) - 1);
     qq_ai.param()->next_length = next_length;
     qq_ai.param()->level = level;
     m_tetris::TetrisNode const *node = qq_ai.get(status);
+    while(node == nullptr && status.y > 0)
+    {
+        --status.y;
+        node = qq_ai.get(status);
+    }
     auto target = qq_ai.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length).target;
+    std::vector<char> ai_path;
     if(target != nullptr)
     {
-        std::vector<char> ai_path = qq_ai.path(node, target, map);
+        ai_path = qq_ai.path(node, target, map);
         memcpy(path, ai_path.data(), ai_path.size());
-        path[ai_path.size()] = '\0';
     }
+    path[ai_path.size()] = 'V';
+    path[ai_path.size() + 1] = '\0';
     return 0;
 }
 
