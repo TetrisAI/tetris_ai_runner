@@ -314,8 +314,7 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
     {
         nextPiece[0], curX, curY, (4 - curR) % 4
     };
-    size_t next_length = std::strlen(nextPiece) - 1;
-    //size_t next_length = std::min(2u, std::strlen(nextPiece) - 1);
+    size_t next_length = (std::strlen(nextPiece) - 1) * level / 10;
     qq_ai.param()->next_length = next_length;
     qq_ai.param()->level = level;
     m_tetris::TetrisNode const *node = qq_ai.get(status);
