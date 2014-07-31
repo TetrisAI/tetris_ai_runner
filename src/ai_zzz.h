@@ -13,6 +13,7 @@ namespace ai_zzz
             {
                 size_t next_length;
                 size_t level;
+                int mode;
             };
         public:
             void init(m_tetris::TetrisContext const *context, Param const *param);

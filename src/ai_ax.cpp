@@ -31,7 +31,7 @@ namespace ai_ax_1
         {
             TetrisMap map =
             {
-                {}, {}, context->width(), context->height()
+                context->width(), context->height()
             };
             TetrisNode const *node = context->generate(i);
             node->attach(map);
@@ -262,7 +262,7 @@ namespace ai_ax_0
         {
             TetrisMap map =
             {
-                {}, {}, context->width(), context->height()
+                context->width(), context->height()
             };
             TetrisNode const *node = context->generate(i);
             node->attach(map);

@@ -323,7 +323,7 @@ namespace m_tetris
             };
         };
         std::map<IndexFilter, int, IndexFilter::Less> index_filter;
-        TetrisMap map = {{}, {}, width, height};
+        TetrisMap map = {width, height};
         size_t check_index = 0;
         do
         {
@@ -450,8 +450,9 @@ namespace m_tetris
 /**//**//**//**//**/node.op.rotate_##func(copy, this);\
 /**//**//**//**//**/TetrisBlockStatus status = copy.status;\
 /**//**//**//**//**/size_t wall_kick_index = 0;\
-/**//**//**//**//**/for(TetrisWallKickOpertion::WallKickNode &n : node.op.wall_kick_##func.data)\
+/**//**//**//**//**/for(size_t i = 0; i < node.op.wall_kick_##func.length; ++i)\
 /**//**//**//**//**/{\
+/**//**//**//**//**//**/TetrisWallKickOpertion::WallKickNode &n = node.op.wall_kick_##func.data[i];\
 /**//**//**//**//**//**/TetrisBlockStatus wall_kick_status =\
 /**//**//**//**//**//**/{\
 /**//**//**//**//**//**//**/status.t, node.status.x + n.x, node.status.y + n.y, status.r\

@@ -39,6 +39,27 @@ namespace m_tetris
         {
             return (row[y] >> x) & 1;
         }
+        TetrisMap()
+        {
+        }
+        TetrisMap(int w, int h)
+        {
+            memset(this, 0, sizeof *this);
+            width = w;
+            height = h;
+        }
+        TetrisMap(TetrisMap const &other)
+        {
+            memcpy(this, &other, sizeof *this);
+        }
+        TetrisMap &operator = (TetrisMap const &other)
+        {
+            if(this != &other)
+            {
+                memcpy(this, &other, sizeof *this);
+            }
+            return *this;
+        }
     };
 
     //·½¿é×´Ì¬

@@ -39,7 +39,7 @@ namespace ai_zzz
             {
                 TetrisMap map =
                 {
-                    {}, {}, context->width(), context->height()
+                    context->width(), context->height()
                 };
                 TetrisNode const *node = context->generate(i);
                 node->attach(map);
@@ -60,12 +60,12 @@ namespace ai_zzz
 
         double Attack::eval_land_point(TetrisNode const *node, TetrisMap const &map, size_t clear)
         {
-            double LandHeight = node->status.y + 1;
+            double LandHeight = node->low + 1;
             double Middle = std::abs((node->status.x + 1) * 2 - map.width);
             double EraseCount = clear;
 
             return (0
-                    - LandHeight * 200 / map.height
+                    - LandHeight * 16
                     + Middle  * 0.2
                     + EraseCount * 6
                     );
@@ -79,7 +79,6 @@ namespace ai_zzz
         double Attack::eval_map(TetrisMap const &map, EvalParam<double> const *history, size_t history_length)
         {
             const int width_m1 = map.width - 1;
-            //ÐÐÁÐ±ä»»
             int ColTrans = 2 * (map.height - map.roof);
             int RowTrans = map.roof == map.height ? 0 : map.width;
             for(int y = 0; y < map.roof; ++y)
@@ -100,13 +99,10 @@ namespace ai_zzz
             }
             RowTrans += BitCount(row_mask_ & ~map.row[0]);
             RowTrans += BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
-
             struct
             {
                 int HoleCount;
                 int HoleLine;
-                int HolePosy;
-                int HolePiece;
 
                 int HoleDepth;
                 int WellDepth;
@@ -114,12 +110,12 @@ namespace ai_zzz
                 int HoleNum[32];
                 int WellNum[32];
 
-                int AttackDeep;
+                int AttackDepth;
                 int AttackClear;
                 int RubbishClear;
+                int Danger;
 
                 int LineCoverBits;
-                int TopHoleBits;
             } v;
             memset(&v, 0, sizeof v);
 
@@ -131,11 +127,6 @@ namespace ai_zzz
                 {
                     v.HoleCount += BitCount(LineHole);
                     v.HoleLine++;
-                    if(v.HolePosy == 0)
-                    {
-                        v.HolePosy = y + 1;
-                        v.TopHoleBits = LineHole;
-                    }
                 }
                 for(int x = 1; x < width_m1; ++x)
                 {
@@ -177,18 +168,7 @@ namespace ai_zzz
                     v.WellDepth += ++v.WellNum[width_m1];
                 }
             }
-            if(v.HolePosy != 0)
-            {
-                for(int y = v.HolePosy; y < map.roof; ++y)
-                {
-                    int CheckLine = v.TopHoleBits & map.row[y];
-                    if(CheckLine == 0)
-                    {
-                        break;
-                    }
-                    v.HolePiece += (y + 1) * BitCount(CheckLine);
-                }
-            }
+
             double land_point_value = 0;
             for(size_t i = 0; i < history_length; ++i)
             {
@@ -215,27 +195,41 @@ namespace ai_zzz
             {
                 if(check_line_.find(map.row[y]) != check_line_.end())
                 {
-                    v.AttackDeep += 16;
+                    v.AttackDepth += 16;
                     for(--y; y >= low_y; --y)
                     {
                         if(check_line_.find(map.row[y]) != check_line_.end())
                         {
-                            v.AttackDeep += 3;
+                            v.AttackDepth += 3;
                         }
                         else
                         {
-                            v.AttackDeep -= 5;
+                            v.AttackDepth -= 5;
                         }
                     }
                     break;
                 }
                 else
                 {
-                    v.AttackDeep -= 1;
+                    v.AttackDepth -= 1;
                 }
+            }
+            if((low_x > 1 || map.top[low_x - 2] > map.top[low_x - 1]) || (low_x < width_m1 - 1 || map.top[low_x + 2] > map.top[low_x + 1]))
+            {
+                v.AttackDepth += 2;
+            }
+            int BoardDeadZone = map_in_danger_(map);
+            if(map.roof == map.height)
+            {
+                BoardDeadZone += 70;
             }
             for(size_t i = 0; i < history_length; ++i)
             {
+                TetrisMap const &history_map = history[i].map;
+                if(history_map.roof == history_map.height)
+                {
+                    BoardDeadZone += 70;
+                }
                 switch(history[i].clear)
                 {
                 case 0:
@@ -249,8 +243,7 @@ namespace ai_zzz
                     v.AttackClear += history[i].clear * (history_length - i);
                 }
             }
-            int BoardDeadZone = map_in_danger_(map);
-            return (0
+            return (0.
                     + land_point_value / history_length
                     - ColTrans * 8
                     - RowTrans * 8
@@ -258,11 +251,10 @@ namespace ai_zzz
                     - v.HoleLine * 38
                     - v.WellDepth * 10
                     - v.HoleDepth * 4
-                    - v.HolePiece * 0.5
-                    + v.AttackDeep * 100
-                    - v.RubbishClear * 200
+                    + v.AttackDepth * 100
+                    - v.RubbishClear * (v.Danger > 0 ? 0 : 64 * (3 - param_->mode))
                     + v.AttackClear * 1000
-                    - BoardDeadZone * 50000
+                    - BoardDeadZone * 500000
                     );
         }
 
@@ -306,10 +298,6 @@ namespace ai_zzz
 
         size_t Attack::map_in_danger_(m_tetris::TetrisMap const &map)
         {
-            if(map.roof == map.height)
-            {
-                return context_->type_max();
-            }
             size_t danger = 0;
             for(size_t i = 0; i < context_->type_max(); ++i)
             {

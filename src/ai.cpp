@@ -58,7 +58,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AI(int boardW, int boardH, char board[], c
     }
     m_tetris::TetrisMap map =
     {
-        {}, {}, boardW, boardH
+        boardW, boardH
     };
     for(int y = 0, add = 0; y < boardH; ++y, add += boardW)
     {
@@ -125,7 +125,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     }
     m_tetris::TetrisMap map =
     {
-        {}, {}, boardW, boardH
+        boardW, boardH
     };
     for(int y = 0, add = 0; y < boardH; ++y, add += boardW)
     {
@@ -217,7 +217,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
     }
     m_tetris::TetrisMap map =
     {
-        {}, {}, 10, 40
+        10, 40
     };
     for(size_t d = 0, s = 22; d < 23; ++d, --s)
     {
@@ -295,7 +295,7 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
     }
     m_tetris::TetrisMap map =
     {
-        {}, {}, boardW, boardH
+        boardW, boardH
     };
     memcpy(map.row, board, boardH * sizeof(int));
     for(int my = 0; my < map.height; ++my)
@@ -317,6 +317,7 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
     size_t next_length = (std::strlen(nextPiece) - 1) * level / 10;
     qq_ai.param()->next_length = next_length;
     qq_ai.param()->level = level;
+    qq_ai.param()->mode = mode;
     m_tetris::TetrisNode const *node = qq_ai.get(status);
     while(node == nullptr && status.y > 0)
     {
@@ -411,7 +412,7 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
     int w = 10, h = 20;
     m_tetris::TetrisMap map =
     {
-        {}, {}, w, h
+        w, h
     };
     char *param_map = new char[w * h];
     char *path = new char[1024];
