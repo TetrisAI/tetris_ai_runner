@@ -8,9 +8,37 @@ using namespace m_tetris_rule_tools;
 
 namespace rule_qq
 {
+    bool TetrisRuleSet::init(int w, int h)
+    {
+        return h < max_height;
+    }
+
+    template<unsigned char R>
+    bool qq_rotate_template(TetrisNode &node, TetrisContext const *context)
+    {
+        TetrisBlockStatus status =
+        {
+            node.status.t, node.status.x, node.status.y, R
+        };
+        if(context->create(status, node))
+        {
+            return false;
+        }
+        return node.row + node.height < context->height();
+    }
 
     template<unsigned char T>
-    TetrisBlockStatus generate_template(TetrisContext const *context)
+    TetrisBlockStatus init_generate_template(TetrisContext const *context)
+    {
+        TetrisBlockStatus status =
+        {
+            T, context->width() / 2 - 2, context->height() + 1, 0
+        };
+        return status;
+    }
+
+    template<unsigned char T>
+    TetrisBlockStatus game_generate_template(TetrisContext const *context)
     {
         TetrisBlockStatus status =
         {
@@ -44,8 +72,8 @@ namespace rule_qq
             T(1, 1, 1, 1),
             T(0, 0, 0, 0),
             T(0, 0, 0, 0)>,
-            rotate_template<1>,
-            rotate_template<1>,
+            qq_rotate_template<1>,
+            qq_rotate_template<1>,
             nullptr,
             move_left,
             move_right,
@@ -58,8 +86,8 @@ namespace rule_qq
             T(0, 0, 1, 0),
             T(0, 0, 1, 0),
             T(0, 0, 1, 0)>,
-            rotate_template<0>,
-            rotate_template<0>,
+            qq_rotate_template<0>,
+            qq_rotate_template<0>,
             nullptr,
             move_left,
             move_right,
@@ -72,8 +100,8 @@ namespace rule_qq
             T(1, 1, 0, 0),
             T(0, 0, 0, 0),
             T(0, 0, 0, 0)>,
-            rotate_template<1>,
-            rotate_template<1>,
+            qq_rotate_template<1>,
+            qq_rotate_template<1>,
             nullptr,
             move_left,
             move_right,
@@ -86,8 +114,8 @@ namespace rule_qq
             T(0, 1, 1, 0),
             T(0, 0, 1, 0),
             T(0, 0, 0, 0)>,
-            rotate_template<0>,
-            rotate_template<0>,
+            qq_rotate_template<0>,
+            qq_rotate_template<0>,
             nullptr,
             move_left,
             move_right,
@@ -100,8 +128,8 @@ namespace rule_qq
             T(0, 1, 1, 0),
             T(0, 0, 0, 0),
             T(0, 0, 0, 0)>,
-            rotate_template<1>,
-            rotate_template<1>,
+            qq_rotate_template<1>,
+            qq_rotate_template<1>,
             nullptr,
             move_left,
             move_right,
@@ -114,8 +142,8 @@ namespace rule_qq
             T(0, 1, 1, 0),
             T(0, 1, 0, 0),
             T(0, 0, 0, 0)>,
-            rotate_template<0>,
-            rotate_template<0>,
+            qq_rotate_template<0>,
+            qq_rotate_template<0>,
             nullptr,
             move_left,
             move_right,
@@ -128,8 +156,8 @@ namespace rule_qq
             T(0, 1, 0, 0),
             T(0, 1, 0, 0),
             T(0, 0, 0, 0)>,
-            rotate_template<3>,
-            rotate_template<1>,
+            qq_rotate_template<3>,
+            qq_rotate_template<1>,
             nullptr,
             move_left,
             move_right,
@@ -142,8 +170,8 @@ namespace rule_qq
             T(1, 1, 1, 0),
             T(1, 0, 0, 0),
             T(0, 0, 0, 0)>,
-            rotate_template<0>,
-            rotate_template<2>,
+            qq_rotate_template<0>,
+            qq_rotate_template<2>,
             nullptr,
             move_left,
             move_right,
@@ -156,8 +184,8 @@ namespace rule_qq
             T(0, 1, 0, 0),
             T(0, 1, 1, 0),
             T(0, 0, 0, 0)>,
-            rotate_template<1>,
-            rotate_template<3>,
+            qq_rotate_template<1>,
+            qq_rotate_template<3>,
             nullptr,
             move_left,
             move_right,
@@ -170,8 +198,8 @@ namespace rule_qq
             T(1, 1, 1, 0),
             T(0, 0, 0, 0),
             T(0, 0, 0, 0)>,
-            rotate_template<2>,
-            rotate_template<0>,
+            qq_rotate_template<2>,
+            qq_rotate_template<0>,
             nullptr,
             move_left,
             move_right,
@@ -184,8 +212,8 @@ namespace rule_qq
             T(0, 1, 0, 0),
             T(0, 1, 0, 0),
             T(0, 0, 0, 0)>,
-            rotate_template<3>,
-            rotate_template<1>,
+            qq_rotate_template<3>,
+            qq_rotate_template<1>,
             nullptr,
             move_left,
             move_right,
@@ -198,8 +226,8 @@ namespace rule_qq
             T(1, 1, 1, 0),
             T(0, 0, 0, 0),
             T(0, 0, 0, 0)>,
-            rotate_template<0>,
-            rotate_template<2>,
+            qq_rotate_template<0>,
+            qq_rotate_template<2>,
             nullptr,
             move_left,
             move_right,
@@ -212,8 +240,8 @@ namespace rule_qq
             T(0, 1, 0, 0),
             T(1, 1, 0, 0),
             T(0, 0, 0, 0)>,
-            rotate_template<1>,
-            rotate_template<3>,
+            qq_rotate_template<1>,
+            qq_rotate_template<3>,
             nullptr,
             move_left,
             move_right,
@@ -226,8 +254,8 @@ namespace rule_qq
             T(1, 1, 1, 0),
             T(0, 0, 1, 0),
             T(0, 0, 0, 0)>,
-            rotate_template<2>,
-            rotate_template<0>,
+            qq_rotate_template<2>,
+            qq_rotate_template<0>,
             nullptr,
             move_left,
             move_right,
@@ -240,8 +268,8 @@ namespace rule_qq
             T(1, 1, 1, 0),
             T(0, 1, 0, 0),
             T(0, 0, 0, 0)>,
-            rotate_template<3>,
-            rotate_template<1>,
+            qq_rotate_template<3>,
+            qq_rotate_template<1>,
             nullptr,
             move_left,
             move_right,
@@ -254,8 +282,8 @@ namespace rule_qq
             T(0, 1, 1, 0),
             T(0, 1, 0, 0),
             T(0, 0, 0, 0)>,
-            rotate_template<0>,
-            rotate_template<2>,
+            qq_rotate_template<0>,
+            qq_rotate_template<2>,
             nullptr,
             move_left,
             move_right,
@@ -268,8 +296,8 @@ namespace rule_qq
             T(1, 1, 1, 0),
             T(0, 0, 0, 0),
             T(0, 0, 0, 0)>,
-            rotate_template<1>,
-            rotate_template<3>,
+            qq_rotate_template<1>,
+            qq_rotate_template<3>,
             nullptr,
             move_left,
             move_right,
@@ -282,8 +310,8 @@ namespace rule_qq
             T(1, 1, 0, 0),
             T(0, 1, 0, 0),
             T(0, 0, 0, 0)>,
-            rotate_template<2>,
-            rotate_template<0>,
+            qq_rotate_template<2>,
+            qq_rotate_template<0>,
             nullptr,
             move_left,
             move_right,
@@ -315,19 +343,27 @@ namespace rule_qq
     std::map<unsigned char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> TetrisRuleSet::get_init_generate()
     {
         std::map<unsigned char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> info;
-        info.insert(std::make_pair('O', &generate_template<'O'>));
-        info.insert(std::make_pair('I', &generate_template<'I'>));
-        info.insert(std::make_pair('S', &generate_template<'S'>));
-        info.insert(std::make_pair('Z', &generate_template<'Z'>));
-        info.insert(std::make_pair('L', &generate_template<'L'>));
-        info.insert(std::make_pair('J', &generate_template<'J'>));
-        info.insert(std::make_pair('T', &generate_template<'T'>));
+        info.insert(std::make_pair('O', &init_generate_template<'O'>));
+        info.insert(std::make_pair('I', &init_generate_template<'I'>));
+        info.insert(std::make_pair('S', &init_generate_template<'S'>));
+        info.insert(std::make_pair('Z', &init_generate_template<'Z'>));
+        info.insert(std::make_pair('L', &init_generate_template<'L'>));
+        info.insert(std::make_pair('J', &init_generate_template<'J'>));
+        info.insert(std::make_pair('T', &init_generate_template<'T'>));
         return info;
     }
 
     std::map<unsigned char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> TetrisRuleSet::get_game_generate()
     {
-        return get_init_generate();
+        std::map<unsigned char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> info;
+        info.insert(std::make_pair('O', &game_generate_template<'O'>));
+        info.insert(std::make_pair('I', &game_generate_template<'I'>));
+        info.insert(std::make_pair('S', &game_generate_template<'S'>));
+        info.insert(std::make_pair('Z', &game_generate_template<'Z'>));
+        info.insert(std::make_pair('L', &game_generate_template<'L'>));
+        info.insert(std::make_pair('J', &game_generate_template<'J'>));
+        info.insert(std::make_pair('T', &game_generate_template<'T'>));
+        return info;
     }
 
 }

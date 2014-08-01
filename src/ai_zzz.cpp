@@ -103,6 +103,8 @@ namespace ai_zzz
             {
                 int HoleCount;
                 int HoleLine;
+                int HolePosy;
+                int HolePiece;
 
                 int HoleDepth;
                 int WellDepth;
@@ -116,6 +118,7 @@ namespace ai_zzz
                 int Danger;
 
                 int LineCoverBits;
+                int TopHoleBits;
             } v;
             memset(&v, 0, sizeof v);
 
@@ -127,6 +130,11 @@ namespace ai_zzz
                 {
                     v.HoleCount += BitCount(LineHole);
                     v.HoleLine++;
+                    if(v.HolePosy == 0)
+                    {
+                        v.HolePosy = y + 1;
+                        v.TopHoleBits = LineHole;
+                    }
                 }
                 for(int x = 1; x < width_m1; ++x)
                 {
@@ -168,7 +176,18 @@ namespace ai_zzz
                     v.WellDepth += ++v.WellNum[width_m1];
                 }
             }
-
+            if(v.HolePosy != 0)
+            {
+                for(int y = v.HolePosy; y < map.roof; ++y)
+                {
+                    int CheckLine = v.TopHoleBits & map.row[y];
+                    if(CheckLine == 0)
+                    {
+                        break;
+                    }
+                    v.HolePiece += (y + 1) * BitCount(CheckLine);
+                }
+            }
             double land_point_value = 0;
             for(size_t i = 0; i < history_length; ++i)
             {
@@ -251,6 +270,7 @@ namespace ai_zzz
                     - v.HoleLine * 38
                     - v.WellDepth * 10
                     - v.HoleDepth * 4
+                    - v.HolePiece * 2
                     + v.AttackDepth * 100
                     - v.RubbishClear * (v.Danger > 0 ? 0 : 64 * (3 - param_->mode))
                     + v.AttackClear * 1000
