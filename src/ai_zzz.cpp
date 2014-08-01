@@ -49,6 +49,19 @@ namespace ai_zzz
                     map_danger_data_[i].data[y + 1] |= map_danger_data_[i].data[y];
                 }
             }
+            size_t m = std::numeric_limits<size_t>::max();
+            //max_length, current
+            size_t prune[7][6] =
+            {
+                {m, 1, 1, 1, 1, 1},
+                {m, m, 1, 1, 1, 1},
+                {m, m, 4, 1, 1, 1},
+                {m, 8, 4, 2, 1, 1},
+                {9, 7, 4, 2, 1, 1},
+                {8, 6, 3, 2, 1, 1},
+                {7, 5, 2, 2, 1, 1},
+            };
+            memcpy(prune_table_, prune, sizeof prune_table_);
             col_mask_ = context->full() & ~1;
             row_mask_ = context->full();
         }
@@ -60,7 +73,7 @@ namespace ai_zzz
 
         double Attack::eval_land_point(TetrisNode const *node, TetrisMap const &map, size_t clear)
         {
-            double LandHeight = node->low + 1;
+            double LandHeight = node->row + 1;
             double Middle = std::abs((node->status.x + 1) * 2 - map.width);
             double EraseCount = clear;
 
@@ -264,8 +277,8 @@ namespace ai_zzz
             }
             return (0.
                     + land_point_value / history_length
-                    - ColTrans * 8
-                    - RowTrans * 8
+                    - ColTrans * 64
+                    - RowTrans * 64
                     - v.HoleCount * 400
                     - v.HoleLine * 38
                     - v.WellDepth * 10
@@ -288,27 +301,7 @@ namespace ai_zzz
                 }
             } c;
             std::sort(prune, prune + prune_length, c);
-            size_t hold_count = prune_length;
-            switch(param_->next_length)
-            {
-            case 0: case 1: case 2:
-                break;
-            default:
-                if(next_length <= param_->next_length)
-                {
-                    if(next_length + 2 > param_->next_length)
-                    {
-                        if(hold_count > 4)
-                        {
-                            hold_count = 4;
-                        }
-                    }
-                    else
-                    {
-                        hold_count = 1;
-                    }
-                }
-            }
+            size_t hold_count = std::min(prune_table_[std::min(6u, param_->next_length)][std::min(5u, param_->next_length - next_length)], prune_length);
             for(size_t i = 0; i < hold_count; ++i)
             {
                 after_pruning[i] = prune[i].land_point;

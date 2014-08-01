@@ -108,7 +108,7 @@ namespace m_tetris
     struct TetrisOpertion
     {
         //创建一个方块
-        TetrisNode(*create)(int w, int h, TetrisOpertion op);
+        TetrisNode(*create)(int w, int h, TetrisOpertion const &op);
         //顺时针旋转(右旋)
         bool(*rotate_clockwise)(TetrisNode &node, TetrisContext const *context);
         //逆时针旋转(左旋)
@@ -1676,7 +1676,7 @@ namespace m_tetris_rule_tools
 
     //创建一个节点(只支持4x4矩阵,这里包含了矩阵收缩)
     template<unsigned char T, char X, char Y, unsigned char R, int line1, int line2, int line3, int line4>
-    TetrisNode create_node(int w, int h, TetrisOpertion op)
+    TetrisNode create_node(int w, int h, TetrisOpertion const &op)
     {
         static_assert(X < 0 || X >= 4 || Y < 0 || Y >= 4 || (line1 || line2 || line3 || line3), "data error");
         TetrisBlockStatus status =
@@ -1734,7 +1734,7 @@ namespace m_tetris_rule_tools
             }
             if(y == node.height)
             {
-                node.bottom[x - node.col] = h;
+                node.bottom[x - node.col] = max_height;
             }
             else
             {
@@ -1755,9 +1755,10 @@ namespace m_tetris_rule_tools
         return context->create(status, node);
     }
 
-    //左移,右移,下移...
+    //左移,右移,上移,下移...
 
     bool move_left(TetrisNode &node, TetrisContext const *context);
     bool move_right(TetrisNode &node, TetrisContext const *context);
+    bool move_up(TetrisNode &node, TetrisContext const *context);
     bool move_down(TetrisNode &node, TetrisContext const *context);
 }

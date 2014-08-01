@@ -33,6 +33,7 @@ namespace ai_zzz
                 int data[4];
             };
             std::vector<MapInDangerData> map_danger_data_;
+            size_t prune_table_[7][6];
             size_t map_in_danger_(m_tetris::TetrisMap const &map);
         };
     }

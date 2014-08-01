@@ -14,12 +14,8 @@ namespace land_point_search_simple
 
     std::vector<char> Search::make_path(TetrisNode const *node, TetrisNode const *land_point, TetrisMap const &map)
     {
-        if(node->drop(map)->index_filtered == land_point->index_filtered)
-        {
-            return std::vector<char>();
-        }
         std::vector<char> path;
-        if(node->status.t != land_point->status.t || node->status.y < land_point->status.y)
+        if(node->drop(map)->index_filtered == land_point->index_filtered || node->status.t != land_point->status.t || node->status.y < land_point->status.y)
         {
             return path;
         }
@@ -60,7 +56,7 @@ namespace land_point_search_simple
     {
         node_mark_filtered_.clear();
         land_point_cache_.clear();
-        if(node->low >= map.roof)
+        if(node->land_point != nullptr && node->low >= map.roof)
         {
             for(auto cit = node->land_point->begin(); cit != node->land_point->end(); ++cit)
             {

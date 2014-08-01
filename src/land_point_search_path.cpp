@@ -186,7 +186,7 @@ namespace land_point_search_path
         node_mark_filtered_.clear();
         node_search_.clear();
         land_point_cache_.clear();
-        if(node->low >= map.roof)
+        if(node->land_point != nullptr && node->low >= map.roof)
         {
             for(auto cit = node->land_point->begin(); cit != node->land_point->end(); ++cit)
             {

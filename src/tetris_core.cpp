@@ -304,7 +304,7 @@ namespace m_tetris
             TetrisNode node;
             create(init_generate_[index_to_type_[i]](this), node);
             check.push_back(node.status);
-            generate_cache_[i] = &node_cache_.insert(std::make_pair(node.status, node)).first->second;
+            node_cache_.insert(std::make_pair(node.status, node));
         }
         struct IndexFilter
         {
@@ -584,6 +584,13 @@ namespace m_tetris
                 return false;
             }
         }
+        while(new_node.status.y < status.y)
+        {
+            if(!m_tetris_rule_tools::move_up(new_node, this))
+            {
+                return false;
+            }
+        }
         node = new_node;
         return true;
     }
@@ -624,6 +631,28 @@ namespace m_tetris_rule_tools
         return true;
     }
 
+    bool move_up(TetrisNode &node, TetrisContext const *context)
+    {
+        if(node.row + node.height == max_height)
+        {
+            return false;
+        }
+        for(int x = 0; x < node.width; ++x)
+        {
+            if(node.top[x] != 0)
+            {
+                ++node.top[x];
+            }
+            if(node.bottom[x] != max_height)
+            {
+                ++node.bottom[x];
+            }
+        }
+        ++node.row;
+        ++node.status.y;
+        return true;
+    }
+
     bool move_down(TetrisNode &node, TetrisContext const *context)
     {
         if(node.row == 0)
@@ -636,7 +665,7 @@ namespace m_tetris_rule_tools
             {
                 --node.top[x];
             }
-            if(node.bottom[x] != context->height())
+            if(node.bottom[x] != max_height)
             {
                 --node.bottom[x];
             }

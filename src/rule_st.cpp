@@ -14,7 +14,7 @@ namespace rule_st
     {
         TetrisBlockStatus status =
         {
-            T, context->width() / 2, context->height() - 1, 0
+            T, context->width() / 2, context->height() - 2, 0
         };
         return status;
     }

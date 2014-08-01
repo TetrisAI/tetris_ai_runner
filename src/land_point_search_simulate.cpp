@@ -45,7 +45,7 @@ namespace land_point_search_simulate
         node_search_.push_back(node);
         node_mark_.set(node, nullptr, '\0');
         size_t cache_index = 0;
-        if(node->low >= map.roof && land_point->open(map))
+        if(node->land_point != nullptr && node->low >= map.roof && land_point->open(map))
         {
             do
             {
@@ -300,7 +300,7 @@ namespace land_point_search_simulate
         land_point_cache_.clear();
         land_point_add_.clear();
         node_search_.clear();
-        if(node->low >= map.roof)
+        if(node->land_point != nullptr && node->low >= map.roof)
         {
             for(auto cit = node->land_point->begin(); cit != node->land_point->end(); ++cit)
             {

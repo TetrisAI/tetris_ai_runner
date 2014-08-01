@@ -20,11 +20,11 @@ namespace rule_qq
         {
             node.status.t, node.status.x, node.status.y, R
         };
-        if(context->create(status, node))
+        if(!context->create(status, node))
         {
             return false;
         }
-        return node.row + node.height < context->height();
+        return node.row + node.height <= context->height();
     }
 
     template<unsigned char T>
@@ -32,7 +32,7 @@ namespace rule_qq
     {
         TetrisBlockStatus status =
         {
-            T, context->width() / 2 - 2, context->height() + 1, 0
+            T, context->width() / 2 - 2, 39, 0
         };
         return status;
     }
@@ -42,7 +42,7 @@ namespace rule_qq
     {
         TetrisBlockStatus status =
         {
-            T, context->width() / 2 - 2, context->height(), 0
+            T, context->width() / 2 - 2, context->height() - 1, 0
         };
         return status;
     }
