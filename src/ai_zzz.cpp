@@ -76,11 +76,13 @@ namespace ai_zzz
             double LandHeight = node->row + 1;
             double Middle = std::abs((node->status.x + 1) * 2 - map.width);
             double EraseCount = clear;
+            double DeadZone = node->row + node->height == map.height ? 500000. : 0;
 
-            return (0
+            return (0.
                     - LandHeight * 16
                     + Middle  * 0.2
                     + EraseCount * 6
+                    - DeadZone
                     );
         }
 
@@ -250,6 +252,11 @@ namespace ai_zzz
             {
                 v.AttackDepth += 2;
             }
+            v.Danger = 5 - std::min(map.height - low_y, 5);
+            if(v.Danger > 0 && v.AttackDepth < 20)
+            {
+                v.AttackDepth = 0;
+            }
             int BoardDeadZone = map_in_danger_(map);
             if(map.roof == map.height)
             {
@@ -272,22 +279,29 @@ namespace ai_zzz
                     break;
                 case 3:
                 default:
-                    v.AttackClear += history[i].clear * (history_length - i);
+                    if(i < 4)
+                    {
+                        v.AttackClear += history[i].clear * 10 + (history_length - i) * 4;
+                    }
+                    else
+                    {
+                        v.AttackClear += history[i].clear + (history_length - i);
+                    }
                 }
             }
             return (0.
                     + land_point_value / history_length
-                    - ColTrans * 64
-                    - RowTrans * 64
+                    - ColTrans * 32
+                    - RowTrans * 32
                     - v.HoleCount * 400
                     - v.HoleLine * 38
                     - v.WellDepth * 10
                     - v.HoleDepth * 4
                     - v.HolePiece * 2
                     + v.AttackDepth * 100
-                    - v.RubbishClear * (v.Danger > 0 ? 0 : 64 * (3 - param_->mode))
+                    - v.RubbishClear * (v.Danger > 0 ? -100 : 80 * (3 - param_->mode))
                     + v.AttackClear * 1000
-                    - BoardDeadZone * 500000
+                    - BoardDeadZone * 500000.
                     );
         }
 
