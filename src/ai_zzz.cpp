@@ -245,7 +245,7 @@ namespace ai_zzz
                 }
                 else
                 {
-                    v.AttackDepth -= 1;
+                    v.AttackDepth -= 2;
                 }
             }
             if((low_x > 1 || map.top[low_x - 2] > map.top[low_x - 1]) || (low_x < width_m1 - 1 || map.top[low_x + 2] > map.top[low_x + 1]))
@@ -293,9 +293,9 @@ namespace ai_zzz
                     + land_point_value / history_length
                     - ColTrans * 32
                     - RowTrans * 32
-                    - v.HoleCount * 400
+                    - v.HoleCount * 512
                     - v.HoleLine * 38
-                    - v.WellDepth * 10
+                    - v.WellDepth * 40
                     - v.HoleDepth * 4
                     - v.HolePiece * 2
                     + v.AttackDepth * 100

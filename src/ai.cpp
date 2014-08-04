@@ -15,7 +15,7 @@
 #include "rule_srs.h"
 #include "random.h"
 
-m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_ax_1::AI, land_point_search_path::Search, 3> tetris_ai;
+m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_path::Search, 3, ai_zzz::qq::Attack::Param> tetris_ai;
 
 extern "C" void attach_init()
 {
@@ -143,23 +143,12 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     {
         curPiece, curX - 1, curY - 1, curR - 1
     };
-    size_t next_length = 0;
+    size_t next_length = 2;
     unsigned char next[] = {nextPiece, ' ', ' '};
     /////////////////////////////////////////////////
-    //这里计算空闲方块数,局势比较差开启vp计算
-    int free_block = 0;
-    for(int x = 0; x < map.width; ++x)
-    {
-        free_block += map.height - map.top[x];
-    }
-    if(free_block < map.width * 6)
-    {
-        next_length = 2;
-    }
-    else if(nextPiece != ' ' || free_block < map.width * 10)
-    {
-        next_length = 1;
-    }
+    tetris_ai.param()->level = 10;
+    tetris_ai.param()->mode = 0;
+    tetris_ai.param()->next_length = next_length;
     /////////////////////////////////////////////////
     m_tetris::TetrisNode const *node = tetris_ai.get(status);
     auto target = tetris_ai.run(map, node, next, next_length).target;
