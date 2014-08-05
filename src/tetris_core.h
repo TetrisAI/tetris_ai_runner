@@ -582,7 +582,7 @@ namespace m_tetris
         typedef std::function<std::pair<Result, Result>(TetrisMap const &, TetrisNode const *, std::vector<EvalParam> &history, unsigned char *)> CallHoldAI;
         TetrisCore(TetrisContext const *context, TetrisAI &ai, std::vector<CallAI> &call_ai, std::vector<CallHoldAI> &call_hold_ai) : context_(context), ai_(ai), next_(context, ai, call_ai, call_hold_ai)
         {
-            call_ai.push_back(std::bind(&TetrisCore::run, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+            call_ai.push_back(std::bind(&TetrisCore::run_proc_<std::false_type>, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
             call_hold_ai.push_back(std::bind(&TetrisCore::run_hold, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         }
         void init(TetrisContext const *context)
@@ -674,7 +674,7 @@ namespace m_tetris
         typedef std::function<std::pair<Result, Result>(TetrisMap const &, TetrisNode const *, std::vector<EvalParam> &history, unsigned char *)> CallHoldAI;
         TetrisCore(TetrisContext const *context, TetrisAI &ai, std::vector<CallAI> &call_ai, std::vector<CallHoldAI> &call_hold_ai) : context_(context), ai_(ai), next_(context, ai, call_ai, call_hold_ai)
         {
-            call_ai.push_back(std::bind(&TetrisCore::run, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+            call_ai.push_back(std::bind(&TetrisCore::run_proc_<std::false_type>, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
             call_hold_ai.push_back(std::bind(&TetrisCore::run_hold, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         }
         void init(TetrisContext const *context)
@@ -777,7 +777,7 @@ namespace m_tetris
         typedef std::function<std::pair<Result, Result>(TetrisMap const &, TetrisNode const *, std::vector<EvalParam> &history, unsigned char *)> CallHoldAI;
         TetrisCore(TetrisContext const *context, TetrisAI &ai, std::vector<CallAI> &call_ai, std::vector<CallHoldAI> &call_hold_ai) : context_(context), ai_(ai)
         {
-            call_ai.push_back(std::bind(&TetrisCore::run, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+            call_ai.push_back(std::bind(&TetrisCore::run_proc_, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
             call_hold_ai.push_back(std::bind(&TetrisCore::run_hold, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         }
         void init(TetrisContext const *context)
@@ -844,7 +844,7 @@ namespace m_tetris
         typedef std::function<std::pair<Result, Result>(TetrisMap const &, TetrisNode const *, std::vector<EvalParam> &history, unsigned char *)> CallHoldAI;
         TetrisCore(TetrisContext const *context, TetrisAI &ai, std::vector<CallAI> &call_ai, std::vector<CallHoldAI> &call_hold_ai) : context_(context), ai_(ai), next_(context, ai, call_ai, call_hold_ai)
         {
-            call_ai.push_back(std::bind(&TetrisCore::run, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+            call_ai.push_back(std::bind(&TetrisCore::run_proc_<std::false_type>, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
             call_hold_ai.push_back(std::bind(&TetrisCore::run_hold, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         }
         void init(TetrisContext const *context)
@@ -937,7 +937,7 @@ namespace m_tetris
         typedef std::function<std::pair<Result, Result>(TetrisMap const &, TetrisNode const *, std::vector<EvalParam> &history, unsigned char *)> CallHoldAI;
         TetrisCore(TetrisContext const *context, TetrisAI &ai, std::vector<CallAI> &call_ai, std::vector<CallHoldAI> &call_hold_ai) : context_(context), ai_(ai), next_(context, ai, call_ai, call_hold_ai)
         {
-            call_ai.push_back(std::bind(&TetrisCore::run, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+            call_ai.push_back(std::bind(&TetrisCore::run_proc_<std::false_type>, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
             call_hold_ai.push_back(std::bind(&TetrisCore::run_hold, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         }
         void init(TetrisContext const *context)
@@ -1042,7 +1042,7 @@ namespace m_tetris
         typedef std::function<std::pair<Result, Result>(TetrisMap const &, TetrisNode const *, std::vector<EvalParam> &history, unsigned char *)> CallHoldAI;
         TetrisCore(TetrisContext const *context, TetrisAI &ai, std::vector<CallAI> &call_ai, std::vector<CallHoldAI> &call_hold_ai) : context_(context), ai_(ai)
         {
-            call_ai.push_back(std::bind(&TetrisCore::run, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+            call_ai.push_back(std::bind(&TetrisCore::run_proc_, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
             call_hold_ai.push_back(std::bind(&TetrisCore::run_hold, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         }
         void init(TetrisContext const *context)
@@ -1109,7 +1109,7 @@ namespace m_tetris
         typedef std::function<std::pair<Result, Result>(TetrisMap const &, TetrisNode const *, std::vector<EvalParam> &history, unsigned char *)> CallHoldAI;
         TetrisCore(TetrisContext const *context, TetrisAI &ai, std::vector<CallAI> &call_ai, std::vector<CallHoldAI> &call_hold_ai) : context_(context), ai_(ai), next_(context, ai, call_ai, call_hold_ai)
         {
-            call_ai.push_back(std::bind(&TetrisCore::run, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+            call_ai.push_back(std::bind(&TetrisCore::run_proc_<std::false_type>, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
             call_hold_ai.push_back(std::bind(&TetrisCore::run_hold, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         }
         void init(TetrisContext const *context)
@@ -1201,7 +1201,7 @@ namespace m_tetris
         typedef std::function<std::pair<Result, Result>(TetrisMap const &, TetrisNode const *, std::vector<EvalParam> &history, unsigned char *)> CallHoldAI;
         TetrisCore(TetrisContext const *context, TetrisAI &ai, std::vector<CallAI> &call_ai, std::vector<CallHoldAI> &call_hold_ai) : context_(context), ai_(ai), next_(context, ai, call_ai, call_hold_ai)
         {
-            call_ai.push_back(std::bind(&TetrisCore::run, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+            call_ai.push_back(std::bind(&TetrisCore::run_proc_<std::false_type>, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
             call_hold_ai.push_back(std::bind(&TetrisCore::run_hold, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         }
         void init(TetrisContext const *context)
@@ -1307,7 +1307,7 @@ namespace m_tetris
         typedef std::function<std::pair<Result, Result>(TetrisMap const &, TetrisNode const *, std::vector<EvalParam> &history, unsigned char *)> CallHoldAI;
         TetrisCore(TetrisContext const *context, TetrisAI &ai, std::vector<CallAI> &call_ai, std::vector<CallHoldAI> &call_hold_ai) : context_(context), ai_(ai), next_(context, ai, call_ai, call_hold_ai)
         {
-            call_ai.push_back(std::bind(&TetrisCore::run, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+            call_ai.push_back(std::bind(&TetrisCore::run_proc_<std::false_type>, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
             call_hold_ai.push_back(std::bind(&TetrisCore::run_hold, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         }
         void init(TetrisContext const *context)
@@ -1400,7 +1400,7 @@ namespace m_tetris
         typedef std::function<std::pair<Result, Result>(TetrisMap const &, TetrisNode const *, std::vector<EvalParam> &history, unsigned char *)> CallHoldAI;
         TetrisCore(TetrisContext const *context, TetrisAI &ai, std::vector<CallAI> &call_ai, std::vector<CallHoldAI> &call_hold_ai) : context_(context), ai_(ai), next_(context, ai, call_ai, call_hold_ai)
         {
-            call_ai.push_back(std::bind(&TetrisCore::run, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+            call_ai.push_back(std::bind(&TetrisCore::run_proc_<std::false_type>, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
             call_hold_ai.push_back(std::bind(&TetrisCore::run_hold, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         }
         void init(TetrisContext const *context)

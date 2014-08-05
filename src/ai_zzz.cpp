@@ -134,6 +134,7 @@ namespace ai_zzz
 
                 int LineCoverBits;
                 int TopHoleBits;
+                int TopAttack;
             } v;
             memset(&v, 0, sizeof v);
 
@@ -250,7 +251,22 @@ namespace ai_zzz
             }
             if((low_x > 1 || map.top[low_x - 2] > map.top[low_x - 1]) || (low_x < width_m1 - 1 || map.top[low_x + 2] > map.top[low_x + 1]))
             {
-                v.AttackDepth += 2;
+                v.AttackDepth += 4;
+            }
+            if(v.TopAttack >= low_y + 4)
+            {
+                int count = 0;
+                for(int y = low_y; y < low_y + 4; ++y)
+                {
+                    if(check_line_.find(map.row[y]) != check_line_.end())
+                    {
+                        ++count;
+                    }
+                }
+                if(count < 3)
+                {
+                    v.AttackDepth = 0;
+                }
             }
             v.Danger = 5 - std::min(map.height - low_y, 5);
             if(v.Danger > 0 && v.AttackDepth < 20)
@@ -293,9 +309,9 @@ namespace ai_zzz
                     + land_point_value / history_length
                     - ColTrans * 32
                     - RowTrans * 32
-                    - v.HoleCount * 512
+                    - v.HoleCount * 400
                     - v.HoleLine * 38
-                    - v.WellDepth * 40
+                    - v.WellDepth * 16
                     - v.HoleDepth * 4
                     - v.HolePiece * 2
                     + v.AttackDepth * 100
