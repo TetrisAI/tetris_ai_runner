@@ -274,10 +274,11 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
 }
 
 m_tetris::TetrisEngine<rule_qq::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_simulate::Search, 20, ai_zzz::qq::Attack::Param> qq_ai;
+m_tetris::TetrisEngine<rule_qq::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_path::Search, 20, ai_zzz::qq::Attack::Param> qq_ai_path;
 
 extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int level, int mode, char path[])
 {
-    if(!qq_ai.prepare(boardW, boardH))
+    if(!qq_ai.prepare(boardW, boardH) || !qq_ai_path.prepare(boardW, boardH))
     {
         *path = '\0';
         return 0;
@@ -304,9 +305,18 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
         nextPiece[0], curX, curY, (4 - curR) % 4
     };
     size_t next_length = (std::strlen(nextPiece) - 1) * level / 10;
-    qq_ai.param()->next_length = next_length;
-    qq_ai.param()->level = level;
-    qq_ai.param()->mode = mode;
+    if(level == 10)
+    {
+        qq_ai_path.param()->next_length = next_length;
+        qq_ai_path.param()->level = level;
+        qq_ai_path.param()->mode = mode;
+    }
+    else
+    {
+        qq_ai.param()->next_length = next_length;
+        qq_ai.param()->level = level;
+        qq_ai.param()->mode = mode;
+    }
     m_tetris::TetrisNode const *node = qq_ai.get(status);
     while(node == nullptr && status.y > 0)
     {
@@ -317,11 +327,15 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
     {
         node = node->move_down_multi[node->row + node->height - map.height];
     }
-    auto target = qq_ai.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length).target;
+    auto target = level == 10 ?
+        qq_ai_path.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length).target :
+        qq_ai.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length).target;
     std::vector<char> ai_path;
     if(target != nullptr)
     {
-        ai_path = qq_ai.path(node, target, map);
+        ai_path = level == 10 ?
+            qq_ai_path.path(node, target, map) :
+            qq_ai.path(node, target, map);
         memcpy(path, ai_path.data(), ai_path.size());
     }
     path[ai_path.size()] = 'V';

@@ -80,7 +80,7 @@ namespace ai_zzz
 
         double Attack::eval_land_point(TetrisNode const *node, TetrisMap const &map, size_t clear)
         {
-            double LandHeight = node->row + 1;
+            double LandHeight = node->row + node->height;
             double Middle = std::abs((node->status.x + 1) * 2 - map.width);
             double EraseCount = clear;
             double DeadZone = node->row + node->height == map.height ? 500000. : 0;
@@ -135,7 +135,7 @@ namespace ai_zzz
                 int WellNum[32];
 
                 int AttackDepth;
-                int AttackClear;
+                double AttackClear;
                 int RubbishClear;
                 int Danger;
 
@@ -272,6 +272,7 @@ namespace ai_zzz
             {
                 BoardDeadZone += 70;
             }
+            double length_rate = 10. / param_->next_length;
             for(size_t i = 0; i < history_length; ++i)
             {
                 TetrisMap const &history_map = history[i].map;
@@ -289,14 +290,8 @@ namespace ai_zzz
                     break;
                 case 3:
                 default:
-                    if(i < 4)
-                    {
-                        v.AttackClear += history[i].clear * 10 + (history_length - i) * 4;
-                    }
-                    else
-                    {
-                        v.AttackClear += history[i].clear + (history_length - i);
-                    }
+                    v.AttackClear += (history[i].clear * 10 + (history_length - i) * 2) * (1 + (history_length - i) * length_rate);
+                    break;
                 }
             }
             return (0.
@@ -310,7 +305,7 @@ namespace ai_zzz
                     - v.HolePiece * 2
                     + v.AttackDepth * 100
                     - v.RubbishClear * (v.Danger > 0 ? -100 : 80 * (3 - param_->mode))
-                    + v.AttackClear * 1000
+                    + v.AttackClear * 100
                     - BoardDeadZone * 500000.
                     );
         }
