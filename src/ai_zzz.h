@@ -1,5 +1,4 @@
 
-#include <set>
 #include "tetris_core.h"
 
 namespace ai_zzz
@@ -24,7 +23,10 @@ namespace ai_zzz
             size_t prune_map(m_tetris::PruneParam<double> *prune, size_t prune_length, m_tetris::TetrisNode const **after_pruning, size_t next_length);
 
         private:
-            std::set<int> check_line_;
+            int check_line_1_[32];
+            int check_line_2_[32];
+            int *check_line_1_end_;
+            int *check_line_2_end_;
             Param const *param_;
             m_tetris::TetrisContext const *context_;
             int col_mask_, row_mask_;

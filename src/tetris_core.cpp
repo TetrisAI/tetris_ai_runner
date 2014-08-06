@@ -334,29 +334,30 @@ namespace m_tetris
                 node.index_filtered = index_filter.insert(std::make_pair(node, check_index)).first->second;
                 node.context = this;
 #define D(func)\
-/**/do\
-/**/{\
-/**//**/TetrisNode copy =\
-/**//**/{\
-/**//**//**/node.status, node.op, {node.data[0], node.data[1], node.data[2], node.data[3]}, {node.top[0], node.top[1], node.top[2], node.top[3]}, {node.bottom[0], node.bottom[1], node.bottom[2], node.bottom[3]}, node.row, node.height, node.col, node.width\
-/**//**/};\
-/**//**/if(copy.op.func != nullptr && copy.op.func(copy, this))\
-/**//**/{\
-/**//**//**/auto result = node_cache_.insert(std::make_pair(copy.status, copy));\
-/**//**//**/if(result.second)\
-/**//**//**/{\
-/**//**//**//**/check.push_back(copy.status);\
-/**//**//**/}\
-/**//**//**/node.func = &result.first->second;\
-/**//**/}\
-/**/} while(false)\
-/**/
+/**//**//**//**/do\
+/**//**//**//**/{\
+/**//**//**//**//**/TetrisNode copy =\
+/**//**//**//**//**/{\
+/**//**//**//**//**//**/node.status, node.op, {node.data[0], node.data[1], node.data[2], node.data[3]}, {node.top[0], node.top[1], node.top[2], node.top[3]}, {node.bottom[0], node.bottom[1], node.bottom[2], node.bottom[3]}, node.row, node.height, node.col, node.width\
+/**//**//**//**//**/};\
+/**//**//**//**//**/if(copy.op.func != nullptr && copy.op.func(copy, this))\
+/**//**//**//**//**/{\
+/**//**//**//**//**//**/auto result = node_cache_.insert(std::make_pair(copy.status, copy));\
+/**//**//**//**//**//**/if(result.second)\
+/**//**//**//**//**//**/{\
+/**//**//**//**//**//**//**/check.push_back(copy.status);\
+/**//**//**//**//**//**/}\
+/**//**//**//**//**//**/node.func = &result.first->second;\
+/**//**//**//**//**/}\
+/**//**//**//**/} while(false)\
+/**//**//**//**/
                 D(rotate_clockwise);
                 D(rotate_counterclockwise);
                 D(rotate_opposite);
                 D(move_left);
                 D(move_right);
                 D(move_down);
+#undef D
                 node.move_down_multi[0] = &node;
                 if(node.move_down)
                 {
@@ -377,7 +378,6 @@ namespace m_tetris
                         ++index;
                     }
                 }
-#undef D
             }
         } while(check.size() > check_index);
         for(size_t i = 0; i < 7; ++i)
@@ -468,6 +468,7 @@ namespace m_tetris
             D(clockwise);
             D(counterclockwise);
             D(opposite);
+#undef D
         }
         return rebuild;
     }

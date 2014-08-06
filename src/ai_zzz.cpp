@@ -28,12 +28,19 @@ namespace ai_zzz
         {
             context_ = context;
             param_ = param;
-            check_line_.clear();
+            check_line_1_end_ = check_line_1_;
+            check_line_2_end_ = check_line_2_;
             const int full = context->full();
             for(int x = 0; x < context->width(); ++x)
             {
-                check_line_.insert(full & ~(1 << x));
+                *check_line_1_end_++ = full & ~(1 << x);
             }
+            for(int x = 0; x < context->width() - 1; ++x)
+            {
+                *check_line_2_end_++ = full & ~(3 << x);
+            }
+            std::sort(check_line_1_, check_line_1_end_);
+            std::sort(check_line_2_, check_line_2_end_);
             map_danger_data_.resize(context->type_max());
             for(size_t i = 0; i < context->type_max(); ++i)
             {
@@ -55,7 +62,7 @@ namespace ai_zzz
             {
                 {m, 1, 1, 1, 1, 1},
                 {m, m, 1, 1, 1, 1},
-                {m, m, 4, 1, 1, 1},
+                {m, 9, 4, 1, 1, 1},
                 {m, 8, 4, 2, 1, 1},
                 {9, 7, 4, 2, 1, 1},
                 {8, 6, 3, 2, 1, 1},
@@ -134,7 +141,6 @@ namespace ai_zzz
 
                 int LineCoverBits;
                 int TopHoleBits;
-                int TopAttack;
             } v;
             memset(&v, 0, sizeof v);
 
@@ -209,7 +215,7 @@ namespace ai_zzz
             {
                 land_point_value += history[i].eval;
             }
-            int low_x = (map.top[map.width - 1] <= map.top[0]) ? map.width - 1 : 0;
+            int low_x = (map.top[width_m1] <= map.top[0]) ? width_m1 : 0;
             for(int x = map.width - 3; x > 1; --x)
             {
                 if(map.top[x] < map.top[low_x])
@@ -228,12 +234,19 @@ namespace ai_zzz
             const int low_y = map.top[low_x];
             for(int y = map.roof - 1; y >= low_y; --y)
             {
-                if(check_line_.find(map.row[y]) != check_line_.end())
+                if(std::binary_search(check_line_1_, check_line_1_end_, map.row[y]))
                 {
-                    v.AttackDepth += 16;
+                    if(y + 1 < map.height && std::binary_search(check_line_2_, check_line_2_end_, map.row[y + 1]))
+                    {
+                        v.AttackDepth += 20;
+                    }
+                    else
+                    {
+                        v.AttackDepth += 16;
+                    }
                     for(--y; y >= low_y; --y)
                     {
-                        if(check_line_.find(map.row[y]) != check_line_.end())
+                        if(std::binary_search(check_line_1_, check_line_1_end_, map.row[y]))
                         {
                             v.AttackDepth += 3;
                         }
@@ -247,25 +260,6 @@ namespace ai_zzz
                 else
                 {
                     v.AttackDepth -= 2;
-                }
-            }
-            if((low_x > 1 || map.top[low_x - 2] > map.top[low_x - 1]) || (low_x < width_m1 - 1 || map.top[low_x + 2] > map.top[low_x + 1]))
-            {
-                v.AttackDepth += 4;
-            }
-            if(v.TopAttack >= low_y + 4)
-            {
-                int count = 0;
-                for(int y = low_y; y < low_y + 4; ++y)
-                {
-                    if(check_line_.find(map.row[y]) != check_line_.end())
-                    {
-                        ++count;
-                    }
-                }
-                if(count < 3)
-                {
-                    v.AttackDepth = 0;
                 }
             }
             v.Danger = 5 - std::min(map.height - low_y, 5);
