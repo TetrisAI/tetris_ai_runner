@@ -15,7 +15,7 @@
 #include "rule_srs.h"
 #include "random.h"
 
-m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_path::Search, 3, ai_zzz::qq::Attack::Param> tetris_ai;
+m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_path::Search, 20, ai_zzz::qq::Attack::Param> tetris_ai;
 
 extern "C" void attach_init()
 {
@@ -27,80 +27,6 @@ extern "C" DECLSPEC_EXPORT char const *WINAPI Name()
 {
     static std::string name = tetris_ai.ai_name();
     return name.c_str();
-}
-
-/*
- * board是一个boardW*boardH长度用01组成的字符串，原点于左下角，先行后列。
- * 例如8*3的场地实际形状：
- * 00000000
- * 00011001
- * 01111111
- * 则参数board的内容为："011111110001100100000000"。
- *
- * Piece参数使用字符 OISZLJT 及空格表示方块形状。
- * nextPiece为' '时表示无预览。
- * curR是方向朝向，1是初始方向，2是逆时针90度，3是180度，4是顺时针90度。
- * curX,curY的坐标，是以当前块4*4矩阵的上数第二行，右数第二列为基准，
- *     左下角为x=1,y=1；右下角为x=boardW,y=1；左上角为x=1,y=boardH
- *     具体方块形状参阅上一级目录下的pieces_orientations.jpg
- *
- * bestX,bestRotation 用于返回最优位置，与curX,curR的规则相同。
- *
- * 注意：方块操作次序规定为先旋转，再平移，最后放下。
- *       若中间有阻挡而AI程序没有判断则会导致错误摆放。
- *       该函数在出现新方块的时候被调用，一个方块调用一次。
- */
-extern "C" DECLSPEC_EXPORT int WINAPI AI(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char nextPiece, int *bestX, int *bestRotation)
-{
-    if(!tetris_ai.prepare(boardW, boardH))
-    {
-        return 0;
-    }
-    m_tetris::TetrisMap map =
-    {
-        boardW, boardH
-    };
-    for(int y = 0, add = 0; y < boardH; ++y, add += boardW)
-    {
-        for(int x = 0; x < boardW; ++x)
-        {
-            if(board[x + add] == '1')
-            {
-                map.top[x] = map.roof = y + 1;
-                map.row[y] |= 1 << x;
-                ++map.count;
-            }
-        }
-    }
-    m_tetris::TetrisBlockStatus status =
-    {
-        curPiece, curX - 1, curY - 1, curR - 1
-    };
-    size_t next_length = 0;
-    unsigned char next[] = {nextPiece, ' ', ' '};
-    /////////////////////////////////////////////////
-    //这里计算空闲方块数,局势比较差开启vp计算
-    int free_block = 0;
-    for(int x = 0; x < map.width; ++x)
-    {
-        free_block += map.height - map.top[x];
-    }
-    if(free_block < map.width * 6)
-    {
-        next_length = 2;
-    }
-    else if(nextPiece != ' ' || free_block < map.width * 10)
-    {
-        next_length = 1;
-    }
-    /////////////////////////////////////////////////
-    auto target = tetris_ai.run(map, tetris_ai.get(status), next, next_length).target;
-    if(target != nullptr)
-    {
-        *bestX = target->status.x + 1;
-        *bestRotation = target->status.r + 1;
-    }
-    return 0;
 }
 
 /*
@@ -117,7 +43,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AI(int boardW, int boardH, char board[], c
  *
  * 本函数支持任意路径操作，若不需要此函数只想使用上面一个的话，则删掉本函数即可
  */
-extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char nextPiece, char path[])
+extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char const *nextPiece, char path[])
 {
     if(!tetris_ai.prepare(boardW, boardH))
     {
@@ -143,15 +69,14 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     {
         curPiece, curX - 1, curY - 1, curR - 1
     };
-    size_t next_length = 2;
-    unsigned char next[] = {nextPiece, ' ', ' '};
+    size_t next_length = std::strlen(nextPiece);
     /////////////////////////////////////////////////
     tetris_ai.param()->level = 10;
     tetris_ai.param()->mode = 0;
     tetris_ai.param()->next_length = next_length;
     /////////////////////////////////////////////////
     m_tetris::TetrisNode const *node = tetris_ai.get(status);
-    auto target = tetris_ai.run(map, node, next, next_length).target;
+    auto target = tetris_ai.run(map, node, reinterpret_cast<unsigned char *>(const_cast<char *>(nextPiece)), next_length).target;
     if(target != nullptr)
     {
         std::vector<char> ai_path = tetris_ai.path(node, target, map);

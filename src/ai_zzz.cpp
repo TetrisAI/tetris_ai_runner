@@ -134,7 +134,7 @@ namespace ai_zzz
                 int HoleNum[32];
                 int WellNum[32];
 
-                int AttackDepth;
+                double AttackDepth;
                 double AttackClear;
                 int RubbishClear;
                 int Danger;
@@ -290,7 +290,7 @@ namespace ai_zzz
                     break;
                 case 3:
                 default:
-                    v.AttackClear += (history[i].clear * 10 + (history_length - i) * 2) * (1 + (history_length - i) * length_rate);
+                    v.AttackClear += (history[i].clear * 10 + (history_length - i)) * (1 + (history_length - i) * length_rate);
                     break;
                 }
             }
