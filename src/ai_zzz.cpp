@@ -66,7 +66,7 @@ namespace ai_zzz
                 {m, 8, 4, 2, 1, 1},
                 {9, 7, 4, 2, 1, 1},
                 {8, 6, 3, 2, 1, 1},
-                {7, 5, 2, 2, 1, 1},
+                {7, 5, 2, 2, 2, 1},
             };
             memcpy(prune_table_, prune, sizeof prune_table_);
             col_mask_ = context->full() & ~1;
@@ -243,154 +243,37 @@ namespace ai_zzz
                 low_x = map.width - 2;
             }
             int low_y = map.top[low_x];
-            int high_y = map.roof - 1;
-            for(; high_y >= low_y; --high_y)
+            bool more_attack = v.TotleTop * 2 < map.width * map.height;
+            for(int y = map.roof - 1; y >= low_y; --y)
             {
-                if(std::binary_search(check_line_1_, check_line_1_end_, map.row[high_y]))
+                if(std::binary_search(check_line_1_, check_line_1_end_, map.row[y]))
                 {
-                    if(high_y < map.roof && std::binary_search(check_line_2_, check_line_2_end_, map.row[high_y + 1]))
+                    if(!more_attack && y + 1 < map.height && std::binary_search(check_line_2_, check_line_2_end_, map.row[y + 1]))
                     {
-                        ++high_y;
+                        v.AttackDepth += 20;
+                    }
+                    else
+                    {
+                        v.AttackDepth += 16;
+                    }
+                    for(--y; y >= low_y; --y)
+                    {
+                        if(std::binary_search(check_line_1_, check_line_1_end_, map.row[y]))
+                        {
+                            v.AttackDepth += 3;
+                        }
+                        else
+                        {
+                            v.AttackDepth -= 5;
+                        }
                     }
                     break;
                 }
                 else
                 {
-                    --high_y;
+                    v.AttackDepth -= 2;
                 }
             }
-            enum
-            {
-                mode_4, mode_3
-            };
-            enum
-            {
-                type_u, type_a, type_3, type_r
-            };
-            //bool more_attack = v.TotleTop * 2 < map.width * map.height;
-            for(int y = low_y; y <= high_y; ++y)
-            {
-                int type = type_u;
-                if(std::binary_search(check_line_1_, check_line_1_end_, map.row[y]))
-                {
-                    type = type_a;
-                }
-                else if(std::binary_search(check_line_2_, check_line_2_end_, map.row[y]))
-                {
-                    type = type_3;
-                }
-                else
-                {
-                    type = type_r;
-                }
-                if(v.AttackQueuePos != 0 && v.AttackQueue[v.AttackQueuePos - 1].type == type)
-                {
-                    ++v.AttackQueue[v.AttackQueuePos - 1].count;
-                }
-                else
-                {
-                    v.AttackQueue[v.AttackQueuePos].type = type;
-                    v.AttackQueue[v.AttackQueuePos].count = 1;
-                    ++v.AttackQueuePos;
-                }
-            }
-            if(v.AttackQueuePos > 0)
-            {
-                auto start = &v.AttackQueue[0], end = v.AttackQueue + v.AttackQueuePos;
-                int mode = start->type == type_a ? mode_4 : mode_3;
-                while(start != end)
-                {
-                    if(mode == mode_4)
-                    {
-                        if(start->count >= 4)
-                        {
-                            v.AttackDepth += 30;
-                            start->count -= 4;
-                        }
-                        else if(start->count == 3)
-                        {
-                            v.AttackDepth += 22;
-                            mode = mode_3;
-                            ++start;
-                        }
-                        else
-                        {
-                            v.AttackDepth += 13 + start->count * 3;
-                            mode = mode_3;
-                            ++start;
-                        }
-                    }
-                    else
-                    {
-                        if(start->type != type_a)
-                        {
-                            v.AttackDepth -= start->count * 5;
-                            ++start;
-                        }
-                        else
-                        {
-                            if(start->count == 2)
-                            {
-                                auto next = start + 1;
-                                if(next != end && next->type == type_3)
-                                {
-                                    v.AttackDepth += 22;
-                                    if(next->count == 1)
-                                    {
-                                        start = next + 1;
-                                    }
-                                    else
-                                    {
-                                        --next->count;
-                                        start = next;;
-                                    }
-                                }
-                                else
-                                {
-                                    v.AttackDepth += start->count * 3;
-                                    ++start;
-                                }
-                            }
-                            else
-                            {
-                                v.AttackDepth += start->count * 3;
-                                ++start;
-                            }
-                        }
-                    }
-                }
-            }
-            v.AttackDepth -= (map.roof - high_y) * 2;
-            //for(int y = map.roof - 1; y >= low_y; --y)
-            //{
-            //    if(std::binary_search(check_line_1_, check_line_1_end_, map.row[y]))
-            //    {
-            //        if(!more_attack && y + 1 < map.height && std::binary_search(check_line_2_, check_line_2_end_, map.row[y + 1]))
-            //        {
-            //            v.AttackDepth += 20;
-            //        }
-            //        else
-            //        {
-            //            v.AttackDepth += 16;
-            //        }
-            //        for(--y; y >= low_y; --y)
-            //        {
-            //            if(std::binary_search(check_line_1_, check_line_1_end_, map.row[y]))
-            //            {
-            //                v.AttackDepth += 3;
-            //            }
-            //            else
-            //            {
-            //                v.AttackDepth -= 5;
-            //            }
-            //        }
-            //        break;
-            //    }
-            //    else
-            //    {
-            //        v.AttackDepth -= 2;
-            //    }
-            //}
             v.Danger = 5 - std::min(map.height - low_y, 5);
             if(v.Danger > 0 && v.AttackDepth < 20)
             {
@@ -418,11 +301,6 @@ namespace ai_zzz
                     v.RubbishClear += history[i].clear;
                     break;
                 case 3:
-                    //if(more_attack)
-                    //{
-                    //    v.AttackClear += 9;
-                    //    break;
-                    //}
                 default:
                     v.AttackClear += (history[i].clear * 10 + (history_length - i)) * (1 + (history_length - i) * length_rate);
                     break;
