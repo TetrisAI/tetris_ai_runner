@@ -43,7 +43,7 @@ namespace land_point_search_simple
 
     namespace
     {
-        void push(m_tetris::TetrisNodeMarkFiltered &mark, std::vector<m_tetris::TetrisNode const *> &land_point_cache, TetrisNode const *land_point)
+        void push(m_tetris::TetrisNodeMarkFiltered &mark, std::vector<TetrisNode const *> &land_point_cache, TetrisNode const *land_point)
         {
             if(mark.mark(land_point))
             {

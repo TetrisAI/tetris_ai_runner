@@ -67,21 +67,21 @@ namespace land_point_search_cautious
                 }
                 else
                 {
-                    for(m_tetris::TetrisNode const *wall_kicl_node : node->wall_kick_opposite)
+                    for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
                     {
-                        if(wall_kicl_node)
+                        if(wall_kick_node)
                         {
-                            if(wall_kicl_node->check(map))
+                            if(wall_kick_node->check(map))
                             {
-                                if(node_mark_.set(wall_kicl_node, node, 'x'))
+                                if(node_mark_.set(wall_kick_node, node, 'x'))
                                 {
-                                    if(wall_kicl_node->index_filtered == index)
+                                    if(wall_kick_node->index_filtered == index)
                                     {
-                                        return build_path(wall_kicl_node, node_mark_);
+                                        return build_path(wall_kick_node, node_mark_);
                                     }
                                     else
                                     {
-                                        node_search_.push_back(wall_kicl_node);
+                                        node_search_.push_back(wall_kick_node);
                                     }
                                 }
                                 break;
@@ -110,21 +110,21 @@ namespace land_point_search_cautious
                 }
                 else
                 {
-                    for(m_tetris::TetrisNode const *wall_kicl_node : node->wall_kick_counterclockwise)
+                    for(TetrisNode const *wall_kick_node : node->wall_kick_counterclockwise)
                     {
-                        if(wall_kicl_node)
+                        if(wall_kick_node)
                         {
-                            if(wall_kicl_node->check(map))
+                            if(wall_kick_node->check(map))
                             {
-                                if(node_mark_.set(wall_kicl_node, node, 'z'))
+                                if(node_mark_.set(wall_kick_node, node, 'z'))
                                 {
-                                    if(wall_kicl_node->index_filtered == index)
+                                    if(wall_kick_node->index_filtered == index)
                                     {
-                                        return build_path(wall_kicl_node, node_mark_);
+                                        return build_path(wall_kick_node, node_mark_);
                                     }
                                     else
                                     {
-                                        node_search_.push_back(wall_kicl_node);
+                                        node_search_.push_back(wall_kick_node);
                                     }
                                 }
                                 break;
@@ -153,21 +153,21 @@ namespace land_point_search_cautious
                 }
                 else
                 {
-                    for(m_tetris::TetrisNode const *wall_kicl_node : node->wall_kick_clockwise)
+                    for(TetrisNode const *wall_kick_node : node->wall_kick_clockwise)
                     {
-                        if(wall_kicl_node)
+                        if(wall_kick_node)
                         {
-                            if(wall_kicl_node->check(map))
+                            if(wall_kick_node->check(map))
                             {
-                                if(node_mark_.set(wall_kicl_node, node, 'c'))
+                                if(node_mark_.set(wall_kick_node, node, 'c'))
                                 {
-                                    if(wall_kicl_node->index_filtered == index)
+                                    if(wall_kick_node->index_filtered == index)
                                     {
-                                        return build_path(wall_kicl_node, node_mark_);
+                                        return build_path(wall_kick_node, node_mark_);
                                     }
                                     else
                                     {
-                                        node_search_.push_back(wall_kicl_node);
+                                        node_search_.push_back(wall_kick_node);
                                     }
                                 }
                                 break;
@@ -270,6 +270,7 @@ namespace land_point_search_cautious
                 }
             }
         } while(node_search_.size() > cache_index);
+        _asm int 3;
         return std::vector<char>();
     }
 
@@ -288,11 +289,12 @@ namespace land_point_search_cautious
                 {
                     land_point_cache_.push_back(drop_node);
                 }
+                node_search_.push_back(drop_node);
             }
             TetrisNode const *last_node = nullptr;
-            for(auto cit = land_point_cache_.begin(); cit != land_point_cache_.end(); ++cit)
+            for(size_t i = 0, end = node_search_.size(); i != end; ++i)
             {
-                node = *cit;
+                node = node_search_[i];
                 if(last_node != nullptr)
                 {
                     if(last_node->status.r == node->status.r && std::abs(last_node->status.x - node->status.x) == 1 && std::abs(last_node->status.y - node->status.y) > 1)
@@ -331,7 +333,7 @@ namespace land_point_search_cautious
                         }
                     }
                     //x
-                    if(node->rotate_opposite && !node->rotate_opposite->open(map) && node->rotate_opposite->check(map))
+                    if(node->rotate_opposite && node->rotate_opposite->check(map))
                     {
                         if(node_mark_.mark(node->rotate_opposite))
                         {
@@ -340,15 +342,15 @@ namespace land_point_search_cautious
                     }
                     else
                     {
-                        for(m_tetris::TetrisNode const *wall_kicl_node : node->wall_kick_opposite)
+                        for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
                         {
-                            if(wall_kicl_node)
+                            if(wall_kick_node)
                             {
-                                if(wall_kicl_node->check(map))
+                                if(wall_kick_node->check(map))
                                 {
-                                    if(node_mark_.mark(wall_kicl_node) && !wall_kicl_node->open(map))
+                                    if(node_mark_.mark(wall_kick_node) && !wall_kick_node->open(map))
                                     {
-                                        node_search_.push_back(wall_kicl_node);
+                                        node_search_.push_back(wall_kick_node);
                                     }
                                     break;
                                 }
@@ -360,7 +362,7 @@ namespace land_point_search_cautious
                         }
                     }
                     //z
-                    if(node->rotate_counterclockwise && !node->rotate_counterclockwise->open(map) && node->rotate_counterclockwise->check(map))
+                    if(node->rotate_counterclockwise && node->rotate_counterclockwise->check(map))
                     {
                         if(node_mark_.mark(node->rotate_counterclockwise))
                         {
@@ -369,15 +371,15 @@ namespace land_point_search_cautious
                     }
                     else
                     {
-                        for(m_tetris::TetrisNode const *wall_kicl_node : node->wall_kick_counterclockwise)
+                        for(TetrisNode const *wall_kick_node : node->wall_kick_counterclockwise)
                         {
-                            if(wall_kicl_node)
+                            if(wall_kick_node)
                             {
-                                if(wall_kicl_node->check(map))
+                                if(wall_kick_node->check(map))
                                 {
-                                    if(node_mark_.mark(wall_kicl_node) && !wall_kicl_node->open(map))
+                                    if(node_mark_.mark(wall_kick_node) && !wall_kick_node->open(map))
                                     {
-                                        node_search_.push_back(wall_kicl_node);
+                                        node_search_.push_back(wall_kick_node);
                                     }
                                     break;
                                 }
@@ -389,7 +391,7 @@ namespace land_point_search_cautious
                         }
                     }
                     //c
-                    if(node->rotate_clockwise && !node->rotate_clockwise->open(map) && node->rotate_clockwise->check(map))
+                    if(node->rotate_clockwise && node->rotate_clockwise->check(map))
                     {
                         if(node_mark_.mark(node->rotate_clockwise))
                         {
@@ -398,15 +400,15 @@ namespace land_point_search_cautious
                     }
                     else
                     {
-                        for(m_tetris::TetrisNode const *wall_kicl_node : node->wall_kick_clockwise)
+                        for(TetrisNode const *wall_kick_node : node->wall_kick_clockwise)
                         {
-                            if(wall_kicl_node)
+                            if(wall_kick_node)
                             {
-                                if(wall_kicl_node->check(map))
+                                if(wall_kick_node->check(map))
                                 {
-                                    if(node_mark_.mark(wall_kicl_node) && !wall_kicl_node->open(map))
+                                    if(node_mark_.mark(wall_kick_node) && !wall_kick_node->open(map))
                                     {
-                                        node_search_.push_back(wall_kicl_node);
+                                        node_search_.push_back(wall_kick_node);
                                     }
                                     break;
                                 }
@@ -462,15 +464,15 @@ namespace land_point_search_cautious
                     }
                     else
                     {
-                        for(m_tetris::TetrisNode const *wall_kicl_node : node->wall_kick_opposite)
+                        for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
                         {
-                            if(wall_kicl_node)
+                            if(wall_kick_node)
                             {
-                                if(wall_kicl_node->check(map))
+                                if(wall_kick_node->check(map))
                                 {
-                                    if(node_mark_.mark(wall_kicl_node))
+                                    if(node_mark_.mark(wall_kick_node))
                                     {
-                                        node_search_.push_back(wall_kicl_node);
+                                        node_search_.push_back(wall_kick_node);
                                     }
                                     break;
                                 }
@@ -491,15 +493,15 @@ namespace land_point_search_cautious
                     }
                     else
                     {
-                        for(m_tetris::TetrisNode const *wall_kicl_node : node->wall_kick_counterclockwise)
+                        for(TetrisNode const *wall_kick_node : node->wall_kick_counterclockwise)
                         {
-                            if(wall_kicl_node)
+                            if(wall_kick_node)
                             {
-                                if(wall_kicl_node->check(map))
+                                if(wall_kick_node->check(map))
                                 {
-                                    if(node_mark_.mark(wall_kicl_node))
+                                    if(node_mark_.mark(wall_kick_node))
                                     {
-                                        node_search_.push_back(wall_kicl_node);
+                                        node_search_.push_back(wall_kick_node);
                                     }
                                     break;
                                 }
@@ -520,15 +522,15 @@ namespace land_point_search_cautious
                     }
                     else
                     {
-                        for(m_tetris::TetrisNode const *wall_kicl_node : node->wall_kick_clockwise)
+                        for(TetrisNode const *wall_kick_node : node->wall_kick_clockwise)
                         {
-                            if(wall_kicl_node)
+                            if(wall_kick_node)
                             {
-                                if(wall_kicl_node->check(map))
+                                if(wall_kick_node->check(map))
                                 {
-                                    if(node_mark_.mark(wall_kicl_node))
+                                    if(node_mark_.mark(wall_kick_node))
                                     {
-                                        node_search_.push_back(wall_kicl_node);
+                                        node_search_.push_back(wall_kick_node);
                                     }
                                     break;
                                 }

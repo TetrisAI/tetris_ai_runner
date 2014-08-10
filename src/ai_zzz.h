@@ -20,7 +20,6 @@ namespace ai_zzz
             double eval_land_point(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, size_t clear);
             double eval_map_bad() const;
             double eval_map(m_tetris::TetrisMap const &map, m_tetris::EvalParam<double> const *history, size_t history_length);
-            size_t prune_map(m_tetris::PruneParam<double> *prune, size_t prune_length, m_tetris::TetrisNode const **after_pruning, size_t next_length);
 
         private:
             int check_line_1_[32];
@@ -35,7 +34,6 @@ namespace ai_zzz
                 int data[4];
             };
             std::vector<MapInDangerData> map_danger_data_;
-            size_t prune_table_[7][6];
             size_t map_in_danger_(m_tetris::TetrisMap const &map);
         };
     }
@@ -47,7 +45,6 @@ namespace ai_zzz
         std::string ai_name() const;
         double eval_map_bad() const;
         double eval_map(m_tetris::TetrisMap const &map, m_tetris::EvalParam<> const *history, size_t history_length);
-        size_t prune_map(m_tetris::PruneParam<double> *prune, size_t prune_length, m_tetris::TetrisNode const **after_pruning, size_t next_length);
 
     private:
         size_t const *next_length_ptr_;

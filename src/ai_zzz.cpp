@@ -56,19 +56,6 @@ namespace ai_zzz
                     map_danger_data_[i].data[y + 1] |= map_danger_data_[i].data[y];
                 }
             }
-            size_t m = std::numeric_limits<size_t>::max();
-            //max_length, current
-            size_t prune[7][6] =
-            {
-                {m, 1, 1, 1, 1, 1},
-                {m, m, 1, 1, 1, 1},
-                {m, 9, 4, 1, 1, 1},
-                {m, 8, 4, 2, 1, 1},
-                {9, 7, 4, 2, 1, 1},
-                {8, 6, 3, 2, 1, 1},
-                {7, 5, 2, 2, 2, 1},
-            };
-            memcpy(prune_table_, prune, sizeof prune_table_);
             col_mask_ = context->full() & ~1;
             row_mask_ = context->full();
         }
@@ -145,16 +132,11 @@ namespace ai_zzz
                     short int count;
                 } AttackQueue[40];
                 int AttackQueuePos;
-                int TotleTop;
                 int LineCoverBits;
                 int TopHoleBits;
             } v;
             memset(&v, 0, sizeof v);
 
-            for(int x = 0; x < map.width; ++x)
-            {
-                v.TotleTop += map.top[x];
-            }
             for(int y = map.roof - 1; y >= 0; --y)
             {
                 v.LineCoverBits |= map.row[y];
@@ -243,12 +225,11 @@ namespace ai_zzz
                 low_x = map.width - 2;
             }
             int low_y = map.top[low_x];
-            bool more_attack = v.TotleTop * 2 < map.width * map.height;
             for(int y = map.roof - 1; y >= low_y; --y)
             {
                 if(std::binary_search(check_line_1_, check_line_1_end_, map.row[y]))
                 {
-                    if(!more_attack && y + 1 < map.height && std::binary_search(check_line_2_, check_line_2_end_, map.row[y + 1]))
+                    if(y + 1 < map.height && std::binary_search(check_line_2_, check_line_2_end_, map.row[y + 1]))
                     {
                         v.AttackDepth += 20;
                     }
@@ -287,7 +268,7 @@ namespace ai_zzz
             double length_rate = 10. / param_->next_length;
             for(size_t i = 0; i < history_length; ++i)
             {
-                TetrisMap const &history_map = history[i].map;
+                TetrisMap const &history_map = *history[i].map;
                 if(history_map.roof == history_map.height)
                 {
                     BoardDeadZone += 70;
@@ -322,23 +303,6 @@ namespace ai_zzz
                     );
         }
 
-        size_t Attack::prune_map(m_tetris::PruneParam<double> *prune, size_t prune_length, TetrisNode const **after_pruning, size_t next_length)
-        {
-            struct
-            {
-                bool operator()(m_tetris::PruneParam<double> const &left, m_tetris::PruneParam<double> const &right)
-                {
-                    return left.eval > right.eval;
-                }
-            } c;
-            std::sort(prune, prune + prune_length, c);
-            size_t hold_count = std::min(prune_table_[std::min(6u, param_->next_length)][std::min(5u, param_->next_length - next_length)], prune_length);
-            for(size_t i = 0; i < hold_count; ++i)
-            {
-                after_pruning[i] = prune[i].land_point;
-            }
-            return hold_count;
-        }
 
         size_t Attack::map_in_danger_(m_tetris::TetrisMap const &map)
         {
@@ -416,25 +380,7 @@ namespace ai_zzz
         {
             clear += history[i].clear;
         }
-        value += clear * history->map.roof * 10 / history_length;
+        value += clear * history->map->roof * 10 / history_length;
         return value;
-    }
-
-    size_t Dig::prune_map(m_tetris::PruneParam<double> *prune, size_t prune_length, TetrisNode const **after_pruning, size_t next_length)
-    {
-        struct
-        {
-            bool operator()(m_tetris::PruneParam<double> const &left, m_tetris::PruneParam<double> const &right)
-            {
-                return left.eval > right.eval;
-            }
-        } c;
-        std::sort(prune, prune + prune_length, c);
-        size_t hold_count = std::min<size_t>(prune_length, next_length == *next_length_ptr_ ? prune_length : next_length == *next_length_ptr_ - 1 ? 2 : 1);
-        for(size_t i = 0; i < hold_count; ++i)
-        {
-            after_pruning[i] = prune[i].land_point;
-        }
-        return hold_count;
     }
 }

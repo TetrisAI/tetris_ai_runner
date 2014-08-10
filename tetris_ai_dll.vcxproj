@@ -117,6 +117,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
       <AdditionalDependencies>$(SolutionDir)$(Configuration)\gason.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <Profile>true</Profile>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(SolutionDir)$(TargetFileName)</Command>

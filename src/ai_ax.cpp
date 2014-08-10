@@ -218,24 +218,6 @@ namespace ai_ax_1
         return result / eval_length;
     }
 
-    size_t AI::prune_map(m_tetris::PruneParam<double> *prune, size_t prune_length, TetrisNode const **after_pruning, size_t next_length)
-    {
-        struct
-        {
-            bool operator()(m_tetris::PruneParam<double> const &left, m_tetris::PruneParam<double> const &right)
-            {
-                return left.eval > right.eval;
-            }
-        } c;
-        std::sort(prune, prune + prune_length, c);
-        size_t hold_count = std::min<size_t>(prune_length, 8);
-        for(size_t i = 0; i < hold_count; ++i)
-        {
-            after_pruning[i] = prune[i].land_point;
-        }
-        return hold_count;
-    }
-
     size_t AI::map_in_danger_(m_tetris::TetrisMap const &map)
     {
         size_t danger = 0;
