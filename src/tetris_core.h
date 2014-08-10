@@ -724,7 +724,7 @@ namespace m_tetris
             {
                 return false;
             }
-            if(context->is_open_hold || _node != node || _next_length != next.size() || std::memcpy(_next, next.data(), _next_length) != 0)
+            if(context->is_open_hold || _node != node || _next_length != next.size() || std::memcmp(_next, next.data(), _next_length) != 0)
             {
                 ++context->version;
             }
@@ -739,7 +739,7 @@ namespace m_tetris
             {
                 return false;
             }
-            if(!context->is_open_hold || _node != node || hold != _hold || !!is_hold_lock != !!_hold_lock || _next_length != next.size() || std::memcpy(_next, next.data(), _next_length) != 0)
+            if(!context->is_open_hold || _node != node || hold != _hold || !!is_hold_lock != !!_hold_lock || _next_length != next.size() || std::memcmp(_next, next.data(), _next_length) != 0)
             {
                 ++context->version;
             }

@@ -282,6 +282,8 @@ namespace ai_zzz
                     v.RubbishClear += history[i].clear;
                     break;
                 case 3:
+                    v.AttackClear += 9;
+                    break;
                 default:
                     v.AttackClear += (history[i].clear * 10 + (history_length - i)) * (1 + (history_length - i) * length_rate);
                     break;
