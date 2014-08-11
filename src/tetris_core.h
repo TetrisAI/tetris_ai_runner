@@ -671,7 +671,7 @@ namespace m_tetris
                 return TetrisBlockStatusCompare()(left->param.node->status, right);
             }
         };
-        TetrisTreeNode(Context *_context) : context(_context), version(context->version - 1), eval(context->ai->eval_map_bad()), parent(), param(), hold(' '), is_hold(), is_hold_lock(), is_completed()
+        TetrisTreeNode(Context *_context) : context(_context), version(context->version - 1), eval(context->ai->eval_map_bad()), parent(), param(), hold(' '), is_hold(), is_hold_lock()
         {
             param.map = &map;
         }
@@ -687,10 +687,9 @@ namespace m_tetris
         unsigned char hold;
         bool is_hold;
         bool is_hold_lock;
-        bool is_completed;
         std::vector<unsigned char> next;
 
-        TetrisTreeNode *update(TetrisMap const &_map)
+        TetrisTreeNode *update_root(TetrisMap const &_map)
         {
             if(map == _map)
             {
@@ -718,37 +717,31 @@ namespace m_tetris
             ++context->version;
             return new_root;
         }
-        bool set_next(TetrisNode const *_node, unsigned char *_next, size_t _next_length)
+        TetrisTreeNode *update(TetrisMap const &_map, TetrisNode const *_node, unsigned char *_next, size_t _next_length)
         {
-            if(_next_length == 0)
-            {
-                return false;
-            }
-            if(context->is_open_hold || _node != node || _next_length != next.size() || std::memcmp(_next, next.data(), _next_length) != 0)
+            TetrisTreeNode *root = update_root(_map);
+            if(context->is_open_hold || _node != root->node || _next_length != root->next.size() || std::memcmp(_next, root->next.data(), _next_length) != 0)
             {
                 ++context->version;
             }
             context->is_open_hold = false;
-            node = _node;
-            next.assign(_next, _next + _next_length);
-            return true;
+            root->node = _node;
+            root->next.assign(_next, _next + _next_length);
+            return root;
         }
-        bool set_next(TetrisNode const *_node, unsigned char _hold, bool _hold_lock, unsigned char *_next, size_t _next_length)
+        TetrisTreeNode *update(TetrisMap const &_map, TetrisNode const *_node, unsigned char _hold, bool _hold_lock, unsigned char *_next, size_t _next_length)
         {
-            if(_next_length == 0)
-            {
-                return false;
-            }
-            if(!context->is_open_hold || _node != node || hold != _hold || !!is_hold_lock != !!_hold_lock || _next_length != next.size() || std::memcmp(_next, next.data(), _next_length) != 0)
+            TetrisTreeNode *root = update_root(_map);
+            if(!context->is_open_hold || _node != root->node || _hold != root->hold || !!_hold_lock != root->is_hold_lock || _next_length != root->next.size() || std::memcmp(_next, root->next.data(), _next_length) != 0)
             {
                 ++context->version;
             }
             context->is_open_hold = true;
-            node = _node;
-            hold = _hold;
-            is_hold_lock = _hold_lock;
-            next.assign(_next, _next + _next_length);
-            return true;
+            root->node = _node;
+            root->hold = _hold;
+            root->is_hold_lock = _hold_lock;
+            root->next.assign(_next, _next + _next_length);
+            return root;
         }
         void search(bool hold_opposite = false)
         {
@@ -1089,11 +1082,7 @@ namespace m_tetris
             }
             for(auto child : children)
             {
-                if(!child->is_completed)
-                {
-                    child->eval = TetrisCore<TetrisAI, TetrisLandPointSearchEngine, typename TetrisAIHasLandPointEval<TetrisAI>::type>().run(*context->ai, child->map, child->param, history);
-                    child->is_completed = true;
-                }
+                child->eval = TetrisCore<TetrisAI, TetrisLandPointSearchEngine, typename TetrisAIHasLandPointEval<TetrisAI>::type>().run(*context->ai, child->map, child->param, history);
             }
             version = context->version;
         }
@@ -1197,7 +1186,6 @@ namespace m_tetris
             node->hold = ' ';
             node->is_hold = false;
             node->is_hold_lock = false;
-            node->is_completed = false;
             node->next.clear();
             tree_cache_.push_back(node);
         }
@@ -1298,8 +1286,7 @@ namespace m_tetris
             }
             else
             {
-                tree_root_ = tree_root_->update(map);
-                tree_root_->set_next(node, next, next_length);
+                tree_root_ = tree_root_->update(map, node, next, next_length);
                 size_t deepth = 0;
                 time_t end = clock() + limit;
                 do
@@ -1346,8 +1333,7 @@ namespace m_tetris
                     return RunResult(Core().run(ai_, search_, map, node));
                 }
             }
-            tree_root_ = tree_root_->update(map);
-            tree_root_->set_next(node, hold, !hold_free, next, next_length);
+            tree_root_ = tree_root_->update(map, node, hold, !hold_free, next, next_length);
             size_t deepth = 0;
             time_t end = clock() + limit;
             do

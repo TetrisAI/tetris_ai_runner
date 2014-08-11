@@ -292,7 +292,8 @@ namespace land_point_search_cautious
                 node_search_.push_back(drop_node);
             }
             TetrisNode const *last_node = nullptr;
-            for(size_t i = 0, end = node_search_.size(); i != end; ++i)
+            size_t cache_index = node_search_.size();
+            for(size_t i = 0; i != cache_index; ++i)
             {
                 node = node_search_[i];
                 if(last_node != nullptr)
@@ -319,7 +320,6 @@ namespace land_point_search_cautious
                 }
                 last_node = node;
             }
-            size_t cache_index = 0;
             do
             {
                 for(size_t max_index = node_search_.size(); cache_index < max_index; ++cache_index)

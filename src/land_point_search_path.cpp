@@ -190,16 +190,18 @@ namespace land_point_search_path
         {
             for(auto cit = node->land_point->begin(); cit != node->land_point->end(); ++cit)
             {
-                TetrisNode const *land_point = (*cit)->drop(map);
-                if(node_mark_filtered_.mark(land_point))
+                TetrisNode const *drop_node = (*cit)->drop(map);
+                if(node_mark_filtered_.mark(drop_node))
                 {
-                    land_point_cache_.push_back(land_point);
+                    land_point_cache_.push_back(drop_node);
                 }
+                node_search_.push_back(drop_node);
             }
             TetrisNode const *last_node = nullptr;
-            for(auto cit = land_point_cache_.begin(); cit != land_point_cache_.end(); ++cit)
+            size_t cache_index = node_search_.size();
+            for(size_t i = 0; i != cache_index; ++i)
             {
-                node = *cit;
+                node = node_search_[i];
                 if(last_node != nullptr)
                 {
                     if(last_node->status.r == node->status.r && std::abs(last_node->status.x - node->status.x) == 1 && std::abs(last_node->status.y - node->status.y) > 1)
@@ -224,7 +226,6 @@ namespace land_point_search_path
                 }
                 last_node = node;
             }
-            size_t cache_index = 0;
             do
             {
                 for(size_t max_index = node_search_.size(); cache_index < max_index; ++cache_index)
