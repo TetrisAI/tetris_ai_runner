@@ -82,7 +82,7 @@ namespace ai_zzz
 
         double Attack::eval_map_bad() const
         {
-            return -99999999;
+            return -999999999999.;
         }
 
         double Attack::eval_map(TetrisMap const &map, EvalParam<double> const *history, size_t history_length)
@@ -282,8 +282,16 @@ namespace ai_zzz
                     v.RubbishClear += history[i].clear;
                     break;
                 case 3:
-                    v.AttackClear += 9;
-                    break;
+                    if(param_->mode == 1)
+                    {
+                        v.AttackClear += 9;
+                        break;
+                    }
+                    if(param_->mode == 2)
+                    {
+                        v.RubbishClear += history[i].clear;
+                        break;
+                    }
                 default:
                     v.AttackClear += (history[i].clear * 10 + (history_length - i)) * (1 + (history_length - i) * length_rate);
                     break;
@@ -299,7 +307,7 @@ namespace ai_zzz
                     - v.HoleDepth * 4
                     - v.HolePiece * 2
                     + v.AttackDepth * 100
-                    - v.RubbishClear * (v.Danger > 0 ? -100 : 80 * (3 - param_->mode))
+                    - v.RubbishClear * (v.Danger > 0 ? -100 : 240)
                     + v.AttackClear * 100
                     - BoardDeadZone * 500000.
                     );

@@ -253,8 +253,8 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
         node = node->move_down_multi[node->row + node->height - map.height];
     }
     auto target = level == 10 ?
-        qq_ai_path.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, 50).target :
-        qq_ai.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, 50).target;
+        qq_ai_path.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, 60).target :
+        qq_ai.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, 60).target;
     std::vector<char> ai_path;
     if(target != nullptr)
     {
