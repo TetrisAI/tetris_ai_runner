@@ -644,6 +644,7 @@ namespace m_tetris
             TetrisAI *ai;
             TetrisLandPointSearchEngine *search;
             std::vector<std::vector<TetrisTreeNode *>> deepth;
+            std::vector<TetrisTreeNode *> temp_level;
             std::vector<EvalParam> history;
             bool is_complete;
             bool is_open_hold;
@@ -727,6 +728,10 @@ namespace m_tetris
             {
                 ++context->version;
                 context->width = 0;
+                for(auto &level : context->deepth)
+                {
+                    level.clear();
+                }
             }
             context->is_open_hold = false;
             root->node = _node;
@@ -740,6 +745,10 @@ namespace m_tetris
             {
                 ++context->version;
                 context->width = 0;
+                for(auto &level : context->deepth)
+                {
+                    level.clear();
+                }
             }
             context->is_open_hold = true;
             root->node = _node;
@@ -1029,9 +1038,9 @@ namespace m_tetris
         }
         bool eval_map()
         {
-            if(version == context->version)
+            if(version == context->version || is_dead)
             {
-                return !is_dead;
+                return false;
             }
             version = context->version;
             update_info();
@@ -1061,6 +1070,7 @@ namespace m_tetris
             {
                 child->eval = TetrisCore<TetrisAI, TetrisLandPointSearchEngine, typename TetrisAIHasLandPointEval<TetrisAI>::type>().run(*context->ai, child->map, child->param, history);
             }
+            std::sort(children.begin(), children.end(), ChildrenSortByEval());
             return true;
         }
         bool run()
@@ -1070,23 +1080,21 @@ namespace m_tetris
             {
                 ++next_length;
             }
-            size_t max_next_length = next_length;
+            size_t next_length_max = next_length;
             context->deepth.resize(next_length);
             if(context->is_complete)
             {
                 return false;
             }
             size_t prune_hold = ++context->width;
+            size_t prune_hold_max = prune_hold * 3;
             bool complete = true;
             eval_map();
-            std::vector<TetrisTreeNode *> *level = &children;
-            std::sort(level->begin(), level->end(), ChildrenSortByEval());
-            while(next_length > 0)
+            std::vector<TetrisTreeNode *> *level = &children, &temp_level = context->temp_level;
+            while(next_length-- > 0)
             {
-                size_t level_prune_hold = prune_hold * 4 * next_length / max_next_length + prune_hold;
-                --next_length;
+                size_t level_prune_hold = prune_hold_max * next_length / next_length_max + prune_hold;
                 std::vector<TetrisTreeNode *> *next_level = &context->deepth[next_length];
-                next_level->clear();
                 if(level_prune_hold <= level->size())
                 {
                     complete = false;
@@ -1094,21 +1102,20 @@ namespace m_tetris
                 for(auto it = level->begin(); level_prune_hold != 0 && it != level->end(); ++it)
                 {
                     TetrisTreeNode *child = *it;
-                    if(child->eval_map())
+                    if(!child->is_dead)
                     {
                         --level_prune_hold;
                     }
-                    else
+                    if(!child->eval_map())
                     {
                         continue;
                     }
                     std::vector<TetrisTreeNode *> &child_children = child->children;
-                    size_t size = next_level->size();
-                    next_level->resize(size + child_children.size());
-                    memcpy(next_level->data() + size, child_children.data(), child_children.size() * sizeof child_children[0]);
+                    temp_level.resize(next_level->size() + child_children.size());
+                    std::merge(next_level->begin(), next_level->end(), child_children.begin(), child_children.end(), temp_level.begin(), ChildrenSortByEval());
+                    next_level->swap(temp_level);
                 }
                 level = next_level;
-                std::sort(level->begin(), level->end(), ChildrenSortByEval());
             }
             if(complete)
             {

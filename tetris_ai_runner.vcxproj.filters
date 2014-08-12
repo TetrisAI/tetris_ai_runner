@@ -39,7 +39,6 @@
     </ClInclude>
     <ClInclude Include="src\random.h" />
     <ClInclude Include="src\tetris_core.h" />
-    <ClInclude Include="src\type_slist.h" />
     <ClInclude Include="src\land_point_search_path.h">
       <Filter>land_point_search\path</Filter>
     </ClInclude>

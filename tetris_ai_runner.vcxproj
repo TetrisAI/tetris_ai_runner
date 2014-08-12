@@ -21,7 +21,6 @@
     <ClInclude Include="src\rule_qq.h" />
     <ClInclude Include="src\rule_st.h" />
     <ClInclude Include="src\tetris_core.h" />
-    <ClInclude Include="src\type_slist.h" />
     <ClInclude Include="src\rule_srs.h" />
   </ItemGroup>
   <ItemGroup>
