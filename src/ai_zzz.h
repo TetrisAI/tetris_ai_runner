@@ -19,7 +19,7 @@ namespace ai_zzz
             std::string ai_name() const;
             double eval_land_point(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, size_t clear);
             double eval_map_bad() const;
-            double eval_map(m_tetris::TetrisMap const &map, m_tetris::EvalParam<double> const *history, size_t history_length);
+            double eval_map(m_tetris::TetrisMap const &map, m_tetris::EvalParam<double> const **history, size_t history_length);
 
         private:
             int check_line_1_[32];
@@ -41,13 +41,10 @@ namespace ai_zzz
     class Dig
     {
     public:
-        void init(m_tetris::TetrisContext const *context, size_t const *param);
         std::string ai_name() const;
         double eval_map_bad() const;
-        double eval_map(m_tetris::TetrisMap const &map, m_tetris::EvalParam<> const *history, size_t history_length);
+        double eval_map(m_tetris::TetrisMap const &map, m_tetris::EvalParam<> const **history, size_t history_length);
 
-    private:
-        size_t const *next_length_ptr_;
     };
 
 }

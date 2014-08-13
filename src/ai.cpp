@@ -154,6 +154,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
         }
     }
     srs_ai.param()->level = level;
+    srs_ai.param()->mode = 1;
     srs_ai.param()->next_length = maxDepth;
     m_tetris::TetrisBlockStatus status =
     {
