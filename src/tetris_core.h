@@ -718,7 +718,6 @@ namespace m_tetris
                 unsigned char is_dead : 1;
                 unsigned char is_hold : 1;
                 unsigned char is_hold_lock : 1;
-                unsigned char is_virtual : 1;
             };
         };
         std::vector<unsigned char> next;
@@ -796,7 +795,6 @@ namespace m_tetris
             if(land_point.empty())
             {
                 land_point.push_back(node);
-                children.clear();
                 for(auto land_point_node : *context->search->search(map, node))
                 {
                     TetrisTreeNode *child = context->alloc(this);
@@ -875,7 +873,6 @@ namespace m_tetris
                 {
                     land_point.push_back(node);
                     land_point.push_back(hold_node);
-                    children.clear();
                     for(auto land_point_node : *context->search->search(map, node))
                     {
                         TetrisTreeNode *child = context->alloc(this);
@@ -961,7 +958,6 @@ namespace m_tetris
                 {
                     land_point.push_back(node);
                     land_point.push_back(hold_node);
-                    children.clear();
                     for(auto land_point_node : *context->search->search(map, node))
                     {
                         TetrisTreeNode *child = context->alloc(this);
@@ -1031,10 +1027,6 @@ namespace m_tetris
                 }
             }
         }
-        void search_virtual(bool hold_control)
-        {
-            //TODO
-        }
         void update_info()
         {
             if(parent == nullptr)
@@ -1058,23 +1050,12 @@ namespace m_tetris
             }
             else
             {
-                if(context->is_open_hold && parent->hold != ' ')
-                {
-                    assert(is_hold);
-                    assert(next.empty());
-                    node = context->context->generate(parent->hold);
-                }
-                else
-                {
-                    node = nullptr;
-                    is_virtual = true;
-                }
+                assert(context->is_open_hold);
+                assert(is_hold);
+                assert(next.empty());
+                node = context->context->generate(parent->hold);
             }
-            if(is_virtual)
-            {
-                search_ptr = &TetrisTreeNode::search_virtual;
-            }
-            else if(context->is_open_hold)
+            if(context->is_open_hold)
             {
                 if(is_hold)
                 {
@@ -1091,7 +1072,7 @@ namespace m_tetris
                 search_ptr = &TetrisTreeNode::search;
             }
         }
-        bool eval_map()
+        bool build_children()
         {
             if(version == context->version || is_dead)
             {
@@ -1140,7 +1121,7 @@ namespace m_tetris
             size_t prune_hold = ++context->width;
             size_t prune_hold_max = prune_hold * 3;
             bool complete = true;
-            eval_map();
+            build_children();
             std::vector<TetrisTreeNode *> *level = &children, &temp_level = context->temp_level;
             while(next_length-- > 0)
             {
@@ -1157,7 +1138,7 @@ namespace m_tetris
                     {
                         --level_prune_hold;
                     }
-                    if(!child->eval_map())
+                    if(!child->build_children())
                     {
                         continue;
                     }
@@ -1339,8 +1320,8 @@ namespace m_tetris
             }
             else
             {
-                tree_root_ = tree_root_->update(map, node, next, next_length);
                 time_t end = clock() + limit;
+                tree_root_ = tree_root_->update(map, node, next, next_length);
                 do
                 {
                     if(tree_root_->run())
@@ -1385,8 +1366,8 @@ namespace m_tetris
                     return RunResult(Core().run(ai_, search_, map, node));
                 }
             }
-            tree_root_ = tree_root_->update(map, node, hold, !hold_free, next, next_length);
             time_t end = clock() + limit;
+            tree_root_ = tree_root_->update(map, node, hold, !hold_free, next, next_length);
             do
             {
                 if(tree_root_->run())
