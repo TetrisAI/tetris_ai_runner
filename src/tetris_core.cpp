@@ -599,7 +599,82 @@ namespace m_tetris
 
 namespace m_tetris_rule_tools
 {
+    TetrisNode create_node(int w, int h, unsigned char T, char X, char Y, unsigned char R, int line1, int line2, int line3, int line4, TetrisOpertion const &op)
+    {
+        assert(X < 0 || X >= 4 || Y < 0 || Y >= 4 || (line1 || line2 || line3 || line3));
+        TetrisBlockStatus status =
+        {
+            T, X, h - Y - 1, R
+        };
+        TetrisNode node =
+        {
+            status, op, {line4, line3, line2, line1}, {}, {}, h - 4, 4, 0, 4
+        };
+        while(node.data[0] == 0)
+        {
+            ++node.row;
+            --node.height;
+            memmove(&node.data[0], &node.data[1], node.height * sizeof(int));
+            node.data[node.height] = 0;
+        }
+        while(node.data[node.height - 1] == 0)
+        {
+            --node.height;
+        }
+        while(!((node.data[0] >> node.col) & 1) && !((node.data[1] >> node.col) & 1) && !((node.data[2] >> node.col) & 1) && !((node.data[3] >> node.col) & 1))
+        {
+            ++node.col;
+            --node.width;
+        }
+        while(!((node.data[0] >> (node.col + node.width - 1)) & 1) && !((node.data[1] >> (node.col + node.width - 1)) & 1) && !((node.data[2] >> (node.col + node.width - 1)) & 1) && !((node.data[3] >> (node.col + node.width - 1)) & 1))
+        {
+            --node.width;
+        }
+        for(int x = node.col; x < node.col + node.width; ++x)
+        {
+            int y;
+            for(y = node.height; y > 0; --y)
+            {
+                if((node.data[y - 1] >> x) & 1)
+                {
+                    break;
+                }
+            }
+            if(y == 0)
+            {
+                node.top[x - node.col] = 0;
+            }
+            else
+            {
+                node.top[x - node.col] = node.row + y;
+            }
+            for(y = 0; y < node.height; ++y)
+            {
+                if((node.data[y] >> x) & 1)
+                {
+                    break;
+                }
+            }
+            if(y == node.height)
+            {
+                node.bottom[x - node.col] = max_height;
+            }
+            else
+            {
+                node.bottom[x - node.col] = node.row + y;
+            }
+        }
+        return node;
+    }
 
+    bool rotate_default(TetrisNode &node, unsigned char R, TetrisContext const *context)
+    {
+        TetrisBlockStatus status =
+        {
+            node.status.t, node.status.x, node.status.y, R
+        };
+        return context->create(status, node);
+    }
 
     bool move_left(TetrisNode &node, TetrisContext const *context)
     {

@@ -85,7 +85,7 @@ namespace ai_zzz
             return -999999999999.;
         }
 
-        double Attack::eval_map(TetrisMap const &map, EvalParam<double> const **history, size_t history_length)
+        double Attack::eval_map(TetrisMap const &map, EvalParam<double> const *history, size_t history_length)
         {
             const int width_m1 = map.width - 1;
             int ColTrans = 2 * (map.height - map.roof);
@@ -206,7 +206,7 @@ namespace ai_zzz
             double land_point_value = 0;
             for(size_t i = 0; i < history_length; ++i)
             {
-                land_point_value += history[i]->eval;
+                land_point_value += history[i].eval;
             }
             int low_x = (map.top[width_m1] <= map.top[0]) ? width_m1 : 0;
             for(int x = map.width - 3; x > 1; --x)
@@ -268,18 +268,18 @@ namespace ai_zzz
             double length_rate = 10. / param_->next_length;
             for(size_t i = 0; i < history_length; ++i)
             {
-                TetrisMap const &history_map = *history[i]->map;
+                TetrisMap const &history_map = *history[i].map;
                 if(history_map.roof == history_map.height)
                 {
                     BoardDeadZone += 70;
                 }
-                switch(history[i]->clear)
+                switch(history[i].clear)
                 {
                 case 0:
                     break;
                 case 1:
                 case 2:
-                    v.RubbishClear += history[i]->clear;
+                    v.RubbishClear += history[i].clear;
                     break;
                 case 3:
                     if(param_->mode == 1)
@@ -289,11 +289,11 @@ namespace ai_zzz
                     }
                     if(param_->mode == 2)
                     {
-                        v.RubbishClear += history[i]->clear;
+                        v.RubbishClear += history[i].clear;
                         break;
                     }
                 default:
-                    v.AttackClear += (history[i]->clear * 10 + (history_length - i)) * (1 + (history_length - i) * length_rate);
+                    v.AttackClear += (history[i].clear * 10 + (history_length - i)) * (1 + (history_length - i) * length_rate);
                     break;
                 }
             }
@@ -339,7 +339,7 @@ namespace ai_zzz
         return -99999999;
     }
 
-    double Dig::eval_map(TetrisMap const &map, EvalParam<> const **history, size_t history_length)
+    double Dig::eval_map(TetrisMap const &map, EvalParam<> const *history, size_t history_length)
     {
         double value = 0;
 
@@ -383,9 +383,9 @@ namespace ai_zzz
         double clear = 0;
         for(size_t i = 0; i < history_length; ++i)
         {
-            clear += history[i]->clear;
+            clear += history[i].clear;
         }
-        value += clear * history[0]->map->roof * 10 / history_length;
+        value += clear * history->map->roof * 10 / history_length;
         return value;
     }
 }

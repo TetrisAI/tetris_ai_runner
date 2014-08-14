@@ -17,6 +17,7 @@
 
 m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_path::Search, ai_zzz::qq::Attack::Param> tetris_ai;
 
+
 extern "C" void attach_init()
 {
     ege::mtsrand(unsigned int(time(nullptr)));
