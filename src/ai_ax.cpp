@@ -71,7 +71,7 @@ namespace ai_ax_1
         return -99999999;
     }
 
-    double AI::eval_map(TetrisMap const &map, EvalParam<double> const **history, size_t history_length)
+    double AI::eval_map(TetrisMap const &map, EvalParam<double> const *history, size_t history_length)
     {
         const int width_m1 = map.width - 1;
         //行列变换
@@ -190,7 +190,7 @@ namespace ai_ax_1
         double land_point_value = 0;
         for(size_t i = 0; i < history_length; ++i)
         {
-            land_point_value += history[i]->eval;
+            land_point_value += history[i].eval;
         }
 
         //死亡警戒
@@ -268,7 +268,7 @@ namespace ai_ax_0
         return -99999999;
     }
     
-    double AI::eval_map(TetrisMap const &map, EvalParam<> const **history, size_t history_length) const
+    double AI::eval_map(TetrisMap const &map, EvalParam<> const *history, size_t history_length) const
     {
         const int width_m1 = map.width - 1;
         //行列变换
@@ -394,10 +394,10 @@ namespace ai_ax_0
 
         for(size_t i = 0; i < history_length; ++i)
         {
-            TetrisNode const *node = history[i]->node;
+            TetrisNode const *node = history[i].node;
             v.LandHeight += node->status.y + 1;
             v.Middle += std::abs((node->status.x + 1) * 2 - map.width);
-            v.EraseCount += history[i]->clear;
+            v.EraseCount += history[i].clear;
         }
 
         //死亡警戒

@@ -17,7 +17,6 @@
 
 m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_path::Search, ai_zzz::qq::Attack::Param> tetris_ai;
 
-
 extern "C" void attach_init()
 {
     ege::mtsrand(unsigned int(time(nullptr)));
@@ -400,8 +399,9 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
         if(version == 0)
         {
             memset(path, 0, 1024);
-            typedef int(__stdcall *ai_run_t)(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char nextPiece, char path[]);
-            ((ai_run_t)ai[version])(w, h, param_map, node->status.t, node->status.x + 1, node->status.y + 1, node->status.r + 1, ' ', path);
+            typedef int(__stdcall *ai_run_t)(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char *nextPiece, char path[]);
+            char next[] = {'\0'};
+            ((ai_run_t)ai[version])(w, h, param_map, node->status.t, node->status.x + 1, node->status.y + 1, node->status.r + 1, next, path);
             char *move = path, *move_end = path + 1024;
             //printf("%c->%s\n", node->status.t, path);
             while(move != move_end && *move != '\0')
