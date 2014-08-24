@@ -208,21 +208,33 @@ namespace ai_zzz
             {
                 land_point_value += history[i].eval;
             }
-            int low_x = (map.top[width_m1] <= map.top[0]) ? width_m1 : 0;
-            for(int x = map.width - 3; x > 1; --x)
+            int low_x;
+            if(param_->mode < 2)
             {
-                if(map.top[x] < map.top[low_x])
+                low_x = (map.top[width_m1] <= map.top[0]) ? width_m1 : 0;
+                for(int x = map.width - 3; x > 1; --x)
                 {
-                    low_x = x;
+                    if(map.top[x] < map.top[low_x])
+                    {
+                        low_x = x;
+                    }
+                }
+                if(map.top[1] < map.top[low_x])
+                {
+                    low_x = 1;
+                }
+                if(map.top[map.width - 2] < map.top[low_x])
+                {
+                    low_x = map.width - 2;
                 }
             }
-            if(map.top[1] < map.top[low_x])
+            else
             {
-                low_x = 1;
-            }
-            if(map.top[map.width - 2] < map.top[low_x])
-            {
-                low_x = map.width - 2;
+                low_x = (map.top[width_m1 - 3] <= map.top[width_m1 - 4]) ? width_m1 - 3 : width_m1 - 4;
+                if(map.top[width_m1 - 2] <= map.top[low_x])
+                {
+                    low_x = width_m1 - 2;
+                }
             }
             int low_y = map.top[low_x];
             for(int y = map.roof - 1; y >= low_y; --y)
@@ -282,14 +294,9 @@ namespace ai_zzz
                     v.RubbishClear += history[i].clear;
                     break;
                 case 3:
-                    if(param_->mode == 1)
+                    if(param_->mode != 0)
                     {
-                        v.AttackClear += 9;
-                        break;
-                    }
-                    if(param_->mode == 2)
-                    {
-                        v.RubbishClear += history[i].clear;
+                        v.AttackClear += 12;
                         break;
                     }
                 default:
