@@ -50,7 +50,7 @@ namespace ai_ax_1
         return "Tetris_ax_C ZZZ Mod v1.2";
     }
 
-    double AI::eval_land_point(TetrisNode const *node, TetrisMap const &map, size_t clear)
+    double AI::eval_land_point(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear)
     {
         //ÏûĞĞÊı
         double LandHeight = node->status.y + 1;

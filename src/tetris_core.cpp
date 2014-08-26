@@ -141,6 +141,30 @@ namespace m_tetris
         return clear;
     }
 
+    int TetrisNode::clear_low(TetrisMap &map) const
+    {
+        for(int i = 0; i < height; ++i)
+        {
+            if(map.row[row + i] == context->full())
+            {
+                return row + i;
+            }
+        }
+        return -1;
+    }
+
+    int TetrisNode::clear_high(TetrisMap &map) const
+    {
+        for(int i = height; i > 0; --i)
+        {
+            if(map.row[row + i - 1] == context->full())
+            {
+                return row + i - 1;
+            }
+        }
+        return -1;
+    }
+
     TetrisNode const *TetrisNode::drop(TetrisMap const &map) const
     {
         int value = bottom[0] - map.top[col];

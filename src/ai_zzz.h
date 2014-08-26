@@ -17,7 +17,7 @@ namespace ai_zzz
         public:
             void init(m_tetris::TetrisContext const *context, Param const *param);
             std::string ai_name() const;
-            double eval_land_point(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, size_t clear);
+            double eval_land_point(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear);
             double eval_map_bad() const;
             double eval_map(m_tetris::TetrisMap const &map, m_tetris::EvalParam<double> const *history, size_t history_length);
 
