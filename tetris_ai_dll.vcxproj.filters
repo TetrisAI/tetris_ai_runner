@@ -12,7 +12,6 @@
     </ClCompile>
     <ClCompile Include="src\ai.cpp" />
     <ClCompile Include="src\dllmain.c" />
-    <ClCompile Include="src\random.cpp" />
     <ClCompile Include="src\tetris_core.cpp" />
     <ClCompile Include="src\ai_ax.cpp">
       <Filter>ai\ax</Filter>
@@ -32,6 +31,12 @@
     <ClCompile Include="src\land_point_search_simulate.cpp">
       <Filter>land_point_search\simulate</Filter>
     </ClCompile>
+    <ClCompile Include="src\integer_utils.cpp">
+      <Filter>util</Filter>
+    </ClCompile>
+    <ClCompile Include="src\random.cpp">
+      <Filter>util</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\rule_srs.h">
@@ -43,7 +48,6 @@
     <ClInclude Include="src\ai_zzz.h">
       <Filter>ai\zzz</Filter>
     </ClInclude>
-    <ClInclude Include="src\random.h" />
     <ClInclude Include="src\tetris_core.h" />
     <ClInclude Include="src\ai_ax.h">
       <Filter>ai\ax</Filter>
@@ -62,6 +66,12 @@
     </ClInclude>
     <ClInclude Include="src\land_point_search_simulate.h">
       <Filter>land_point_search\simulate</Filter>
+    </ClInclude>
+    <ClInclude Include="src\integer_utils.h">
+      <Filter>util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\random.h">
+      <Filter>util</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -100,6 +110,9 @@
     </Filter>
     <Filter Include="land_point_search\simulate">
       <UniqueIdentifier>{98d3c63d-334c-4aff-a452-ab9051f731c5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="util">
+      <UniqueIdentifier>{7865d0a5-7d01-4619-8b16-7d1d1127f51b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

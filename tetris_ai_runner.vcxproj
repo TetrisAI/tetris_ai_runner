@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClInclude Include="src\ai_ax.h" />
     <ClInclude Include="src\ai_zzz.h" />
+    <ClInclude Include="src\integer_utils.h" />
     <ClInclude Include="src\land_point_search_cautious.h" />
     <ClInclude Include="src\land_point_search_path.h" />
     <ClInclude Include="src\land_point_search_simple.h" />
@@ -28,6 +29,7 @@
     <ClCompile Include="src\ai_ax.cpp" />
     <ClCompile Include="src\ai_zzz.cpp" />
     <ClCompile Include="src\dllmain.c" />
+    <ClCompile Include="src\integer_utils.cpp" />
     <ClCompile Include="src\land_point_search_cautious.cpp" />
     <ClCompile Include="src\land_point_search_path.cpp" />
     <ClCompile Include="src\land_point_search_simple.cpp" />

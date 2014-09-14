@@ -2,23 +2,15 @@
 //by ZouZhiZhang
 
 #include "tetris_core.h"
+#include "integer_utils.h"
 #include "ai_zzz.h"
 #include <cstdint>
 
 using namespace m_tetris;
+using namespace zzz;
 
 namespace
 {
-    int BitCount(unsigned int n)
-    {
-        // HD, Figure 5-2
-        n = n - ((n >> 1) & 0x55555555);
-        n = (n & 0x33333333) + ((n >> 2) & 0x33333333);
-        n = (n + (n >> 4)) & 0x0f0f0f0f;
-        n = n + (n >> 8);
-        n = n + (n >> 16);
-        return n & 0x3f;
-    }
     enum ItemType
     {
         a3, a2, a1, m3, m2, m1, sf, ss
@@ -159,15 +151,9 @@ namespace ai_zzz
 
                 double AttackDepth;
                 double AttackClear;
-                int RubbishClear;
+                double RubbishClear;
                 int Danger;
 
-                struct
-                {
-                    short int type;
-                    short int count;
-                } AttackQueue[40];
-                int AttackQueuePos;
                 int LineCoverBits;
                 int TopHoleBits;
             } v;
@@ -245,23 +231,23 @@ namespace ai_zzz
                 land_point_value += history[i].eval;
             }
             int low_x;
-            if(param_->mode < 2)
+            if(param_->mode == 0)
             {
-                low_x = (map.top[width_m1] <= map.top[0]) ? width_m1 : 0;
-                for(int x = map.width - 3; x > 1; --x)
+                low_x = 1;
+                for(int x = 2; x < width_m1; ++x)
                 {
                     if(map.top[x] < map.top[low_x])
                     {
                         low_x = x;
                     }
                 }
-                if(map.top[1] < map.top[low_x])
+                if(map.top[0] < map.top[low_x])
                 {
-                    low_x = 1;
+                    low_x = 0;
                 }
-                if(map.top[map.width - 2] < map.top[low_x])
+                if(map.top[width_m1] < map.top[low_x])
                 {
-                    low_x = map.width - 2;
+                    low_x = width_m1;
                 }
             }
             else
@@ -321,6 +307,11 @@ namespace ai_zzz
                 {
                     BoardDeadZone += 70;
                 }
+                if(param_->mode == 1)
+                {
+                    v.RubbishClear += history[i].clear * 10;
+                    continue;
+                }
                 switch(history[i].clear)
                 {
                 case 0:
@@ -350,7 +341,7 @@ namespace ai_zzz
                     - v.HoleDepth * 4
                     - v.HolePiece * 2
                     + v.AttackDepth * 100
-                    - v.RubbishClear * (v.Danger > 0 ? -100 : 240)
+                    - v.RubbishClear * (v.Danger > 0 ? -100 : 640)
                     + v.AttackClear * 100
                     - BoardDeadZone * 500000.
                     );

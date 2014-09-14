@@ -72,11 +72,11 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     size_t next_length = std::strlen(nextPiece);
     /////////////////////////////////////////////////
     tetris_ai.param()->level = 10;
-    tetris_ai.param()->mode = 3;
+    tetris_ai.param()->mode = 0;
     tetris_ai.param()->next_length = next_length;
     /////////////////////////////////////////////////
     m_tetris::TetrisNode const *node = tetris_ai.get(status);
-    auto target = tetris_ai.run(map, node, reinterpret_cast<unsigned char *>(const_cast<char *>(nextPiece)), next_length, 50).target;
+    auto target = tetris_ai.run(map, node, reinterpret_cast<unsigned char *>(const_cast<char *>(nextPiece)), next_length, 49).target;
     if(target != nullptr)
     {
         std::vector<char> ai_path = tetris_ai.path(node, target, map);
@@ -154,7 +154,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
         }
     }
     srs_ai.param()->level = level;
-    srs_ai.param()->mode = 1;
+    srs_ai.param()->mode = 0;
     srs_ai.param()->next_length = maxDepth;
     m_tetris::TetrisBlockStatus status =
     {
@@ -238,7 +238,7 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
         qq_ai_path.param()->level = level;
         qq_ai_path.param()->mode = mode;
     }
-    else if(mode != 3 || map.count <= boardW * 2)
+    else if(mode == 0 || map.count <= boardW * 2)
     {
         qq_ai_simulate.param()->next_length = next_length;
         qq_ai_simulate.param()->level = level;
@@ -262,7 +262,7 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
     }
     auto target = level == 10 ?
         qq_ai_path.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, 60).target :
-        mode != 3 || map.count <= boardW * 2 ?
+        mode == 0 || map.count <= boardW * 2 ?
         qq_ai_simulate.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, 60).target :
         qq_ai_simple.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, 60).target;
     std::vector<char> ai_path;

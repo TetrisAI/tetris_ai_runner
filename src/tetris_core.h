@@ -664,6 +664,7 @@ namespace m_tetris
             TetrisAI *ai;
             TetrisLandPointSearchEngine *search;
             std::vector<std::vector<TetrisTreeNode *>> deepth;
+            std::vector<std::vector<TetrisTreeNode *>> best;
             std::vector<TetrisTreeNode *> temp_level;
             std::vector<EvalParam> history;
             bool is_complete;
@@ -769,6 +770,10 @@ namespace m_tetris
                 {
                     level.clear();
                 }
+                for(auto &level : context->best)
+                {
+                    level.clear();
+                }
             }
             context->is_open_hold = false;
             root->node = _node;
@@ -785,6 +790,10 @@ namespace m_tetris
                 context->avg = context->total / context->version;
                 context->width = 0;
                 for(auto &level : context->deepth)
+                {
+                    level.clear();
+                }
+                for(auto &level : context->best)
                 {
                     level.clear();
                 }
@@ -1101,6 +1110,38 @@ namespace m_tetris
         }
         bool run()
         {
+            class TiltIterator
+            {
+            private:
+                size_t size_;
+                size_t current_;
+            public:
+                TiltIterator(size_t size) : size_(size), current_(1)
+                {
+                    assert(size < (1 << 31));
+                }
+                bool end()
+                {
+                    return current_ > size_;
+                }
+                void next()
+                {
+                    current_ <<= 1;
+                    if(current_ > size_)
+                    {
+                        current_ >>= 1;
+                        while(!(current_ & 1))
+                        {
+                            current_ >>= 1;
+                        }
+                        current_ += 2;
+                    }
+                }
+                size_t value()
+                {
+                    return current_ - 1;
+                }
+            };
             assert(parent == nullptr);
             assert(!next.empty());
             size_t next_length = next.size();
@@ -1110,12 +1151,13 @@ namespace m_tetris
             }
             size_t next_length_max = next_length;
             context->deepth.resize(next_length);
+            context->best.resize(next_length);
             if(context->is_complete)
             {
                 return false;
             }
             size_t prune_hold = ++context->width;
-            size_t prune_hold_max = prune_hold * 3;
+            size_t prune_hold_max = prune_hold * 36 / 10;
             bool complete = true;
             build_children();
             std::vector<TetrisTreeNode *> *level = &children, &temp_level = context->temp_level;
@@ -1127,9 +1169,9 @@ namespace m_tetris
                 {
                     complete = false;
                 }
-                for(auto it = level->begin(); level_prune_hold != 0 && it != level->end(); ++it)
+                for(TiltIterator it(level->size()); level_prune_hold != 0 && !it.end(); it.next())
                 {
-                    TetrisTreeNode *child = *it;
+                    TetrisTreeNode *child = (*level)[it.value()];
                     if(!child->is_dead)
                     {
                         --level_prune_hold;
@@ -1144,6 +1186,10 @@ namespace m_tetris
                     next_level->swap(temp_level);
                 }
                 level = next_level;
+                if(!level->empty())
+                {
+                    context->best[next_length].push_back(level->front());
+                }
             }
             if(complete)
             {
@@ -1155,10 +1201,11 @@ namespace m_tetris
         std::pair<TetrisTreeNode const *, MapEval> get_best()
         {
             TetrisTreeNode *node = nullptr;
-            for(auto &level : context->deepth)
+            for(auto &level : context->best)
             {
                 if(!level.empty())
                 {
+                    std::sort(level.begin(), level.end(), ChildrenSortByEval());
                     node = level.front();
                     break;
                 }
