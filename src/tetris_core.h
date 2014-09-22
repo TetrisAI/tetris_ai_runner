@@ -1165,6 +1165,7 @@ namespace m_tetris
             {
                 size_t level_prune_hold = prune_hold_max * next_length / next_length_max + prune_hold;
                 std::vector<TetrisTreeNode *> *next_level = &context->deepth[next_length];
+                std::vector<TetrisTreeNode *> *best = &context->best[next_length];
                 if(level_prune_hold <= level->size())
                 {
                     complete = false;
@@ -1176,20 +1177,17 @@ namespace m_tetris
                     {
                         --level_prune_hold;
                     }
-                    if(!child->build_children())
+                    if(!child->build_children() || std::binary_search(best->begin(), best->end(), child))
                     {
                         continue;
                     }
+                    best->insert(std::lower_bound(best->begin(), best->end(), child), child);
                     std::vector<TetrisTreeNode *> &child_children = child->children;
                     temp_level.resize(next_level->size() + child_children.size());
                     std::merge(next_level->begin(), next_level->end(), child_children.begin(), child_children.end(), temp_level.begin(), ChildrenSortByEval());
                     next_level->swap(temp_level);
                 }
                 level = next_level;
-                if(!level->empty())
-                {
-                    context->best[next_length].push_back(level->front());
-                }
             }
             if(complete)
             {
@@ -1201,11 +1199,10 @@ namespace m_tetris
         std::pair<TetrisTreeNode const *, MapEval> get_best()
         {
             TetrisTreeNode *node = nullptr;
-            for(auto &level : context->best)
+            for(auto &level : context->deepth)
             {
                 if(!level.empty())
                 {
-                    std::sort(level.begin(), level.end(), ChildrenSortByEval());
                     node = level.front();
                     break;
                 }
