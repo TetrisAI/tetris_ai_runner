@@ -25,7 +25,6 @@
     <ClInclude Include="src\rule_srs.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\ai.cpp" />
     <ClCompile Include="src\ai_ax.cpp" />
     <ClCompile Include="src\ai_zzz.cpp" />
     <ClCompile Include="src\dllmain.c" />
@@ -39,6 +38,7 @@
     <ClCompile Include="src\rule_st.cpp" />
     <ClCompile Include="src\tetris_core.cpp" />
     <ClCompile Include="src\rule_srs.cpp" />
+    <ClCompile Include="src\vs.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{2EF25942-7BE9-41F8-B540-DAE8034BE8F7}</ProjectGuid>
@@ -116,6 +116,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
       <AdditionalDependencies>$(SolutionDir)$(Configuration)\gason.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <LargeAddressAware>true</LargeAddressAware>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(SolutionDir)$(TargetFileName)</Command>

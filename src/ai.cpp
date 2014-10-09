@@ -15,7 +15,8 @@
 #include "rule_srs.h"
 #include "random.h"
 
-m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_path::Search, ai_zzz::qq::Attack::Param> tetris_ai;
+//m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_path::Search, ai_zzz::qq::Attack::Param> tetris_ai;
+m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_ax_0::AI, land_point_search_simple::Search> tetris_ai;
 
 extern "C" void attach_init()
 {
@@ -71,9 +72,9 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     };
     size_t next_length = std::strlen(nextPiece);
     /////////////////////////////////////////////////
-    tetris_ai.param()->level = 10;
-    tetris_ai.param()->mode = 0;
-    tetris_ai.param()->next_length = next_length;
+    //tetris_ai.param()->level = 10;
+    //tetris_ai.param()->mode = 0;
+    //tetris_ai.param()->next_length = next_length;
     /////////////////////////////////////////////////
     m_tetris::TetrisNode const *node = tetris_ai.get(status);
     auto target = tetris_ai.run(map, node, reinterpret_cast<unsigned char *>(const_cast<char *>(nextPiece)), next_length, 49).target;
@@ -203,7 +204,7 @@ m_tetris::TetrisEngine<rule_qq::TetrisRuleSet, ai_zzz::qq::Attack, land_point_se
 m_tetris::TetrisEngine<rule_qq::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_simulate::Search, ai_zzz::qq::Attack::Param> qq_ai_simulate;
 m_tetris::TetrisEngine<rule_qq::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_path::Search, ai_zzz::qq::Attack::Param> qq_ai_path;
 
-extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int level, int mode, char path[])
+extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int level, int mode, char path[], size_t limit)
 {
     if(!qq_ai_simple.prepare(boardW, boardH) || !qq_ai_simulate.prepare(boardW, boardH) || !qq_ai_path.prepare(boardW, boardH))
     {
@@ -261,10 +262,10 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
         node = node->move_down_multi[node->row + node->height - map.height];
     }
     auto target = level == 10 ?
-        qq_ai_path.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, 60).target :
+        qq_ai_path.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, limit).target :
         mode == 0 || map.count <= boardW * 2 ?
-        qq_ai_simulate.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, 60).target :
-        qq_ai_simple.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, 60).target;
+        qq_ai_simulate.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, limit).target :
+        qq_ai_simple.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, limit).target;
     std::vector<char> ai_path;
     if(target != nullptr)
     {
@@ -274,235 +275,4 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
     path[ai_path.size()] = 'V';
     path[ai_path.size() + 1] = '\0';
     return 0;
-}
-
-#ifndef WINVER
-#define WINVER 0x0500
-#endif
-
-#ifndef _WIN32_WINNT
-#define _WIN32_WINNT 0x0501
-#endif
-#define WIN32_LEAN_AND_MEAN
-
-#include <windows.h>
-#include <ctime>
-
-//这是一个加载dll测试数据的控制台,优先调用AIPath,找不到则调用AI
-int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
-{
-    attach_init();
-    if(argc < 2)
-    {
-        return 0;
-    }
-    HMODULE hDll = LoadLibrary(argv[1]);
-    if(hDll == nullptr)
-    {
-        return 0;
-    }
-    void *name = nullptr;
-    name = GetProcAddress(hDll, "_Name@0");
-    if(name == nullptr)
-    {
-        name = GetProcAddress(hDll, "Name@0");
-    }
-    if(name == nullptr)
-    {
-        name = GetProcAddress(hDll, "Name");
-    }
-    void *ai[2] = {};
-    ai[0] = GetProcAddress(hDll, "_AIPath@36");
-    if(ai[0] == NULL)
-    {
-        ai[0] = GetProcAddress(hDll, "AIPath@36");
-    }
-    if(ai[0] == NULL)
-    {
-        ai[0] = GetProcAddress(hDll, "AIPath");
-    }
-    ai[1] = GetProcAddress(hDll, "_AI@40");
-    if(ai[1] == NULL)
-    {
-        ai[1] = GetProcAddress(hDll, "AI@40");
-    }
-    if(ai[1] == NULL)
-    {
-        ai[1] = GetProcAddress(hDll, "AI");
-    }
-
-    if(name == nullptr)
-    {
-        return 0;
-    }
-    int version = -1;
-    for(int i = 0; i < sizeof ai / sizeof ai[0]; ++i)
-    {
-        if(ai[i] != nullptr)
-        {
-            version = i;
-            break;
-        }
-    }
-    if(version == -1)
-    {
-        return 0;
-    }
-    SetWindowTextA(GetConsoleWindow(), ((char const *(*)())name)());
-    int w = 10, h = 20;
-    m_tetris::TetrisMap map =
-    {
-        w, h
-    };
-    char *param_map = new char[w * h];
-    char *path = new char[1024];
-    tetris_ai.prepare(w, h);
-    clock_t log_start = clock();
-    clock_t log_time = log_start;
-    clock_t log_new_time;
-
-    clock_t log_interval = 10000;
-    long long log_rows = 0, log_piece = 0;
-
-    long long total_lines = 0;
-    long long this_lines = 0;
-    long long max_line = 0;
-    long long game_count = 0;
-
-    while(true)
-    {
-        m_tetris::TetrisNode const *node = tetris_ai.context()->generate();
-        log_new_time = clock();
-        if(log_new_time - log_time > log_interval)
-        {
-            printf("{\"time\":%.2lf,\"current\":%lld,\"rows_ps\":%lld,\"piece_ps\":%lld}\n", (log_new_time - log_start) / 1000., this_lines, log_rows * 1000 / log_interval, log_piece * 1000 / log_interval);
-            log_time += log_interval;
-            log_rows = 0;
-            log_piece = 0;
-        }
-        if(!node->check(map))
-        {
-            total_lines += this_lines;
-            if(this_lines > max_line)
-            {
-                max_line = this_lines;
-            }
-            ++game_count;
-            printf("{\"avg\":%.2lf,\"max\":%lld,\"count\":%lld,\"current\":%lld}\n", game_count == 0 ? 0. : double(total_lines) / game_count, max_line, game_count, this_lines);
-            this_lines = 0;
-            map.count = 0;
-            map.roof = 0;
-            memset(map.top, 0, sizeof map.top);
-            memset(map.row, 0, sizeof map.row);
-        }
-        for(int y = 0; y < h; ++y)
-        {
-            int row = y * w;
-            for(int x = 0; x < w; ++x)
-            {
-                param_map[x + row] = map.full(x, y) ? '1' : '0';
-            }
-        }
-        if(version == 0)
-        {
-            memset(path, 0, 1024);
-            typedef int(__stdcall *ai_run_t)(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char *nextPiece, char path[]);
-            char next[] = {'\0'};
-            ((ai_run_t)ai[version])(w, h, param_map, node->status.t, node->status.x + 1, node->status.y + 1, node->status.r + 1, next, path);
-            char *move = path, *move_end = path + 1024;
-            //printf("%c->%s\n", node->status.t, path);
-            while(move != move_end && *move != '\0')
-            {
-                switch(*move++)
-                {
-                case 'l':
-                    if(node->move_left && (node->row >= map.roof || node->move_left->check(map)))
-                    {
-                        node = node->move_left;
-                    }
-                    break;
-                case 'r':
-                    if(node->move_right && (node->row >= map.roof || node->move_right->check(map)))
-                    {
-                        node = node->move_right;
-                    }
-                    break;
-                case 'd':
-                    if(node->move_down && (node->row > map.roof || node->move_down->check(map)))
-                    {
-                        node = node->move_down;
-                    }
-                    break;
-                case 'L':
-                    while(node->move_left && (node->row >= map.roof || node->move_left->check(map)))
-                    {
-                        node = node->move_left;
-                    }
-                    break;
-                case 'R':
-                    while(node->move_right && (node->row >= map.roof || node->move_right->check(map)))
-                    {
-                        node = node->move_right;
-                    }
-                    break;
-                case 'D':
-                    node = node->drop(map);
-                    break;
-                case 'z':
-                    if(node->rotate_counterclockwise && node->rotate_counterclockwise->check(map))
-                    {
-                        node = node->rotate_counterclockwise;
-                    }
-                    break;
-                case 'c':
-                    if(node->rotate_clockwise && node->rotate_clockwise->check(map))
-                    {
-                        node = node->rotate_clockwise;
-                    }
-                    break;
-                case 'x':
-                    if(node->rotate_opposite && node->rotate_opposite->check(map))
-                    {
-                        node = node->rotate_opposite;
-                    }
-                    break;
-                default:
-                    move = move_end;
-                    break;
-                }
-            }
-        }
-        else
-        {
-            typedef int(__stdcall *ai_run_t)(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char nextPiece, int *bestX, int *bestRotation);
-            int best_x = node->status.x + 1, best_r = node->status.r + 1;
-            ((ai_run_t)ai[version])(w, h, param_map, node->status.t, best_x, node->status.y + 1, best_r, ' ', &best_x, &best_r);
-            --best_x;
-            --best_r;
-            int r = node->status.r;
-            while(best_r > r && node->rotate_counterclockwise && node->rotate_counterclockwise->check(map))
-            {
-                ++r;
-                node = node->rotate_counterclockwise;
-            }
-            while(best_r < r && node->rotate_clockwise && node->rotate_clockwise->check(map))
-            {
-                --r;
-                node = node->rotate_clockwise;
-            }
-            while(best_x > node->status.x && node->move_right && (node->row >= map.roof || node->move_right->check(map)))
-            {
-                node = node->move_right;
-            }
-            while(best_x < node->status.x && node->move_left && (node->row >= map.roof || node->move_left->check(map)))
-            {
-                node = node->move_left;
-            }
-        }
-        node = node->drop(map);
-        int clear = node->attach(map);
-        this_lines += clear;
-        log_rows += clear;
-        ++log_piece;
-    }
 }

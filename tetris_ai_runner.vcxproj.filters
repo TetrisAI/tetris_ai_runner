@@ -6,7 +6,6 @@
     </ClCompile>
     <ClCompile Include="src\dllmain.c" />
     <ClCompile Include="src\tetris_core.cpp" />
-    <ClCompile Include="src\ai.cpp" />
     <ClCompile Include="src\land_point_search_path.cpp">
       <Filter>land_point_search\path</Filter>
     </ClCompile>
@@ -37,6 +36,7 @@
     <ClCompile Include="src\random.cpp">
       <Filter>util</Filter>
     </ClCompile>
+    <ClCompile Include="src\vs.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\rule_srs.h">
