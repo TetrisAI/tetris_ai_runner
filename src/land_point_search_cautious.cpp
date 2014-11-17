@@ -36,10 +36,6 @@ namespace land_point_search_cautious
                 path.push_back(result.second);
             }
             std::reverse(path.begin(), path.end());
-            while(!path.empty() && (path.back() == 'd' || path.back() == 'D'))
-            {
-                path.pop_back();
-            }
             return path;
         };
         node_search_.push_back(node);

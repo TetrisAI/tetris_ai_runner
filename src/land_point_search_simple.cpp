@@ -38,6 +38,7 @@ namespace land_point_search_simple
         {
             return std::vector<char>();
         }
+        path.push_back('D');
         return path;
     }
 

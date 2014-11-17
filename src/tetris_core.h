@@ -1477,9 +1477,16 @@ namespace m_tetris
             return RunResult(best, best.first == nullptr ? false : best.first->is_hold);
         }
         //根据run的结果得到一个操作路径
-        std::vector<char> path(TetrisNode const *node, TetrisNode const *land_point, TetrisMap const &map)
+        std::vector<char> path(TetrisNode const *node, TetrisNode const *land_point, TetrisMap const &map, bool cut_drop = true)
         {
-            return search_.make_path(node, land_point, map);
+            auto path = search_.make_path(node, land_point, map);
+            if(cut_drop){
+                while(!path.empty() && (path.back() == 'd' || path.back() == 'D'))
+                {
+                    path.pop_back();
+                }
+            }
+            return path;
         }
     };
 
