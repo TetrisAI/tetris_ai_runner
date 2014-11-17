@@ -266,7 +266,6 @@ namespace land_point_search_cautious
                 }
             }
         } while(node_search_.size() > cache_index);
-        _asm int 3;
         return std::vector<char>();
     }
 
