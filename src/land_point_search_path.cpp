@@ -15,7 +15,7 @@ namespace land_point_search_path
 
     std::vector<char> Search::make_path(TetrisNode const *node, TetrisNode const *land_point, TetrisMap const &map)
     {
-        if(node->drop(map)->index_filtered == land_point->index_filtered)
+        if(node->index_filtered == land_point->index_filtered)
         {
             return std::vector<char>();
         }
