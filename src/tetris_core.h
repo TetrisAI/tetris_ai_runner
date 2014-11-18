@@ -12,7 +12,7 @@
 namespace m_tetris
 {
     const int max_height = 40;
-    const int max_wall_kick = 4;
+    const int max_wall_kick = 16;
 
     struct TetrisNode;
     struct TetrisWallKickOpertion;

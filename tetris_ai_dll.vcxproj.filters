@@ -37,6 +37,9 @@
     <ClCompile Include="src\random.cpp">
       <Filter>util</Filter>
     </ClCompile>
+    <ClCompile Include="src\rule_srsx.cpp">
+      <Filter>rules\srsx</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\rule_srs.h">
@@ -72,6 +75,9 @@
     </ClInclude>
     <ClInclude Include="src\random.h">
       <Filter>util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rule_srsx.h">
+      <Filter>rules\srsx</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -113,6 +119,9 @@
     </Filter>
     <Filter Include="util">
       <UniqueIdentifier>{7865d0a5-7d01-4619-8b16-7d1d1127f51b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="rules\srsx">
+      <UniqueIdentifier>{9f30a009-ae8f-428a-9ae9-7cb8ccb3e808}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
