@@ -323,7 +323,7 @@ namespace m_tetris
             type_to_index_[type] = type_max_;
             ++type_max_;
         }
-        for(size_t i = 0; i < 7; ++i)
+        for(size_t i = 0; i < type_max_; ++i)
         {
             TetrisNode node;
             create(init_generate_[index_to_type_[i]](this), node);
@@ -404,7 +404,7 @@ namespace m_tetris
                 }
             }
         } while(check.size() > check_index);
-        for(size_t i = 0; i < 7; ++i)
+        for(size_t i = 0; i < type_max_; ++i)
         {
             TetrisNode node_generate;
             create(game_generate_[index_to_type_[i]](this), node_generate);
@@ -570,12 +570,19 @@ namespace m_tetris
 
     TetrisNode const *TetrisContext::generate() const
     {
-        size_t index;
-        do
+        if(type_max_ == 7)
         {
-            index = ege::mtirand() & 7;
-        } while(index >= 7);
-        return generate(index);
+            size_t index;
+            do
+            {
+                index = ege::mtirand() & 7;
+            } while(index >= 7);
+            return generate(index);
+        }
+        else
+        {
+            return generate(static_cast<size_t>(ege::mtdrand() * type_max_));
+        }
     }
 
     bool TetrisContext::create(TetrisBlockStatus const &status, TetrisNode &node) const

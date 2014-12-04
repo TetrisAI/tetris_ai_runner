@@ -93,28 +93,18 @@ namespace ai_zzz
             return "AX Attack v0.1";
         }
 
-        double Attack::eval_land_point(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear)
+        Attack::eval_result Attack::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
         {
             double LandHeight = node->row + node->height;
             double Middle = std::abs((node->status.x + 1) * 2 - map.width);
             double EraseCount = clear;
             double DeadZone = node->row + node->height == map.height ? 500000. : 0;
+            double BoardDeadZone = map_in_danger_(map);
+            if(map.roof == map.height)
+            {
+                BoardDeadZone += 70;
+            }
 
-            return (0.
-                    - LandHeight * 16
-                    + Middle  * 0.2
-                    + EraseCount * 6
-                    - DeadZone
-                    );
-        }
-
-        double Attack::eval_map_bad() const
-        {
-            return -999999999999.;
-        }
-
-        double Attack::eval_map(TetrisMap const &map, EvalParam<double> const *history, size_t history_length)
-        {
             const int width_m1 = map.width - 1;
             int ColTrans = 2 * (map.height - map.roof);
             int RowTrans = map.roof == map.height ? 0 : map.width;
@@ -150,10 +140,8 @@ namespace ai_zzz
                 int WellNum[32];
 
                 double AttackDepth;
-                double AttackClear;
-                double RubbishClear;
-                int Danger;
 
+                int Danger;
                 int LineCoverBits;
                 int TopHoleBits;
             } v;
@@ -225,11 +213,6 @@ namespace ai_zzz
                     v.HolePiece += (y + 1) * BitCount(CheckLine);
                 }
             }
-            double land_point_value = 0;
-            for(size_t i = 0; i < history_length; ++i)
-            {
-                land_point_value += history[i].eval;
-            }
             int low_x;
             if(param_->mode == 0)
             {
@@ -261,9 +244,9 @@ namespace ai_zzz
             int low_y = map.top[low_x];
             for(int y = map.roof - 1; y >= low_y; --y)
             {
-                if(std::binary_search(check_line_1_, check_line_1_end_, map.row[y]))
+                if(std::binary_search<int const *>(check_line_1_, check_line_1_end_, map.row[y]))
                 {
-                    if(y + 1 < map.height && std::binary_search(check_line_2_, check_line_2_end_, map.row[y + 1]))
+                    if(y + 1 < map.height && std::binary_search<int const *>(check_line_2_, check_line_2_end_, map.row[y + 1]))
                     {
                         v.AttackDepth += 20;
                     }
@@ -273,7 +256,7 @@ namespace ai_zzz
                     }
                     for(--y; y >= low_y; --y)
                     {
-                        if(std::binary_search(check_line_1_, check_line_1_end_, map.row[y]))
+                        if(std::binary_search<int const *>(check_line_1_, check_line_1_end_, map.row[y]))
                         {
                             v.AttackDepth += 3;
                         }
@@ -294,61 +277,81 @@ namespace ai_zzz
             {
                 v.AttackDepth = 0;
             }
-            int BoardDeadZone = map_in_danger_(map);
-            if(map.roof == map.height)
-            {
-                BoardDeadZone += 70;
-            }
+
+            eval_result result;
+            result.land_point = (0.
+                                 - LandHeight * 16
+                                 + Middle  * 0.2
+                                 + EraseCount * 6
+                                 - DeadZone
+                                 - BoardDeadZone * 500000
+                                 );
+            result.map = (0.
+                          - ColTrans * 32
+                          - RowTrans * 32
+                          - v.HoleCount * 400
+                          - v.HoleLine * 38
+                          - v.WellDepth * 16
+                          - v.HoleDepth * 4
+                          - v.HolePiece * 2
+                          + v.AttackDepth * 100
+                          );
+            result.clear = clear;
+            result.danger = v.Danger;
+            return result;
+        }
+
+        double Attack::bad() const
+        {
+            return -999999999999;
+        }
+
+        double Attack::get(eval_result const *history, size_t history_length) const
+        {
+            double AttackClear;
+            double RubbishClear;
+
             double length_rate = 10. / param_->next_length;
+
+            double land_point_value = 0;
             for(size_t i = 0; i < history_length; ++i)
             {
-                TetrisMap const &history_map = *history[i].map;
-                if(history_map.roof == history_map.height)
-                {
-                    BoardDeadZone += 70;
-                }
+                land_point_value += history[i].land_point;
+                size_t clear = history[i].clear;
                 if(param_->mode == 1)
                 {
-                    v.RubbishClear += history[i].clear * 10;
+                    RubbishClear += clear * 10;
                     continue;
                 }
-                switch(history[i].clear)
+                switch(clear)
                 {
                 case 0:
                     break;
                 case 1:
                 case 2:
-                    v.RubbishClear += history[i].clear;
+                    RubbishClear += clear;
                     break;
                 case 3:
                     if(param_->mode != 0)
                     {
-                        v.AttackClear += 12;
+                        AttackClear += 12;
                         break;
                     }
                 default:
-                    v.AttackClear += (history[i].clear * 10 + (history_length - i)) * (1 + (history_length - i) * length_rate);
+                    AttackClear += (clear * 10 + (history_length - i)) * (1 + (history_length - i) * length_rate);
                     break;
                 }
             }
             return (0.
                     + land_point_value / history_length
-                    - ColTrans * 32
-                    - RowTrans * 32
-                    - v.HoleCount * 400
-                    - v.HoleLine * 38
-                    - v.WellDepth * 16
-                    - v.HoleDepth * 4
-                    - v.HolePiece * 2
-                    + v.AttackDepth * 100
-                    - v.RubbishClear * (v.Danger > 0 ? -100 : 640)
-                    + v.AttackClear * 100
-                    - BoardDeadZone * 500000.
+                    + history[history_length - 1].map
+                    - RubbishClear * (history[history_length - 1].danger > 0 ? -100 : 640)
+                    + AttackClear * 100
                     );
         }
 
 
-        size_t Attack::map_in_danger_(m_tetris::TetrisMap const &map)
+        size_t Attack::map_in_danger_(m_tetris::TetrisMap const &map) const
         {
             size_t danger = 0;
             for(size_t i = 0; i < context_->type_max(); ++i)
@@ -368,12 +371,12 @@ namespace ai_zzz
         return "ZZZ Dig v0.2";
     }
 
-    double Dig::eval_map_bad() const
+    double Dig::bad() const
     {
         return -99999999;
     }
 
-    double Dig::eval_map(TetrisMap const &map, EvalParam<> const *history, size_t history_length)
+    double Dig::eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
     {
         double value = 0;
 
@@ -414,12 +417,20 @@ namespace ai_zzz
                 }
             }
         }
-        double clear = 0;
+        if(clear > 0)
+        {
+            value += map.height * 1000;
+        }
+        return value;
+    }
+
+    double Dig::get(double const *history, size_t history_length) const
+    {
+        double result = 0;
         for(size_t i = 0; i < history_length; ++i)
         {
-            clear += history[i].clear;
+            result += history[i];
         }
-        value += clear * history->map->roof * 10 / history_length;
-        return value;
+        return result / history_length;
     }
 }

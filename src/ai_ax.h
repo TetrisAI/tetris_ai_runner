@@ -2,40 +2,21 @@
 
 #include "tetris_core.h"
 
-namespace ai_ax_1
+namespace ai_ax
 {
     class AI
     {
     public:
         void init(m_tetris::TetrisContext const *context);
         std::string ai_name() const;
-        double eval_land_point(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear);
-        double eval_map_bad() const;
-        double eval_map(m_tetris::TetrisMap const &map, m_tetris::EvalParam<double> const *history, size_t history_length);
-        double get_virtual_eval(double const *eval, size_t eval_length);
-
-    private:
-        struct MapInDangerData
+        struct eval_result
         {
-            int data[4];
+            double land_point, map;
         };
-        std::vector<MapInDangerData> map_danger_data_;
-        m_tetris::TetrisContext const *context_;
-        size_t map_in_danger_(m_tetris::TetrisMap const &map);
-        int col_mask_, row_mask_;
-    };
-}
-
-
-namespace ai_ax_0
-{
-    class AI
-    {
-    public:
-        void init(m_tetris::TetrisContext const *context);
-        std::string ai_name() const;
-        double eval_map_bad() const;
-        double eval_map(m_tetris::TetrisMap const &map, m_tetris::EvalParam<> const *history, size_t history_length) const;
+        eval_result eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
+        double bad() const;
+        double get(eval_result const *history, size_t history_length) const;
+        eval_result iterated(eval_result const *eval, size_t eval_length) const;
 
     private:
         struct MapInDangerData

@@ -17,9 +17,15 @@ namespace ai_zzz
         public:
             void init(m_tetris::TetrisContext const *context, Param const *param);
             std::string ai_name() const;
-            double eval_land_point(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear);
-            double eval_map_bad() const;
-            double eval_map(m_tetris::TetrisMap const &map, m_tetris::EvalParam<double> const *history, size_t history_length);
+            struct eval_result
+            {
+                double land_point, map;
+                size_t clear;
+                int danger;
+            };
+            eval_result eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
+            double bad() const;
+            double get(eval_result const *history, size_t history_length) const;
 
         private:
             int check_line_1_[32];
@@ -34,7 +40,7 @@ namespace ai_zzz
                 int data[4];
             };
             std::vector<MapInDangerData> map_danger_data_;
-            size_t map_in_danger_(m_tetris::TetrisMap const &map);
+            size_t map_in_danger_(m_tetris::TetrisMap const &map) const;
         };
     }
 
@@ -42,8 +48,9 @@ namespace ai_zzz
     {
     public:
         std::string ai_name() const;
-        double eval_map_bad() const;
-        double eval_map(m_tetris::TetrisMap const &map, m_tetris::EvalParam<> const *history, size_t history_length);
+        double eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
+        double bad() const;
+        double get(double const *history, size_t history_length) const;
 
     };
 
