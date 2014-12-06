@@ -8,6 +8,7 @@
 #include "land_point_search_path.h"
 #include "land_point_search_simulate.h"
 #include "land_point_search_cautious.h"
+#include "land_point_search_tspin.h"
 #include "ai_ax.h"
 #include "ai_zzz.h"
 #include "rule_st.h"
@@ -88,7 +89,8 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
 }
 
 //m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_cautious::Search, ai_zzz::qq::Attack::Param> srs_ai;
-m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::Dig, land_point_search_cautious::Search> srs_ai;
+m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::Combo, land_point_search_cautious::Search, ai_zzz::Combo::Param> srs_ai;
+//m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::Dig, land_point_search_cautious::Search> srs_ai;
 
 extern "C" DECLSPEC_EXPORT int AIDllVersion()
 {
@@ -156,8 +158,19 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
         }
     }
     //srs_ai.param()->level = level;
-    //srs_ai.param()->mode = 0;
+    //srs_ai.param()->mode = map.roof > 10 ? 0 : 2;
     //srs_ai.param()->next_length = maxDepth;
+    srs_ai.param()->combo = combo;
+    srs_ai.param()->under_attack = upcomeAtt;
+    srs_ai.param()->b2b = !!b2b;
+    srs_ai.param()->table = comboTable;
+    srs_ai.param()->table_max = [comboTable]()->size_t
+    {
+        size_t max = 0;
+        while(comboTable[max++] != -1)
+            ;
+        return max - 1;
+    }();
     m_tetris::TetrisBlockStatus status =
     {
         active, x, 22 - y, (4 - spin) % 4
@@ -165,7 +178,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
     m_tetris::TetrisNode const *node = srs_ai.get(status);
     if(canhold)
     {
-        auto run_result = srs_ai.run_hold(map, node, hold, curCanHold, reinterpret_cast<unsigned char *>(next), maxDepth);
+        auto run_result = srs_ai.run_hold(map, node, hold, curCanHold, reinterpret_cast<unsigned char *>(next), maxDepth, level * 5 + 1);
         if(run_result.change_hold)
         {
             result++[0] = 'v';
@@ -263,10 +276,10 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
         node = node->move_down_multi[node->row + node->height - map.height];
     }
     auto target = level == 10 ?
-        qq_ai_path.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, limit).target :
+        qq_ai_path.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, 60).target :
         mode == 0 || map.count <= boardW * 2 ?
-        qq_ai_simulate.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, limit).target :
-        qq_ai_simple.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, limit).target;
+        qq_ai_simulate.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, 60).target :
+        qq_ai_simple.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, 60).target;
     std::vector<char> ai_path;
     if(target != nullptr)
     {

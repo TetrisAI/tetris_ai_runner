@@ -54,4 +54,34 @@ namespace ai_zzz
 
     };
 
+    class Combo
+    {
+    public:
+        struct Param
+        {
+            size_t combo;
+            size_t under_attack;
+            bool b2b;
+            int const *table;
+            size_t table_max;
+        };
+    public:
+        void init(m_tetris::TetrisContext const *context, Param const *param);
+        std::string ai_name() const;
+        struct eval_result
+        {
+            double eval;
+            size_t clear;
+            size_t count;
+            int roof;
+            bool t_spin;
+        };
+        eval_result eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
+        double bad() const;
+        double get(eval_result const *history, size_t history_length) const;
+    private:
+        int col_mask_, row_mask_;
+        Param const *param_;
+    };
+
 }

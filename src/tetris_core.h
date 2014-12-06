@@ -180,6 +180,7 @@ namespace m_tetris
         TetrisNode const *move_left;
         TetrisNode const *move_right;
         TetrisNode const *move_down;
+        TetrisNode const *move_up;
         TetrisNode const *move_down_multi[max_height];
 
         //Ãﬂ«Ω–Ú¡–,“¿¥Œ≥¢ ‘
@@ -349,6 +350,56 @@ namespace m_tetris
         }
     };
 
+    template<class AI, class Node>
+    struct TetrisCallEval
+    {
+        template <typename T>
+        struct function_traits : public function_traits<decltype(&T::eval)>
+        {
+        };
+
+        template <typename ClassType, typename ReturnType, typename... Args>
+        struct function_traits<ReturnType(ClassType::*)(Args...) const>
+        {
+            enum
+            {
+                arity = sizeof...(Args)
+            };
+
+            typedef ReturnType result_type;
+
+            template <size_t i>
+            struct arg
+            {
+                typedef typename std::tuple_element<i, std::tuple<Args...>>::type type;
+            };
+        };
+        template<class A, class B>
+        struct CallEval
+        {
+            template<class Return, class... Params>
+            static Return eval(AI const &ai, TetrisNode const *node, Params const &... params)
+            {
+                return ai.eval(node, params...);
+            }
+        };
+        template<class T>
+        struct CallEval<T, T>
+        {
+            template<class Return, class... Params>
+            static Return eval(AI const &ai, Params const &... params)
+            {
+                return ai.eval(params...);
+            }
+        };
+    public:
+        template<class... Params>
+        static auto eval(AI const &ai, Params const &... params)->typename function_traits<AI>::result_type
+        {
+            return CallEval<Node const &, function_traits<AI>::arg<0>::type const &>::eval<function_traits<AI>::result_type>(ai, params...);
+        }
+    };
+
     template<class Type>
     struct TetrisRuleInit
     {
@@ -503,14 +554,14 @@ namespace m_tetris
         typedef decltype(TetrisAI().get(nullptr, 0)) FinalEval;
         typedef std::pair<TetrisNode const *, FinalEval> Result;
 
-        template<class TreeNode>
-        void eval_node(TetrisAI &ai, TetrisMap &map, TetrisNode const *node, TreeNode *tree_node)
+        template<class TreeNode, class SearchNode>
+        void eval_node(TetrisAI &ai, TetrisMap &map, SearchNode const &node, TreeNode *tree_node)
         {
             TetrisMap &new_map = tree_node->map;
             new_map = map;
             size_t clear = node->attach(new_map);
             tree_node->identity = node;
-            tree_node->eval = ai.eval(node, new_map, map, clear);
+            tree_node->eval = TetrisCallEval<TetrisAI, SearchNode>::eval(ai, node, new_map, map, clear);
         }
         FinalEval run(TetrisAI &ai, Eval &eval, std::vector<Eval> &history)
         {
@@ -521,20 +572,20 @@ namespace m_tetris
         }
         Result run(TetrisAI &ai, TetrisLandPointSearchEngine &search, TetrisMap const &map, TetrisNode const *node)
         {
-            std::vector<TetrisNode const *> const *land_point = search.search(map, node);
+            auto const *land_point = search.search(map, node);
             FinalEval final_eval = ai.bad();
             TetrisNode const *best_node = node;
             for(auto cit = land_point->begin(); cit != land_point->end(); ++cit)
             {
-                node = *cit;
+                auto node_it = *cit;
                 TetrisMap copy = map;
-                size_t clear = node->attach(copy);
-                Eval eval = ai.eval(node, copy, map, clear);
+                size_t clear = node_it->attach(copy);
+                Eval eval = TetrisCallEval<TetrisAI, decltype(node_it)>::eval(ai, node_it, copy, map, clear);
                 FinalEval new_eval = ai.get(&eval, 1);
                 if(new_eval > final_eval)
                 {
                     final_eval = new_eval;
-                    best_node = node;
+                    best_node = node_it;
                 }
             }
             return std::make_pair(best_node, final_eval);

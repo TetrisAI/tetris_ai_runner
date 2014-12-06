@@ -385,6 +385,7 @@ namespace m_tetris
                 node.move_down_multi[0] = &node;
                 if(node.move_down)
                 {
+                    node_cache_.find(node.move_down->status)->second.move_up = &node;
                     node.move_down_multi[1] = node.move_down;
                     TetrisNode copy =
                     {

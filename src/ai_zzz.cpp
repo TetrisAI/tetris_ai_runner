@@ -46,6 +46,7 @@ namespace
         //LLLLLLL   JJJJJJJ   TTTTTTT   OOOOOOO   IIIIIII   ZZZZZZZ   SSSSSSS//
 #undef I
     };
+    
 }
 
 namespace ai_zzz
@@ -214,7 +215,7 @@ namespace ai_zzz
                 }
             }
             int low_x;
-            if(param_->mode == 0)
+            if((param_->mode & 1) == 0)
             {
                 low_x = 1;
                 for(int x = 2; x < width_m1; ++x)
@@ -308,21 +309,16 @@ namespace ai_zzz
 
         double Attack::get(eval_result const *history, size_t history_length) const
         {
-            double AttackClear;
-            double RubbishClear;
+            double AttackClear = 0;
+            double RubbishClear = 0;
 
-            double length_rate = 10. / param_->next_length;
+            double length_rate = 10. / history_length;
 
             double land_point_value = 0;
             for(size_t i = 0; i < history_length; ++i)
             {
                 land_point_value += history[i].land_point;
                 size_t clear = history[i].clear;
-                if(param_->mode == 1)
-                {
-                    RubbishClear += clear * 10;
-                    continue;
-                }
                 switch(clear)
                 {
                 case 0:
@@ -421,6 +417,10 @@ namespace ai_zzz
         {
             value += map.height * 1000;
         }
+        if(map.count == 0)
+        {
+            value += 99999999;
+        }
         return value;
     }
 
@@ -432,5 +432,131 @@ namespace ai_zzz
             result += history[i];
         }
         return result / history_length;
+    }
+
+    void Combo::init(m_tetris::TetrisContext const *context, Param const *param)
+    {
+        param_ = param;
+        col_mask_ = context->full() & ~1;
+        row_mask_ = context->full();
+    }
+
+    std::string Combo::ai_name() const
+    {
+        return "ZZZ Combo v0.1";
+    }
+
+    double Combo::bad() const
+    {
+        return -99999999;
+    }
+
+    Combo::eval_result Combo::eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
+    {
+        double value = 0;
+
+        const int width = map.width;
+
+        for(int x = 0; x < width; ++x)
+        {
+            for(int y = 0; y < map.roof; ++y)
+            {
+                if(map.full(x, y))
+                {
+                    value -= 2 * (y + 1);
+                    continue;
+                }
+                if(x == width - 1 || map.full(x + 1, y))
+                {
+                    value -= 3 * (y + 1);
+                }
+                if(x == 0 || map.full(x - 1, y))
+                {
+                    value -= 3 * (y + 1);
+                }
+                if(map.full(x, y + 1))
+                {
+                    value -= 10 * (y + 1);
+                    if(map.full(x, y + 2))
+                    {
+                        value -= 4;
+                        if(map.full(x, y + 3))
+                        {
+                            value -= 3;
+                            if(map.full(x, y + 4))
+                            {
+                                value -= 2;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        eval_result result;
+        result.eval = value;
+        result.clear = clear;
+        result.count = map.count;
+        result.roof = map.roof;
+        result.t_spin = node->status.t == 'T' && (node->move_up && !node->move_up->check(map)) && !node->open(map) && (!node->move_left || !node->move_left->check(map)) && (!node->move_right || !node->move_right->check(map));
+        return result;
+    }
+
+    double Combo::get(eval_result const *history, size_t history_length) const
+    {
+        size_t under_attack = param_->under_attack;
+        size_t up = 0;
+        bool b2b = param_->b2b;
+        size_t combo = param_->combo;
+        double attack = 0;
+        size_t clear = 0;
+        for(size_t i = 0; i < history_length; ++i)
+        {
+            clear += history[i].clear;
+            bool t_spin = history[i].t_spin;
+            switch(history[i].clear)
+            {
+            case 0:
+                combo = 0;
+                if(under_attack > 0)
+                {
+                    up = under_attack;
+                    under_attack = 0;
+                }
+                break;
+            case 1:
+                if(t_spin)
+                {
+                    attack += b2b ? 2 : 1;
+                }
+                attack += param_->table[std::min(param_->table_max - 1, ++combo)];
+                b2b = t_spin;
+                break;
+            case 2:
+                if(t_spin)
+                {
+                    attack += b2b ? 5 : 4;
+                }
+                attack += param_->table[std::min(param_->table_max - 1, ++combo)];
+                b2b = t_spin;
+                break;
+            case 3:
+                if(t_spin)
+                {
+                    attack += b2b ? 8 : 2;
+                }
+                attack += param_->table[std::min(param_->table_max - 1, ++combo)] + 2;
+                b2b = t_spin;
+                break;
+            case 4:
+                attack += param_->table[std::min(param_->table_max - 1, ++combo)] + (b2b ? 5 : 4);
+                b2b = true;
+                break;
+            }
+            if(history[i].count == 0)
+            {
+                attack += 6;
+            }
+        }
+        return history[history_length - 1].eval + attack * attack * 10 - up * 40;
     }
 }

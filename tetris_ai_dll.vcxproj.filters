@@ -40,6 +40,9 @@
     <ClCompile Include="src\rule_srsx.cpp">
       <Filter>rules\srsx</Filter>
     </ClCompile>
+    <ClCompile Include="src\land_point_search_tspin.cpp">
+      <Filter>land_point_search\tspin</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\rule_srs.h">
@@ -78,6 +81,9 @@
     </ClInclude>
     <ClInclude Include="src\rule_srsx.h">
       <Filter>rules\srsx</Filter>
+    </ClInclude>
+    <ClInclude Include="src\land_point_search_tspin.h">
+      <Filter>land_point_search\tspin</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -122,6 +128,9 @@
     </Filter>
     <Filter Include="rules\srsx">
       <UniqueIdentifier>{9f30a009-ae8f-428a-9ae9-7cb8ccb3e808}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="land_point_search\tspin">
+      <UniqueIdentifier>{bb7c6b77-5056-44c8-8bb7-5967927a160f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
