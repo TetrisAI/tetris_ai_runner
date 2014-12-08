@@ -700,7 +700,7 @@ namespace m_tetris
             context->is_complete = false;
             return new_root;
         }
-        TetrisTreeNode *update(TetrisMap const &_map, TetrisNode const *_node, unsigned char *_next, size_t _next_length)
+        TetrisTreeNode *update(TetrisMap const &_map, TetrisNode const *_node, unsigned char const *_next, size_t _next_length)
         {
             TetrisTreeNode *root = update_root(_map);
             if(root != this || context->is_open_hold || _node != root->node || _next_length != root->next.size() || std::memcmp(_next, root->next.data(), _next_length) != 0)
@@ -715,7 +715,7 @@ namespace m_tetris
             root->next.assign(_next, _next + _next_length);
             return root;
         }
-        TetrisTreeNode *update(TetrisMap const &_map, TetrisNode const *_node, unsigned char _hold, bool _hold_lock, unsigned char *_next, size_t _next_length)
+        TetrisTreeNode *update(TetrisMap const &_map, TetrisNode const *_node, unsigned char _hold, bool _hold_lock, unsigned char const *_next, size_t _next_length)
         {
             TetrisTreeNode *root = update_root(_map);
             if(root != this || !context->is_open_hold || _node != root->node || _hold != root->hold || !!_hold_lock != root->is_hold_lock || _next_length != root->next.size() || std::memcmp(_next, root->next.data(), _next_length) != 0)
@@ -1348,7 +1348,7 @@ namespace m_tetris
             return true;
         }
         //run!
-        RunResult run(TetrisMap const &map, TetrisNode const *node, unsigned char *next, size_t next_length, time_t limit = 100)
+        RunResult run(TetrisMap const &map, TetrisNode const *node, unsigned char const *next, size_t next_length, time_t limit = 100)
         {
             if(node == nullptr || !node->check(map))
             {
@@ -1373,7 +1373,7 @@ namespace m_tetris
             }
         }
         //´øholdµÄrun!
-        RunResult run_hold(TetrisMap const &map, TetrisNode const *node, unsigned char hold, bool hold_free, unsigned char *next, size_t next_length, time_t limit = 100)
+        RunResult run_hold(TetrisMap const &map, TetrisNode const *node, unsigned char hold, bool hold_free, unsigned char const *next, size_t next_length, time_t limit = 100)
         {
             if(node == nullptr || !node->check(map))
             {

@@ -78,7 +78,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     //tetris_ai.param()->next_length = next_length;
     /////////////////////////////////////////////////
     m_tetris::TetrisNode const *node = tetris_ai.get(status);
-    auto target = tetris_ai.run(map, node, reinterpret_cast<unsigned char *>(const_cast<char *>(nextPiece)), next_length, 49).target;
+    auto target = tetris_ai.run(map, node, reinterpret_cast<unsigned char const *>(nextPiece), next_length, 49).target;
     if(target != nullptr)
     {
         std::vector<char> ai_path = tetris_ai.path(node, target, map);
@@ -178,7 +178,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
     m_tetris::TetrisNode const *node = srs_ai.get(status);
     if(canhold)
     {
-        auto run_result = srs_ai.run_hold(map, node, hold, curCanHold, reinterpret_cast<unsigned char *>(next), maxDepth, level * 5 + 1);
+        auto run_result = srs_ai.run_hold(map, node, hold, curCanHold, reinterpret_cast<unsigned char const *>(next), maxDepth, level * 5 + 1);
         if(run_result.change_hold)
         {
             result++[0] = 'v';
@@ -276,10 +276,10 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
         node = node->move_down_multi[node->row + node->height - map.height];
     }
     auto target = level == 10 ?
-        qq_ai_path.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, 60).target :
+        qq_ai_path.run(map, node, reinterpret_cast<unsigned char const *>(nextPiece + 1), next_length, 60).target :
         mode == 0 || map.count <= boardW * 2 ?
-        qq_ai_simulate.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, 60).target :
-        qq_ai_simple.run(map, node, reinterpret_cast<unsigned char *>(nextPiece + 1), next_length, 60).target;
+        qq_ai_simulate.run(map, node, reinterpret_cast<unsigned char const *>(nextPiece + 1), next_length, 60).target :
+        qq_ai_simple.run(map, node, reinterpret_cast<unsigned char const *>(nextPiece + 1), next_length, 60).target;
     std::vector<char> ai_path;
     if(target != nullptr)
     {
