@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ai_ax.h" />
+    <ClInclude Include="src\ai_easy.h" />
     <ClInclude Include="src\integer_utils.h" />
     <ClInclude Include="src\land_point_search_path.h" />
     <ClInclude Include="src\land_point_search_simple.h" />

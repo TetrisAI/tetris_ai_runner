@@ -85,6 +85,9 @@
     <ClInclude Include="src\land_point_search_tspin.h">
       <Filter>land_point_search\tspin</Filter>
     </ClInclude>
+    <ClInclude Include="src\ai_easy.h">
+      <Filter>ai\easy</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="rules">
@@ -131,6 +134,9 @@
     </Filter>
     <Filter Include="land_point_search\tspin">
       <UniqueIdentifier>{bb7c6b77-5056-44c8-8bb7-5967927a160f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ai\easy">
+      <UniqueIdentifier>{2bd18710-beb1-4ec9-9ccc-3e4f4aea96dd}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
