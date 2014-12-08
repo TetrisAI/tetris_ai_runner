@@ -11,13 +11,15 @@
 #include "land_point_search_tspin.h"
 #include "ai_ax.h"
 #include "ai_zzz.h"
+#include "ai_farteryhr.h"
 #include "rule_st.h"
 #include "rule_qq.h"
 #include "rule_srs.h"
 #include "random.h"
 
 //m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_path::Search, ai_zzz::qq::Attack::Param> tetris_ai;
-m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_ax::AI, land_point_search_simple::Search> tetris_ai;
+//m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_ax::AI, land_point_search_simple::Search> tetris_ai;
+m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_farteryhr::AI, land_point_search_simple::Search> tetris_ai;
 
 extern "C" void attach_init()
 {

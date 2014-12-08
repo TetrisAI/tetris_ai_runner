@@ -26,6 +26,11 @@ namespace
     {
         FarteryhrMap(TetrisNode const *_node, TetrisMap const *_map, int _fhh) : node(_node), map(_map), fhh(_fhh), fh(_map->height - fhh)
         {
+            memset(node_data, 0, sizeof(node_data));
+            for(int y = 0; y < node->height; ++y)
+            {
+                node_data[y + node->row] = node->data[y];
+            }
             for(int i = 0; i < max_height; ++i)
             {
                 row_count[i] = i < map->height ? zzz::BitCount(map->row[i]) : 0;
@@ -47,16 +52,12 @@ namespace
                     }
                 }
             }
-#if _DEBUG
-            if(block_count != 4)
-            {
-                _asm int 3;
-            }
-#endif
         }
 
         TetrisNode const *node;
         TetrisMap const *map;
+        int node_data[max_height];
+
         int fhh;
         int fh;
         size_t row_count[max_height];
@@ -73,13 +74,13 @@ namespace
             {
                 return BLK_OOB;
             }
+            if((node_data[y] >> x) & 1)
+            {
+                return BLK_NEW;
+            }
             if(map->full(x, y))
             {
                 return BLK_FORMER;
-            }
-            if(y >= node->row && y < node->row + node->height)
-            {
-                return ((node->data[y - node->row] >> x) & 1) ? BLK_NEW : BLK_EMPTY;
             }
             return BLK_EMPTY;
         }
@@ -96,19 +97,20 @@ namespace
 
         int getgapdep(int x, int y)
         {
+            int fw = map->width;
             int gapdep = 0;
             bool ingap = false;
-            for(int j = 0; j < 10; j++)
+            for(int j = 0; j < 6; ++j)
             {
-                if(count(y + j) == map->width)
+                if(count(y + j) == fw)
+                {
                     continue;
+                }
                 if(get(x, y + j) != BLK_EMPTY)
+                {
                     break;
-                else if(ingap ||
-                        (
-                        get(x + 1, y + j) != BLK_EMPTY &&
-                        get(x - 1, y + j) != BLK_EMPTY)
-                        )
+                }
+                else if(ingap || (get(x + 1, y + j) != BLK_EMPTY && get(x - 1, y + j) != BLK_EMPTY))
                 {
                     gapdep++;
                     ingap = true;
@@ -195,22 +197,34 @@ namespace ai_farteryhr
                         maxgapside = getgaptmp;
                 }
                 if(maxgapside >= 6)
+                {
                     pts -= 600;
-                else if(maxgapside>3)
+                }
+                else if(maxgapside > 3)
+                {
                     pts -= 300;
+                }
                 else if(maxgapside == 3)
+                {
                     pts -= 250;
+                }
                 else if(maxgapside == 2)
+                {
                     pts -= 50;
+                }
 
                 if(fmap.get(cx, cy + 1) != BLK_EMPTY)
                 {
                     int gapcvr = 0;
                     gapcvr = fmap.getgapdep(cx, cy + 1);
                     if(gapcvr == 0)
+                    {
                         pts -= 50;
+                    }
                     else
+                    {
                         pts -= 200;
+                    }
                 }
             }
             int sumempty = 0;
@@ -239,12 +253,13 @@ namespace ai_farteryhr
                 {
                     dist = 0; // how many unfilled lines
                     for(int k = 0; k <= j; k++)
-                        if(fmap.count(cy + k)<fw)
+                    {
+                        if(fmap.count(cy + k) < fw)
                             dist++;
+                    }
                     if(dist == 0)
                         continue; //all clear above line j
-                    if(fmap.get(cx - 1, cy + j) != BLK_EMPTY ||
-                       fmap.get(cx + 1, cy + j) != BLK_EMPTY)
+                    if(fmap.get(cx - 1, cy + j) != BLK_EMPTY || fmap.get(cx + 1, cy + j) != BLK_EMPTY)
                     {
                         for(int dx = -1; dx <= 1; dx += 2)
                         {
