@@ -43,6 +43,9 @@
     <ClCompile Include="src\land_point_search_tspin.cpp">
       <Filter>land_point_search\tspin</Filter>
     </ClCompile>
+    <ClCompile Include="src\ai_farteryhr.cpp">
+      <Filter>ai\farteryhr</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\rule_srs.h">
@@ -87,6 +90,9 @@
     </ClInclude>
     <ClInclude Include="src\ai_easy.h">
       <Filter>ai\easy</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ai_farteryhr.h">
+      <Filter>ai\farteryhr</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -137,6 +143,9 @@
     </Filter>
     <Filter Include="ai\easy">
       <UniqueIdentifier>{76dff1d7-ccd2-4913-95a0-4aa877216740}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ai\farteryhr">
+      <UniqueIdentifier>{0574e13d-108d-49ea-9681-875afda47edf}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

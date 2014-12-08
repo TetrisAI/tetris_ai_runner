@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClInclude Include="src\ai_ax.h" />
     <ClInclude Include="src\ai_easy.h" />
+    <ClInclude Include="src\ai_farteryhr.h" />
     <ClInclude Include="src\integer_utils.h" />
     <ClInclude Include="src\land_point_search_path.h" />
     <ClInclude Include="src\land_point_search_simple.h" />
@@ -30,6 +31,7 @@
   <ItemGroup>
     <ClCompile Include="src\ai.cpp" />
     <ClCompile Include="src\ai_ax.cpp" />
+    <ClCompile Include="src\ai_farteryhr.cpp" />
     <ClCompile Include="src\dllmain.c" />
     <ClCompile Include="src\integer_utils.cpp" />
     <ClCompile Include="src\land_point_search_path.cpp" />
