@@ -34,7 +34,7 @@ extern "C" void attach_init()
 struct tetris_game
 {
     typedef int(*ai_run_t)(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int level, int mode, char path[], size_t limit);
-    m_tetris::TetrisEngine<rule_qq::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_path::Search, ai_zzz::qq::Attack::Param> tetris_ai;
+    m_tetris::TetrisEngine<rule_qq::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_path::Search> tetris_ai;
     ege::mtrandom random;
     m_tetris::TetrisMap map;
     std::vector<unsigned char> next;

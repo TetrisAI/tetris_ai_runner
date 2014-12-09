@@ -255,13 +255,13 @@ namespace m_tetris
         bool mark(TetrisNode const *key);
     };
 
-    template<class TetrisRuleSet, class AIParam>
+    template<class TetrisRuleSet, class AI, class LandPointSearch>
     struct TetrisContextBuilder;
 
     //上下文对象.场景大小改变了需要重新初始化上下文
     class TetrisContext
     {
-        template<class TetrisRuleSet, class AIParam>
+        template<class TetrisRuleSet, class AI, class LandPointSearch>
         friend struct TetrisContextBuilder;
     private:
         TetrisContext()
@@ -439,110 +439,154 @@ namespace m_tetris
     };
     
     template<class TetrisAI>
-    struct TetrisAIHasGetVirtualValue
+    struct TetrisAIHasIterated
     {
         struct Fallback
         {
-            int get_virtual_eval;
+            int iterated;
         };
         struct Derived : TetrisAI, Fallback
         {
         };
         template<typename U, U> struct Check;
         template<typename U>
-        static std::false_type func(Check<int Fallback::*, &U::get_virtual_eval> *);
+        static std::false_type func(Check<int Fallback::*, &U::iterated> *);
         template<typename U>
         static std::true_type func(...);
     public:
         typedef decltype(func<Derived>(nullptr)) type;
     };
 
-    template<class TetrisAI>
-    struct TetrisAIHasPruneMap
-    {
-        struct Fallback
-        {
-            int prune_map;
-        };
-        struct Derived : TetrisAI, Fallback
-        {
-        };
-        template<typename U, U> struct Check;
-        template<typename U>
-        static std::false_type func(Check<int Fallback::*, &U::prune_map> *);
-        template<typename U>
-        static std::true_type func(...);
-    public:
-        typedef decltype(func<Derived>(nullptr)) type;
-    };
-
-    struct TetrisAIEmptyParam
-    {
-    };
-    template<class TetrisRuleSet, class AIParam>
+    template<class TetrisRuleSet, class AI, class LandPointSearch>
     struct TetrisContextBuilder
     {
-        class AIParamHolder
+    private:
+        template<class AI, class = typename std::enable_if<(sizeof(AI::Param) > 0)>::type>
+        static std::true_type has_param(AI *);
+        template<class AI, class = void>
+        static std::false_type has_param(...);
+
+        template<class LandPointSearch, class = typename std::enable_if<(sizeof(LandPointSearch::Status) > 0)>::type>
+        static std::true_type has_status(LandPointSearch *);
+        template<class LandPointSearch, class = void>
+        static std::false_type has_status(...);
+
+        template<class AI, class T>
+        struct AIParam
         {
-        private:
-            AIParam param_;
-        public:
-            AIParam const *get_param() const
+            class AIParamHolder
             {
-                return &param_;
-            }
-            AIParam *get_param()
+            public:
+                typedef void Param;
+                void const *get_param() const
+                {
+                    return nullptr;
+                }
+                void *get_param()
+                {
+                    return nullptr;
+                }
+            };
+        };
+        template<class AI>
+        struct AIParam<AI, std::true_type>
+        {
+            class AIParamHolder
             {
-                return &param_;
-            }
+            public:
+                typedef typename AI::Param Param;
+                Param const *get_param() const
+                {
+                    return &param_;
+                }
+                Param *get_param()
+                {
+                    return &param_;
+                }
+            private:
+                Param param_;
+            };
         };
-        class TetrisContextWithParam : public TetrisContext, public AIParamHolder
+
+        template<class LandPointSearch, class T>
+        struct LandPointSearchStatus
+        {
+            class LandPointSearchStatusHolder
+            {
+            public:
+                typedef void Status;
+                void const *get_status() const
+                {
+                    return nullptr;
+                }
+                void *get_status()
+                {
+                    return nullptr;
+                }
+            };
+        };
+        template<class LandPointSearch>
+        struct LandPointSearchStatus<LandPointSearch, std::true_type>
+        {
+            class LandPointSearchStatusHolder
+            {
+            public:
+                typedef typename LandPointSearch::Status Status;
+                Status const *get_status() const
+                {
+                    return &status_;
+                }
+                Status *get_status()
+                {
+                    return &status_;
+                }
+            private:
+                Status status_;
+            };
+        };
+    public:
+        class TetrisContextEx : public TetrisContext, public AIParam<AI, decltype(has_param<AI>(nullptr))>::AIParamHolder, public LandPointSearchStatus<LandPointSearch, decltype(has_status<LandPointSearch>(nullptr))>::LandPointSearchStatusHolder
         {
         };
-        static TetrisContextWithParam *build_context()
+        static TetrisContextEx *build_context()
         {
-            TetrisContextWithParam *context = new TetrisContextWithParam();
+            TetrisContextEx *context = new TetrisContextEx();
             context->init_opertion_ = TetrisRuleSet::get_init_opertion();
             context->init_generate_ = TetrisRuleSet::get_init_generate();
             context->game_generate_ = TetrisRuleSet::get_game_generate();
             return context;
         }
-        template<class TetrisAI>
-        static void init_ai(TetrisAI &ai, TetrisContextWithParam const *context)
+    private:
+        template<class TetrisAI, class = typename std::enable_if<std::is_same<void, TetrisContextEx::Param>::value>::type>
+        static void call_init_ai(TetrisAI &ai, TetrisContextEx const *context, void *)
+        {
+            TetrisCallInit<TetrisAI>(ai, context);
+        }
+        template<class TetrisAI, class = void>
+        static void call_init_ai(TetrisAI &ai, TetrisContextEx const *context, ...)
         {
             TetrisCallInit<TetrisAI>(ai, context, context->get_param());
         }
-    };
-    template<class TetrisRuleSet>
-    struct TetrisContextBuilder<TetrisRuleSet, TetrisAIEmptyParam>
-    {
-        class AIParamHolder
+        template<class TetrisLandPointSearch, class = typename std::enable_if<std::is_same<void, TetrisContextEx::Status>::value>::type>
+        static void call_init_land_point_search(TetrisLandPointSearch &land_point_search, TetrisContextEx const *context, void *)
         {
-        public:
-            void const *get_param() const
-            {
-                return nullptr;
-            }
-            void *get_param()
-            {
-                return nullptr;
-            }
-        };
-        class TetrisContextWithParam : public TetrisContext, public AIParamHolder
-        {
-        };
-        static TetrisContextWithParam *build_context()
-        {
-            TetrisContextWithParam *context = new TetrisContextWithParam();
-            context->init_opertion_ = TetrisRuleSet::get_init_opertion();
-            context->init_generate_ = TetrisRuleSet::get_init_generate();
-            context->game_generate_ = TetrisRuleSet::get_game_generate();
-            return context;
+            TetrisCallInit<TetrisLandPointSearch>(land_point_search, context);
         }
-        template<class TetrisAI>
-        static void init_ai(TetrisAI &ai, TetrisContextWithParam const *context)
+        template<class TetrisLandPointSearch, class = void>
+        static void call_init_land_point_search(TetrisLandPointSearch &land_point_search, TetrisContextEx const *context, ...)
         {
-            TetrisCallInit<TetrisAI>(ai, context);
+            TetrisCallInit<TetrisLandPointSearch>(land_point_search, context, context->get_status());
+        }
+    public:
+        template<class TetrisAI, class = void>
+        static void init_ai(TetrisAI &ai, TetrisContextEx const *context)
+        {
+            call_init_ai(ai, context, nullptr);
+        }
+        template<class TetrisLandPointSearch, class = void>
+        static void init_land_point_search(TetrisLandPointSearch &land_point_search, TetrisContextEx const *context)
+        {
+            call_init_land_point_search(land_point_search, context, nullptr);
         }
     };
     
@@ -1219,13 +1263,14 @@ namespace m_tetris
         }
     };
 
-    template<class TetrisRuleSet, class TetrisAI, class TetrisLandPointSearchEngine, class TetrisAIParam = TetrisAIEmptyParam>
+    template<class TetrisRuleSet, class TetrisAI, class TetrisLandPointSearchEngine>
     class TetrisEngine
     {
     private:
         typedef TetrisCore<TetrisAI, TetrisLandPointSearchEngine> Core;
         typedef TetrisTreeNode<typename Core::FinalEval, typename Core::Eval, TetrisAI, TetrisLandPointSearchEngine> TreeNode;
-        typename TetrisContextBuilder<TetrisRuleSet, TetrisAIParam>::TetrisContextWithParam *context_;
+        typedef TetrisContextBuilder<TetrisRuleSet, TetrisAI, TetrisLandPointSearchEngine> ContextBuilder;
+        typename ContextBuilder::TetrisContextEx *context_;
         TetrisAI ai_;
         TetrisLandPointSearchEngine search_;
         typename TreeNode::Context tree_context_;
@@ -1291,7 +1336,7 @@ namespace m_tetris
         };
 
     public:
-        TetrisEngine() : context_(TetrisContextBuilder<TetrisRuleSet, TetrisAIParam>::build_context()), ai_(), tree_root_(new TreeNode(&tree_context_))
+        TetrisEngine() : context_(ContextBuilder::build_context()), ai_(), tree_root_(new TreeNode(&tree_context_))
         {
             tree_context_.context = context_;
             tree_context_.ai = &ai_;
@@ -1323,9 +1368,21 @@ namespace m_tetris
         {
             return ai_.ai_name();
         }
-        TetrisAIParam *param()
+        auto param()->decltype(context_->get_param())
         {
             return context_->get_param();
+        }
+        auto param() const->decltype(context_->get_param())
+        {
+            return context_->get_param();
+        }
+        auto status()->decltype(context_->get_status())
+        {
+            return context_->get_status();
+        }
+        auto status() const->decltype(context_->get_status())
+        {
+            return context_->get_status();
         }
         //准备好上下文
         bool prepare(int width, int height)
@@ -1337,8 +1394,8 @@ namespace m_tetris
             TetrisContext::PrepareResult result = context_->prepare(width, height);
             if(result == TetrisContext::rebuild)
             {
-                TetrisContextBuilder<TetrisRuleSet, TetrisAIParam>::init_ai(ai_, context_);
-                TetrisCallInit<TetrisLandPointSearchEngine>(search_, context_);
+                ContextBuilder::init_ai(ai_, context_);
+                ContextBuilder::init_land_point_search(search_, context_);
                 return true;
             }
             else if(result == TetrisContext::fail)
