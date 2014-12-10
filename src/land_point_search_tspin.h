@@ -11,7 +11,7 @@ namespace land_point_search_tspin
     public:
         enum SpinType
         {
-            None, TSpin
+            None, TSpin, TSpinMini
         };
         struct SpinInfo
         {
@@ -34,9 +34,10 @@ namespace land_point_search_tspin
             }
         };
         void init(m_tetris::TetrisContext const *context);
-        std::vector<char> make_path(m_tetris::TetrisNode const *node, m_tetris::TetrisNode const *land_point, m_tetris::TetrisMap const &map);
+        std::vector<char> make_path(m_tetris::TetrisNode const *node, SpinInfo const &land_point, m_tetris::TetrisMap const &map);
         std::vector<SpinInfo> const *search(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
     private:
+        std::vector<SpinInfo> const *search_t(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
         std::vector<SpinInfo> land_point_cache_;
         std::vector<m_tetris::TetrisNode const *> node_search_;
         m_tetris::TetrisNodeMark node_mark_;

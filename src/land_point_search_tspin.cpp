@@ -13,7 +13,7 @@ namespace land_point_search_tspin
         node_mark_filtered_.init(context->node_max());
     }
 
-    std::vector<char> Search::make_path(TetrisNode const *node, TetrisNode const *land_point, TetrisMap const &map)
+    std::vector<char> Search::make_path(TetrisNode const *node, SpinInfo const &land_point, TetrisMap const &map)
     {
         if(node->index_filtered == land_point->index_filtered)
         {
@@ -275,6 +275,10 @@ namespace land_point_search_tspin
         node_mark_filtered_.clear();
         node_search_.clear();
         land_point_cache_.clear();
+        if(node->status.t == 'T')
+        {
+            return search_t(map, node);
+        }
         if(node->land_point != nullptr && node->low >= map.roof)
         {
             for(auto cit = node->land_point->begin(); cit != node->land_point->end(); ++cit)
@@ -554,6 +558,12 @@ namespace land_point_search_tspin
                 }
             } while(node_search_.size() > cache_index);
         }
+        return &land_point_cache_;
+    }
+
+    std::vector<Search::SpinInfo> const *Search::search_t(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node)
+    {
+        //TODO
         return &land_point_cache_;
     }
 

@@ -434,24 +434,24 @@ namespace ai_zzz
         return result / history_length;
     }
 
-    void Combo::init(m_tetris::TetrisContext const *context, Param const *param)
+    void SRS::init(m_tetris::TetrisContext const *context, Param const *param)
     {
         param_ = param;
         col_mask_ = context->full() & ~1;
         row_mask_ = context->full();
     }
 
-    std::string Combo::ai_name() const
+    std::string SRS::ai_name() const
     {
-        return "ZZZ Combo v0.1";
+        return "ZZZ SRS v0.1";
     }
 
-    double Combo::bad() const
+    double SRS::bad() const
     {
         return -99999999;
     }
 
-    Combo::eval_result Combo::eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
+    SRS::eval_result SRS::eval(LandPoint const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
     {
         double value = 0;
 
@@ -497,11 +497,11 @@ namespace ai_zzz
         result.clear = clear;
         result.count = map.count;
         result.roof = map.roof;
-        result.t_spin = node->status.t == 'T' && (node->move_up && !node->move_up->check(map)) && !node->open(map) && (!node->move_left || !node->move_left->check(map)) && (!node->move_right || !node->move_right->check(map));
+        result.t_spin = node.type != SpinType::None;
         return result;
     }
 
-    double Combo::get(eval_result const *history, size_t history_length) const
+    double SRS::get(eval_result const *history, size_t history_length) const
     {
         size_t under_attack = param_->under_attack;
         size_t up = 0;

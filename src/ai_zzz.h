@@ -1,5 +1,6 @@
 
 #include "tetris_core.h"
+#include "land_point_search_tspin.h"
 
 namespace ai_zzz
 {
@@ -54,9 +55,11 @@ namespace ai_zzz
 
     };
 
-    class Combo
+    class SRS
     {
     public:
+        typedef land_point_search_tspin::Search::SpinType SpinType;
+        typedef land_point_search_tspin::Search::SpinInfo LandPoint;
         struct Param
         {
             size_t combo;
@@ -76,7 +79,7 @@ namespace ai_zzz
             int roof;
             bool t_spin;
         };
-        eval_result eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
+        eval_result eval(LandPoint const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
         double bad() const;
         double get(eval_result const *history, size_t history_length) const;
     private:

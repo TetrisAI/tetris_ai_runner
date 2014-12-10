@@ -593,19 +593,31 @@ namespace m_tetris
     template<class TetrisAI, class TetrisLandPointSearchEngine>
     struct TetrisCore
     {
+    private:
+        template <typename Element>
+        struct element_traits
+        {
+            typedef void Element;
+        };
+        template <typename Element>
+        struct element_traits<std::vector<Element> const *>
+        {
+            typedef Element Element;
+        };
     public:
         typedef decltype(TetrisAI().eval(nullptr, TetrisMap(), TetrisMap(), 0)) Eval;
         typedef decltype(TetrisAI().get(nullptr, 0)) FinalEval;
-        typedef std::pair<TetrisNode const *, FinalEval> Result;
+        typedef typename element_traits<decltype(TetrisLandPointSearchEngine().search(TetrisMap(), nullptr))>::Element LandPoint;
+        typedef std::pair<LandPoint, FinalEval> Result;
 
-        template<class TreeNode, class SearchNode>
-        void eval_node(TetrisAI &ai, TetrisMap &map, SearchNode const &node, TreeNode *tree_node)
+        template<class TreeNode>
+        void eval_node(TetrisAI &ai, TetrisMap &map, LandPoint const &node, TreeNode *tree_node)
         {
             TetrisMap &new_map = tree_node->map;
             new_map = map;
             size_t clear = node->attach(new_map);
             tree_node->identity = node;
-            tree_node->eval = TetrisCallEval<TetrisAI, SearchNode>::eval(ai, node, new_map, map, clear);
+            tree_node->eval = TetrisCallEval<TetrisAI, LandPoint>::eval(ai, node, new_map, map, clear);
         }
         FinalEval run(TetrisAI &ai, Eval &eval, std::vector<Eval> &history)
         {
@@ -614,11 +626,11 @@ namespace m_tetris
             history.pop_back();
             return result;
         }
-        Result run(TetrisAI &ai, TetrisLandPointSearchEngine &search, TetrisMap const &map, TetrisNode const *node)
+        Result run(TetrisAI &ai, TetrisLandPointSearchEngine &search, TetrisMap const &map, LandPoint const &node)
         {
             auto const *land_point = search.search(map, node);
             FinalEval final_eval = ai.bad();
-            TetrisNode const *best_node = node;
+            LandPoint best_node = node;
             for(auto cit = land_point->begin(); cit != land_point->end(); ++cit)
             {
                 auto node_it = *cit;
@@ -688,7 +700,7 @@ namespace m_tetris
         Context *context;
         size_t version;
         TetrisMap map;
-        TetrisNode const *identity;
+        typename Core::LandPoint identity;
         Eval eval;
         FinalEval final_eval;
         TetrisTreeNode *parent;
@@ -1058,12 +1070,12 @@ namespace m_tetris
             }
             version = context->version;
             update_info();
-            if(!node->check(map))
+            (this->*search_ptr)(false);
+            if(children.empty())
             {
                 is_dead = true;
                 return false;
             }
-            (this->*search_ptr)(false);
             auto &ai = context->ai;
             std::vector<Eval> &history = context->history;
             size_t deepth = level;
@@ -1270,6 +1282,7 @@ namespace m_tetris
         typedef TetrisCore<TetrisAI, TetrisLandPointSearchEngine> Core;
         typedef TetrisTreeNode<typename Core::FinalEval, typename Core::Eval, TetrisAI, TetrisLandPointSearchEngine> TreeNode;
         typedef TetrisContextBuilder<TetrisRuleSet, TetrisAI, TetrisLandPointSearchEngine> ContextBuilder;
+        typedef typename Core::LandPoint LandPoint;
         typename ContextBuilder::TetrisContextEx *context_;
         TetrisAI ai_;
         TetrisLandPointSearchEngine search_;
@@ -1321,16 +1334,16 @@ namespace m_tetris
             RunResult(std::pair<TreeNode const *, typename Core::FinalEval> const &_result) : target(_result.first ? _result.first->identity : nullptr), eval(_result.second), change_hold()
             {
             }
-            RunResult(std::pair<TetrisNode const *, typename Core::FinalEval> const &_result) : target(_result.first), eval(_result.second), change_hold()
+            RunResult(std::pair<LandPoint, typename Core::FinalEval> const &_result) : target(_result.first), eval(_result.second), change_hold()
             {
             }
             RunResult(std::pair<TreeNode const *, typename Core::FinalEval> const &_result, bool _change_hold) : target(_result.first ? _result.first->identity : nullptr), eval(_result.second), change_hold(_change_hold)
             {
             }
-            RunResult(std::pair<TetrisNode const *, typename Core::FinalEval> const &_result, bool _change_hold) : target(_result.first), eval(_result.second), change_hold(_change_hold)
+            RunResult(std::pair<LandPoint, typename Core::FinalEval> const &_result, bool _change_hold) : target(_result.first), eval(_result.second), change_hold(_change_hold)
             {
             }
-            TetrisNode const *target;
+            LandPoint target;
             typename Core::FinalEval eval;
             bool change_hold;
         };
@@ -1476,7 +1489,7 @@ namespace m_tetris
             return RunResult(best, best.first == nullptr ? false : best.first->is_hold);
         }
         //根据run的结果得到一个操作路径
-        std::vector<char> path(TetrisNode const *node, TetrisNode const *land_point, TetrisMap const &map, bool cut_drop = true)
+        std::vector<char> make_path(TetrisNode const *node, LandPoint const &land_point, TetrisMap const &map, bool cut_drop = true)
         {
             auto path = search_.make_path(node, land_point, map);
             if(cut_drop){
@@ -1486,6 +1499,11 @@ namespace m_tetris
                 }
             }
             return path;
+        }
+        //根据run的结果得到一组按键状态
+        std::vector<char> make_status(TetrisNode const *node, LandPoint const &land_point, TetrisMap const &map)
+        {
+            return search_.make_status(node, land_point, map);
         }
     };
 
