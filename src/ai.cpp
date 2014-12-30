@@ -17,7 +17,7 @@
 #include "rule_srs.h"
 #include "random.h"
 
-//m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_path::Search, ai_zzz::qq::Attack::Param> tetris_ai;
+//m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_path::Search> tetris_ai;
 //m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_ax::AI, land_point_search_simple::Search> tetris_ai;
 m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_farteryhr::AI, land_point_search_simple::Search> tetris_ai;
 
@@ -90,8 +90,8 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     return 0;
 }
 
-//m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_cautious::Search, ai_zzz::qq::Attack::Param> srs_ai;
-m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::Combo, land_point_search_cautious::Search> srs_ai;
+//m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_cautious::Search> srs_ai;
+m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::SRS, land_point_search_cautious::Search> srs_ai;
 //m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::Dig, land_point_search_cautious::Search> srs_ai;
 
 extern "C" DECLSPEC_EXPORT int AIDllVersion()
@@ -159,9 +159,6 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
             }
         }
     }
-    //srs_ai.param()->level = level;
-    //srs_ai.param()->mode = map.roof > 10 ? 0 : 2;
-    //srs_ai.param()->next_length = maxDepth;
     srs_ai.param()->combo = combo;
     srs_ai.param()->under_attack = upcomeAtt;
     srs_ai.param()->b2b = !!b2b;

@@ -9,7 +9,7 @@
 #include "ai_easy.h"
 #include "rule_st.h"
 
-m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_easy::AI, land_point_search_simple::Search, ai_easy::AI::Param> tetris_ai;
+m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_easy::AI, land_point_search_simple::Search> tetris_ai;
 
 extern "C" void attach_init()
 {
@@ -77,16 +77,11 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
         curPiece, curX - 1, curY - 1, curR - 1
     };
     size_t next_length = std::strlen(nextPiece);
-    /////////////////////////////////////////////////
-    //tetris_ai.param()->level = 10;
-    //tetris_ai.param()->mode = 0;
-    //tetris_ai.param()->next_length = next_length;
-    /////////////////////////////////////////////////
     m_tetris::TetrisNode const *node = tetris_ai.get(status);
     auto target = tetris_ai.run(map, node, reinterpret_cast<unsigned char const *>(nextPiece), next_length, 49).target;
     if(target != nullptr)
     {
-        std::vector<char> ai_path = tetris_ai.path(node, target, map);
+        std::vector<char> ai_path = tetris_ai.make_path(node, target, map);
         memcpy(path, ai_path.data(), ai_path.size());
         path[ai_path.size()] = '\0';
     }
