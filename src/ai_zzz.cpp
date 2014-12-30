@@ -434,24 +434,24 @@ namespace ai_zzz
         return result / history_length;
     }
 
-    void SRS::init(m_tetris::TetrisContext const *context, Param const *param)
+    void TOJ::init(m_tetris::TetrisContext const *context, Param const *param)
     {
         param_ = param;
         col_mask_ = context->full() & ~1;
         row_mask_ = context->full();
     }
 
-    std::string SRS::ai_name() const
+    std::string TOJ::ai_name() const
     {
-        return "ZZZ SRS v0.1";
+        return "ZZZ TOJ v0.2";
     }
 
-    double SRS::bad() const
+    double TOJ::bad() const
     {
         return -99999999;
     }
 
-    SRS::eval_result SRS::eval(LandPoint const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
+    TOJ::eval_result TOJ::eval(TetrisNodeEx &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
     {
         double value = 0;
 
@@ -497,11 +497,23 @@ namespace ai_zzz
         result.clear = clear;
         result.count = map.count;
         result.roof = map.roof;
-        result.t_spin = node.type != SpinType::None;
+        result.t_spin = node.type;
+        if(clear > 0 && node.is_check && node.is_last_rotate)
+        {
+            if(clear == 1 && node.is_cannot_rotate)
+            {
+                result.t_spin = TSpinType::TSpinMini;
+            }
+            else if(node.is_block_3)
+            {
+                result.t_spin = TSpinType::TSpin;
+            }
+            node.type = result.t_spin;
+        }
         return result;
     }
 
-    double SRS::get(eval_result const *history, size_t history_length) const
+    double TOJ::get(eval_result const *history, size_t history_length) const
     {
         size_t under_attack = param_->under_attack;
         size_t up = 0;
@@ -512,7 +524,7 @@ namespace ai_zzz
         for(size_t i = 0; i < history_length; ++i)
         {
             clear += history[i].clear;
-            bool t_spin = history[i].t_spin;
+            TSpinType t_spin = history[i].t_spin;
             switch(history[i].clear)
             {
             case 0:
@@ -524,28 +536,32 @@ namespace ai_zzz
                 }
                 break;
             case 1:
-                if(t_spin)
+                if(t_spin == TSpinType::TSpinMini)
                 {
                     attack += b2b ? 2 : 1;
                 }
+                else if(t_spin == TSpinType::TSpinMini)
+                {
+                    attack += b2b ? 3 : 2;
+                }
                 attack += param_->table[std::min(param_->table_max - 1, ++combo)];
-                b2b = t_spin;
+                b2b = t_spin != TSpinType::None;
                 break;
             case 2:
-                if(t_spin)
+                if(t_spin != TSpinType::None)
                 {
                     attack += b2b ? 5 : 4;
                 }
                 attack += param_->table[std::min(param_->table_max - 1, ++combo)];
-                b2b = t_spin;
+                b2b = t_spin != TSpinType::None;
                 break;
             case 3:
-                if(t_spin)
+                if(t_spin != TSpinType::None)
                 {
-                    attack += b2b ? 8 : 2;
+                    attack += b2b ? 8 : 6;
                 }
                 attack += param_->table[std::min(param_->table_max - 1, ++combo)] + 2;
-                b2b = t_spin;
+                b2b = t_spin != TSpinType::None;
                 break;
             case 4:
                 attack += param_->table[std::min(param_->table_max - 1, ++combo)] + (b2b ? 5 : 4);

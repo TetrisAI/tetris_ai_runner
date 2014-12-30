@@ -377,26 +377,27 @@ namespace m_tetris
         template<class A, class B>
         struct CallEval
         {
-            template<class Return, class... Params>
+            template<class Return, class TetrisNodeEx, class... Params>
             static Return eval(AI const &ai, TetrisNode const *node, Params const &... params)
             {
-                return ai.eval(node, params...);
+                std::remove_reference<function_traits<AI>::arg<0>::type>::type node_ex(node);
+                return ai.eval(node_ex, params...);
             }
         };
         template<class T>
         struct CallEval<T, T>
         {
-            template<class Return, class... Params>
-            static Return eval(AI const &ai, Params const &... params)
+            template<class Return, class TetrisNodeEx, class... Params>
+            static Return eval(AI const &ai, TetrisNodeEx &node, Params const &... params)
             {
-                return ai.eval(params...);
+                return ai.eval(node, params...);
             }
         };
     public:
         template<class... Params>
-        static auto eval(AI const &ai, Params const &... params)->typename function_traits<AI>::result_type
+        static auto eval(AI const &ai, Node &node, Params const &... params)->typename function_traits<AI>::result_type
         {
-            return CallEval<Node const &, function_traits<AI>::arg<0>::type const &>::eval<function_traits<AI>::result_type>(ai, params...);
+            return CallEval<Node &, function_traits<AI>::arg<0>::type &>::eval<function_traits<AI>::result_type, Node>(ai, node, params...);
         }
     };
 
@@ -604,20 +605,41 @@ namespace m_tetris
         {
             typedef Element Element;
         };
+        template <typename T>
+        struct function_traits : public function_traits<decltype(&T::eval)>
+        {
+        };
+
+        template <typename ClassType, typename ReturnType, typename... Args>
+        struct function_traits<ReturnType(ClassType::*)(Args...) const>
+        {
+            enum
+            {
+                arity = sizeof...(Args)
+            };
+
+            typedef ReturnType result_type;
+
+            template <size_t i>
+            struct arg
+            {
+                typedef typename std::tuple_element<i, std::tuple<Args...>>::type type;
+            };
+        };
     public:
-        typedef decltype(TetrisAI().eval(nullptr, TetrisMap(), TetrisMap(), 0)) Eval;
-        typedef decltype(TetrisAI().get(nullptr, 0)) FinalEval;
         typedef typename element_traits<decltype(TetrisLandPointSearchEngine().search(TetrisMap(), nullptr))>::Element LandPoint;
+        typedef typename function_traits<TetrisAI>::result_type Eval;
+        typedef decltype(TetrisAI().get(nullptr, 0)) FinalEval;
         typedef std::pair<LandPoint, FinalEval> Result;
 
         template<class TreeNode>
-        void eval_node(TetrisAI &ai, TetrisMap &map, LandPoint const &node, TreeNode *tree_node)
+        void eval_node(TetrisAI &ai, TetrisMap &map, LandPoint &node, TreeNode *tree_node)
         {
             TetrisMap &new_map = tree_node->map;
             new_map = map;
             size_t clear = node->attach(new_map);
             tree_node->identity = node;
-            tree_node->eval = TetrisCallEval<TetrisAI, LandPoint>::eval(ai, node, new_map, map, clear);
+            tree_node->eval = TetrisCallEval<TetrisAI, LandPoint>::eval(ai, tree_node->identity, new_map, map, clear);
         }
         FinalEval run(TetrisAI &ai, Eval &eval, std::vector<Eval> &history)
         {
@@ -626,7 +648,7 @@ namespace m_tetris
             history.pop_back();
             return result;
         }
-        Result run(TetrisAI &ai, TetrisLandPointSearchEngine &search, TetrisMap const &map, LandPoint const &node)
+        Result run(TetrisAI &ai, TetrisLandPointSearchEngine &search, TetrisMap const &map, LandPoint &node)
         {
             auto const *land_point = search.search(map, node);
             FinalEval final_eval = ai.bad();
@@ -1426,7 +1448,8 @@ namespace m_tetris
             }
             if(next_length == 0)
             {
-                return RunResult(Core().run(ai_, search_, map, node));
+                Core::LandPoint node_ex(node);
+                return RunResult(Core().run(ai_, search_, map, node_ex));
             }
             else
             {
@@ -1459,8 +1482,9 @@ namespace m_tetris
                     }
                     else
                     {
-                        auto node_result = Core().run(ai_, search_, map, node);
-                        auto hold_result = Core().run(ai_, search_, map, context_->generate(hold));
+                        Core::LandPoint node_ex(node), hold_ex(context_->generate(hold));
+                        auto node_result = Core().run(ai_, search_, map, node_ex);
+                        auto hold_result = Core().run(ai_, search_, map, hold_ex);
                         if(hold_result.second > node_result.second)
                         {
                             return RunResult(hold_result, true);
@@ -1473,7 +1497,8 @@ namespace m_tetris
                 }
                 else
                 {
-                    return RunResult(Core().run(ai_, search_, map, node));
+                    Core::LandPoint node_ex(node);
+                    return RunResult(Core().run(ai_, search_, map, node_ex));
                 }
             }
             time_t end = clock() + limit;

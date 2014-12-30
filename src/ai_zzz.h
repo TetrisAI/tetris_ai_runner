@@ -55,11 +55,11 @@ namespace ai_zzz
 
     };
 
-    class SRS
+    class TOJ
     {
     public:
-        typedef land_point_search_tspin::Search::SpinType SpinType;
-        typedef land_point_search_tspin::Search::SpinInfo LandPoint;
+        typedef land_point_search_tspin::Search::TSpinType TSpinType;
+        typedef land_point_search_tspin::Search::TetrisNodeWithTSpinType TetrisNodeEx;
         struct Param
         {
             size_t combo;
@@ -77,9 +77,9 @@ namespace ai_zzz
             size_t clear;
             size_t count;
             int roof;
-            bool t_spin;
+            TSpinType t_spin;
         };
-        eval_result eval(LandPoint const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
+        eval_result eval(TetrisNodeEx &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
         double bad() const;
         double get(eval_result const *history, size_t history_length) const;
     private:

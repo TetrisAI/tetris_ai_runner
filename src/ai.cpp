@@ -91,7 +91,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
 }
 
 //m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_cautious::Search> srs_ai;
-m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::SRS, land_point_search_cautious::Search> srs_ai;
+m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::TOJ, land_point_search_tspin::Search> srs_ai;
 //m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::Dig, land_point_search_cautious::Search> srs_ai;
 
 extern "C" DECLSPEC_EXPORT int AIDllVersion()

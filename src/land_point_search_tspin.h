@@ -9,21 +9,25 @@ namespace land_point_search_tspin
     class Search
     {
     public:
-        enum SpinType
+        enum TSpinType
         {
             None, TSpin, TSpinMini
         };
-        struct SpinInfo
+        struct TetrisNodeWithTSpinType
         {
-            SpinInfo()
+            TetrisNodeWithTSpinType()
             {
             }
-            SpinInfo(m_tetris::TetrisNode const *_node) : node(_node), type(None)
+            TetrisNodeWithTSpinType(m_tetris::TetrisNode const *_node) : node(_node), type(None), is_check(), is_last_rotate(), is_cannot_rotate(), is_block_3()
             {
 
             }
             m_tetris::TetrisNode const *node;
-            SpinType type;
+            TSpinType type;
+            bool is_check;
+            bool is_last_rotate;
+            bool is_cannot_rotate;
+            bool is_block_3;
             operator m_tetris::TetrisNode const *() const
             {
                 return node;
@@ -34,13 +38,17 @@ namespace land_point_search_tspin
             }
         };
         void init(m_tetris::TetrisContext const *context);
-        std::vector<char> make_path(m_tetris::TetrisNode const *node, SpinInfo const &land_point, m_tetris::TetrisMap const &map);
-        std::vector<SpinInfo> const *search(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
+        std::vector<char> make_path(m_tetris::TetrisNode const *node, TetrisNodeWithTSpinType const &land_point, m_tetris::TetrisMap const &map);
+        std::vector<TetrisNodeWithTSpinType> const *search(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
     private:
-        std::vector<SpinInfo> const *search_t(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
-        std::vector<SpinInfo> land_point_cache_;
+        std::vector<char> make_path_t(m_tetris::TetrisNode const *node, TetrisNodeWithTSpinType const &land_point, m_tetris::TetrisMap const &map);
+        std::vector<TetrisNodeWithTSpinType> const *search_t(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
+        bool check_block_3(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
+        std::vector<TetrisNodeWithTSpinType> land_point_cache_;
         std::vector<m_tetris::TetrisNode const *> node_search_;
         m_tetris::TetrisNodeMark node_mark_;
         m_tetris::TetrisNodeMarkFiltered node_mark_filtered_;
+        std::map<int, int> block_data_;
+        int y_diff_;
     };
 }
