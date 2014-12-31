@@ -568,7 +568,7 @@ namespace ai_zzz
                 b2b = true;
                 break;
             }
-            if(history[i].count == 0)
+            if(history[i].count == 0 && up == 0)
             {
                 attack += 6;
             }
