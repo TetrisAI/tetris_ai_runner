@@ -34,6 +34,8 @@ namespace land_point_search_tspin
                 {
                     block_data_[x - x_diff_] = (1 << (x - 1)) | (1 << (x + 1));
                 }
+                block_data_[0 - x_diff_] = (1 << 1);
+                block_data_[context->width() - 1 - x_diff_] = (1 << (context->width() - 2));
             }
         }
     }
@@ -1034,31 +1036,30 @@ namespace land_point_search_tspin
 
     bool Search::check_ready(TetrisMap const &map, TetrisNode const *node)
     {
+        int count;
         int y = node->status.y + y_diff_;
-        if(y == 0 || y == map.height - 1)
-        {
-            return false;
-        }
         int row = block_data_.find(node->status.x)->second;
-        if(row == 0)
+        if(y == 0)
         {
-            return false;
+            return zzz::BitCount(map.row[1] & row) + 2 >= 3;
         }
-        return zzz::BitCount(map.row[y - 1] & row) + zzz::BitCount(map.row[y + 1] & row) >= 3;
+        else
+        {
+            int x = node->status.x + x_diff_;
+            if(x == 0 || x == map.width - 1)
+            {
+                count = 2;
+            }
+            else
+            {
+                count = 0;
+            }
+            return zzz::BitCount(map.row[y - 1] & row) + zzz::BitCount(map.row[y + 1] & row) + count >= 3;
+        }
     }
 
     bool Search::check_mini_ready(m_tetris::TetrisMap const &map, TetrisNodeWithTSpinType const &node)
     {
-        if(node->rotate_opposite && node->rotate_opposite->check(map) || node->rotate_counterclockwise && node->rotate_counterclockwise->check(map) || node->rotate_clockwise && node->rotate_clockwise->check(map))
-        {
-            return false;
-        }
-        if(node.is_ready)
-        {
-            return true;
-        }
-        int x = node->status.x + x_diff_;
-        int y = node->status.y + y_diff_;
-        return x == 0 || x == map.width - 1 || y == 0 || y == map.height - 1;
+        return node.is_ready && !(node->rotate_opposite && node->rotate_opposite->check(map) || node->rotate_counterclockwise && node->rotate_counterclockwise->check(map) || node->rotate_clockwise && node->rotate_clockwise->check(map));
     }
 }

@@ -76,7 +76,7 @@ namespace ai_zzz
             double eval;
             size_t clear;
             size_t count;
-            int roof;
+            int safe;
             TSpinType t_spin;
         };
         eval_result eval(TetrisNodeEx &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
@@ -85,6 +85,8 @@ namespace ai_zzz
     private:
         int col_mask_, row_mask_;
         Param const *param_;
+        int danger_line_;
+        int danger_data_;
     };
 
 }

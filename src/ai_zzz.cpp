@@ -439,6 +439,17 @@ namespace ai_zzz
         param_ = param;
         col_mask_ = context->full() & ~1;
         row_mask_ = context->full();
+        danger_line_ = context->height();
+        danger_data_ = 0;
+        for(size_t i = 0; i < context->type_max(); ++i)
+        {
+            TetrisNode const *node = context->generate(i);
+            danger_line_ = std::min<int>(danger_line_, node->row);
+            for(int x = node->col; x < node->col + node->width; ++x)
+            {
+                danger_data_ |= 1 << x;
+            }
+        }
     }
 
     std::string TOJ::ai_name() const
@@ -496,7 +507,15 @@ namespace ai_zzz
         result.eval = value;
         result.clear = clear;
         result.count = map.count;
-        result.roof = map.roof;
+        int line;
+        for(line = std::min<int>(danger_line_, map.roof); line > 0; --line)
+        {
+            if(map.row[line] && danger_data_)
+            {
+                break;
+            }
+        }
+        result.safe = danger_line_ - line;
         result.t_spin = node.type;
         if(clear > 0 && node.is_check && node.is_last_rotate)
         {
@@ -515,11 +534,11 @@ namespace ai_zzz
 
     double TOJ::get(eval_result const *history, size_t history_length) const
     {
-        size_t under_attack = param_->under_attack;
-        size_t up = 0;
+        int under_attack = param_->under_attack;
+        int up = 0;
         bool b2b = param_->b2b;
         size_t combo = param_->combo;
-        double attack = 0;
+        int attack = 0;
         size_t clear = 0;
         for(size_t i = 0; i < history_length; ++i)
         {
@@ -531,7 +550,11 @@ namespace ai_zzz
                 combo = 0;
                 if(under_attack > 0)
                 {
-                    up = under_attack;
+                    up = std::max<int>(0, under_attack - attack);
+                    if(up >= history[i].safe)
+                    {
+                        return bad();
+                    }
                     under_attack = 0;
                 }
                 break;
@@ -573,6 +596,7 @@ namespace ai_zzz
                 attack += 6;
             }
         }
-        return history[history_length - 1].eval + attack * attack * 10 - up * 40 + (b2b ? 50 : 0);
+        return history[history_length - 1].eval + attack * attack * 10 - up * 40 + (b2b ? 200 : 0);
     }
+
 }
