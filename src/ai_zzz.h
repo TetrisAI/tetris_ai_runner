@@ -77,6 +77,7 @@ namespace ai_zzz
             size_t clear;
             size_t count;
             int safe;
+            double expect;
             TSpinType t_spin;
         };
         eval_result eval(TetrisNodeEx &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;

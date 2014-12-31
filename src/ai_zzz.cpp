@@ -529,6 +529,32 @@ namespace ai_zzz
             }
             node.type = result.t_spin;
         }
+        result.expect = 0;
+        if(true) //T-Spin
+        {
+            bool finding = true;
+            for(int y = 0; finding && y < map.roof - 1; ++y)
+            {
+                int row0 = map.row[y];
+                int row1 = map.row[y + 1];
+                for(int x = 0; finding && x < map.width - 3; ++x)
+                {
+                    if((((row0 >> x) & 7) == 5) && (((row1 >> x) & 7) == 0))
+                    {
+                        int row2_check = ((y + 2 < map.height ? map.row[y + 2] : 0) >> x) & 7;
+                        if(row2_check == 1 || row2_check == 4)
+                        {
+                            result.expect = 4;
+                        }
+                        else
+                        {
+                            result.expect = 3;
+                        }
+                        finding = false;
+                    }
+                }
+            }
+        }
         return result;
     }
 
@@ -539,10 +565,9 @@ namespace ai_zzz
         bool b2b = param_->b2b;
         size_t combo = param_->combo;
         int attack = 0;
-        size_t clear = 0;
+        size_t rubbish = 0;
         for(size_t i = 0; i < history_length; ++i)
         {
-            clear += history[i].clear;
             TSpinType t_spin = history[i].t_spin;
             switch(history[i].clear)
             {
@@ -596,7 +621,8 @@ namespace ai_zzz
                 attack += 6;
             }
         }
-        return history[history_length - 1].eval + attack * attack * 10 - up * 40 + (b2b ? 200 : 0);
+        eval_result const &last = history[history_length - 1];
+        return last.eval + attack * 400 - up * 40 + last.expect * 50 + (b2b ? 200 : 0);
     }
 
 }
