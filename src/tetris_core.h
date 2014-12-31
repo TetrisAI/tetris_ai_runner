@@ -1439,6 +1439,14 @@ namespace m_tetris
             }
             return true;
         }
+        //update!强制刷新上下文
+        void update()
+        {
+            ++tree_context_.version;
+            tree_context_.total += tree_context_.width;
+            tree_context_.avg = tree_context_.total / tree_context_.version;
+            tree_context_.width = 0;
+        }
         //run!
         RunResult run(TetrisMap const &map, TetrisNode const *node, unsigned char const *next, size_t next_length, time_t limit = 100)
         {

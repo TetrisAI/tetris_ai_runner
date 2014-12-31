@@ -159,6 +159,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
             }
         }
     }
+    srs_ai.update();
     srs_ai.param()->combo = combo;
     srs_ai.param()->under_attack = upcomeAtt;
     srs_ai.param()->b2b = !!b2b;
