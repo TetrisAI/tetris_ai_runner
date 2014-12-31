@@ -18,7 +18,7 @@ namespace land_point_search_tspin
             TetrisNodeWithTSpinType()
             {
             }
-            TetrisNodeWithTSpinType(m_tetris::TetrisNode const *_node) : node(_node), type(None), is_check(), is_last_rotate(), is_cannot_rotate(), is_block_3()
+            TetrisNodeWithTSpinType(m_tetris::TetrisNode const *_node) : node(_node), type(None), is_check(), is_last_rotate(), is_ready(), is_mini_ready()
             {
 
             }
@@ -26,8 +26,8 @@ namespace land_point_search_tspin
             TSpinType type;
             bool is_check;
             bool is_last_rotate;
-            bool is_cannot_rotate;
-            bool is_block_3;
+            bool is_ready;
+            bool is_mini_ready;
             operator m_tetris::TetrisNode const *() const
             {
                 return node;
@@ -43,12 +43,13 @@ namespace land_point_search_tspin
     private:
         std::vector<char> make_path_t(m_tetris::TetrisNode const *node, TetrisNodeWithTSpinType const &land_point, m_tetris::TetrisMap const &map);
         std::vector<TetrisNodeWithTSpinType> const *search_t(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
-        bool check_block_3(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
+        bool check_ready(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
+        bool check_mini_ready(m_tetris::TetrisMap const &map, TetrisNodeWithTSpinType const &node);
         std::vector<TetrisNodeWithTSpinType> land_point_cache_;
         std::vector<m_tetris::TetrisNode const *> node_search_;
         m_tetris::TetrisNodeMark node_mark_;
         m_tetris::TetrisNodeMarkFiltered node_mark_filtered_;
         std::map<int, int> block_data_;
-        int y_diff_;
+        int x_diff_, y_diff_;
     };
 }

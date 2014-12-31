@@ -500,11 +500,11 @@ namespace ai_zzz
         result.t_spin = node.type;
         if(clear > 0 && node.is_check && node.is_last_rotate)
         {
-            if(clear == 1 && node.is_cannot_rotate)
+            if(clear == 1 && node.is_mini_ready)
             {
                 result.t_spin = TSpinType::TSpinMini;
             }
-            else if(node.is_block_3)
+            else if(node.is_ready)
             {
                 result.t_spin = TSpinType::TSpin;
             }
@@ -540,7 +540,7 @@ namespace ai_zzz
                 {
                     attack += b2b ? 2 : 1;
                 }
-                else if(t_spin == TSpinType::TSpinMini)
+                else if(t_spin == TSpinType::TSpin)
                 {
                     attack += b2b ? 3 : 2;
                 }

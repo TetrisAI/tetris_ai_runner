@@ -28,11 +28,11 @@ namespace land_point_search_tspin
                 top = std::max<int>(top, rotate->row + rotate->height);
                 left = std::min<int>(left, rotate->col);
                 right = std::max<int>(right, rotate->col + rotate->width);
-                int x_diff = (right + left) / 2 - node->status.x;
+                x_diff_ = (right + left) / 2 - node->status.x;
                 y_diff_ = (top + bottom) / 2 - node->status.y;
                 for(int x = 1; x < context->width() - 1; ++x)
                 {
-                    block_data_[x - x_diff] = (1 << (x - 1)) | (1 << (x + 1));
+                    block_data_[x - x_diff_] = (1 << (x - 1)) | (1 << (x + 1));
                 }
             }
         }
@@ -46,7 +46,7 @@ namespace land_point_search_tspin
         }
         node_mark_.clear();
         node_search_.clear();
-        if(land_point.type != None)
+        if(land_point.type == TSpinMini)
         {
             return make_path_t(node, land_point, map);
         }
@@ -858,8 +858,8 @@ namespace land_point_search_tspin
                         TetrisNodeWithTSpinType node_ex(node);
                         node_ex.is_check = true;
                         node_ex.is_last_rotate = last.second != ' ';
-                        node_ex.is_cannot_rotate = !(node->rotate_opposite && node->rotate_opposite->check(map) || node->rotate_counterclockwise && node->rotate_counterclockwise->check(map) || node->rotate_clockwise && node->rotate_clockwise->check(map));
-                        node_ex.is_block_3 = check_block_3(map, node);
+                        node_ex.is_ready = check_ready(map, node);
+                        node_ex.is_mini_ready = check_mini_ready(map, node_ex);
                         land_point_cache_.push_back(node_ex);
                     }
                 }
@@ -970,7 +970,7 @@ namespace land_point_search_tspin
         return &land_point_cache_;
     }
 
-    bool Search::check_block_3(TetrisMap const &map, TetrisNode const *node)
+    bool Search::check_ready(TetrisMap const &map, TetrisNode const *node)
     {
         int y = node->status.y + y_diff_;
         if(y == 0 || y == map.height - 1)
@@ -983,5 +983,20 @@ namespace land_point_search_tspin
             return false;
         }
         return zzz::BitCount(map.row[y - 1] & row) + zzz::BitCount(map.row[y + 1] & row) >= 3;
+    }
+
+    bool Search::check_mini_ready(m_tetris::TetrisMap const &map, TetrisNodeWithTSpinType const &node)
+    {
+        if(node->rotate_opposite && node->rotate_opposite->check(map) || node->rotate_counterclockwise && node->rotate_counterclockwise->check(map) || node->rotate_clockwise && node->rotate_clockwise->check(map))
+        {
+            return false;
+        }
+        if(node.is_ready)
+        {
+            return true;
+        }
+        int x = node->status.x + x_diff_;
+        int y = node->status.y + y_diff_;
+        return x == 0 || x == map.width - 1 || y == 0 || y == map.height - 1;
     }
 }
