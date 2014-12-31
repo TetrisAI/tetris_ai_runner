@@ -439,6 +439,7 @@ namespace ai_zzz
         param_ = param;
         col_mask_ = context->full() & ~1;
         row_mask_ = context->full();
+        full_count_ = context->width() * context->height();
         danger_line_ = context->height();
         danger_data_ = 0;
         for(size_t i = 0; i < context->type_max(); ++i)
@@ -606,7 +607,7 @@ namespace ai_zzz
         int line;
         for(line = map.roof - 1; line > 0; --line)
         {
-            if(map.row[line] && danger_data_)
+            if(map.row[line] & danger_data_)
             {
                 break;
             }
@@ -724,7 +725,7 @@ namespace ai_zzz
             }
         }
         eval_result const &last = history[history_length - 1];
-        return last.map + land_point_value / history_length + attack * 300 - up * 30 + last.expect * 45 + (b2b ? 75 : 0);
+        return last.map + land_point_value / history_length + attack * 200 * (full_count_ - last.count) / full_count_ - up * 40 + last.expect * 32 + (b2b ? 64 : 0);
     }
 
 }

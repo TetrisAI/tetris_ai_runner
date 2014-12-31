@@ -88,6 +88,7 @@ namespace ai_zzz
         Param const *param_;
         int danger_line_;
         int danger_data_;
+        size_t full_count_;
     };
 
 }
