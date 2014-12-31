@@ -573,6 +573,6 @@ namespace ai_zzz
                 attack += 6;
             }
         }
-        return history[history_length - 1].eval + attack * attack * 10 - up * 40;
+        return history[history_length - 1].eval + attack * attack * 10 - up * 40 + (b2b ? 50 : 0);
     }
 }

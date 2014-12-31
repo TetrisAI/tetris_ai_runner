@@ -18,11 +18,12 @@ namespace land_point_search_tspin
             TetrisNodeWithTSpinType()
             {
             }
-            TetrisNodeWithTSpinType(m_tetris::TetrisNode const *_node) : node(_node), type(None), is_check(), is_last_rotate(), is_ready(), is_mini_ready()
+            TetrisNodeWithTSpinType(m_tetris::TetrisNode const *_node) : node(_node), last(), type(None), is_check(), is_last_rotate(), is_ready(), is_mini_ready()
             {
 
             }
             m_tetris::TetrisNode const *node;
+            m_tetris::TetrisNode const *last;
             TSpinType type;
             bool is_check;
             bool is_last_rotate;
