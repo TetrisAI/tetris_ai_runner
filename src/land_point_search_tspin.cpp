@@ -8,8 +8,9 @@ using namespace m_tetris;
 
 namespace land_point_search_tspin
 {
-    void Search::init(m_tetris::TetrisContext const *context)
+    void Search::init(m_tetris::TetrisContext const *context, Status const *status)
     {
+        status_ = status;
         node_mark_.init(context->node_max());
         node_mark_filtered_.init(context->node_max());
         block_data_.clear();
@@ -50,6 +51,7 @@ namespace land_point_search_tspin
         {
             return make_path_t(node, land_point, map);
         }
+        bool allow_180 = status_->allow_180;
         node_mark_.clear();
         node_search_.clear();
         const int index = land_point->index_filtered;
@@ -78,45 +80,48 @@ namespace land_point_search_tspin
             {
                 TetrisNode const *node = node_search_[cache_index];
                 //x
-                if(node->rotate_opposite && node->rotate_opposite->check(map))
+                if(allow_180)
                 {
-                    if(node_mark_.set(node->rotate_opposite, node, 'x'))
+                    if(node->rotate_opposite && node->rotate_opposite->check(map))
                     {
-                        if(node->rotate_opposite->index_filtered == index)
+                        if(node_mark_.set(node->rotate_opposite, node, 'x'))
                         {
-                            return build_path(node->rotate_opposite, node_mark_);
-                        }
-                        else
-                        {
-                            node_search_.push_back(node->rotate_opposite);
-                        }
-                    }
-                }
-                else
-                {
-                    for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
-                    {
-                        if(wall_kick_node)
-                        {
-                            if(wall_kick_node->check(map))
+                            if(node->rotate_opposite->index_filtered == index)
                             {
-                                if(node_mark_.set(wall_kick_node, node, 'x'))
-                                {
-                                    if(wall_kick_node->index_filtered == index)
-                                    {
-                                        return build_path(wall_kick_node, node_mark_);
-                                    }
-                                    else
-                                    {
-                                        node_search_.push_back(wall_kick_node);
-                                    }
-                                }
-                                break;
+                                return build_path(node->rotate_opposite, node_mark_);
+                            }
+                            else
+                            {
+                                node_search_.push_back(node->rotate_opposite);
                             }
                         }
-                        else
+                    }
+                    else
+                    {
+                        for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
                         {
-                            break;
+                            if(wall_kick_node)
+                            {
+                                if(wall_kick_node->check(map))
+                                {
+                                    if(node_mark_.set(wall_kick_node, node, 'x'))
+                                    {
+                                        if(wall_kick_node->index_filtered == index)
+                                        {
+                                            return build_path(wall_kick_node, node_mark_);
+                                        }
+                                        else
+                                        {
+                                            node_search_.push_back(wall_kick_node);
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                break;
+                            }
                         }
                     }
                 }
@@ -302,6 +307,7 @@ namespace land_point_search_tspin
 
     std::vector<Search::TetrisNodeWithTSpinType> const *Search::search(TetrisMap const &map, TetrisNode const *node)
     {
+        bool allow_180 = status_->allow_180;
         node_mark_.clear();
         node_mark_filtered_.clear();
         node_search_.clear();
@@ -362,32 +368,35 @@ namespace land_point_search_tspin
                             land_point_cache_.push_back(node);
                         }
                     }
-                    //x
-                    if(node->rotate_opposite && node->rotate_opposite->check(map))
+                    if(allow_180)
                     {
-                        if(node_mark_.mark(node->rotate_opposite))
+                        //x
+                        if(node->rotate_opposite && node->rotate_opposite->check(map))
                         {
-                            node_search_.push_back(node->rotate_opposite);
-                        }
-                    }
-                    else
-                    {
-                        for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
-                        {
-                            if(wall_kick_node)
+                            if(node_mark_.mark(node->rotate_opposite))
                             {
-                                if(wall_kick_node->check(map))
+                                node_search_.push_back(node->rotate_opposite);
+                            }
+                        }
+                        else
+                        {
+                            for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
+                            {
+                                if(wall_kick_node)
                                 {
-                                    if(node_mark_.mark(wall_kick_node) && !wall_kick_node->open(map))
+                                    if(wall_kick_node->check(map))
                                     {
-                                        node_search_.push_back(wall_kick_node);
+                                        if(node_mark_.mark(wall_kick_node) && !wall_kick_node->open(map))
+                                        {
+                                            node_search_.push_back(wall_kick_node);
+                                        }
+                                        break;
                                     }
+                                }
+                                else
+                                {
                                     break;
                                 }
-                            }
-                            else
-                            {
-                                break;
                             }
                         }
                     }
@@ -484,32 +493,35 @@ namespace land_point_search_tspin
                             land_point_cache_.push_back(node);
                         }
                     }
-                    //x
-                    if(node->rotate_opposite && node->rotate_opposite->check(map))
+                    if(allow_180)
                     {
-                        if(node_mark_.mark(node->rotate_opposite))
+                        //x
+                        if(node->rotate_opposite && node->rotate_opposite->check(map))
                         {
-                            node_search_.push_back(node->rotate_opposite);
-                        }
-                    }
-                    else
-                    {
-                        for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
-                        {
-                            if(wall_kick_node)
+                            if(node_mark_.mark(node->rotate_opposite))
                             {
-                                if(wall_kick_node->check(map))
+                                node_search_.push_back(node->rotate_opposite);
+                            }
+                        }
+                        else
+                        {
+                            for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
+                            {
+                                if(wall_kick_node)
                                 {
-                                    if(node_mark_.mark(wall_kick_node))
+                                    if(wall_kick_node->check(map))
                                     {
-                                        node_search_.push_back(wall_kick_node);
+                                        if(node_mark_.mark(wall_kick_node))
+                                        {
+                                            node_search_.push_back(wall_kick_node);
+                                        }
+                                        break;
                                     }
+                                }
+                                else
+                                {
                                     break;
                                 }
-                            }
-                            else
-                            {
-                                break;
                             }
                         }
                     }
@@ -594,10 +606,11 @@ namespace land_point_search_tspin
 
     std::vector<char> Search::make_path_t(TetrisNode const *node, TetrisNodeWithTSpinType const &land_point, TetrisMap const &map)
     {
+        bool allow_180 = status_->allow_180;
         node_mark_.clear();
         node_search_.clear();
         const int index = land_point.last->index;
-        auto build_path = [&land_point, &map](TetrisNode const *node, decltype(node_mark_) &node_mark)->std::vector < char >
+        auto build_path = [&land_point, &map, allow_180](TetrisNode const *node, decltype(node_mark_) &node_mark)->std::vector < char >
         {
             std::vector<char> path;
             while(true)
@@ -613,23 +626,26 @@ namespace land_point_search_tspin
             std::reverse(path.begin(), path.end());
             TetrisNode const *last = land_point.last;
             node = land_point.node;
-            //x
-            for(TetrisNode const *wall_kick_node : last->wall_kick_opposite)
+            if(allow_180)
             {
-                if(wall_kick_node)
+                //x
+                for(TetrisNode const *wall_kick_node : last->wall_kick_opposite)
                 {
-                    if(wall_kick_node->check(map))
+                    if(wall_kick_node)
                     {
-                        if(wall_kick_node == node)
+                        if(wall_kick_node->check(map))
                         {
-                            path.push_back('x');
-                            return path;
+                            if(wall_kick_node == node)
+                            {
+                                path.push_back('x');
+                                return path;
+                            }
                         }
                     }
-                }
-                else
-                {
-                    break;
+                    else
+                    {
+                        break;
+                    }
                 }
             }
             //z
@@ -680,46 +696,49 @@ namespace land_point_search_tspin
             for(size_t max_index = node_search_.size(); cache_index < max_index; ++cache_index)
             {
                 TetrisNode const *node = node_search_[cache_index];
-                //x
-                if(node->rotate_opposite && node->rotate_opposite->check(map))
+                if(allow_180)
                 {
-                    if(node_mark_.set(node->rotate_opposite, node, 'x'))
+                    //x
+                    if(node->rotate_opposite && node->rotate_opposite->check(map))
                     {
-                        if(node->rotate_opposite->index == index)
+                        if(node_mark_.set(node->rotate_opposite, node, 'x'))
                         {
-                            return build_path(node->rotate_opposite, node_mark_);
-                        }
-                        else
-                        {
-                            node_search_.push_back(node->rotate_opposite);
-                        }
-                    }
-                }
-                else
-                {
-                    for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
-                    {
-                        if(wall_kick_node)
-                        {
-                            if(wall_kick_node->check(map))
+                            if(node->rotate_opposite->index == index)
                             {
-                                if(node_mark_.set(wall_kick_node, node, 'x'))
-                                {
-                                    if(wall_kick_node->index == index)
-                                    {
-                                        return build_path(wall_kick_node, node_mark_);
-                                    }
-                                    else
-                                    {
-                                        node_search_.push_back(wall_kick_node);
-                                    }
-                                }
-                                break;
+                                return build_path(node->rotate_opposite, node_mark_);
+                            }
+                            else
+                            {
+                                node_search_.push_back(node->rotate_opposite);
                             }
                         }
-                        else
+                    }
+                    else
+                    {
+                        for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
                         {
-                            break;
+                            if(wall_kick_node)
+                            {
+                                if(wall_kick_node->check(map))
+                                {
+                                    if(node_mark_.set(wall_kick_node, node, 'x'))
+                                    {
+                                        if(wall_kick_node->index == index)
+                                        {
+                                            return build_path(wall_kick_node, node_mark_);
+                                        }
+                                        else
+                                        {
+                                            node_search_.push_back(wall_kick_node);
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                break;
+                            }
                         }
                     }
                 }
@@ -905,6 +924,7 @@ namespace land_point_search_tspin
 
     std::vector<Search::TetrisNodeWithTSpinType> const *Search::search_t(TetrisMap const &map, TetrisNode const *node)
     {
+        bool allow_180 = status_->allow_180;
         node_search_.push_back(node);
         node_mark_.mark(node);
         size_t cache_index = 0;
@@ -942,32 +962,35 @@ namespace land_point_search_tspin
                 {
                     node_search_.push_back(node->move_right);
                 }
-                //x
-                if(node->rotate_opposite && node->rotate_opposite->check(map))
+                if(allow_180)
                 {
-                    if(node_mark_.set(node->rotate_opposite, node, 'x'))
+                    //x
+                    if(node->rotate_opposite && node->rotate_opposite->check(map))
                     {
-                        node_search_.push_back(node->rotate_opposite);
-                    }
-                }
-                else
-                {
-                    for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
-                    {
-                        if(wall_kick_node)
+                        if(node_mark_.set(node->rotate_opposite, node, 'x'))
                         {
-                            if(wall_kick_node->check(map))
+                            node_search_.push_back(node->rotate_opposite);
+                        }
+                    }
+                    else
+                    {
+                        for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
+                        {
+                            if(wall_kick_node)
                             {
-                                if(node_mark_.set(wall_kick_node, node, 'x'))
+                                if(wall_kick_node->check(map))
                                 {
-                                    node_search_.push_back(wall_kick_node);
+                                    if(node_mark_.set(wall_kick_node, node, 'x'))
+                                    {
+                                        node_search_.push_back(wall_kick_node);
+                                    }
+                                    break;
                                 }
+                            }
+                            else
+                            {
                                 break;
                             }
-                        }
-                        else
-                        {
-                            break;
                         }
                     }
                 }

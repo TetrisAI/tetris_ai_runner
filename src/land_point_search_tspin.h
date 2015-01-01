@@ -13,6 +13,10 @@ namespace land_point_search_tspin
         {
             None, TSpin, TSpinMini
         };
+        struct Status
+        {
+            bool allow_180;
+        };
         struct TetrisNodeWithTSpinType
         {
             TetrisNodeWithTSpinType() : node(), last(), type(None), is_check(), is_last_rotate(), is_ready(), is_mini_ready()
@@ -38,7 +42,7 @@ namespace land_point_search_tspin
                 return node;
             }
         };
-        void init(m_tetris::TetrisContext const *context);
+        void init(m_tetris::TetrisContext const *context, Status const *status);
         std::vector<char> make_path(m_tetris::TetrisNode const *node, TetrisNodeWithTSpinType const &land_point, m_tetris::TetrisMap const &map);
         std::vector<TetrisNodeWithTSpinType> const *search(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
     private:
@@ -52,5 +56,6 @@ namespace land_point_search_tspin
         m_tetris::TetrisNodeMarkFiltered node_mark_filtered_;
         std::map<int, int> block_data_;
         int x_diff_, y_diff_;
+        Status const *status_;
     };
 }

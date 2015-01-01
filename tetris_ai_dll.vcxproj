@@ -23,6 +23,7 @@
     <ClInclude Include="src\rule_qq.h" />
     <ClInclude Include="src\rule_srsx.h" />
     <ClInclude Include="src\rule_st.h" />
+    <ClInclude Include="src\rule_toj.h" />
     <ClInclude Include="src\tetris_core.h" />
     <ClInclude Include="src\ai_zzz.h" />
     <ClInclude Include="src\land_point_search_cautious.h" />
@@ -42,6 +43,7 @@
     <ClCompile Include="src\rule_qq.cpp" />
     <ClCompile Include="src\rule_srsx.cpp" />
     <ClCompile Include="src\rule_st.cpp" />
+    <ClCompile Include="src\rule_toj.cpp" />
     <ClCompile Include="src\tetris_core.cpp" />
     <ClCompile Include="src\ai_zzz.cpp" />
     <ClCompile Include="src\land_point_search_cautious.cpp" />

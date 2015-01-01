@@ -455,7 +455,7 @@ namespace ai_zzz
 
     std::string TOJ::ai_name() const
     {
-        return "ZZZ TOJ v0.3";
+        return "ZZZ TOJ v0.4";
     }
 
     double TOJ::bad() const

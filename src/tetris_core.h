@@ -129,12 +129,6 @@ namespace m_tetris
         bool(*rotate_counterclockwise)(TetrisNode &node, TetrisContext const *context);
         //转动180°
         bool(*rotate_opposite)(TetrisNode &node, TetrisContext const *context);
-        //左移
-        bool(*move_left)(TetrisNode &node, TetrisContext const *context);
-        //右移
-        bool(*move_right)(TetrisNode &node, TetrisContext const *context);
-        //下落
-        bool(*move_down)(TetrisNode &node, TetrisContext const *context);
         //顺时针旋转踢墙
         TetrisWallKickOpertion wall_kick_clockwise;
         //逆时针旋转踢墙
@@ -272,9 +266,8 @@ namespace m_tetris
 
         //规则信息
 
-        std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> init_opertion_;
-        std::map<unsigned char, TetrisBlockStatus(*)(TetrisContext const *)> init_generate_;
-        std::map<unsigned char, TetrisBlockStatus(*)(TetrisContext const *)> game_generate_;
+        std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> opertion_;
+        std::map<unsigned char, TetrisBlockStatus(*)(TetrisContext const *)> generate_;
 
         //宽,高什么的...
         int width_, height_;
@@ -552,9 +545,8 @@ namespace m_tetris
         static TetrisContextEx *build_context()
         {
             TetrisContextEx *context = new TetrisContextEx();
-            context->init_opertion_ = TetrisRuleSet::get_init_opertion();
-            context->init_generate_ = TetrisRuleSet::get_init_generate();
-            context->game_generate_ = TetrisRuleSet::get_game_generate();
+            context->opertion_ = TetrisRuleSet::get_opertion();
+            context->generate_ = TetrisRuleSet::get_generate();
             return context;
         }
     private:

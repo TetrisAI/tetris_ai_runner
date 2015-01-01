@@ -16,16 +16,6 @@ namespace rule_srs
     }
 
     template<unsigned char T>
-    TetrisBlockStatus init_generate_template(TetrisContext const *context)
-    {
-        TetrisBlockStatus status =
-        {
-            T, 3, 39, 0
-        };
-        return status;
-    }
-
-    template<unsigned char T>
     TetrisBlockStatus game_generate_template(TetrisContext const *context)
     {
         TetrisBlockStatus status =
@@ -35,7 +25,7 @@ namespace rule_srs
         return status;
     }
 
-    std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet::get_init_opertion()
+    std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet::get_opertion()
     {
         std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> info;
 #define T(a, b, c, d) (((a) ? 1 : 0) | ((b) ? 2 : 0) | ((c) ? 4 : 0) | ((d) ? 8 : 0))
@@ -49,9 +39,6 @@ namespace rule_srs
             nullptr,
             nullptr,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
         };
         TetrisOpertion op_I1 =
         {
@@ -63,9 +50,6 @@ namespace rule_srs
             rotate_template<1>,
             rotate_template<3>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{-2, +0}, {+1, +0}, {-2, -1}, {+1, +2}}},
             {4, {{-1, +0}, {+2, +0}, {-1, +2}, {+2, -1}}},
         };
@@ -79,9 +63,6 @@ namespace rule_srs
             rotate_template<2>,
             rotate_template<0>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{-1, +0}, {+2, +0}, {-1, +2}, {+2, -1}}},
             {4, {{+2, +0}, {-1, +0}, {+2, +1}, {-1, -2}}},
         };
@@ -95,9 +76,6 @@ namespace rule_srs
             rotate_template<3>,
             rotate_template<1>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{+2, +0}, {-1, +0}, {+2, +1}, {-1, -2}}},
             {4, {{+1, +0}, {-2, +0}, {+1, -2}, {-2, +1}}},
         };
@@ -111,9 +89,6 @@ namespace rule_srs
             rotate_template<0>,
             rotate_template<2>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{+1, +0}, {-2, +0}, {+1, -2}, {-2, +1}}},
             {4, {{-2, +0}, {+1, +0}, {-2, -1}, {+1, +2}}},
         };
@@ -127,9 +102,6 @@ namespace rule_srs
             rotate_template<1>,
             rotate_template<3>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{-1, +0}, {-1, +1}, {+0, -2}, {-1, -2}}},
             {4, {{+1, +0}, {+1, +1}, {+0, -2}, {+1, -2}}},
         };
@@ -143,9 +115,6 @@ namespace rule_srs
             rotate_template<2>,
             rotate_template<0>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{+1, +0}, {+1, -1}, {+0, +2}, {+1, +2}}},
             {4, {{+1, +0}, {+1, -1}, {+0, +2}, {+1, +2}}},
         };
@@ -159,9 +128,6 @@ namespace rule_srs
             rotate_template<3>,
             rotate_template<1>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{+1, +0}, {+1, +1}, {+0, -2}, {+1, -2}}},
             {4, {{-1, +0}, {-1, +1}, {+0, -2}, {-1, -2}}},
         };
@@ -175,9 +141,6 @@ namespace rule_srs
             rotate_template<0>,
             rotate_template<2>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{-1, +0}, {-1, -1}, {+0, +2}, {-1, +2}}},
             {4, {{-1, +0}, {-1, -1}, {+0, +2}, {-1, +2}}},
         };
@@ -191,9 +154,6 @@ namespace rule_srs
             rotate_template<1>,
             rotate_template<3>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{-1, +0}, {-1, +1}, {+0, -2}, {-1, -2}}},
             {4, {{+1, +0}, {+1, +1}, {+0, -2}, {+1, -2}}},
         };
@@ -207,9 +167,6 @@ namespace rule_srs
             rotate_template<2>,
             rotate_template<0>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{+1, +0}, {+1, -1}, {+0, +2}, {+1, +2}}},
             {4, {{+1, +0}, {+1, -1}, {+0, +2}, {+1, +2}}},
         };
@@ -223,9 +180,6 @@ namespace rule_srs
             rotate_template<3>,
             rotate_template<1>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{+1, +0}, {+1, +1}, {+0, -2}, {+1, -2}}},
             {4, {{-1, +0}, {-1, +1}, {+0, -2}, {-1, -2}}},
         };
@@ -239,9 +193,6 @@ namespace rule_srs
             rotate_template<0>,
             rotate_template<2>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{-1, +0}, {-1, -1}, {+0, +2}, {-1, +2}}},
             {4, {{-1, +0}, {-1, -1}, {+0, +2}, {-1, +2}}},
         };
@@ -255,9 +206,6 @@ namespace rule_srs
             rotate_template<1>,
             rotate_template<3>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{-1, +0}, {-1, +1}, {+0, -2}, {-1, -2}}},
             {4, {{+1, +0}, {+1, +1}, {+0, -2}, {+1, -2}}},
         };
@@ -271,9 +219,6 @@ namespace rule_srs
             rotate_template<2>,
             rotate_template<0>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{+1, +0}, {+1, -1}, {+0, +2}, {+1, +2}}},
             {4, {{+1, +0}, {+1, -1}, {+0, +2}, {+1, +2}}},
         };
@@ -287,9 +232,6 @@ namespace rule_srs
             rotate_template<3>,
             rotate_template<1>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{+1, +0}, {+1, +1}, {+0, -2}, {+1, -2}}},
             {4, {{-1, +0}, {-1, +1}, {+0, -2}, {-1, -2}}},
         };
@@ -303,9 +245,6 @@ namespace rule_srs
             rotate_template<0>,
             rotate_template<2>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{-1, +0}, {-1, -1}, {+0, +2}, {-1, +2}}},
             {4, {{-1, +0}, {-1, -1}, {+0, +2}, {-1, +2}}},
         };
@@ -319,9 +258,6 @@ namespace rule_srs
             rotate_template<1>,
             rotate_template<3>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{-1, +0}, {-1, +1}, {+0, -2}, {-1, -2}}},
             {4, {{+1, +0}, {+1, +1}, {+0, -2}, {+1, -2}}},
         };
@@ -335,9 +271,6 @@ namespace rule_srs
             rotate_template<2>,
             rotate_template<0>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{+1, +0}, {+1, -1}, {+0, +2}, {+1, +2}}},
             {4, {{+1, +0}, {+1, -1}, {+0, +2}, {+1, +2}}},
         };
@@ -351,9 +284,6 @@ namespace rule_srs
             rotate_template<3>,
             rotate_template<1>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{+1, +0}, {+1, +1}, {+0, -2}, {+1, -2}}},
             {4, {{-1, +0}, {-1, +1}, {+0, -2}, {-1, -2}}},
         };
@@ -367,9 +297,6 @@ namespace rule_srs
             rotate_template<0>,
             rotate_template<2>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{-1, +0}, {-1, -1}, {+0, +2}, {-1, +2}}},
             {4, {{-1, +0}, {-1, -1}, {+0, +2}, {-1, +2}}},
         };
@@ -383,9 +310,6 @@ namespace rule_srs
             rotate_template<1>,
             rotate_template<3>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{-1, +0}, {-1, +1}, {+0, -2}, {-1, -2}}},
             {4, {{+1, +0}, {+1, +1}, {+0, -2}, {+1, -2}}},
         };
@@ -399,9 +323,6 @@ namespace rule_srs
             rotate_template<2>,
             rotate_template<0>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{+1, +0}, {+1, -1}, {+0, +2}, {+1, +2}}},
             {4, {{+1, +0}, {+1, -1}, {+0, +2}, {+1, +2}}},
         };
@@ -415,9 +336,6 @@ namespace rule_srs
             rotate_template<3>,
             rotate_template<1>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{+1, +0}, {+1, +1}, {+0, -2}, {+1, -2}}},
             {4, {{-1, +0}, {-1, +1}, {+0, -2}, {-1, -2}}},
         };
@@ -431,9 +349,6 @@ namespace rule_srs
             rotate_template<0>,
             rotate_template<2>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
             {4, {{-1, +0}, {-1, -1}, {+0, +2}, {-1, +2}}},
             {4, {{-1, +0}, {-1, -1}, {+0, +2}, {-1, +2}}},
         };
@@ -466,20 +381,7 @@ namespace rule_srs
         return info;
     }
 
-    std::map<unsigned char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> TetrisRuleSet::get_init_generate()
-    {
-        std::map<unsigned char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> info;
-        info.insert(std::make_pair('O', &init_generate_template<'O'>));
-        info.insert(std::make_pair('I', &init_generate_template<'I'>));
-        info.insert(std::make_pair('S', &init_generate_template<'S'>));
-        info.insert(std::make_pair('Z', &init_generate_template<'Z'>));
-        info.insert(std::make_pair('L', &init_generate_template<'L'>));
-        info.insert(std::make_pair('J', &init_generate_template<'J'>));
-        info.insert(std::make_pair('T', &init_generate_template<'T'>));
-        return info;
-    }
-
-    std::map<unsigned char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> TetrisRuleSet::get_game_generate()
+    std::map<unsigned char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> TetrisRuleSet::get_generate()
     {
         std::map<unsigned char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> info;
         info.insert(std::make_pair('O', &game_generate_template<'O'>));

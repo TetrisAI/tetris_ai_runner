@@ -316,7 +316,7 @@ namespace m_tetris
         type_max_ = 0;
         full_ = width == 32 ? 0xFFFFFFFF : (1 << width) - 1;
         std::vector<TetrisBlockStatus> check;
-        for(auto cit = init_generate_.begin(); cit != init_generate_.end(); ++cit)
+        for(auto cit = generate_.begin(); cit != generate_.end(); ++cit)
         {
             unsigned char type = cit->first;
             index_to_type_[type_max_] = type;
@@ -326,7 +326,7 @@ namespace m_tetris
         for(size_t i = 0; i < type_max_; ++i)
         {
             TetrisNode node;
-            create(init_generate_[index_to_type_[i]](this), node);
+            create(generate_[index_to_type_[i]](this), node);
             check.push_back(node.status);
             node_cache_.insert(std::make_pair(node.status, node));
         }
@@ -357,7 +357,7 @@ namespace m_tetris
                 node.index = check_index;
                 node.index_filtered = index_filter.insert(std::make_pair(node, check_index)).first->second;
                 node.context = this;
-#define D(func)\
+#define ROTATE(func)\
 /**//**//**//**/do\
 /**//**//**//**/{\
 /**//**//**//**//**/TetrisNode copy =\
@@ -375,24 +375,43 @@ namespace m_tetris
 /**//**//**//**//**/}\
 /**//**//**//**/} while(false)\
 /**//**//**//**/
-                D(rotate_clockwise);
-                D(rotate_counterclockwise);
-                D(rotate_opposite);
-                D(move_left);
-                D(move_right);
-                D(move_down);
-#undef D
+                ROTATE(rotate_clockwise);
+                ROTATE(rotate_counterclockwise);
+                ROTATE(rotate_opposite);
+#undef ROTATE
+#define MOVE(func)\
+/**//**//**//**/do\
+/**//**//**//**/{\
+/**//**//**//**//**/TetrisNode copy =\
+/**//**//**//**//**/{\
+/**//**//**//**//**//**/node.status, node.op, {node.data[0], node.data[1], node.data[2], node.data[3]}, {node.top[0], node.top[1], node.top[2], node.top[3]}, {node.bottom[0], node.bottom[1], node.bottom[2], node.bottom[3]}, node.row, node.height, node.col, node.width\
+/**//**//**//**//**/};\
+/**//**//**//**//**/if(m_tetris_rule_tools::func(copy, this))\
+/**//**//**//**//**/{\
+/**//**//**//**//**//**/auto result = node_cache_.insert(std::make_pair(copy.status, copy));\
+/**//**//**//**//**//**/if(result.second)\
+/**//**//**//**//**//**/{\
+/**//**//**//**//**//**//**/check.push_back(copy.status);\
+/**//**//**//**//**//**/}\
+/**//**//**//**//**//**/node.func = &result.first->second;\
+/**//**//**//**//**/}\
+/**//**//**//**/} while(false)\
+/**//**//**//**/
+                MOVE(move_left);
+                MOVE(move_right);
+                MOVE(move_down);
+                MOVE(move_up);
+#undef MOVE
                 node.move_down_multi[0] = &node;
                 if(node.move_down)
                 {
-                    node_cache_.find(node.move_down->status)->second.move_up = &node;
                     node.move_down_multi[1] = node.move_down;
                     TetrisNode copy =
                     {
                         node.move_down->status, node.move_down->op, {node.move_down->data[0], node.move_down->data[1], node.move_down->data[2], node.move_down->data[3]}, {node.move_down->top[0], node.move_down->top[1], node.move_down->top[2], node.move_down->top[3]}, {node.move_down->bottom[0], node.move_down->bottom[1], node.move_down->bottom[2], node.move_down->bottom[3]}, node.move_down->row, node.move_down->height, node.move_down->col, node.move_down->width, node.move_down->low
                     };
                     int index = 2;
-                    while(copy.op.move_down != nullptr && copy.op.move_down(copy, this))
+                    while(m_tetris_rule_tools::move_down(copy, this))
                     {
                         auto result = node_cache_.insert(std::make_pair(copy.status, copy));
                         if(result.second)
@@ -408,7 +427,7 @@ namespace m_tetris
         for(size_t i = 0; i < type_max_; ++i)
         {
             TetrisNode node_generate;
-            create(game_generate_[index_to_type_[i]](this), node_generate);
+            create(generate_[index_to_type_[i]](this), node_generate);
             TetrisNode const *node = generate_cache_[i] = get(node_generate.status);
             place_cache_.insert(std::make_pair(node->status.t, std::vector<TetrisNode const *>()));
             std::vector<TetrisNode const *> *land_point = &place_cache_.find(node->status.t)->second;
@@ -425,7 +444,7 @@ namespace m_tetris
                     land_point->push_back(move);
                     move = move->move_right;
                 } while(move != nullptr);
-                rotate = rotate->rotate_counterclockwise;
+                rotate = rotate->rotate_counterclockwise != nullptr ? rotate->rotate_counterclockwise : rotate->rotate_clockwise;
             } while(rotate != nullptr  && rotate != node);
             rotate = node;
             int low = map.height;
@@ -435,7 +454,7 @@ namespace m_tetris
                 {
                     low = std::min(low, rotate->bottom[y]);
                 }
-                rotate = rotate->rotate_counterclockwise;
+                rotate = rotate->rotate_counterclockwise != nullptr ? rotate->rotate_counterclockwise : rotate->rotate_clockwise;
             } while(rotate != nullptr  && rotate != node);
             auto set_column_data = [land_point](TetrisNode const *node, int low)->void
             {
@@ -466,7 +485,7 @@ namespace m_tetris
         for(auto it = node_cache_.begin(); it != node_cache_.end(); ++it)
         {
             TetrisNode &node = it->second;
-#define D(func)\
+#define WALL_KICK(func)\
 /**//**//**/do\
 /**//**//**/{\
 /**//**//**//**/if(node.op.rotate_##func != nullptr)\
@@ -490,10 +509,10 @@ namespace m_tetris
 /**//**//**//**/}\
 /**//**//**/} while(false)\
 /**//**//**/
-            D(clockwise);
-            D(counterclockwise);
-            D(opposite);
-#undef D
+            WALL_KICK(clockwise);
+            WALL_KICK(counterclockwise);
+            WALL_KICK(opposite);
+#undef WALL_KICK
         }
         return rebuild;
     }
@@ -525,8 +544,8 @@ namespace m_tetris
 
     TetrisOpertion TetrisContext::get_opertion(unsigned char t, unsigned char r) const
     {
-        auto find = init_opertion_.find(std::make_pair(t, r));
-        if(find == init_opertion_.end())
+        auto find = opertion_.find(std::make_pair(t, r));
+        if(find == opertion_.end())
         {
             TetrisOpertion empty = {};
             return empty;

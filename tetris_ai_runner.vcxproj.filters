@@ -46,6 +46,9 @@
     <ClCompile Include="src\ai_farteryhr.cpp">
       <Filter>ai\farteryhr</Filter>
     </ClCompile>
+    <ClCompile Include="src\rule_toj.cpp">
+      <Filter>rules\toj</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\rule_srs.h">
@@ -93,6 +96,9 @@
     </ClInclude>
     <ClInclude Include="src\ai_farteryhr.h">
       <Filter>ai\farteryhr</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rule_toj.h">
+      <Filter>rules\toj</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -146,6 +152,9 @@
     </Filter>
     <Filter Include="ai\farteryhr">
       <UniqueIdentifier>{0574e13d-108d-49ea-9681-875afda47edf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="rules\toj">
+      <UniqueIdentifier>{a7357bb7-1496-4b42-93ba-1ca197f72e25}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

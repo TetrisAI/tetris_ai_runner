@@ -4,7 +4,7 @@
 #include "tetris_core.h"
 #include <map>
 
-namespace rule_qq
+namespace rule_toj
 {
     struct TetrisRuleSet
     {

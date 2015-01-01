@@ -15,6 +15,7 @@
 #include "rule_st.h"
 #include "rule_qq.h"
 #include "rule_srs.h"
+#include "rule_toj.h"
 #include "random.h"
 
 //m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_path::Search> tetris_ai;
@@ -90,9 +91,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     return 0;
 }
 
-//m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_cautious::Search> srs_ai;
-m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::TOJ, land_point_search_tspin::Search> srs_ai;
-//m_tetris::TetrisEngine<rule_srs::TetrisRuleSet, ai_zzz::Dig, land_point_search_cautious::Search> srs_ai;
+m_tetris::TetrisEngine<rule_toj::TetrisRuleSet, ai_zzz::TOJ, land_point_search_tspin::Search> srs_ai;
 
 extern "C" DECLSPEC_EXPORT int AIDllVersion()
 {
@@ -160,6 +159,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
         }
     }
     srs_ai.update();
+    srs_ai.status()->allow_180 = can180spin;
     srs_ai.param()->combo = combo;
     srs_ai.param()->under_attack = upcomeAtt;
     srs_ai.param()->b2b = !!b2b;
@@ -317,10 +317,6 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
     {
         --status.y;
         node = qq_ai.get(status);
-    }
-    if(node != nullptr && node->row + node->height > map.height)
-    {
-        node = node->move_down_multi[node->row + node->height - map.height];
     }
     auto target = qq_ai.run(map, node, reinterpret_cast<unsigned char const *>(nextPiece + 1), next_length, 60).target;
     std::vector<char> ai_path;

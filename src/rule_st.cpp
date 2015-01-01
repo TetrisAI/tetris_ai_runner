@@ -19,7 +19,7 @@ namespace rule_st
         return status;
     }
 
-    std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet::get_init_opertion()
+    std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet::get_opertion()
     {
         std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> info;
 #define T(a, b, c, d) (((a) ? 1 : 0) | ((b) ? 2 : 0) | ((c) ? 4 : 0) | ((d) ? 8 : 0))
@@ -33,9 +33,6 @@ namespace rule_st
             nullptr,
             nullptr,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
         };
         TetrisOpertion op_I1 =
         {
@@ -47,9 +44,6 @@ namespace rule_st
             rotate_template<1>,
             rotate_template<1>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
         };
         TetrisOpertion op_I2 =
         {
@@ -61,9 +55,6 @@ namespace rule_st
             rotate_template<0>,
             rotate_template<0>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
         };
         TetrisOpertion op_S1 =
         {
@@ -75,9 +66,6 @@ namespace rule_st
             rotate_template<1>,
             rotate_template<1>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
         };
         TetrisOpertion op_S2 =
         {
@@ -89,9 +77,6 @@ namespace rule_st
             rotate_template<0>,
             rotate_template<0>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
         };
         TetrisOpertion op_Z1 =
         {
@@ -103,9 +88,6 @@ namespace rule_st
             rotate_template<1>,
             rotate_template<1>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
         };
         TetrisOpertion op_Z2 =
         {
@@ -117,9 +99,6 @@ namespace rule_st
             rotate_template<0>,
             rotate_template<0>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
         };
         TetrisOpertion op_L1 =
         {
@@ -131,9 +110,6 @@ namespace rule_st
             rotate_template<3>,
             rotate_template<1>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
         };
         TetrisOpertion op_L2 =
         {
@@ -145,9 +121,6 @@ namespace rule_st
             rotate_template<0>,
             rotate_template<2>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
         };
         TetrisOpertion op_L3 =
         {
@@ -159,9 +132,6 @@ namespace rule_st
             rotate_template<1>,
             rotate_template<3>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
         };
         TetrisOpertion op_L4 =
         {
@@ -173,9 +143,6 @@ namespace rule_st
             rotate_template<2>,
             rotate_template<0>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
         };
         TetrisOpertion op_J1 =
         {
@@ -187,9 +154,6 @@ namespace rule_st
             rotate_template<3>,
             rotate_template<1>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
         };
         TetrisOpertion op_J2 =
         {
@@ -201,9 +165,6 @@ namespace rule_st
             rotate_template<0>,
             rotate_template<2>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
         };
         TetrisOpertion op_J3 =
         {
@@ -215,9 +176,6 @@ namespace rule_st
             rotate_template<1>,
             rotate_template<3>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
         };
         TetrisOpertion op_J4 =
         {
@@ -229,9 +187,6 @@ namespace rule_st
             rotate_template<2>,
             rotate_template<0>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
         };
         TetrisOpertion op_T1 =
         {
@@ -243,9 +198,6 @@ namespace rule_st
             rotate_template<3>,
             rotate_template<1>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
         };
         TetrisOpertion op_T2 =
         {
@@ -257,9 +209,6 @@ namespace rule_st
             rotate_template<0>,
             rotate_template<2>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
         };
         TetrisOpertion op_T3 =
         {
@@ -271,9 +220,6 @@ namespace rule_st
             rotate_template<1>,
             rotate_template<3>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
         };
         TetrisOpertion op_T4 =
         {
@@ -285,9 +231,6 @@ namespace rule_st
             rotate_template<2>,
             rotate_template<0>,
             nullptr,
-            move_left,
-            move_right,
-            move_down,
         };
 #undef T
         info.insert(std::make_pair(std::make_pair('O', 0), op_O1));
@@ -312,7 +255,7 @@ namespace rule_st
         return info;
     }
 
-    std::map<unsigned char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> TetrisRuleSet::get_init_generate()
+    std::map<unsigned char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> TetrisRuleSet::get_generate()
     {
         std::map<unsigned char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> info;
         info.insert(std::make_pair('O', &generate_template<'O'>));
@@ -323,11 +266,6 @@ namespace rule_st
         info.insert(std::make_pair('J', &generate_template<'J'>));
         info.insert(std::make_pair('T', &generate_template<'T'>));
         return info;
-    }
-
-    std::map<unsigned char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> TetrisRuleSet::get_game_generate()
-    {
-        return get_init_generate();
     }
 
 }
