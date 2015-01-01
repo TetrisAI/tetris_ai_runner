@@ -439,7 +439,6 @@ namespace ai_zzz
         param_ = param;
         col_mask_ = context->full() & ~1;
         row_mask_ = context->full();
-        full_count_ = context->width() * context->height();
         danger_line_ = context->height();
         danger_data_ = 0;
         for(size_t i = 0; i < context->type_max(); ++i)
@@ -451,6 +450,7 @@ namespace ai_zzz
                 danger_data_ |= 1 << x;
             }
         }
+        full_count_ = context->width() * (danger_line_ + 2);
     }
 
     std::string TOJ::ai_name() const
@@ -596,9 +596,9 @@ namespace ai_zzz
         result.map = (0
                       - ColTrans * 8
                       - RowTrans * 8
-                      - v.HoleCount * 6
-                      - v.HoleLine * 38
-                      - v.WellDepth * 10
+                      - v.HoleCount * 12
+                      - v.HoleLine * 32
+                      - v.WellDepth * 8
                       - v.HoleDepth * 4
                       - v.HolePiece * 0.5
                       );
@@ -725,7 +725,7 @@ namespace ai_zzz
             }
         }
         eval_result const &last = history[history_length - 1];
-        return last.map + land_point_value / history_length + attack * 200 * (full_count_ - last.count) / full_count_ - up * 40 + last.expect * 32 + (b2b ? 64 : 0);
+        return last.map + land_point_value / history_length + (attack * 256 + last.expect * 64 + (b2b ? 240 : 0)) * (full_count_ - last.count) / full_count_ - up * 40;
     }
 
 }
