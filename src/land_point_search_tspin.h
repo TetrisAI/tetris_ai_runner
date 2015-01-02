@@ -51,6 +51,7 @@ namespace land_point_search_tspin
         bool check_ready(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
         bool check_mini_ready(m_tetris::TetrisMap const &map, TetrisNodeWithTSpinType const &node);
         std::vector<TetrisNodeWithTSpinType> land_point_cache_;
+        std::vector<m_tetris::TetrisNode const *> node_incomplete_;
         std::vector<m_tetris::TetrisNode const *> node_search_;
         m_tetris::TetrisNodeMark node_mark_;
         m_tetris::TetrisNodeMarkFiltered node_mark_filtered_;

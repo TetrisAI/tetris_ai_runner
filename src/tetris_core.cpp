@@ -235,6 +235,19 @@ namespace m_tetris
         mark.data.second = op;
         return true;
     }
+
+    bool TetrisNodeMark::cover(TetrisNode const *key, TetrisNode const *node, char op)
+    {
+        Mark &mark = data_[key->index];
+        mark.data.first = node;
+        mark.data.second = op;
+        if(mark.version == version_)
+        {
+            return false;
+        }
+        mark.version = version_;
+        return true;
+    }
     
     bool TetrisNodeMark::mark(TetrisNode const *key)
     {
@@ -285,6 +298,19 @@ namespace m_tetris
         mark.version = version_;
         mark.data.first = node;
         mark.data.second = op;
+        return true;
+    }
+
+    bool TetrisNodeMarkFiltered::cover(TetrisNode const *key, TetrisNode const *node, char op)
+    {
+        Mark &mark = data_[key->index_filtered];
+        mark.data.first = node;
+        mark.data.second = op;
+        if(mark.version == version_)
+        {
+            return false;
+        }
+        mark.version = version_;
         return true;
     }
 

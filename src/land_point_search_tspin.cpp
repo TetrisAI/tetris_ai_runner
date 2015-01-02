@@ -927,6 +927,7 @@ namespace land_point_search_tspin
         bool allow_180 = status_->allow_180;
         node_search_.push_back(node);
         node_mark_.mark(node);
+        node_incomplete_.clear();
         size_t cache_index = 0;
         do
         {
@@ -937,14 +938,7 @@ namespace land_point_search_tspin
                 {
                     if(node_mark_filtered_.mark(node))
                     {
-                        auto last = node_mark_.get(node);
-                        TetrisNodeWithTSpinType node_ex(node);
-                        node_ex.last = last.first;
-                        node_ex.is_check = true;
-                        node_ex.is_last_rotate = last.second != ' ';
-                        node_ex.is_ready = check_ready(map, node);
-                        node_ex.is_mini_ready = check_mini_ready(map, node_ex);
-                        land_point_cache_.push_back(node_ex);
+                        node_incomplete_.push_back(node);
                     }
                 }
                 //d
@@ -967,7 +961,7 @@ namespace land_point_search_tspin
                     //x
                     if(node->rotate_opposite && node->rotate_opposite->check(map))
                     {
-                        if(node_mark_.set(node->rotate_opposite, node, 'x'))
+                        if(node_mark_.cover(node->rotate_opposite, node, 'x'))
                         {
                             node_search_.push_back(node->rotate_opposite);
                         }
@@ -980,7 +974,7 @@ namespace land_point_search_tspin
                             {
                                 if(wall_kick_node->check(map))
                                 {
-                                    if(node_mark_.set(wall_kick_node, node, 'x'))
+                                    if(node_mark_.cover(wall_kick_node, node, 'x'))
                                     {
                                         node_search_.push_back(wall_kick_node);
                                     }
@@ -997,7 +991,7 @@ namespace land_point_search_tspin
                 //z
                 if(node->rotate_counterclockwise && node->rotate_counterclockwise->check(map))
                 {
-                    if(node_mark_.set(node->rotate_counterclockwise, node, 'z'))
+                    if(node_mark_.cover(node->rotate_counterclockwise, node, 'z'))
                     {
                         node_search_.push_back(node->rotate_counterclockwise);
                     }
@@ -1010,7 +1004,7 @@ namespace land_point_search_tspin
                         {
                             if(wall_kick_node->check(map))
                             {
-                                if(node_mark_.set(wall_kick_node, node, 'z'))
+                                if(node_mark_.cover(wall_kick_node, node, 'z'))
                                 {
                                     node_search_.push_back(wall_kick_node);
                                 }
@@ -1026,7 +1020,7 @@ namespace land_point_search_tspin
                 //c
                 if(node->rotate_clockwise && node->rotate_clockwise->check(map))
                 {
-                    if(node_mark_.set(node->rotate_clockwise, node, 'c'))
+                    if(node_mark_.cover(node->rotate_clockwise, node, 'c'))
                     {
                         node_search_.push_back(node->rotate_clockwise);
                     }
@@ -1039,7 +1033,7 @@ namespace land_point_search_tspin
                         {
                             if(wall_kick_node->check(map))
                             {
-                                if(node_mark_.set(wall_kick_node, node, 'c'))
+                                if(node_mark_.cover(wall_kick_node, node, 'c'))
                                 {
                                     node_search_.push_back(wall_kick_node);
                                 }
@@ -1054,6 +1048,17 @@ namespace land_point_search_tspin
                 }
             }
         } while(node_search_.size() > cache_index);
+        for(auto const &node : node_incomplete_)
+        {
+            auto last = node_mark_.get(node);
+            TetrisNodeWithTSpinType node_ex(node);
+            node_ex.last = last.first;
+            node_ex.is_check = true;
+            node_ex.is_last_rotate = last.second != ' ';
+            node_ex.is_ready = check_ready(map, node);
+            node_ex.is_mini_ready = check_mini_ready(map, node_ex);
+            land_point_cache_.push_back(node_ex);
+        }
         return &land_point_cache_;
     }
 

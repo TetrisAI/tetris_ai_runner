@@ -222,6 +222,7 @@ namespace m_tetris
         std::pair<TetrisNode const *, char> get(size_t index);
         std::pair<TetrisNode const *, char> get(TetrisNode const *key);
         bool set(TetrisNode const *key, TetrisNode const *node, char op);
+        bool cover(TetrisNode const *key, TetrisNode const *node, char op);
         bool mark(TetrisNode const *key);
     };
 
@@ -246,6 +247,7 @@ namespace m_tetris
         std::pair<TetrisNode const *, char> get(size_t index);
         std::pair<TetrisNode const *, char> get(TetrisNode const *key);
         bool set(TetrisNode const *key, TetrisNode const *node, char op);
+        bool cover(TetrisNode const *key, TetrisNode const *node, char op);
         bool mark(TetrisNode const *key);
     };
 
