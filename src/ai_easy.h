@@ -12,7 +12,6 @@ namespace ai_easy
         {
             eval_func_t eval_func;
             double bad_value;
-            std::string ai_name;
         };
     public:
         void init(m_tetris::TetrisContext const *context, Param const *param)
@@ -21,7 +20,7 @@ namespace ai_easy
         }
         std::string ai_name() const
         {
-            return param_->ai_name;
+            return std::string();
         }
         double eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
         {
