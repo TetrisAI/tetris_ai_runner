@@ -178,10 +178,14 @@ namespace land_point_search_path
 
     std::vector<TetrisNode const *> const *Search::search(TetrisMap const &map, TetrisNode const *node)
     {
+        land_point_cache_.clear();
+        if(!node->check(map))
+        {
+            return &land_point_cache_;
+        }
         node_mark_.clear();
         node_mark_filtered_.clear();
         node_search_.clear();
-        land_point_cache_.clear();
         if(node->land_point != nullptr && node->low >= map.roof)
         {
             for(auto cit = node->land_point->begin(); cit != node->land_point->end(); ++cit)

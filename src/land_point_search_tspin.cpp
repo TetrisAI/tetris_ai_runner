@@ -307,11 +307,15 @@ namespace land_point_search_tspin
 
     std::vector<Search::TetrisNodeWithTSpinType> const *Search::search(TetrisMap const &map, TetrisNode const *node)
     {
+        land_point_cache_.clear();
+        if(!node->check(map))
+        {
+            return &land_point_cache_;
+        }
         bool allow_180 = status_->allow_180;
         node_mark_.clear();
         node_mark_filtered_.clear();
         node_search_.clear();
-        land_point_cache_.clear();
         if(node->status.t == 'T')
         {
             return search_t(map, node);

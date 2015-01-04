@@ -725,7 +725,7 @@ namespace ai_zzz
             }
         }
         eval_result const &last = history[history_length - 1];
-        return last.map + land_point_value / history_length + (attack * 256 + last.expect * 64 + (b2b ? 240 : 0)) * (full_count_ - last.count) / full_count_ - up * 40;
+        return last.map + land_point_value / history_length + (attack * 200 + last.expect * 80 + (b2b ? 240 : 0)) * (full_count_ - last.count) / full_count_ - up * 40;
     }
 
 }

@@ -20,6 +20,7 @@
     <ClInclude Include="src\land_point_search_simulate.h" />
     <ClInclude Include="src\land_point_search_tspin.h" />
     <ClInclude Include="src\random.h" />
+    <ClInclude Include="src\rb_tree.h" />
     <ClInclude Include="src\rule_qq.h" />
     <ClInclude Include="src\rule_srsx.h" />
     <ClInclude Include="src\rule_st.h" />

@@ -18,9 +18,9 @@
 #include "rule_toj.h"
 #include "random.h"
 
-//m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_path::Search> tetris_ai;
+m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_path::Search> tetris_ai;
 //m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_ax::AI, land_point_search_simple::Search> tetris_ai;
-m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_farteryhr::AI, land_point_search_simple::Search> tetris_ai;
+//m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_farteryhr::AI, land_point_search_simple::Search> tetris_ai;
 
 extern "C" void attach_init()
 {
@@ -76,9 +76,9 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     };
     size_t next_length = std::strlen(nextPiece);
     /////////////////////////////////////////////////
-    //tetris_ai.param()->level = 10;
-    //tetris_ai.param()->mode = 0;
-    //tetris_ai.param()->next_length = next_length;
+    tetris_ai.param()->level = 10;
+    tetris_ai.param()->mode = 0;
+    tetris_ai.param()->next_length = next_length;
     /////////////////////////////////////////////////
     m_tetris::TetrisNode const *node = tetris_ai.get(status);
     auto target = tetris_ai.run(map, node, reinterpret_cast<unsigned char const *>(nextPiece), next_length, 49).target;
