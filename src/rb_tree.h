@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <iterator>
+
 namespace zzz
 {
     //just for tetris_core ... incomplete !
@@ -10,9 +12,17 @@ namespace zzz
     public:
         typedef Node node_t;
         typedef Interface interface_t;
+        typedef typename interface_t::key_t key_t;
     public:
         class iterator
         {
+        public:
+            typedef std::forward_iterator_tag iterator_category;
+            typedef node_t value_type;
+            typedef int difference_type;
+            typedef unsigned int distance_type;
+            typedef node_t *pointer;
+            typedef node_t reference;
         public:
             iterator(node_t *node) : ptr_(node)
             {
@@ -73,13 +83,26 @@ namespace zzz
             rb_insert_(node);
             ++size_;
         }
-        template<class iterator>
-        void insert(iterator begin, iterator end)
+        template<class iterator_t>
+        void insert(iterator_t begin, iterator_t end)
         {
             for(; begin != end; ++begin)
             {
                 insert(*begin);
             }
+        }
+        iterator find(key_t const &key)
+        {
+            node_t *where = rb_find(key);
+            return (where == nullptr || interface_t::predicate(key, get_key(where))) ? iterator() : iterator(where);
+        }
+        void erase(iterator where)
+        {
+            rb_erase_(&*where);
+        }
+        void erase(node_t *node)
+        {
+            rb_erase_(node);
         }
         iterator begin()
         {
@@ -110,6 +133,11 @@ namespace zzz
         size_t size_;
 
     private:
+        static key_t const &get_key(node_t *node)
+        {
+            return interface_t::get_key(node);
+        }
+
         static node_t *get_parent_(node_t *node)
         {
             return interface_t::get_parent(node);
@@ -140,7 +168,7 @@ namespace zzz
             interface_t::set_right(node, right);
         }
 
-        static int is_black_(node_t *node)
+        static bool is_black_(node_t *node)
         {
             return node == nullptr ? true : interface_t::is_black(node);
         }
@@ -152,7 +180,7 @@ namespace zzz
 
         static bool predicate(node_t *left, node_t *right)
         {
-            return interface_t::predicate(left, right);
+            return interface_t::predicate(get_key(left), get_key(right));
         }
 
         node_t *rb_init_node_(node_t *parent, node_t *node)
@@ -212,6 +240,42 @@ namespace zzz
                 }
             }
             return node;
+        }
+
+        static node_t *rb_min_(node_t *node)
+        {
+            while(get_left_(node) != nullptr)
+            {
+                node = get_left_(node);
+            }
+            return node;
+        }
+
+        static node_t *rb_max_(node_t *node)
+        {
+            while(get_right_(node) != nullptr)
+            {
+                node = get_right_(node);
+            }
+            return node;
+        }
+
+        node_t *rb_find(key_t const &key)
+        {
+            node_t *node = root_, *where = nullptr;
+            while(node != nullptr)
+            {
+                if(interface_t::predicate(get_key(node), key))
+                {
+                    node = get_right_(node);
+                }
+                else
+                {
+                    where = node;
+                    node = get_left_(node);
+                }
+            }
+            return where;
         }
 
         void rb_right_rotate_(node_t *node)
@@ -349,6 +413,167 @@ namespace zzz
             set_black_(root_, true);
         }
 
+        void rb_erase_(node_t *node)
+        {
+            node_t *erase_node = node;
+            node_t *fix_node;
+            node_t *fix_node_parent;
+
+            if(get_left_(node) == nullptr)
+            {
+                fix_node = get_right_(node);
+            }
+            else if(get_right_(node) == nullptr)
+            {
+                fix_node = get_left_(node);
+            }
+            else
+            {
+                node = rb_next_(node);
+                fix_node = get_right_(node);
+            }
+            if(node == erase_node)
+            {
+                fix_node_parent = get_parent_(erase_node);
+                if(fix_node != nullptr)
+                {
+                    set_parent_(fix_node, fix_node_parent);
+                }
+                if(root_ == erase_node)
+                {
+                    root_ = fix_node;
+                }
+                else if(get_left_(fix_node_parent) == erase_node)
+                {
+                    set_left_(fix_node_parent, fix_node);
+                }
+                else
+                {
+                    set_right_(fix_node_parent, fix_node);
+                }
+                if(left_ == erase_node)
+                {
+                    left_ = fix_node == nullptr ? fix_node_parent : rb_min_(fix_node);
+                }
+            }
+            else
+            {
+                set_parent_(get_left_(erase_node), node);
+                set_left_(node, get_left_(erase_node));
+                if(node == get_right_(erase_node))
+                {
+                    fix_node_parent = node;
+                }
+                else
+                {
+                    fix_node_parent = get_parent_(node);
+                    if(fix_node != nullptr)
+                    {
+                        set_parent_(fix_node, fix_node_parent);
+                    }
+                    set_left_(fix_node_parent, fix_node);
+                    set_right_(node, get_right_(erase_node));
+                    set_parent_(get_right_(erase_node), node);
+                }
+                if(root_ == erase_node)
+                {
+                    root_ = node;
+                }
+                else if(get_left_(get_parent_(erase_node)) == erase_node)
+                {
+                    set_left_(get_parent_(erase_node), node);
+                }
+                else
+                {
+                    set_right_(get_parent_(erase_node), node);
+                }
+                set_parent_(node, get_parent_(erase_node));
+                bool is_black = is_black_(node);
+                set_black_(node, is_black_(erase_node));
+                set_black_(erase_node, is_black);
+            }
+            if(is_black_(erase_node))
+            {
+                for(; fix_node != root_ && is_black_(fix_node); fix_node_parent = get_parent_(fix_node))
+                {
+                    if(fix_node == get_left_(fix_node_parent))
+                    {
+                        node = get_right_(fix_node_parent);
+                        if(!is_black_(node))
+                        {
+                            set_black_(node, true);
+                            set_black_(fix_node_parent, false);
+                            rb_left_rotate_(fix_node_parent);
+                            node = get_right_(fix_node_parent);
+                        }
+                        if(node == nullptr)
+                        {
+                            fix_node = fix_node_parent;
+                        }
+                        else if(is_black_(get_left_(node)) && is_black_(get_right_(node)))
+                        {
+                            set_black_(node, false);
+                            fix_node = fix_node_parent;
+                        }
+                        else
+                        {
+                            if(is_black_(get_right_(node)))
+                            {
+                                set_black_(get_left_(node), true);
+                                set_black_(node, false);
+                                rb_right_rotate_(node);
+                                node = get_right_(fix_node_parent);
+                            }
+                            set_black_(node, is_black_(fix_node_parent));
+                            set_black_(fix_node_parent, true);
+                            set_black_(get_right_(node), true);
+                            rb_left_rotate_(fix_node_parent);
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        node = get_left_(fix_node_parent);
+                        if(!is_black_(node))
+                        {
+                            set_black_(node, true);
+                            set_black_(fix_node_parent, false);
+                            rb_right_rotate_(fix_node_parent);
+                            node = get_left_(fix_node_parent);
+                        }
+                        if(node == nullptr)
+                        {
+                            fix_node = fix_node_parent;
+                        }
+                        else if(is_black_(get_right_(node)) && is_black_(get_left_(node)))
+                        {
+                            set_black_(node, false);
+                            fix_node = fix_node_parent;
+                        }
+                        else
+                        {
+                            if(is_black_(get_left_(node)))
+                            {
+                                set_black_(get_right_(node), true);
+                                set_black_(node, false);
+                                rb_left_rotate_(node);
+                                node = get_left_(fix_node_parent);
+                            }
+                            set_black_(node, is_black_(fix_node_parent));
+                            set_black_(fix_node_parent, true);
+                            set_black_(get_left_(node), true);
+                            rb_right_rotate_(fix_node_parent);
+                            break;
+                        }
+                    }
+                }
+                if(fix_node != nullptr)
+                {
+                    set_black_(fix_node, true);
+                }
+            }
+            --size_;
+        }
     };
 
 }
