@@ -8,10 +8,13 @@ namespace zzz
     class rb_tree
     {
     public:
+        typedef Node node_t;
+        typedef Interface interface_t;
+    public:
         class iterator
         {
         public:
-            iterator(Node *node) : ptr_(node)
+            iterator(node_t *node) : ptr_(node)
             {
             }
             iterator(iterator const &other) : ptr_(other.ptr_)
@@ -42,11 +45,11 @@ namespace zzz
                 --*this;
                 return save;
             }
-            Node &operator *()
+            node_t &operator *()
             {
                 return *ptr_;
             }
-            Node *operator->()
+            node_t *operator->()
             {
                 return ptr_;
             }
@@ -59,13 +62,13 @@ namespace zzz
                 return ptr_ != other.ptr_;
             }
         private:
-            Node *ptr_;
+            node_t *ptr_;
         };
     public:
         rb_tree() : root_(), left_(), size_()
         {
         }
-        void insert(Node *node)
+        void insert(node_t *node)
         {
             rb_insert_(node);
             ++size_;
@@ -102,57 +105,57 @@ namespace zzz
         }
 
     private:
-        Node *root_;
-        Node *left_;
+        node_t *root_;
+        node_t *left_;
         size_t size_;
 
     private:
-        static Node *get_parent_(Node *node)
+        static node_t *get_parent_(node_t *node)
         {
-            return Interface::get_parent(node);
+            return interface_t::get_parent(node);
         }
 
-        static void set_parent_(Node *node, Node *parent)
+        static void set_parent_(node_t *node, node_t *parent)
         {
-            Interface::set_parent(node, parent);
+            interface_t::set_parent(node, parent);
         }
 
-        static Node *get_left_(Node *node)
+        static node_t *get_left_(node_t *node)
         {
-            return Interface::get_left(node);
+            return interface_t::get_left(node);
         }
 
-        static void set_left_(Node *node, Node *left)
+        static void set_left_(node_t *node, node_t *left)
         {
-            Interface::set_left(node, left);
+            interface_t::set_left(node, left);
         }
 
-        static Node *get_right_(Node *node)
+        static node_t *get_right_(node_t *node)
         {
-            return Interface::get_right(node);
+            return interface_t::get_right(node);
         }
 
-        static void set_right_(Node *node, Node *right)
+        static void set_right_(node_t *node, node_t *right)
         {
-            Interface::set_right(node, right);
+            interface_t::set_right(node, right);
         }
 
-        static int is_black_(Node *node)
+        static int is_black_(node_t *node)
         {
-            return node == nullptr ? true : Interface::is_black(node);
+            return node == nullptr ? true : interface_t::is_black(node);
         }
 
-        static void set_black_(Node *node, bool black)
+        static void set_black_(node_t *node, bool black)
         {
-            Interface::set_black(node, black);
+            interface_t::set_black(node, black);
         }
 
-        static bool predicate(Node *left, Node *right)
+        static bool predicate(node_t *left, node_t *right)
         {
-            return Interface::predicate(left, right);
+            return interface_t::predicate(left, right);
         }
 
-        Node *rb_init_node_(Node *parent, Node *node)
+        node_t *rb_init_node_(node_t *parent, node_t *node)
         {
             set_black_(node, false);
             set_parent_(node, parent);
@@ -161,7 +164,7 @@ namespace zzz
             return node;
         }
 
-        static Node *rb_next_(Node *node)
+        static node_t *rb_next_(node_t *node)
         {
             if(node != nullptr)
             {
@@ -175,7 +178,7 @@ namespace zzz
                 }
                 else
                 {
-                    Node *parent;
+                    node_t *parent;
                     while((parent = get_parent_(node)) != nullptr && node == get_right_(parent))
                     {
                         node = parent;
@@ -186,7 +189,7 @@ namespace zzz
             return node;
         }
 
-        static Node *rb_prev_(Node *node)
+        static node_t *rb_prev_(node_t *node)
         {
             if(node != nullptr)
             {
@@ -200,7 +203,7 @@ namespace zzz
                 }
                 else
                 {
-                    Node *parent;
+                    node_t *parent;
                     while((parent = get_parent_(node)) != nullptr && node == get_left_(parent))
                     {
                         node = parent;
@@ -211,9 +214,9 @@ namespace zzz
             return node;
         }
 
-        void rb_right_rotate_(Node *node)
+        void rb_right_rotate_(node_t *node)
         {
-            Node *left = get_left_(node), *parent = get_parent_(node);
+            node_t *left = get_left_(node), *parent = get_parent_(node);
             set_left_(node, get_right_(left));
             if(get_right_(left) != nullptr)
             {
@@ -236,9 +239,9 @@ namespace zzz
             set_parent_(node, left);
         }
 
-        void rb_left_rotate_(Node *node)
+        void rb_left_rotate_(node_t *node)
         {
-            Node *right = get_right_(node), *parent = get_parent_(node);
+            node_t *right = get_right_(node), *parent = get_parent_(node);
             set_right_(node, get_left_(right));
             if(get_left_(right) != nullptr)
             {
@@ -261,7 +264,7 @@ namespace zzz
             set_parent_(node, right);
         }
 
-        void rb_insert_(Node *key)
+        void rb_insert_(node_t *key)
         {
             if(root_ == nullptr)
             {
@@ -270,7 +273,7 @@ namespace zzz
                 left_ = root_;
                 return;
             }
-            Node *node = root_, *where = nullptr;
+            node_t *node = root_, *where = nullptr;
             bool is_left = true;
             while(node != nullptr)
             {
