@@ -672,41 +672,41 @@ namespace m_tetris
         struct Context
         {
         public:
-            struct RBTreeWrapper
+            struct RBTreeInterface
             {
-                static TetrisTreeNode *GetParent(TetrisTreeNode *node)
+                static TetrisTreeNode *get_parent(TetrisTreeNode *node)
                 {
                     return node->rb_parent;
                 }
-                static void SetParent(TetrisTreeNode *node, TetrisTreeNode *parent)
+                static void set_parent(TetrisTreeNode *node, TetrisTreeNode *parent)
                 {
                     node->rb_parent = parent;
                 }
-                static TetrisTreeNode *GetLeft(TetrisTreeNode *node)
+                static TetrisTreeNode *get_left(TetrisTreeNode *node)
                 {
                     return node->rb_left;
                 }
-                static void SetLeft(TetrisTreeNode *node, TetrisTreeNode *left)
+                static void set_left(TetrisTreeNode *node, TetrisTreeNode *left)
                 {
                     node->rb_left = left;
                 }
-                static TetrisTreeNode *GetRight(TetrisTreeNode *node)
+                static TetrisTreeNode *get_right(TetrisTreeNode *node)
                 {
                     return node->rb_right;
                 }
-                static void SetRight(TetrisTreeNode *node, TetrisTreeNode *right)
+                static void set_right(TetrisTreeNode *node, TetrisTreeNode *right)
                 {
                     node->rb_right = right;
                 }
-                static int GetColor(TetrisTreeNode *node)
+                static int is_black(TetrisTreeNode *node)
                 {
-                    return node->is_black ? zzz::rb_black : zzz::rb_red;
+                    return node->is_black;
                 }
-                static void SetColor(TetrisTreeNode *node, int color)
+                static void set_black(TetrisTreeNode *node, bool black)
                 {
-                    node->is_black = color == zzz::rb_black;
+                    node->is_black = black;
                 }
-                static bool Compare(TetrisTreeNode const *const &left, TetrisTreeNode const *const &right)
+                static bool predicate(TetrisTreeNode const *const &left, TetrisTreeNode const *const &right)
                 {
                     return left->final_eval > right->final_eval;
                 }
@@ -723,7 +723,7 @@ namespace m_tetris
                 }
             }
         public:
-            typedef zzz::rb_tree<TetrisTreeNode, RBTreeWrapper> DeepthTree;
+            typedef zzz::rb_tree<TetrisTreeNode, RBTreeInterface> DeepthTree;
             size_t version;
             TetrisContext const *context;
             TetrisAI *ai;
@@ -766,13 +766,6 @@ namespace m_tetris
                 node->flag = 0;
                 node->next.clear();
                 tree_cache_.push_back(node);
-            }
-        };
-        struct ChildrenSortByEval
-        {
-            bool operator ()(TetrisTreeNode const *const &left, TetrisTreeNode const *const &right)
-            {
-                return left->final_eval > right->final_eval;
             }
         };
         struct ChildrenSortByStatus
@@ -1187,7 +1180,6 @@ namespace m_tetris
             {
                 child->final_eval = Core().run(*context->ai, child->eval, history);
             }
-            std::sort(children.begin(), children.end(), ChildrenSortByEval());
             return true;
         }
         bool run(int incr)

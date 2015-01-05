@@ -1,55 +1,46 @@
 
 #pragma once
 
-#ifndef NDEBUG
-#   include <cassert>
-#   include <set>
-#endif
-
 namespace zzz
 {
-    enum
-    {
-        rb_red = 0, rb_black = 1
-    };
-
     //just for tetris_core ... incomplete !
-    template<class Node, class Wrapper>
+    template<class Node, class Interface>
     class rb_tree
     {
     public:
-        class Iterator
+        class iterator
         {
         public:
-            Iterator(Node *node) : ptr_(node)
+            iterator(Node *node) : ptr_(node)
             {
             }
-            Iterator() : ptr_(nullptr)
+            iterator(iterator const &other) : ptr_(other.ptr_)
             {
             }
-            Iterator &operator++()
+            iterator() : ptr_(nullptr)
             {
-                if(ptr_ != nullptr)
-                {
-                    if(Wrapper::GetRight(ptr_) != nullptr)
-                    {
-                        ptr_ = Wrapper::GetRight(ptr_);
-                        while(Wrapper::GetLeft(ptr_))
-                        {
-                            ptr_ = Wrapper::GetLeft(ptr_);
-                        }
-                    }
-                    else
-                    {
-                        Node *parent;
-                        while((parent = Wrapper::GetParent(ptr_)) != nullptr && ptr_ == Wrapper::GetRight(parent))
-                        {
-                            ptr_ = parent;
-                        }
-                        ptr_ = parent;
-                    }
-                }
+            }
+            iterator &operator++()
+            {
+                ptr_ = rb_tree::rb_next_(ptr_);
                 return *this;
+            }
+            iterator &operator--()
+            {
+                ptr_ = rb_tree::rb_prev_(ptr_);
+                return *this;
+            }
+            iterator operator++(int)
+            {
+                iterator save(*this);
+                ++*this;
+                return save;
+            }
+            iterator operator--(int)
+            {
+                iterator save(*this);
+                --*this;
+                return save;
             }
             Node &operator *()
             {
@@ -59,11 +50,11 @@ namespace zzz
             {
                 return ptr_;
             }
-            bool operator == (Iterator const &other) const
+            bool operator == (iterator const &other) const
             {
                 return ptr_ == other.ptr_;
             }
-            bool operator != (Iterator const &other) const
+            bool operator != (iterator const &other) const
             {
                 return ptr_ != other.ptr_;
             }
@@ -78,26 +69,22 @@ namespace zzz
         {
             rb_insert_(node);
             ++size_;
-#ifndef NDEBUG
-            assert(debug_set_.find(node) == debug_set_.end());
-            debug_set_.insert(node);
-#endif
         }
-        template<class Iterator>
-        void insert(Iterator begin, Iterator end)
+        template<class iterator>
+        void insert(iterator begin, iterator end)
         {
             for(; begin != end; ++begin)
             {
                 insert(*begin);
             }
         }
-        Iterator begin()
+        iterator begin()
         {
-            return Iterator(left_);
+            return iterator(left_);
         }
-        Iterator end()
+        iterator end()
         {
-            return Iterator();
+            return iterator();
         }
         bool empty() const
         {
@@ -108,9 +95,6 @@ namespace zzz
             root_ = nullptr;
             left_ = nullptr;
             size_ = 0;
-#ifndef NDEBUG
-            debug_set_.clear();
-#endif
         }
         size_t size() const
         {
@@ -121,101 +105,160 @@ namespace zzz
         Node *root_;
         Node *left_;
         size_t size_;
-#ifndef NDEBUG
-        std::multiset<Node *> debug_set_;
-#endif
 
     private:
-        static Node *GetParent(Node *node)
+        static Node *get_parent_(Node *node)
         {
-            return Wrapper::GetParent(node);
+            return Interface::get_parent(node);
         }
-        static void SetParent(Node *node, Node *parent)
+
+        static void set_parent_(Node *node, Node *parent)
         {
-            Wrapper::SetParent(node, parent);
+            Interface::set_parent(node, parent);
         }
-        static Node *GetLeft(Node *node)
+
+        static Node *get_left_(Node *node)
         {
-            return Wrapper::GetLeft(node);
+            return Interface::get_left(node);
         }
-        static void SetLeft(Node *node, Node *left)
+
+        static void set_left_(Node *node, Node *left)
         {
-            Wrapper::SetLeft(node, left);
+            Interface::set_left(node, left);
         }
-        static Node *GetRight(Node *node)
+
+        static Node *get_right_(Node *node)
         {
-            return Wrapper::GetRight(node);
+            return Interface::get_right(node);
         }
-        static void SetRight(Node *node, Node *right)
+
+        static void set_right_(Node *node, Node *right)
         {
-            Wrapper::SetRight(node, right);
+            Interface::set_right(node, right);
         }
-        static int GetColor(Node *node)
+
+        static int is_black_(Node *node)
         {
-            return node == nullptr ? zzz::rb_black : Wrapper::GetColor(node);
+            return node == nullptr ? true : Interface::is_black(node);
         }
-        static void SetColor(Node *node, int color)
+
+        static void set_black_(Node *node, bool black)
         {
-            Wrapper::SetColor(node, color);
+            Interface::set_black(node, black);
+        }
+
+        static bool predicate(Node *left, Node *right)
+        {
+            return Interface::predicate(left, right);
         }
 
         Node *rb_init_node_(Node *parent, Node *node)
         {
-            Wrapper::SetColor(node, rb_red);
-            Wrapper::SetParent(node, parent);
-            Wrapper::SetLeft(node, nullptr);
-            Wrapper::SetRight(node, nullptr);
+            set_black_(node, false);
+            set_parent_(node, parent);
+            set_left_(node, nullptr);
+            set_right_(node, nullptr);
+            return node;
+        }
+
+        static Node *rb_next_(Node *node)
+        {
+            if(node != nullptr)
+            {
+                if(get_right_(node) != nullptr)
+                {
+                    node = get_right_(node);
+                    while(get_left_(node) != nullptr)
+                    {
+                        node = get_left_(node);
+                    }
+                }
+                else
+                {
+                    Node *parent;
+                    while((parent = get_parent_(node)) != nullptr && node == get_right_(parent))
+                    {
+                        node = parent;
+                    }
+                    node = parent;
+                }
+            }
+            return node;
+        }
+
+        static Node *rb_prev_(Node *node)
+        {
+            if(node != nullptr)
+            {
+                if(get_left_(node) != nullptr)
+                {
+                    node = get_left_(node);
+                    while(get_right_(node) != nullptr)
+                    {
+                        node = get_right_(node);
+                    }
+                }
+                else
+                {
+                    Node *parent;
+                    while((parent = get_parent_(node)) != nullptr && node == get_left_(parent))
+                    {
+                        node = parent;
+                    }
+                    node = parent;
+                }
+            }
             return node;
         }
 
         void rb_right_rotate_(Node *node)
         {
-            Node *left = GetLeft(node), *parent = GetParent(node);
-            SetLeft(node, GetRight(left));
-            if(GetRight(left) != nullptr)
+            Node *left = get_left_(node), *parent = get_parent_(node);
+            set_left_(node, get_right_(left));
+            if(get_right_(left) != nullptr)
             {
-                SetParent(GetRight(left), node);
+                set_parent_(get_right_(left), node);
             }
-            SetParent(left, parent);
+            set_parent_(left, parent);
             if(parent == nullptr)
             {
                 root_ = left;
             }
-            else if(node == GetRight(parent))
+            else if(node == get_right_(parent))
             {
-                SetRight(parent, left);
+                set_right_(parent, left);
             }
             else
             {
-                SetLeft(parent, left);
+                set_left_(parent, left);
             }
-            SetRight(left, node);
-            SetParent(node, left);
+            set_right_(left, node);
+            set_parent_(node, left);
         }
 
         void rb_left_rotate_(Node *node)
         {
-            Node *right = GetRight(node), *parent = GetParent(node);
-            SetRight(node, GetLeft(right));
-            if(GetLeft(right) != nullptr)
+            Node *right = get_right_(node), *parent = get_parent_(node);
+            set_right_(node, get_left_(right));
+            if(get_left_(right) != nullptr)
             {
-                SetParent(GetLeft(right), node);
+                set_parent_(get_left_(right), node);
             }
-            SetParent(right, parent);
+            set_parent_(right, parent);
             if(node == root_)
             {
                 root_ = right;
             }
-            else if(node == GetLeft(parent))
+            else if(node == get_left_(parent))
             {
-                SetLeft(parent, right);
+                set_left_(parent, right);
             }
             else
             {
-                SetRight(parent, right);
+                set_right_(parent, right);
             }
-            SetLeft(right, node);
-            SetParent(node, right);
+            set_left_(right, node);
+            set_parent_(node, right);
         }
 
         void rb_insert_(Node *key)
@@ -223,7 +266,7 @@ namespace zzz
             if(root_ == nullptr)
             {
                 root_ = rb_init_node_(nullptr, key);
-                SetColor(root_, rb_black);
+                set_black_(root_, true);
                 left_ = root_;
                 return;
             }
@@ -232,18 +275,18 @@ namespace zzz
             while(node != nullptr)
             {
                 where = node;
-                if(is_left = Wrapper::Compare(key, node))
+                if(is_left = predicate(key, node))
                 {
-                    node = GetLeft(node);
+                    node = get_left_(node);
                 }
                 else
                 {
-                    node = GetRight(node);
+                    node = get_right_(node);
                 }
             }
             if(is_left)
             {
-                SetLeft(where, node = rb_init_node_(where, key));
+                set_left_(where, node = rb_init_node_(where, key));
                 if(where == left_)
                 {
                     left_ = node;
@@ -251,56 +294,56 @@ namespace zzz
             }
             else
             {
-                SetRight(where, node = rb_init_node_(where, key));
+                set_right_(where, node = rb_init_node_(where, key));
             }
-            while(GetColor(GetParent(node)) == rb_red)
+            while(!is_black_(get_parent_(node)))
             {
-                if(GetParent(node) == GetLeft(GetParent(GetParent(node))))
+                if(get_parent_(node) == get_left_(get_parent_(get_parent_(node))))
                 {
-                    where = GetRight(GetParent(GetParent(node)));
-                    if(GetColor(where) == rb_red)
+                    where = get_right_(get_parent_(get_parent_(node)));
+                    if(!is_black_(where))
                     {
-                        SetColor(GetParent(node), rb_black);
-                        SetColor(where, rb_black);
-                        SetColor(GetParent(GetParent(node)), rb_red);
-                        node = GetParent(GetParent(node));
+                        set_black_(get_parent_(node), true);
+                        set_black_(where, true);
+                        set_black_(get_parent_(get_parent_(node)), false);
+                        node = get_parent_(get_parent_(node));
                     }
                     else
                     {
-                        if(node == GetRight(GetParent(node)))
+                        if(node == get_right_(get_parent_(node)))
                         {
-                            node = GetParent(node);
+                            node = get_parent_(node);
                             rb_left_rotate_(node);
                         }
-                        SetColor(GetParent(node), rb_black);
-                        SetColor(GetParent(GetParent(node)), rb_red);
-                        rb_right_rotate_(GetParent(GetParent(node)));
+                        set_black_(get_parent_(node), true);
+                        set_black_(get_parent_(get_parent_(node)), false);
+                        rb_right_rotate_(get_parent_(get_parent_(node)));
                     }
                 }
                 else
                 {
-                    where = GetLeft(GetParent(GetParent(node)));
-                    if(GetColor(where) == rb_red)
+                    where = get_left_(get_parent_(get_parent_(node)));
+                    if(!is_black_(where))
                     {
-                        SetColor(GetParent(node), rb_black);
-                        SetColor(where, rb_black);
-                        SetColor(GetParent(GetParent(node)), rb_red);
-                        node = GetParent(GetParent(node));
+                        set_black_(get_parent_(node), true);
+                        set_black_(where, true);
+                        set_black_(get_parent_(get_parent_(node)), false);
+                        node = get_parent_(get_parent_(node));
                     }
                     else
                     {
-                        if(node == GetLeft(GetParent(node)))
+                        if(node == get_left_(get_parent_(node)))
                         {
-                            node = GetParent(node);
+                            node = get_parent_(node);
                             rb_right_rotate_(node);
                         }
-                        SetColor(GetParent(node), rb_black);
-                        SetColor(GetParent(GetParent(node)), rb_red);
-                        rb_left_rotate_(GetParent(GetParent(node)));
+                        set_black_(get_parent_(node), true);
+                        set_black_(get_parent_(get_parent_(node)), false);
+                        rb_left_rotate_(get_parent_(get_parent_(node)));
                     }
                 }
             }
-            SetColor(root_, rb_black);
+            set_black_(root_, true);
         }
 
     };
