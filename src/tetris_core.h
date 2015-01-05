@@ -998,15 +998,15 @@ namespace m_tetris
                 {
                     children_source[0] = node;
                     children_source[1] = hold_node;
+                    children_sort_t sort;
                     for(auto land_point_node : *context->search->search(map, node))
                     {
                         TetrisTreeNode *child = context->alloc(this);
                         Core().eval_node(*context->ai, map, land_point_node, child);
                         child->is_hold = hold_control;
                         children.push_back(child);
+                        sort.insert(child);
                     }
-                    children_sort_t sort;
-                    sort.insert(children.begin(), children.end());
                     for(auto land_point_node : *context->search->search(map, hold_node))
                     {
                         if(sort.find(land_point_node->status) != sort.end())
