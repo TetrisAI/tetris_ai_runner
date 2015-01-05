@@ -132,7 +132,7 @@ namespace zzz
         }
         static void SetParent(Node *node, Node *parent)
         {
-            node->rb_parent = parent;
+            Wrapper::SetParent(node, parent);
         }
         static Node *GetLeft(Node *node)
         {
@@ -140,7 +140,7 @@ namespace zzz
         }
         static void SetLeft(Node *node, Node *left)
         {
-            node->rb_left = left;
+            Wrapper::SetLeft(node, left);
         }
         static Node *GetRight(Node *node)
         {
@@ -148,7 +148,7 @@ namespace zzz
         }
         static void SetRight(Node *node, Node *right)
         {
-            node->rb_right = right;
+            Wrapper::SetRight(node, right);
         }
         static int GetColor(Node *node)
         {
@@ -156,8 +156,9 @@ namespace zzz
         }
         static void SetColor(Node *node, int color)
         {
-            node->is_black = color == zzz::rb_black;
+            Wrapper::SetColor(node, color);
         }
+
         Node *rb_init_node_(Node *parent, Node *node)
         {
             Wrapper::SetColor(node, rb_red);
