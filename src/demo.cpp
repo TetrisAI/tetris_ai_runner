@@ -47,7 +47,7 @@ namespace demo
  *
  * 本函数支持任意路径操作，若不需要此函数只想使用上面一个的话，则删掉本函数即可
  */
-extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char const *nextPiece, char path[])
+extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char nextPiece, char path[])
 {
     if(!tetris_ai.prepare(boardW, boardH))
     {
@@ -75,9 +75,9 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     {
         curPiece, curX - 1, curY - 1, curR - 1
     };
-    size_t next_length = std::strlen(nextPiece);
+    size_t next_length = nextPiece == ' ' ? 0 : 1;
     m_tetris::TetrisNode const *node = tetris_ai.get(status);
-    auto target = tetris_ai.run(map, node, reinterpret_cast<unsigned char const *>(nextPiece), next_length, 49).target;
+    auto target = tetris_ai.run(map, node, reinterpret_cast<unsigned char const *>(&nextPiece), next_length, 49).target;
     if(target != nullptr)
     {
         std::vector<char> ai_path = tetris_ai.make_path(node, target, map);
