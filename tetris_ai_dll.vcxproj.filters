@@ -100,13 +100,13 @@
     <ClInclude Include="src\rule_toj.h">
       <Filter>rules\toj</Filter>
     </ClInclude>
-    <ClInclude Include="src\base_tree.h">
-      <Filter>util</Filter>
-    </ClInclude>
     <ClInclude Include="src\rb_tree.h">
       <Filter>util</Filter>
     </ClInclude>
     <ClInclude Include="src\sb_tree.h">
+      <Filter>util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\bs_tree.h">
       <Filter>util</Filter>
     </ClInclude>
   </ItemGroup>
