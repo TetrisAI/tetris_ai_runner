@@ -15,6 +15,7 @@
     <ClInclude Include="src\ai_easy.h" />
     <ClInclude Include="src\ai_farteryhr.h" />
     <ClInclude Include="src\ai_zzz.h" />
+    <ClInclude Include="src\base_tree.h" />
     <ClInclude Include="src\integer_utils.h" />
     <ClInclude Include="src\land_point_search_cautious.h" />
     <ClInclude Include="src\land_point_search_path.h" />
@@ -27,6 +28,7 @@
     <ClInclude Include="src\rule_srsx.h" />
     <ClInclude Include="src\rule_st.h" />
     <ClInclude Include="src\rule_toj.h" />
+    <ClInclude Include="src\sb_tree.h" />
     <ClInclude Include="src\tetris_core.h" />
     <ClInclude Include="src\rule_srs.h" />
   </ItemGroup>

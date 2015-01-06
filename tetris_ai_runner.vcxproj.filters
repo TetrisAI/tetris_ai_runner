@@ -103,6 +103,12 @@
     <ClInclude Include="src\rb_tree.h">
       <Filter>util</Filter>
     </ClInclude>
+    <ClInclude Include="src\sb_tree.h">
+      <Filter>util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\base_tree.h">
+      <Filter>util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="rules">
