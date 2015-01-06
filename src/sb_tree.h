@@ -7,7 +7,7 @@ namespace zzz
 {
     //incomplete
     template<class Node, class Interface>
-    class sb_tree : public bs_tree < Node, Interface >
+    class sb_tree : public bs_tree<Node, Interface>
     {
     public:
         class iterator
@@ -311,10 +311,6 @@ namespace zzz
 
         void sbt_maintain_(node_t *node, bool is_left)
         {
-            if(node == nullptr)
-            {
-                return;
-            }
             if(is_left)
             {
                 if(get_left_(node) == nullptr)
@@ -361,8 +357,14 @@ namespace zzz
                     };
                 };
             };
-            sbt_maintain_(get_left_(node), true);
-            sbt_maintain_(get_right_(node), false);
+            if(get_left_(node) != nullptr)
+            {
+                sbt_maintain_(get_left_(node), true);
+            }
+            if(get_right_(node) != nullptr)
+            {
+                sbt_maintain_(get_right_(node), false);
+            }
             sbt_maintain_(node, true);
             sbt_maintain_(node, false);
         }
