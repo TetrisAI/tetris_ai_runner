@@ -121,7 +121,7 @@ void tree_test()
     };
     for(int i = 0; i < 10000; ++i)
     {
-        auto n = c(std::rand());
+        auto n = c(i);
         rb.insert(n);
         sb.insert(n);
     }

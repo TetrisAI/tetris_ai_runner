@@ -23,7 +23,7 @@ namespace zzz
         node_t *right_;
 
     protected:
-        static key_t const &get_key(node_t *node)
+        static key_t const &get_key_(node_t *node)
         {
             return interface_t::get_key(node);
         }
@@ -80,7 +80,7 @@ namespace zzz
 
         static bool predicate(node_t *left, node_t *right)
         {
-            return interface_t::predicate(get_key(left), get_key(right));
+            return interface_t::predicate(get_key_(left), get_key_(right));
         }
 
         void bs_clear_()
@@ -171,7 +171,7 @@ namespace zzz
             node_t *node = root_, *where = nullptr;
             while(node != nullptr)
             {
-                if(interface_t::predicate(get_key(node), key))
+                if(interface_t::predicate(get_key_(node), key))
                 {
                     node = get_right_(node);
                 }
@@ -189,7 +189,7 @@ namespace zzz
             node_t *node = root_, *where = nullptr;
             while(node != nullptr)
             {
-                if(interface_t::predicate(key, get_key(node)))
+                if(interface_t::predicate(key, get_key_(node)))
                 {
                     where = node;
                     node = get_left_(node);
@@ -567,10 +567,7 @@ namespace zzz
                     right_ = node;
                 }
             }
-            do
-            {
-                sb_maintain_(where, is_left);
-            } while((where = get_parent_(where)) != nullptr);
+            sb_maintain_(root_, predicate(key, root_));
         }
 
         void sb_maintain_(node_t *node, bool is_left)

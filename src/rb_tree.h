@@ -103,7 +103,7 @@ namespace zzz
         iterator find(key_t const &key)
         {
             node_t *where = bs_lower_bound_(key);
-            return (where == nullptr || interface_t::predicate(key, get_key(where))) ? iterator() : iterator(where);
+            return (where == nullptr || interface_t::predicate(key, get_key_(where))) ? iterator() : iterator(where);
         }
         void erase(iterator where)
         {
