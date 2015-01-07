@@ -183,32 +183,6 @@ namespace zzz
             return where;
         }
 
-        node_t *bst_right_rotate_(node_t *node)
-        {
-            node_t *left = get_left_(node), *parent = get_parent_(node);
-            set_left_(node, get_right_(left));
-            if(get_right_(left) != nullptr)
-            {
-                set_parent_(get_right_(left), node);
-            }
-            set_parent_(left, parent);
-            if(parent == nullptr)
-            {
-                root_ = left;
-            }
-            else if(node == get_right_(parent))
-            {
-                set_right_(parent, left);
-            }
-            else
-            {
-                set_left_(parent, left);
-            }
-            set_right_(left, node);
-            set_parent_(node, left);
-            return left;
-        }
-
         node_t *bst_left_rotate_(node_t *node)
         {
             node_t *right = get_right_(node), *parent = get_parent_(node);
@@ -233,6 +207,32 @@ namespace zzz
             set_left_(right, node);
             set_parent_(node, right);
             return right;
+        }
+
+        node_t *bst_right_rotate_(node_t *node)
+        {
+            node_t *left = get_left_(node), *parent = get_parent_(node);
+            set_left_(node, get_right_(left));
+            if(get_right_(left) != nullptr)
+            {
+                set_parent_(get_right_(left), node);
+            }
+            set_parent_(left, parent);
+            if(parent == nullptr)
+            {
+                root_ = left;
+            }
+            else if(node == get_right_(parent))
+            {
+                set_right_(parent, left);
+            }
+            else
+            {
+                set_left_(parent, left);
+            }
+            set_right_(left, node);
+            set_parent_(node, left);
+            return left;
         }
     };
 

@@ -256,18 +256,58 @@ namespace zzz
 
         node_t *sbt_left_rotate_(node_t *node)
         {
-            node_t *left = bst_left_rotate_(node);
-            set_size_(left, get_size_(node));
+            node_t *right = get_right_(node), *parent = get_parent_(node);
+            set_right_(node, get_left_(right));
+            if(get_left_(right) != nullptr)
+            {
+                set_parent_(get_left_(right), node);
+            }
+            set_parent_(right, parent);
+            if(node == root_)
+            {
+                root_ = right;
+            }
+            else if(node == get_left_(parent))
+            {
+                set_left_(parent, right);
+            }
+            else
+            {
+                set_right_(parent, right);
+            }
+            set_left_(right, node);
+            set_parent_(node, right);
+            set_size_(right, get_size_(node));
             sbt_refresh_size_(node);
-            return left;
+            return right;
         }
 
         node_t *sbt_right_rotate_(node_t *node)
         {
-            node_t *right = bst_right_rotate_(node);
-            set_size_(right, get_size_(node));
+            node_t *left = get_left_(node), *parent = get_parent_(node);
+            set_left_(node, get_right_(left));
+            if(get_right_(left) != nullptr)
+            {
+                set_parent_(get_right_(left), node);
+            }
+            set_parent_(left, parent);
+            if(parent == nullptr)
+            {
+                root_ = left;
+            }
+            else if(node == get_right_(parent))
+            {
+                set_right_(parent, left);
+            }
+            else
+            {
+                set_left_(parent, left);
+            }
+            set_right_(left, node);
+            set_parent_(node, left);
+            set_size_(left, get_size_(node));
             sbt_refresh_size_(node);
-            return right;
+            return left;
         }
 
         void sbt_insert_(node_t *key)
@@ -313,13 +353,28 @@ namespace zzz
             }
             while(get_parent_(where) != nullptr)
             {
-                where = sbt_maintain_(where, where == get_left_(get_parent_(where)));
+                if(where == get_left_(get_parent_(where)))
+                {
+                    where = sbt_maintain_<true>(where);
+                }
+                else
+                {
+                    where = sbt_maintain_<false>(where);
+                }
                 where = get_parent_(where);
             }
-            sbt_maintain_(root_, predicate(key, root_));
+            if(predicate(key, root_))
+            {
+                sbt_maintain_<true>(root_);
+            }
+            else
+            {
+                sbt_maintain_<false>(root_);
+            }
         }
 
-        node_t *sbt_maintain_(node_t *node, bool is_left)
+        template<bool is_left>
+        node_t *sbt_maintain_(node_t *node)
         {
             if(is_left)
             {
@@ -369,14 +424,14 @@ namespace zzz
             };
             if(get_left_(node) != nullptr)
             {
-                sbt_maintain_(get_left_(node), true);
+                sbt_maintain_<true>(get_left_(node));
             }
             if(get_right_(node) != nullptr)
             {
-                sbt_maintain_(get_right_(node), false);
+                sbt_maintain_<false>(get_right_(node));
             }
-            node = sbt_maintain_(node, true);
-            node = sbt_maintain_(node, false);
+            node = sbt_maintain_<true>(node);
+            node = sbt_maintain_<false>(node);
             return node;
         }
 
@@ -511,6 +566,42 @@ namespace zzz
             }
         }
 
+    public:
+        void print_tree()
+        {
+            printf("\n\n\n\n\n");
+            print_tree(root_, 0, "", "", 0);
+        }
+
+    protected:
+        void print_tree(node_t *node, size_t level, std::string head, std::string with, int type)
+        {
+            if(node != nullptr)
+            {
+                switch(type)
+                {
+                case 0:
+                    print_tree(get_right_(node), level + 1, head, "©³", 1);
+                    printf("%s%d\n", with.c_str(), rank(node));
+                    print_tree(get_left_(node), level + 1, head, "©»", 2);
+                    break;
+                case 1:
+                    print_tree(get_right_(node), level + 1, head + "  ", "©³", 1);
+                    printf("%s%d\n", (head + with).c_str(), rank(node));
+                    print_tree(get_left_(node), level + 1, head + "©§", "©»", 2);
+                    break;
+                case 2:
+                    print_tree(get_right_(node), level + 1, head + "©§", "©³", 1);
+                    printf("%s%d\n", (head + with).c_str(), rank(node));
+                    print_tree(get_left_(node), level + 1, head + "  ", "©»", 2);
+                    break;
+                }
+            }
+            else
+            {
+                printf("%s\n", (head + with).c_str());
+            }
+        }
     };
 
 }
