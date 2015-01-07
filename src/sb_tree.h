@@ -249,11 +249,16 @@ namespace zzz
             interface_t::set_size(node, size);
         }
 
+        void sbt_refresh_size_(node_t *node)
+        {
+            set_size_(node, get_size_(get_left_(node)) + get_size_(get_right_(node)) + 1);
+        }
+
         node_t *sbt_left_rotate_(node_t *node)
         {
             node_t *left = bst_left_rotate_(node);
             set_size_(left, get_size_(node));
-            set_size_(node, get_size_(get_left_(node)) + get_size_(get_right_(node)) + 1);
+            sbt_refresh_size_(node);
             return left;
         }
 
@@ -261,7 +266,7 @@ namespace zzz
         {
             node_t *right = bst_right_rotate_(node);
             set_size_(right, get_size_(node));
-            set_size_(node, get_size_(get_right_(node)) + get_size_(get_left_(node)) + 1);
+            sbt_refresh_size_(node);
             return right;
         }
 
@@ -306,16 +311,21 @@ namespace zzz
                     right_ = node;
                 }
             }
+            while(get_parent_(where) != nullptr)
+            {
+                where = sbt_maintain_(where, where == get_left_(get_parent_(where)));
+                where = get_parent_(where);
+            }
             sbt_maintain_(root_, predicate(key, root_));
         }
 
-        void sbt_maintain_(node_t *node, bool is_left)
+        node_t *sbt_maintain_(node_t *node, bool is_left)
         {
             if(is_left)
             {
                 if(get_left_(node) == nullptr)
                 {
-                    return;
+                    return node;
                 }
                 if(get_size_(get_left_(get_left_(node))) > get_size_(get_right_(node)))
                 {
@@ -330,7 +340,7 @@ namespace zzz
                     }
                     else
                     {
-                        return;
+                        return node;
                     };
                 };
             }
@@ -338,7 +348,7 @@ namespace zzz
             {
                 if(get_right_(node) == nullptr)
                 {
-                    return;
+                    return node;
                 }
                 if(get_size_(get_right_(get_right_(node))) > get_size_(get_left_(node)))
                 {
@@ -353,7 +363,7 @@ namespace zzz
                     }
                     else
                     {
-                        return;
+                        return node;
                     };
                 };
             };
@@ -365,8 +375,9 @@ namespace zzz
             {
                 sbt_maintain_(get_right_(node), false);
             }
-            sbt_maintain_(node, true);
-            sbt_maintain_(node, false);
+            node = sbt_maintain_(node, true);
+            node = sbt_maintain_(node, false);
+            return node;
         }
 
         void sbt_erase_(node_t *node)
@@ -428,7 +439,7 @@ namespace zzz
                         set_left_(get_parent_(erase_node), node);
                     }
                     set_parent_(node, get_parent_(erase_node));
-                    set_size_(node, get_size_(get_left_(node)) + get_size_(get_right_(node)) + 1);
+                    sbt_refresh_size_(node);
                 }
                 else
                 {
@@ -469,7 +480,7 @@ namespace zzz
                         set_right_(get_parent_(erase_node), node);
                     }
                     set_parent_(node, get_parent_(erase_node));
-                    set_size_(node, get_size_(get_right_(node)) + get_size_(get_left_(node)) + 1);
+                    sbt_refresh_size_(node);
                 }
                 return;
             }

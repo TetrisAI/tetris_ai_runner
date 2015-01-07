@@ -1,6 +1,7 @@
 
 #include "rb_tree.h"
 #include "sb_tree.h"
+#include "random.h"
 
 #include <string>
 #include <ctime>
@@ -119,10 +120,12 @@ void tree_test()
         data.push_back(n);
         return n;
     };
-    int length = 20000;
+    int length = 2000000;
+
+    ege::mtrandom r;
     for(int i = 0; i < length; ++i)
     {
-        c(std::rand());
+        c(i);
     }
 
     time_t rb_t1 = clock();
@@ -132,7 +135,7 @@ void tree_test()
     }
     time_t rb_t2 = clock();
 
-    std::cout << "rb random insert " << rb_t2 - rb_t1 << std::endl;
+    std::cout << "rb sorted insert " << rb_t2 - rb_t1 << std::endl;
 
     time_t sb_t1 = clock();
     for(auto n : data)
@@ -141,11 +144,11 @@ void tree_test()
     }
     time_t sb_t2 = clock();
 
-    std::cout << "sb random insert " << sb_t2 - sb_t1 << std::endl;
+    std::cout << "sb sorted insert " << sb_t2 - sb_t1 << std::endl;
 
-    for(int i = 0; i < length; ++i)
+    for(auto n : data)
     {
-        data[i]->value = i;
+        n->value = r.rand();
     }
     rb.clear();
     sb.clear();
@@ -157,7 +160,7 @@ void tree_test()
     }
     time_t rb_t4 = clock();
 
-    std::cout << "rb sorted insert " << rb_t4 - rb_t3 << std::endl;
+    std::cout << "rb random insert " << rb_t4 - rb_t3 << std::endl;
 
     time_t sb_t3 = clock();
     for(auto n : data)
@@ -166,11 +169,12 @@ void tree_test()
     }
     time_t sb_t4 = clock();
 
-    std::cout << "sb sorted insert " << sb_t4 - sb_t3 << std::endl;
+    std::cout << "sb random insert " << sb_t4 - sb_t3 << std::endl;
     
     for(auto n : data)
     {
         delete n;
     }
     data.clear();
+    system("pause");
 }
