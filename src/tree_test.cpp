@@ -3,7 +3,7 @@
 #include "sb_tree.h"
 
 #include <string>
-#include <cstring>
+#include <ctime>
 #include <iostream>
 #include <vector>
 
@@ -119,69 +119,55 @@ void tree_test()
         data.push_back(n);
         return n;
     };
-    for(int i = 0; i < 10000; ++i)
+    int length = 20000;
+    for(int i = 0; i < length; ++i)
     {
-        auto n = c(i);
+        c(std::rand());
+    }
+
+    time_t rb_t1 = clock();
+    for(auto n : data)
+    {
         rb.insert(n);
+    }
+    time_t rb_t2 = clock();
+
+    std::cout << "rb random insert " << rb_t2 - rb_t1 << std::endl;
+
+    time_t sb_t1 = clock();
+    for(auto n : data)
+    {
         sb.insert(n);
     }
-    for(int i = 0; i < 9000; ++i)
+    time_t sb_t2 = clock();
+
+    std::cout << "sb random insert " << sb_t2 - sb_t1 << std::endl;
+
+    for(int i = 0; i < length; ++i)
     {
-        auto it_rb = rb.begin();
-        auto it_sb = sb.begin();
-        std::advance(it_rb, std::rand() % rb.size());
-        std::advance(it_sb, std::rand() % sb.size());
-        rb.erase(it_rb);
-        sb.erase(it_sb);
+        data[i]->value = i;
     }
-    for(int i = 0; i < 19000; ++i)
+    rb.clear();
+    sb.clear();
+
+    time_t rb_t3 = clock();
+    for(auto n : data)
     {
-        auto n = c(std::rand());
         rb.insert(n);
+    }
+    time_t rb_t4 = clock();
+
+    std::cout << "rb sorted insert " << rb_t4 - rb_t3 << std::endl;
+
+    time_t sb_t3 = clock();
+    for(auto n : data)
+    {
         sb.insert(n);
     }
+    time_t sb_t4 = clock();
 
-    for(int i = 0; i < 10000; ++i)
-    {
-        auto assert = [](bool no_error)
-        {
-            if(!no_error)
-            {
-                *static_cast<int *>(0) = 0;
-            }
-        };
-        typedef decltype(sb.begin()) iter_t;
-        int off = std::rand() % rb.size();
-        iter_t it(sb.at(off));
-        assert(it - sb.begin() == off);
-        assert(it - off == sb.begin());
-        assert(sb.begin() + off == it);
-        while(off > 0)
-        {
-            --off;
-            --it;
-        }
-        assert(sb.begin() == it);
-        int part = sb.size() / 4;
-        int a = part + std::rand() % (part * 2);
-        int b = part;
-        assert(iter_t(sb.at(a)) + b == iter_t(sb.at(a + b)));
-        assert(sb.begin() + a == iter_t(sb.at(a + b)) - b);
-        assert(iter_t(sb.at(a)) - iter_t(sb.at(b)) == a - b);
-    }
-
-    for(int i = 0; i < 19999; ++i)
-    {
-        auto it_rb = rb.begin();
-        auto it_sb = sb.begin();
-        std::advance(it_rb, std::rand() % rb.size());
-        std::advance(it_sb, std::rand() % sb.size());
-        rb.erase(it_rb);
-        sb.erase(it_sb);
-    }
-    rb.erase(rb.begin());
-    sb.erase(sb.begin());
-
+    std::cout << "sb sorted insert " << sb_t4 - sb_t3 << std::endl;
+    
     for(auto n : data)
     {
         delete n;

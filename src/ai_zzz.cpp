@@ -598,10 +598,6 @@ namespace ai_zzz
                 {
                     attack += b2b ? 3 : 2;
                 }
-                else
-                {
-                    like -= 1;
-                }
                 attack += param_->table[std::min(param_->table_max - 1, ++combo)];
                 b2b = t_spin != TSpinType::None;
                 break;
@@ -610,10 +606,6 @@ namespace ai_zzz
                 {
                     like += 5;
                     attack += b2b ? 5 : 4;
-                }
-                else
-                {
-                    like -= 2;
                 }
                 attack += param_->table[std::min(param_->table_max - 1, ++combo)];
                 b2b = t_spin != TSpinType::None;
@@ -628,18 +620,19 @@ namespace ai_zzz
                 b2b = t_spin != TSpinType::None;
                 break;
             case 4:
-                like += 3;
+                like += 8;
                 attack += param_->table[std::min(param_->table_max - 1, ++combo)] + (b2b ? 5 : 4);
                 b2b = true;
                 break;
             }
             if(history[i].count == 0 && up == 0)
             {
+                like += 20;
                 attack += 6;
             }
         }
         eval_result const &last = history[history_length - 1];
-        return last.eval + (attack * 200 + last.expect * 100 + (b2b ? 240 : 0) * like * 4) * (full_count_ - last.count) / full_count_ - up * 40;
+        return last.eval + (attack * 160 + last.expect * 128 + (b2b ? 240 : 0) * like * 20) * (full_count_ - last.count) / full_count_ - up * 40;
     }
 
 }
