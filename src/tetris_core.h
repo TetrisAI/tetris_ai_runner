@@ -1263,17 +1263,16 @@ namespace m_tetris
             {
                 context->wait.clear();
                 context->sort.clear();
-                build_children();
                 context->wait.resize(next_length + 1);
-                auto wait = &context->wait.back();
-                wait->clear();
-                wait->insert(children.begin(), children.end());
+                context->sort.resize(next_length + 1);
+                build_children();
+                context->wait.back().insert(children.begin(), children.end());
             }
             else
             {
-                context->wait.resize(next_length + 1);
+                assert(context->wait.size() == next_length_max + 1);
+                assert(context->sort.size() == next_length_max + 1);
             }
-            context->sort.resize(next_length + 1);
             context->width += incr;
             size_t prune_hold = incr;
             size_t prune_hold_max = prune_hold * 36 / 10;
