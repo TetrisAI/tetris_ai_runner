@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <algorithm>
+#include <numeric>
 #include "bst_base.h"
 
 namespace zzz
@@ -46,7 +48,7 @@ namespace zzz
             }
             difference_type operator - (iterator const &other)
             {
-                return static_cast<int>(sb_tree::sbt_get_index_(ptr_)) - static_cast<int>(sb_tree::sbt_get_index_(other.ptr_));
+                return static_cast<int>(sb_tree::sbt_rank_(ptr_)) - static_cast<int>(sb_tree::sbt_rank_(other.ptr_));
             }
             iterator &operator++()
             {
@@ -158,6 +160,35 @@ namespace zzz
             pair_ii_t range = equal_range(key);
             return std::distance(range.first, range.second);
         }
+        size_t count(key_t const &min, key_t const &max)
+        {
+            return sbt_rank_(bst_upper_bound_(max)) - sbt_rank_(bst_lower_bound_(min));
+        }
+        pair_ii_t range(key_t const &min, key_t const &max)
+        {
+            return pair_ii_t(bst_lower_bound_(min), bst_upper_bound_(max));
+        }
+        pair_ii_t slice(int begin = 0, int end = std::numeric_limits<int>::max())
+        {
+            int size_s = size();
+            if(begin < 0)
+            {
+                begin = std::max(size_s + begin, 0);
+            }
+            if(end < 0)
+            {
+                end = size_s + end;
+            }
+            if(begin > end || begin >= size_s)
+            {
+                return pair_ii_t(sb_tree::end(), sb_tree::end());
+            }
+            if(end > size_s)
+            {
+                end = size_s;
+            }
+            return pair_ii_t(sb_tree::begin() + begin, sb_tree::end() - (size_s - end));
+        }
         iterator lower_bound(key_t const &key)
         {
             return iterator(bst_lower_bound_(key));
@@ -180,6 +211,14 @@ namespace zzz
         {
             return iterator(nil_());
         }
+        value_node_t *front()
+        {
+            return static_cast<value_node_t *>(get_most_left_());
+        }
+        value_node_t *back()
+        {
+            return static_cast<value_node_t *>(get_most_right_());
+        }
         bool empty()
         {
             return is_nil_(get_root_());
@@ -196,11 +235,18 @@ namespace zzz
         {
             return sbt_at_(get_root_(), index);
         }
-        static size_t get_index(value_node_t *node)
+        size_t rank(key_t const &key)
         {
-            return sbt_get_index_(node_t *node);
+            return sbt_rank_(bst_upper_bound_(key));
         }
-
+        static size_t rank(value_node_t *node)
+        {
+            return sbt_rank_(node);
+        }
+        static size_t rank(iterator where)
+        {
+            return sbt_rank_(&*where);
+        }
     protected:
         static size_t get_size_(node_t *node)
         {
@@ -307,7 +353,7 @@ namespace zzz
             return node;
         }
 
-        static size_t sbt_get_index_(node_t *node)
+        static size_t sbt_rank_(node_t *node)
         {
             if(is_nil_(node))
             {

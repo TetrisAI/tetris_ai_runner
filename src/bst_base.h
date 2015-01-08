@@ -17,6 +17,7 @@ namespace zzz
     protected:
         bst_base()
         {
+            static_assert(std::is_base_of<node_t, value_node_t>::value, "node_t must be base of value_node_t");
             set_nil_(nil_(), true);
             set_root_(nil_());
             set_most_left_(nil_());

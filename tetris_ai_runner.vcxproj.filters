@@ -106,7 +106,7 @@
     <ClInclude Include="src\sb_tree.h">
       <Filter>util</Filter>
     </ClInclude>
-    <ClInclude Include="src\bs_tree.h">
+    <ClInclude Include="src\bst_base.h">
       <Filter>util</Filter>
     </ClInclude>
   </ItemGroup>

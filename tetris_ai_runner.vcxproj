@@ -15,7 +15,7 @@
     <ClInclude Include="src\ai_easy.h" />
     <ClInclude Include="src\ai_farteryhr.h" />
     <ClInclude Include="src\ai_zzz.h" />
-    <ClInclude Include="src\bs_tree.h" />
+    <ClInclude Include="src\bst_base.h" />
     <ClInclude Include="src\integer_utils.h" />
     <ClInclude Include="src\land_point_search_cautious.h" />
     <ClInclude Include="src\land_point_search_path.h" />

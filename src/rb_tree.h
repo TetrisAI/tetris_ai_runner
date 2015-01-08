@@ -141,6 +141,10 @@ namespace zzz
             pair_ii_t range = equal_range(key);
             return std::distance(range.first, range.second);
         }
+        pair_ii_t range(key_t const &min, key_t const &max)
+        {
+            return pair_ii_t(bst_lower_bound_(min), bst_upper_bound_(max));
+        }
         iterator lower_bound(key_t const &key)
         {
             return iterator(bst_lower_bound_(key));

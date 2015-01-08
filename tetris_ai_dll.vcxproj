@@ -14,13 +14,13 @@
     <ClInclude Include="src\ai_ax.h" />
     <ClInclude Include="src\ai_easy.h" />
     <ClInclude Include="src\ai_farteryhr.h" />
+    <ClInclude Include="src\bst_base.h" />
     <ClInclude Include="src\integer_utils.h" />
     <ClInclude Include="src\land_point_search_path.h" />
     <ClInclude Include="src\land_point_search_simple.h" />
     <ClInclude Include="src\land_point_search_simulate.h" />
     <ClInclude Include="src\land_point_search_tspin.h" />
     <ClInclude Include="src\random.h" />
-    <ClInclude Include="src\bs_tree.h" />
     <ClInclude Include="src\rule_qq.h" />
     <ClInclude Include="src\rule_srsx.h" />
     <ClInclude Include="src\rule_st.h" />
