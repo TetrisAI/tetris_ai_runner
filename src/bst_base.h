@@ -7,7 +7,7 @@ namespace zzz
 {
     //incomplete
     template<class Interface>
-    class bs_tree
+    class bst_base
     {
     public:
         typedef Interface interface_t;
@@ -15,7 +15,7 @@ namespace zzz
         typedef typename interface_t::value_node_t value_node_t;
         typedef typename interface_t::key_t key_t;
     protected:
-        bs_tree()
+        bst_base()
         {
             set_nil_(nil_(), true);
             set_root_(nil_());
@@ -107,6 +107,32 @@ namespace zzz
             interface_t::set_right(node, right);
         }
 
+        template<bool is_left>
+        static void set_child_(node_t *node, node_t *child)
+        {
+            if(is_left)
+            {
+                set_left_(node, child);
+            }
+            else
+            {
+                set_right_(node, child);
+            }
+        }
+
+        template<bool is_left>
+        static node_t *get_child_(node_t *node)
+        {
+            if(is_left)
+            {
+                return get_left_(node);
+            }
+            else
+            {
+                return get_right_(node);
+            }
+        }
+
         static bool predicate(node_t *left, node_t *right)
         {
             return interface_t::predicate(get_key_(left), get_key_(right));
@@ -128,22 +154,23 @@ namespace zzz
             return node;
         }
 
-        static node_t *bst_next_(node_t *node)
+        template<bool is_next>
+        static node_t *bst_move_(node_t *node)
         {
             if(!is_nil_(node))
             {
-                if(!is_nil_(get_right_(node)))
+                if(!is_nil_(get_child_<!is_next>(node)))
                 {
-                    node = get_right_(node);
-                    while(!is_nil_(get_left_(node)))
+                    node = get_child_<!is_next>(node);
+                    while(!is_nil_(get_child_<is_next>(node)))
                     {
-                        node = get_left_(node);
+                        node = get_child_<is_next>(node);
                     }
                 }
                 else
                 {
                     node_t *parent;
-                    while(!is_nil_(parent = get_parent_(node)) && node == get_right_(parent))
+                    while(!is_nil_(parent = get_parent_(node)) && node == get_child_<!is_next>(parent))
                     {
                         node = parent;
                     }
@@ -152,58 +179,21 @@ namespace zzz
             }
             else
             {
-                return get_left_(node);
+                return get_child_<is_next>(node);
             }
             return node;
         }
 
-        static node_t *bst_prev_(node_t *node)
+        template<bool is_min>
+        static node_t *bst_most_(node_t *node)
         {
-            if(!is_nil_(node))
+            while(!is_nil_(get_child_<is_min>(node)))
             {
-                if(!is_nil_(get_left_(node)))
-                {
-                    node = get_left_(node);
-                    while(!is_nil_(get_right_(node)))
-                    {
-                        node = get_right_(node);
-                    }
-                }
-                else
-                {
-                    node_t *parent;
-                    while(!is_nil_(parent = get_parent_(node)) && node == get_left_(parent))
-                    {
-                        node = parent;
-                    }
-                    node = parent;
-                }
-            }
-            else
-            {
-                return get_right_(node);
+                node = get_child_<is_min>(node);
             }
             return node;
         }
-
-        static node_t *bst_min_(node_t *node)
-        {
-            while(!is_nil_(get_left_(node)))
-            {
-                node = get_left_(node);
-            }
-            return node;
-        }
-
-        static node_t *bst_max_(node_t *node)
-        {
-            while(!is_nil_(get_right_(node)))
-            {
-                node = get_right_(node);
-            }
-            return node;
-        }
-
+        
         node_t *bst_lower_bound_(key_t const &key)
         {
             node_t *node = get_root_(), *where = nil_();
@@ -224,7 +214,7 @@ namespace zzz
 
         node_t *bst_upper_bound_(key_t const &key)
         {
-            node_t *node = root_, *where = nil_();
+            node_t *node = get_root_(), *where = nil_();
             while(!is_nil_(node))
             {
                 if(interface_t::predicate(key, get_key_(node)))
@@ -240,57 +230,71 @@ namespace zzz
             return where;
         }
 
-        node_t *bst_left_rotate_(node_t *node)
+        void bst_equal_range_(key_t const &key, node_t *&lower_node, node_t *&upper_node)
         {
-            node_t *right = get_right_(node), *parent = get_parent_(node);
-            set_right_(node, get_left_(right));
-            if(!is_nil_(get_left_(right)))
+            node_t *node = get_root_();
+            node_t *lower = nil_();
+            node_t *upper = nil_();
+            while(!is_nil_(node))
             {
-                set_parent_(get_left_(right), node);
+                if(interface_t::predicate(get_key_(node), key))
+                {
+                    node = get_right_(node);
+                }
+                else
+                {
+                    if(is_nil_(upper) && interface_t::predicate(key, get_key_(node)))
+                    {
+                        upper = node;
+                    }
+                    lower = node;
+                    node = get_left_(node);
+                }
             }
-            set_parent_(right, parent);
-            if(node == get_root_())
+            node = is_nil_(upper) ? get_root_() : get_left_(upper);
+            while(!is_nil_(node))
             {
-                set_root_(right);
+                if(interface_t::predicate(key, get_key_(node)))
+                {
+                    upper = node;
+                    node = get_left_(node);
+                }
+                else
+                {
+                    node = get_right_(node);
+                }
             }
-            else if(node == get_left_(parent))
-            {
-                set_left_(parent, right);
-            }
-            else
-            {
-                set_right_(parent, right);
-            }
-            set_left_(right, node);
-            set_parent_(node, right);
-            return right;
+            lower_node = lower;
+            upper_node = upper;
         }
 
-        node_t *bst_right_rotate_(node_t *node)
+        template<bool is_left>
+        node_t *bst_rotate_(node_t *node)
         {
-            node_t *left = get_left_(node), *parent = get_parent_(node);
-            set_left_(node, get_right_(left));
-            if(!is_nil_(get_right_(left)))
+            node_t *child = get_child_<!is_left>(node), *parent = get_parent_(node);
+            set_child_<!is_left>(node, get_child_<is_left>(child));
+            if(!is_nil_(get_child_<is_left>(child)))
             {
-                set_parent_(get_right_(left), node);
+                set_parent_(get_child_<is_left>(child), node);
             }
-            set_parent_(left, parent);
-            if(is_nil_(parent))
+            set_parent_(child, parent);
+            if(node == get_root_())
             {
-                set_root_(left);
+                set_root_(child);
             }
-            else if(node == get_right_(parent))
+            else if(node == get_child_<is_left>(parent))
             {
-                set_right_(parent, left);
+                set_child_<is_left>(parent, child);
             }
             else
             {
-                set_left_(parent, left);
+                set_child_<!is_left>(parent, child);
             }
-            set_right_(left, node);
-            set_parent_(node, left);
-            return left;
+            set_child_<is_left>(child, node);
+            set_parent_(node, child);
+            return child;
         }
+
     };
 
 }

@@ -135,6 +135,7 @@ void tree_test()
     std::vector<Node *> data;
     std::vector<decltype(rb)> _unuse1;
     std::vector<decltype(sb)> _unuse2;
+    ege::mtrandom r;
 
     int length = 2000;
 
@@ -146,40 +147,52 @@ void tree_test()
         return n;
     };
 
-
-    for(int i = 0; i < length; ++i)
+    auto assert = [](bool no_error)
     {
-        auto n = c(std::rand());
+        if(!no_error)
+        {
+            *static_cast<int *>(0) = 0;
+        }
+    };
+
+    for(int i = 0; i < length / 2; ++i)
+    {
+        auto n = c(i);
+        rb.insert(n);
+        sb.insert(n);
+        n = c(i);
         rb.insert(n);
         sb.insert(n);
     }
+    assert(rb.find(0) == rb.begin());
+    assert(sb.find(0) == sb.begin());
+    assert(rb.find(length / 2 - 1) == ----rb.end());
+    assert(sb.find(length / 2 - 1) == sb.end() - 2);
+    assert(rb.count(1) == 2);
+    assert(sb.count(1) == 2);
+    assert(rb.equal_range(2).first == rb.lower_bound(2));
+    assert(sb.equal_range(2).second == sb.upper_bound(2));
+    assert(sb.erase(3) == 2);
+    assert(rb.erase(3) == 2);
     for(int i = 0; i < length / 2; ++i)
     {
         auto it_rb = rb.begin();
         auto it_sb = sb.begin();
-        std::advance(it_rb, std::rand() % rb.size());
-        std::advance(it_sb, std::rand() % sb.size());
+        std::advance(it_rb, r.rand() % rb.size());
+        std::advance(it_sb, r.rand() % sb.size());
         rb.erase(it_rb);
         sb.erase(it_sb);
     }
-    for(int i = 0; i < length * 2; ++i)
+    for(int i = 0; i < length * 2 + 2; ++i)
     {
-        auto n = c(std::rand());
+        auto n = c(r.rand());
         rb.insert(n);
         sb.insert(n);
     }
-
-    for(int i = 0; i < length * 2; ++i)
+    for(int i = 0; i < length; ++i)
     {
-        auto assert = [](bool no_error)
-        {
-            if(!no_error)
-            {
-                *static_cast<int *>(0) = 0;
-            }
-        };
         typedef decltype(sb.begin()) iter_t;
-        int off = std::rand() % sb.size();
+        int off = r.rand() % sb.size();
         iter_t it(sb.at(off));
         assert(it - sb.begin() == off);
         assert(it - off == sb.begin());
@@ -196,28 +209,27 @@ void tree_test()
         assert(sb.begin() + off == begin);
         assert(sb.begin() == it);
         int part = sb.size() / 4;
-        int a = part + std::rand() % (part * 2);
-        int b = std::rand() % part;
+        int a = part + r.rand() % (part * 2);
+        int b = r.rand() % part;
         assert(iter_t(sb.at(a)) + b == iter_t(sb.at(a + b)));
         assert(sb.begin() + a == iter_t(sb.at(a + b)) - b);
         assert(iter_t(sb.at(a)) - iter_t(sb.at(b)) == a - b);
     }
 
-    for(int i = 0; i < length * 2 + length / 2 - 1; ++i)
+    for(int i = 0; i < length * 2 + length / 2; ++i)
     {
         auto it_rb = rb.begin();
         auto it_sb = sb.begin();
-        std::advance(it_rb, std::rand() % rb.size());
-        std::advance(it_sb, std::rand() % sb.size());
+        std::advance(it_rb, r.rand() % rb.size());
+        std::advance(it_sb, r.rand() % sb.size());
         rb.erase(it_rb);
         sb.erase(it_sb);
     }
-    rb.erase(rb.begin());
-    sb.erase(sb.begin());
     
     length = 2000000;
 
-    ege::mtrandom r;
+    std::cout << "count = " << length << std::endl;
+
     for(int i = 0; i < length; ++i)
     {
         c(i);
@@ -230,7 +242,7 @@ void tree_test()
     }
     time_t rb_t2 = clock();
 
-    std::cout << "rb sorted insert " << rb_t2 - rb_t1 << std::endl;
+    std::cout << "rbt sorted insert " << rb_t2 - rb_t1 << std::endl;
 
     time_t sb_t1 = clock();
     for(auto n : data)
@@ -239,7 +251,7 @@ void tree_test()
     }
     time_t sb_t2 = clock();
 
-    std::cout << "sb sorted insert " << sb_t2 - sb_t1 << std::endl;
+    std::cout << "sbt sorted insert " << sb_t2 - sb_t1 << std::endl;
 
     for(auto n : data)
     {
@@ -255,7 +267,7 @@ void tree_test()
     }
     time_t rb_t4 = clock();
 
-    std::cout << "rb random insert " << rb_t4 - rb_t3 << std::endl;
+    std::cout << "rbt random insert " << rb_t4 - rb_t3 << std::endl;
 
     time_t sb_t3 = clock();
     for(auto n : data)
@@ -264,7 +276,7 @@ void tree_test()
     }
     time_t sb_t4 = clock();
 
-    std::cout << "sb random insert " << sb_t4 - sb_t3 << std::endl;
+    std::cout << "sbt random insert " << sb_t4 - sb_t3 << std::endl;
     
     for(auto n : data)
     {
