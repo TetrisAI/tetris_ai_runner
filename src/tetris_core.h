@@ -665,49 +665,86 @@ namespace m_tetris
         }
     };
 
+    struct TetrisTreeNodeBase
+    {
+        TetrisTreeNodeBase() : hold(' '), level(), flag()
+        {
+        }
+        TetrisTreeNodeBase *base_parent, *base_left, *base_right;
+        union
+        {
+            struct
+            {
+                unsigned char hold;
+                unsigned char level;
+                unsigned char flag;
+            };
+            struct
+            {
+                unsigned char : 8;
+                unsigned char : 8;
+                unsigned char is_dead : 1;
+                unsigned char is_hold : 1;
+                unsigned char is_hold_lock : 1;
+                unsigned char is_black : 1;
+                unsigned char is_nil : 1;
+            };
+        };
+    };
+
     template<class FinalEval, class Eval, class TetrisAI, class TetrisLandPointSearchEngine>
-    struct TetrisTreeNode
+    struct TetrisTreeNode : public TetrisTreeNodeBase
     {
         typedef TetrisCore<TetrisAI, TetrisLandPointSearchEngine> Core;
         struct Context
         {
         public:
-            struct RBTreeInterface
+            struct ValueTreeInterface
             {
                 typedef decltype(TetrisTreeNode::final_eval) key_t;
+                typedef TetrisTreeNodeBase node_t;
+                typedef TetrisTreeNode value_node_t;
                 static key_t const &get_key(TetrisTreeNode *node)
                 {
                     return node->final_eval;
                 }
-                static TetrisTreeNode *get_parent(TetrisTreeNode *node)
+                static bool is_nil(TetrisTreeNodeBase *node)
                 {
-                    return node->rb_parent;
+                    return node->is_nil;
                 }
-                static void set_parent(TetrisTreeNode *node, TetrisTreeNode *parent)
+                static void set_nil(TetrisTreeNodeBase *node, bool nil)
                 {
-                    node->rb_parent = parent;
+                    node->is_nil = nil;
                 }
-                static TetrisTreeNode *get_left(TetrisTreeNode *node)
+                static TetrisTreeNodeBase *get_parent(TetrisTreeNodeBase *node)
                 {
-                    return node->rb_left;
+                    return node->base_parent;
                 }
-                static void set_left(TetrisTreeNode *node, TetrisTreeNode *left)
+                static void set_parent(TetrisTreeNodeBase *node, TetrisTreeNodeBase *parent)
                 {
-                    node->rb_left = left;
+                    node->base_parent = parent;
                 }
-                static TetrisTreeNode *get_right(TetrisTreeNode *node)
+                static TetrisTreeNodeBase *get_left(TetrisTreeNodeBase *node)
                 {
-                    return node->rb_right;
+                    return node->base_left;
                 }
-                static void set_right(TetrisTreeNode *node, TetrisTreeNode *right)
+                static void set_left(TetrisTreeNodeBase *node, TetrisTreeNodeBase *left)
                 {
-                    node->rb_right = right;
+                    node->base_left = left;
                 }
-                static bool is_black(TetrisTreeNode *node)
+                static TetrisTreeNodeBase *get_right(TetrisTreeNodeBase *node)
+                {
+                    return node->base_right;
+                }
+                static void set_right(TetrisTreeNodeBase *node, TetrisTreeNodeBase *right)
+                {
+                    node->base_right = right;
+                }
+                static bool is_black(TetrisTreeNodeBase *node)
                 {
                     return node->is_black;
                 }
-                static void set_black(TetrisTreeNode *node, bool black)
+                static void set_black(TetrisTreeNodeBase *node, bool black)
                 {
                     node->is_black = black;
                 }
@@ -728,13 +765,13 @@ namespace m_tetris
                 }
             }
         public:
-            typedef zzz::rb_tree<TetrisTreeNode, RBTreeInterface> DeepthTree;
+            typedef zzz::rb_tree<ValueTreeInterface> value_tree_t;
             size_t version;
             TetrisContext const *context;
             TetrisAI *ai;
             TetrisLandPointSearchEngine *search;
-            std::vector<DeepthTree> sort;
-            std::vector<DeepthTree> wait;
+            std::vector<value_tree_t> sort;
+            std::vector<value_tree_t> wait;
             std::vector<Eval> history;
             bool is_complete;
             bool is_open_hold;
@@ -774,42 +811,52 @@ namespace m_tetris
                 tree_cache_.push_back(node);
             }
         };
-        struct RBTreeInterface
+        struct StatusTreeInterface
         {
             typedef TetrisBlockStatus key_t;
+            typedef TetrisTreeNodeBase node_t;
+            typedef TetrisTreeNode value_node_t;
             static TetrisBlockStatus const &get_key(TetrisTreeNode *node)
             {
                 return node->identity->status;
             }
-            static TetrisTreeNode *get_parent(TetrisTreeNode *node)
+            static bool is_nil(TetrisTreeNodeBase *node)
             {
-                return node->rb_parent;
+                return node->is_nil;
             }
-            static void set_parent(TetrisTreeNode *node, TetrisTreeNode *parent)
+            static void set_nil(TetrisTreeNodeBase *node, bool nil)
             {
-                node->rb_parent = parent;
+                node->is_nil = nil;
             }
-            static TetrisTreeNode *get_left(TetrisTreeNode *node)
+            static TetrisTreeNodeBase *get_parent(TetrisTreeNodeBase *node)
             {
-                return node->rb_left;
+                return node->base_parent;
             }
-            static void set_left(TetrisTreeNode *node, TetrisTreeNode *left)
+            static void set_parent(TetrisTreeNodeBase *node, TetrisTreeNodeBase *parent)
             {
-                node->rb_left = left;
+                node->base_parent = parent;
             }
-            static TetrisTreeNode *get_right(TetrisTreeNode *node)
+            static TetrisTreeNodeBase *get_left(TetrisTreeNodeBase *node)
             {
-                return node->rb_right;
+                return node->base_left;
             }
-            static void set_right(TetrisTreeNode *node, TetrisTreeNode *right)
+            static void set_left(TetrisTreeNodeBase *node, TetrisTreeNodeBase *left)
             {
-                node->rb_right = right;
+                node->base_left = left;
             }
-            static bool is_black(TetrisTreeNode *node)
+            static TetrisTreeNodeBase *get_right(TetrisTreeNodeBase *node)
+            {
+                return node->base_right;
+            }
+            static void set_right(TetrisTreeNodeBase *node, TetrisTreeNodeBase *right)
+            {
+                node->base_right = right;
+            }
+            static bool is_black(TetrisTreeNodeBase *node)
             {
                 return node->is_black;
             }
-            static void set_black(TetrisTreeNode *node, bool black)
+            static void set_black(TetrisTreeNodeBase *node, bool black)
             {
                 node->is_black = black;
             }
@@ -818,8 +865,8 @@ namespace m_tetris
                 return TetrisBlockStatusCompare()(left, right);
             }
         };
-        typedef zzz::rb_tree<TetrisTreeNode, RBTreeInterface> children_sort_t;
-        TetrisTreeNode(Context *_context) : context(_context), version(context->version - 1), parent(), identity(), hold(' '), level(), flag(), node()
+        typedef zzz::rb_tree<StatusTreeInterface> children_sort_t;
+        TetrisTreeNode(Context *_context) : TetrisTreeNodeBase(), context(_context), version(context->version - 1), parent(), identity(), node()
         {
             children_source[0] = 0;
             children_source[1] = 0;
@@ -833,26 +880,7 @@ namespace m_tetris
         TetrisTreeNode *parent;
         std::vector<TetrisTreeNode *> children;
         TetrisNode const *children_source[2];
-        TetrisTreeNode *rb_parent, *rb_left, *rb_right;
         TetrisNode const *node;
-        union
-        {
-            struct
-            {
-                unsigned char hold;
-                unsigned char level;
-                unsigned char flag;
-            };
-            struct
-            {
-                unsigned char : 8;
-                unsigned char : 8;
-                unsigned char is_dead : 1;
-                unsigned char is_hold : 1;
-                unsigned char is_hold_lock : 1;
-                unsigned char is_black : 1;
-            };
-        };
         std::vector<unsigned char> next;
         void (TetrisTreeNode::*search_ptr)(bool);
 

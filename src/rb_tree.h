@@ -6,8 +6,8 @@
 namespace zzz
 {
     //incomplete
-    template<class Node, class Interface>
-    class rb_tree : public bs_tree<Node, Interface>
+    template<class Interface>
+    class rb_tree : public bs_tree<Interface>
     {
     public:
         class iterator
@@ -24,9 +24,6 @@ namespace zzz
             {
             }
             iterator(iterator const &other) : ptr_(other.ptr_)
-            {
-            }
-            iterator() : ptr_(nullptr)
             {
             }
             iterator &operator++()
@@ -51,13 +48,13 @@ namespace zzz
                 --*this;
                 return save;
             }
-            node_t &operator *()
+            value_node_t &operator *()
             {
-                return *ptr_;
+                return *static_cast<value_node_t *>(ptr_);
             }
-            node_t *operator->()
+            value_node_t *operator->()
             {
-                return ptr_;
+                return *static_cast<value_node_t *>(ptr_);
             }
             bool operator == (iterator const &other) const
             {
@@ -74,16 +71,17 @@ namespace zzz
     public:
         rb_tree() : bs_tree(), size_()
         {
+            set_black_(get_root_(), true);
         }
         rb_tree(rb_tree &&other)
         {
-            root_ = other.root_;
-            left_ = other.left_;
-            right_ = other.right_;
+            set_root_(other.get_root_());
+            set_most_left_(other.get_most_left_());
+            set_most_right_(other.get_most_right_());
             size_ = other.size_;
-            other.root_ = nullptr;
-            other.left_ = nullptr;
-            other.right_ = nullptr;
+            other.set_root_(other.nil_());
+            other.set_most_left_(other.nil_());
+            other.set_most_right_(other.nil_());
             other.size_ = 0;
         }
         rb_tree(rb_tree const &other) = delete;
@@ -105,7 +103,7 @@ namespace zzz
         iterator find(key_t const &key)
         {
             node_t *where = bst_lower_bound_(key);
-            return (where == nullptr || interface_t::predicate(key, get_key_(where))) ? iterator() : iterator(where);
+            return (is_nil_(where) || interface_t::predicate(key, get_key_(where))) ? iterator(nil_()) : iterator(where);
         }
         void erase(iterator where)
         {
@@ -119,15 +117,15 @@ namespace zzz
         }
         iterator begin()
         {
-            return iterator(left_);
+            return iterator(get_most_left_());
         }
         iterator end()
         {
-            return iterator();
+            return iterator(nil_());
         }
-        bool empty() const
+        bool empty()
         {
-            return root_ == nullptr;
+            return is_nil_(get_root_());
         }
         void clear()
         {
@@ -145,7 +143,7 @@ namespace zzz
     protected:
         static bool is_black_(node_t *node)
         {
-            return node == nullptr ? true : interface_t::is_black(node);
+            return interface_t::is_black(node);
         }
 
         static void set_black_(node_t *node, bool black)
@@ -155,18 +153,18 @@ namespace zzz
 
         void rbt_insert_(node_t *key)
         {
-            if(root_ == nullptr)
+            if(is_nil_(get_root_()))
             {
-                root_ = bst_init_node_(nullptr, key);
-                set_black_(root_, true);
-                left_ = root_;
-                right_ = root_;
+                set_root_(bst_init_node_(nil_(), key));
+                set_black_(get_root_(), true);
+                set_most_left_(get_root_());
+                set_most_right_(get_root_());
                 return;
             }
             set_black_(key, false);
-            node_t *node = root_, *where = nullptr;
+            node_t *node = get_root_(), *where = nil_();
             bool is_left = true;
-            while(node != nullptr)
+            while(!is_nil_(node))
             {
                 where = node;
                 if(is_left = predicate(key, node))
@@ -181,17 +179,17 @@ namespace zzz
             if(is_left)
             {
                 set_left_(where, node = bst_init_node_(where, key));
-                if(where == left_)
+                if(where == get_most_left_())
                 {
-                    left_ = node;
+                    set_most_left_(node);
                 }
             }
             else
             {
                 set_right_(where, node = bst_init_node_(where, key));
-                if(where == right_)
+                if(where == get_most_right_())
                 {
-                    right_ = node;
+                    set_most_right_(node);
                 }
             }
             while(!is_black_(get_parent_(node)))
@@ -241,7 +239,7 @@ namespace zzz
                     }
                 }
             }
-            set_black_(root_, true);
+            set_black_(get_root_(), true);
         }
 
         void rbt_erase_(node_t *node)
@@ -249,11 +247,11 @@ namespace zzz
             node_t *erase_node = node;
             node_t *fix_node;
             node_t *fix_node_parent;
-            if(get_left_(node) == nullptr)
+            if(is_nil_(get_left_(node)))
             {
                 fix_node = get_right_(node);
             }
-            else if(get_right_(node) == nullptr)
+            else if(is_nil_(get_right_(node)))
             {
                 fix_node = get_left_(node);
             }
@@ -265,13 +263,13 @@ namespace zzz
             if(node == erase_node)
             {
                 fix_node_parent = get_parent_(erase_node);
-                if(fix_node != nullptr)
+                if(!is_nil_(fix_node))
                 {
                     set_parent_(fix_node, fix_node_parent);
                 }
-                if(root_ == erase_node)
+                if(get_root_() == erase_node)
                 {
-                    root_ = fix_node;
+                    set_root_(fix_node);
                 }
                 else if(get_left_(fix_node_parent) == erase_node)
                 {
@@ -281,13 +279,13 @@ namespace zzz
                 {
                     set_right_(fix_node_parent, fix_node);
                 }
-                if(left_ == erase_node)
+                if(get_most_left_() == erase_node)
                 {
-                    left_ = fix_node == nullptr ? fix_node_parent : bst_min_(fix_node);
+                    set_most_left_(is_nil_(fix_node) ? fix_node_parent : bst_min_(fix_node));
                 }
-                if(right_ == erase_node)
+                if(get_most_right_() == erase_node)
                 {
-                    right_ = fix_node == nullptr ? fix_node_parent : bst_max_(fix_node);
+                    set_most_right_(is_nil_(fix_node) ? fix_node_parent : bst_max_(fix_node));
                 }
             }
             else
@@ -301,7 +299,7 @@ namespace zzz
                 else
                 {
                     fix_node_parent = get_parent_(node);
-                    if(fix_node != nullptr)
+                    if(!is_nil_(fix_node))
                     {
                         set_parent_(fix_node, fix_node_parent);
                     }
@@ -309,9 +307,9 @@ namespace zzz
                     set_right_(node, get_right_(erase_node));
                     set_parent_(get_right_(erase_node), node);
                 }
-                if(root_ == erase_node)
+                if(get_root_() == erase_node)
                 {
-                    root_ = node;
+                    set_root_(node);
                 }
                 else if(get_left_(get_parent_(erase_node)) == erase_node)
                 {
@@ -328,7 +326,7 @@ namespace zzz
             }
             if(is_black_(erase_node))
             {
-                for(; fix_node != root_ && is_black_(fix_node); fix_node_parent = get_parent_(fix_node))
+                for(; fix_node != get_root_() && is_black_(fix_node); fix_node_parent = get_parent_(fix_node))
                 {
                     if(fix_node == get_left_(fix_node_parent))
                     {
@@ -340,7 +338,7 @@ namespace zzz
                             bst_left_rotate_(fix_node_parent);
                             node = get_right_(fix_node_parent);
                         }
-                        if(node == nullptr)
+                        if(is_nil_(node))
                         {
                             fix_node = fix_node_parent;
                         }
@@ -375,7 +373,7 @@ namespace zzz
                             bst_right_rotate_(fix_node_parent);
                             node = get_left_(fix_node_parent);
                         }
-                        if(node == nullptr)
+                        if(is_nil_(node))
                         {
                             fix_node = fix_node_parent;
                         }
@@ -401,7 +399,7 @@ namespace zzz
                         }
                     }
                 }
-                if(fix_node != nullptr)
+                if(!is_nil_(fix_node))
                 {
                     set_black_(fix_node, true);
                 }

@@ -13,6 +13,7 @@ struct Node
     Node *rb_parent, *rb_left, *rb_right;
     Node *sb_parent, *sb_left, *sb_right;
     bool is_black;
+    bool is_nil;
     size_t size;
     int value;
 };
@@ -20,9 +21,19 @@ struct Node
 struct RBTreeInterface
 {
     typedef int key_t;
+    typedef Node node_t;
+    typedef Node value_node_t;
     static key_t const &get_key(Node *node)
     {
         return node->value;
+    }
+    static bool is_nil(Node *node)
+    {
+        return node->is_nil;
+    }
+    static void set_nil(Node *node, bool nil)
+    {
+        node->is_nil = nil;
     }
     static Node *get_parent(Node *node)
     {
@@ -65,9 +76,19 @@ struct RBTreeInterface
 struct SBTreeInterface
 {
     typedef int key_t;
+    typedef Node node_t;
+    typedef Node value_node_t;
     static key_t const &get_key(Node *node)
     {
         return node->value;
+    }
+    static bool is_nil(Node *node)
+    {
+        return node->is_nil;
+    }
+    static void set_nil(Node *node, bool nil)
+    {
+        node->is_nil = nil;
     }
     static Node *get_parent(Node *node)
     {
@@ -109,9 +130,13 @@ struct SBTreeInterface
 
 void tree_test()
 {
-    zzz::rb_tree<Node, RBTreeInterface> rb;
-    zzz::sb_tree<Node, SBTreeInterface> sb;
+    zzz::rb_tree<RBTreeInterface> rb;
+    zzz::sb_tree<SBTreeInterface> sb;
     std::vector<Node *> data;
+    std::vector<decltype(rb)> _unuse1;
+    std::vector<decltype(sb)> _unuse2;
+
+    int length = 2000;
 
     auto c = [&data](int v)
     {
@@ -120,7 +145,77 @@ void tree_test()
         data.push_back(n);
         return n;
     };
-    int length = 2000000;
+
+
+    for(int i = 0; i < length; ++i)
+    {
+        auto n = c(std::rand());
+        rb.insert(n);
+        sb.insert(n);
+    }
+    for(int i = 0; i < length / 2; ++i)
+    {
+        auto it_rb = rb.begin();
+        auto it_sb = sb.begin();
+        std::advance(it_rb, std::rand() % rb.size());
+        std::advance(it_sb, std::rand() % sb.size());
+        rb.erase(it_rb);
+        sb.erase(it_sb);
+    }
+    for(int i = 0; i < length * 2; ++i)
+    {
+        auto n = c(std::rand());
+        rb.insert(n);
+        sb.insert(n);
+    }
+
+    for(int i = 0; i < length * 2; ++i)
+    {
+        auto assert = [](bool no_error)
+        {
+            if(!no_error)
+            {
+                *static_cast<int *>(0) = 0;
+            }
+        };
+        typedef decltype(sb.begin()) iter_t;
+        int off = std::rand() % sb.size();
+        iter_t it(sb.at(off));
+        assert(it - sb.begin() == off);
+        assert(it - off == sb.begin());
+        assert(sb.begin() + off == it);
+        assert(sb.begin() + off == sb.end() - (sb.size() - off));
+        iter_t begin = sb.begin(), end = sb.end();
+        for(int i = 0; i < off; ++i)
+        {
+            --it;
+            ++begin;
+            --end;
+        }
+        assert(sb.end() - end == off);
+        assert(sb.begin() + off == begin);
+        assert(sb.begin() == it);
+        int part = sb.size() / 4;
+        int a = part + std::rand() % (part * 2);
+        int b = std::rand() % part;
+        assert(iter_t(sb.at(a)) + b == iter_t(sb.at(a + b)));
+        assert(sb.begin() + a == iter_t(sb.at(a + b)) - b);
+        assert(iter_t(sb.at(a)) - iter_t(sb.at(b)) == a - b);
+    }
+
+    for(int i = 0; i < length * 2 + length / 2 - 1; ++i)
+    {
+        auto it_rb = rb.begin();
+        auto it_sb = sb.begin();
+        std::advance(it_rb, std::rand() % rb.size());
+        std::advance(it_sb, std::rand() % sb.size());
+        rb.erase(it_rb);
+        sb.erase(it_sb);
+    }
+    rb.erase(rb.begin());
+    sb.erase(sb.begin());
+    
+    length = 2000000;
 
     ege::mtrandom r;
     for(int i = 0; i < length; ++i)
