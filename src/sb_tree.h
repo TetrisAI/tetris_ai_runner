@@ -72,11 +72,11 @@ namespace zzz
                 --*this;
                 return save;
             }
-            node_t &operator *()
+            value_node_t &operator *()
             {
                 return *static_cast<value_node_t *>(ptr_);
             }
-            node_t *operator->()
+            value_node_t *operator->()
             {
                 return *static_cast<value_node_t *>(ptr_);
             }
