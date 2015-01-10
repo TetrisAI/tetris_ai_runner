@@ -578,6 +578,10 @@ namespace ai_zzz
             switch(history[i].clear)
             {
             case 0:
+                if(combo > 0 && combo < 3)
+                {
+                    like -= 4;
+                }
                 combo = 0;
                 if(under_attack > 0)
                 {
@@ -632,7 +636,7 @@ namespace ai_zzz
             }
         }
         eval_result const &last = history[history_length - 1];
-        return last.eval + (attack * 160 + last.expect * 128 + (b2b ? 240 : 0) * like * 20) * (full_count_ - last.count) / full_count_ - up * 40;
+        return last.eval + (attack * 160 + last.expect * 128 + (b2b ? 240 : 0) + like * 20) * (full_count_ - last.count) / full_count_ - up * 40;
     }
 
 }

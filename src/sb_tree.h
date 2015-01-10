@@ -334,7 +334,7 @@ namespace zzz
                 }
                 if(is_nil_(get_parent_(node)))
                 {
-                    return nullptr;
+                    return get_parent_(node);
                 }
                 else
                 {
