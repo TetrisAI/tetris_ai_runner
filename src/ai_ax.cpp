@@ -40,17 +40,16 @@ namespace ai_ax
 
     AI::eval_result AI::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
     {
-        //ÏûĞĞÊı
+        //æ¶ˆè¡Œæ•°
         double LandHeight = node->status.y + 1;
-        //ÉèÖÃ×óÖĞÓÒÆ½ºâÆÆÈ±²ÎÊı
+        //è®¾ç½®å·¦ä¸­å³å¹³è¡¡ç ´ç¼ºå‚æ•°
         double Middle = std::abs((node->status.x + 1) * 2 - map.width);
-        //µ±Ç°¿éĞĞÊı
+        //å½“å‰å—è¡Œæ•°
         double EraseCount = clear;
 
         const int width_m1 = map.width - 1;
-        //ĞĞÁĞ±ä»»
+        //è¡Œåˆ—å˜æ¢
         int ColTrans = 2 * (map.height - map.roof);
-        int RowTrans = map.roof == map.height ? 0 : map.width;
         for(int y = 0; y < map.roof; ++y)
         {
             if(!map.full(0, y))
@@ -62,30 +61,32 @@ namespace ai_ax
                 ++ColTrans;
             }
             ColTrans += zzz::BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
-            if(y != 0)
-            {
-                RowTrans += zzz::BitCount(map.row[y - 1] ^ map.row[y]);
-            }
+	}
+	int RowTrans = 0;
+	for (int y = 1; y < map.roof; ++y)
+	{
+            RowTrans += zzz::BitCount(map.row[y - 1] ^ map.row[y]);
         }
-        RowTrans += zzz::BitCount(row_mask_ & ~map.row[0]);
-        RowTrans += zzz::BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+	RowTrans += zzz::BitCount(row_mask_ ^ map.row[0]);
+	RowTrans += zzz::BitCount(map.roof == map.height ? ~row_mask_ & map.row[map.roof - 1] : map.row[map.roof - 1]);
+
 
         struct
         {
-            //¶´Êı
+            //æ´æ•°
             int HoleCount;
-            //¶´ĞĞÊı
+            //æ´è¡Œæ•°
             int HoleLine;
-            //×î¸ß¶´ĞĞÊı
+            //æœ€é«˜æ´è¡Œæ•°
             int HolePosy;
-            //×î¸ß¶´ÉÏ·½¿éÊı
+            //æœ€é«˜æ´ä¸Šæ–¹å—æ•°
             int HolePiece;
 
-            //¶´Éî,¾®Éî
+            //æ´æ·±,äº•æ·±
             int HoleDepth;
             int WellDepth;
 
-            //¶´¼ÆÊı,¾®¼ÆÊı
+            //æ´è®¡æ•°,äº•è®¡æ•°
             int HoleNum[32];
             int WellNum[32];
 
@@ -150,7 +151,7 @@ namespace ai_ax
         }
         if(v.HolePosy != 0)
         {
-            //´Ó×î¸ßÓĞ¶´ĞĞÉÏÒ»ĞĞ¿ªÊ¼ÍùÉÏÀ÷±é
+            //ä»æœ€é«˜æœ‰æ´è¡Œä¸Šä¸€è¡Œå¼€å§‹å¾€ä¸Šå‰é
             for(int y = v.HolePosy; y < map.roof; ++y)
             {
                 int CheckLine = v.TopHoleBits & map.row[y];
@@ -162,24 +163,24 @@ namespace ai_ax
             }
         }
 
-        //ËÀÍö¾¯½ä
+        //æ­»äº¡è­¦æˆ’
         int BoardDeadZone = map_in_danger_(map);
 
         eval_result result;
         result.land_point = (0
-                             - LandHeight * 200 / map.height
-                             + Middle  * 0.2
-                             + EraseCount * 6
+                             - LandHeight * 1750 / map.height
+                             + Middle  * 2
+                             + EraseCount * 60
                              );
         result.map = (0
-                      - ColTrans * 8
-                      - RowTrans * 8
-                      - v.HoleCount * 6
-                      - v.HoleLine * 38
-                      - v.WellDepth * 10
-                      - v.HoleDepth * 4
-                      - v.HolePiece * 0.5
-                      - BoardDeadZone * 5000
+                      - ColTrans * 80
+                      - RowTrans * 80
+                      - v.HoleCount * 60
+                      - v.HoleLine * 380
+                      - v.WellDepth * 100
+                      - v.HoleDepth * 40
+                      - v.HolePiece * 5
+                      - BoardDeadZone * 50000
                       );
         return result;
     }
