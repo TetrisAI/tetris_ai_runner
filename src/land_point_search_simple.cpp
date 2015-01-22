@@ -97,6 +97,23 @@ namespace land_point_search_simple
                 }
                 rotate = rotate->rotate_counterclockwise;
             } while(rotate != nullptr  && rotate != node && rotate->check(map));
+            //从左到右遍历方块策略
+            /*
+			do
+			{
+				TetrisNode const *move = rotate;
+				while (move->move_left != nullptr && move->move_left->check(map))
+				{
+					move = move->move_left;
+				}
+				while (move != nullptr && move->check(map))
+				{
+					push(node_mark_filtered_, land_point_cache_, move->drop(map));
+					move = move->move_right;
+				}
+				rotate = rotate->rotate_counterclockwise;
+			} while (rotate != nullptr  && rotate != node && rotate->check(map));
+			*/
         }
         return &land_point_cache_;
     }
