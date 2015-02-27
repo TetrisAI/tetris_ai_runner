@@ -16,6 +16,7 @@
 #include "rule_qq.h"
 #include "rule_srs.h"
 #include "rule_toj.h"
+#include "rule_c2.h"
 #include "random.h"
 
 m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_path::Search> tetris_ai;
@@ -336,3 +337,5 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
     path[ai_path.size() + 1] = '\0';
     return 0;
 }
+
+m_tetris::TetrisEngine<rule_c2::TetrisRuleSet, ai_ax::AI, land_point_search_cautious::Search> c2_ai;

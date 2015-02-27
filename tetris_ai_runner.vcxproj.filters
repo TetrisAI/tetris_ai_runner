@@ -49,6 +49,9 @@
     <ClCompile Include="src\rule_toj.cpp">
       <Filter>rules\toj</Filter>
     </ClCompile>
+    <ClCompile Include="src\rule_c2.cpp">
+      <Filter>rules\c2</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\rule_srs.h">
@@ -109,6 +112,9 @@
     <ClInclude Include="src\bst_base.h">
       <Filter>util</Filter>
     </ClInclude>
+    <ClInclude Include="src\rule_c2.h">
+      <Filter>rules\c2</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="rules">
@@ -164,6 +170,9 @@
     </Filter>
     <Filter Include="rules\toj">
       <UniqueIdentifier>{a7357bb7-1496-4b42-93ba-1ca197f72e25}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="rules\c2">
+      <UniqueIdentifier>{17e8a281-f3b6-4715-a7ce-601579e8a36b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
