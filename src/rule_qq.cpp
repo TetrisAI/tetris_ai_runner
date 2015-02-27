@@ -8,24 +8,6 @@ using namespace m_tetris_rule_tools;
 
 namespace rule_qq
 {
-    bool TetrisRuleSet::init(int w, int h)
-    {
-        return h < max_height;
-    }
-
-    template<unsigned char R>
-    bool qq_rotate_template(TetrisNode &node, TetrisContext const *context)
-    {
-        TetrisBlockStatus status =
-        {
-            node.status.t, node.status.x, node.status.y, R
-        };
-        if(!context->create(status, node))
-        {
-            return false;
-        }
-        return node.row + node.height <= context->height();
-    }
 
     template<unsigned char T>
     TetrisBlockStatus game_generate_template(TetrisContext const *context)
@@ -59,8 +41,8 @@ namespace rule_qq
             T(1, 1, 1, 1),
             T(0, 0, 0, 0),
             T(0, 0, 0, 0)>,
-            qq_rotate_template<1>,
-            qq_rotate_template<1>,
+            rotate_template<1>,
+            rotate_template<1>,
             nullptr,
         };
         TetrisOpertion op_I2 =
@@ -70,8 +52,8 @@ namespace rule_qq
             T(0, 0, 1, 0),
             T(0, 0, 1, 0),
             T(0, 0, 1, 0)>,
-            qq_rotate_template<0>,
-            qq_rotate_template<0>,
+            rotate_template<0>,
+            rotate_template<0>,
             nullptr,
         };
         TetrisOpertion op_S1 =
@@ -81,8 +63,8 @@ namespace rule_qq
             T(1, 1, 0, 0),
             T(0, 0, 0, 0),
             T(0, 0, 0, 0)>,
-            qq_rotate_template<1>,
-            qq_rotate_template<1>,
+            rotate_template<1>,
+            rotate_template<1>,
             nullptr,
         };
         TetrisOpertion op_S2 =
@@ -92,8 +74,8 @@ namespace rule_qq
             T(0, 1, 1, 0),
             T(0, 0, 1, 0),
             T(0, 0, 0, 0)>,
-            qq_rotate_template<0>,
-            qq_rotate_template<0>,
+            rotate_template<0>,
+            rotate_template<0>,
             nullptr,
         };
         TetrisOpertion op_Z1 =
@@ -103,8 +85,8 @@ namespace rule_qq
             T(0, 1, 1, 0),
             T(0, 0, 0, 0),
             T(0, 0, 0, 0)>,
-            qq_rotate_template<1>,
-            qq_rotate_template<1>,
+            rotate_template<1>,
+            rotate_template<1>,
             nullptr,
         };
         TetrisOpertion op_Z2 =
@@ -114,8 +96,8 @@ namespace rule_qq
             T(0, 1, 1, 0),
             T(0, 1, 0, 0),
             T(0, 0, 0, 0)>,
-            qq_rotate_template<0>,
-            qq_rotate_template<0>,
+            rotate_template<0>,
+            rotate_template<0>,
             nullptr,
         };
         TetrisOpertion op_L1 =
@@ -125,8 +107,8 @@ namespace rule_qq
             T(0, 1, 0, 0),
             T(0, 1, 0, 0),
             T(0, 0, 0, 0)>,
-            qq_rotate_template<3>,
-            qq_rotate_template<1>,
+            rotate_template<3>,
+            rotate_template<1>,
             nullptr,
         };
         TetrisOpertion op_L2 =
@@ -136,8 +118,8 @@ namespace rule_qq
             T(1, 1, 1, 0),
             T(1, 0, 0, 0),
             T(0, 0, 0, 0)>,
-            qq_rotate_template<0>,
-            qq_rotate_template<2>,
+            rotate_template<0>,
+            rotate_template<2>,
             nullptr,
         };
         TetrisOpertion op_L3 =
@@ -147,8 +129,8 @@ namespace rule_qq
             T(0, 1, 0, 0),
             T(0, 1, 1, 0),
             T(0, 0, 0, 0)>,
-            qq_rotate_template<1>,
-            qq_rotate_template<3>,
+            rotate_template<1>,
+            rotate_template<3>,
             nullptr,
         };
         TetrisOpertion op_L4 =
@@ -158,8 +140,8 @@ namespace rule_qq
             T(1, 1, 1, 0),
             T(0, 0, 0, 0),
             T(0, 0, 0, 0)>,
-            qq_rotate_template<2>,
-            qq_rotate_template<0>,
+            rotate_template<2>,
+            rotate_template<0>,
             nullptr,
         };
         TetrisOpertion op_J1 =
@@ -169,8 +151,8 @@ namespace rule_qq
             T(0, 1, 0, 0),
             T(0, 1, 0, 0),
             T(0, 0, 0, 0)>,
-            qq_rotate_template<3>,
-            qq_rotate_template<1>,
+            rotate_template<3>,
+            rotate_template<1>,
             nullptr,
         };
         TetrisOpertion op_J2 =
@@ -180,8 +162,8 @@ namespace rule_qq
             T(1, 1, 1, 0),
             T(0, 0, 0, 0),
             T(0, 0, 0, 0)>,
-            qq_rotate_template<0>,
-            qq_rotate_template<2>,
+            rotate_template<0>,
+            rotate_template<2>,
             nullptr,
         };
         TetrisOpertion op_J3 =
@@ -191,8 +173,8 @@ namespace rule_qq
             T(0, 1, 0, 0),
             T(1, 1, 0, 0),
             T(0, 0, 0, 0)>,
-            qq_rotate_template<1>,
-            qq_rotate_template<3>,
+            rotate_template<1>,
+            rotate_template<3>,
             nullptr,
         };
         TetrisOpertion op_J4 =
@@ -202,8 +184,8 @@ namespace rule_qq
             T(1, 1, 1, 0),
             T(0, 0, 1, 0),
             T(0, 0, 0, 0)>,
-            qq_rotate_template<2>,
-            qq_rotate_template<0>,
+            rotate_template<2>,
+            rotate_template<0>,
             nullptr,
         };
         TetrisOpertion op_T1 =
@@ -213,8 +195,8 @@ namespace rule_qq
             T(1, 1, 1, 0),
             T(0, 1, 0, 0),
             T(0, 0, 0, 0)>,
-            qq_rotate_template<3>,
-            qq_rotate_template<1>,
+            rotate_template<3>,
+            rotate_template<1>,
             nullptr,
         };
         TetrisOpertion op_T2 =
@@ -224,8 +206,8 @@ namespace rule_qq
             T(0, 1, 1, 0),
             T(0, 1, 0, 0),
             T(0, 0, 0, 0)>,
-            qq_rotate_template<0>,
-            qq_rotate_template<2>,
+            rotate_template<0>,
+            rotate_template<2>,
             nullptr,
         };
         TetrisOpertion op_T3 =
@@ -235,8 +217,8 @@ namespace rule_qq
             T(1, 1, 1, 0),
             T(0, 0, 0, 0),
             T(0, 0, 0, 0)>,
-            qq_rotate_template<1>,
-            qq_rotate_template<3>,
+            rotate_template<1>,
+            rotate_template<3>,
             nullptr,
         };
         TetrisOpertion op_T4 =
@@ -246,8 +228,8 @@ namespace rule_qq
             T(1, 1, 0, 0),
             T(0, 1, 0, 0),
             T(0, 0, 0, 0)>,
-            qq_rotate_template<2>,
-            qq_rotate_template<0>,
+            rotate_template<2>,
+            rotate_template<0>,
             nullptr,
         };
 #undef T
