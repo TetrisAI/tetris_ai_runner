@@ -338,4 +338,46 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
     return 0;
 }
 
-m_tetris::TetrisEngine<rule_c2::TetrisRuleSet, ai_ax::AI, land_point_search_cautious::Search> c2_ai;
+m_tetris::TetrisEngine<rule_c2::TetrisRuleSet, ai_ax::AI, land_point_search_simulate::Search> c2_ai;
+
+extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int level, int combo, char path[], size_t limit)
+{
+    if(!c2_ai.prepare(boardW, boardH))
+    {
+        *path = '\0';
+        return 0;
+    }
+    m_tetris::TetrisMap map =
+    {
+        boardW, boardH
+    };
+    memcpy(map.row, board, boardH * sizeof(int));
+    for(int my = 0; my < map.height; ++my)
+    {
+        for(int mx = 0; mx < map.width; ++mx)
+        {
+            if(map.full(mx, my))
+            {
+                map.top[mx] = map.roof = my + 1;
+                map.row[my] |= 1 << mx;
+                ++map.count;
+            }
+        }
+    }
+    m_tetris::TetrisBlockStatus status =
+    {
+        nextPiece[0], curX, curY, curR
+    };
+    size_t next_length = nextPiece[1] == ' ' ? 0 : 1;
+    m_tetris::TetrisNode const *node = c2_ai.get(status);
+    auto target = c2_ai.run(map, node, reinterpret_cast<unsigned char const *>(nextPiece + 1), next_length, limit).target;
+    std::vector<char> ai_path;
+    if(target != nullptr)
+    {
+        ai_path = c2_ai.make_path(node, target, map);
+        memcpy(path, ai_path.data(), ai_path.size());
+    }
+    path[ai_path.size()] = 'V';
+    path[ai_path.size() + 1] = '\0';
+    return 0;
+}
