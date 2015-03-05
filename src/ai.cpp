@@ -338,9 +338,9 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
     return 0;
 }
 
-m_tetris::TetrisEngine<rule_c2::TetrisRuleSet, ai_ax::AI, land_point_search_simulate::Search> c2_ai;
+m_tetris::TetrisEngine<rule_c2::TetrisRuleSet, ai_zzz::C2, land_point_search_cautious::Search> c2_ai;
 
-extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int level, int combo, char path[], size_t limit)
+extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int mode, int combo, char path[], size_t limit)
 {
     if(!c2_ai.prepare(boardW, boardH))
     {
@@ -364,6 +364,9 @@ extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], c
             }
         }
     }
+    c2_ai.status()->fast_move_down = true;
+    c2_ai.param()->mode = mode;
+    c2_ai.param()->combo = combo;
     m_tetris::TetrisBlockStatus status =
     {
         nextPiece[0], curX, curY, curR
@@ -379,5 +382,5 @@ extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], c
     }
     path[ai_path.size()] = 'V';
     path[ai_path.size() + 1] = '\0';
-    return 0;
+    return target == nullptr ? 0 : target->attach(map);
 }
