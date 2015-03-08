@@ -377,7 +377,7 @@ namespace ai_zzz
         double value = 0;
 
         const int width = map.width;
-        
+
         for(int x = 0; x < width; ++x)
         {
             for(int y = 0; y < map.roof; ++y)
@@ -704,21 +704,20 @@ namespace ai_zzz
         {
             int HoleCount;
             int HoleLine;
-            int HolePosy;
-            int HolePiece;
 
-            int HoleDepth;
-            int WellDepth;
-
-            int HoleNum[32];
-            int WellNum[32];
-
-            double AttackDepth;
+            int WideWellDepth[6];
+            int WellDepth[32];
+            int WellDepthTotle;
 
             int LineCoverBits;
-            int TopHoleBits;
+            int HoleBits0;
+            int ClearWidth0;
+            int HoleBits1;
+            int ClearWidth1;
         } v;
         memset(&v, 0, sizeof v);
+        int HolePosy0 = -1;
+        int HolePosy1 = -1;
 
         for(int y = map.roof - 1; y >= 0; --y)
         {
@@ -728,91 +727,103 @@ namespace ai_zzz
             {
                 v.HoleCount += BitCount(LineHole);
                 v.HoleLine++;
-                if(v.HolePosy == 0)
+                if(HolePosy0 == -1)
                 {
-                    v.HolePosy = y + 1;
-                    v.TopHoleBits = LineHole;
+                    HolePosy0 = y + 1;
+                    v.HoleBits0 = LineHole;
+                }
+                else if(HolePosy1 == -1)
+                {
+                    HolePosy1 = y + 1;
+                    v.HoleBits1 = LineHole;
                 }
             }
-            for(int x = 1; x < width_m1; ++x)
+            int WellWidth = 0;
+            int MaxWellWidth = 0;
+            for(int x = 0; x < map.width; ++x)
             {
-                if((LineHole >> x) & 1)
+                if((v.LineCoverBits >> x) & 1)
                 {
-                    v.HoleDepth += ++v.HoleNum[x];
+                    if(WellWidth > MaxWellWidth)
+                    {
+                        MaxWellWidth = WellWidth;
+                    }
+                    WellWidth = 0;
                 }
                 else
                 {
-                    v.HoleNum[x] = 0;
+                    ++WellWidth;
+                    if(x > 0 && x < width_m1)
+                    {
+                        if(((v.LineCoverBits >> (x - 1)) & 7) == 5)
+                        {
+                            v.WellDepthTotle += ++v.WellDepth[x];
+                        }
+                    }
+                    else if(x == 0)
+                    {
+                        if((v.LineCoverBits & 3) == 2)
+                        {
+                            v.WellDepthTotle += ++v.WellDepth[0];
+                        }
+                    }
+                    else
+                    {
+                        if(((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
+                        {
+                            v.WellDepthTotle += ++v.WellDepth[width_m1];
+                        }
+                    }
                 }
-                if(((v.LineCoverBits >> (x - 1)) & 7) == 5)
-                {
-                    v.WellDepth += ++v.WellNum[x];
-                }
             }
-            if(LineHole & 1)
+            if(WellWidth > MaxWellWidth)
             {
-                v.HoleDepth += ++v.HoleNum[0];
+                MaxWellWidth = WellWidth;
             }
-            else
+            if(MaxWellWidth >= 1 && MaxWellWidth <= 6)
             {
-                v.HoleNum[0] = 0;
-            }
-            if((v.LineCoverBits & 3) == 2)
-            {
-                v.WellDepth += ++v.WellNum[0];
-            }
-            if((LineHole >> width_m1) & 1)
-            {
-                v.HoleDepth += ++v.HoleNum[width_m1];
-            }
-            else
-            {
-                v.HoleNum[width_m1] = 0;
-            }
-            if(((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
-            {
-                v.WellDepth += ++v.WellNum[width_m1];
+                ++v.WellDepth[MaxWellWidth - 1];
             }
         }
-        if(v.HolePosy != 0)
+        if(HolePosy0 >= 0)
         {
-            for(int y = v.HolePosy; y < map.roof; ++y)
+            for(int y = HolePosy0; y < map.roof; ++y)
             {
-                int CheckLine = v.TopHoleBits & map.row[y];
+                int CheckLine = v.HoleBits0 & map.row[y];
                 if(CheckLine == 0)
                 {
                     break;
                 }
-                v.HolePiece += (y + 1) * BitCount(CheckLine);
+                v.ClearWidth0 += (y + 1) * BitCount(CheckLine);
             }
-        }
-        int low_x;
-        if((param_->mode & 1) == 0)
-        {
-            low_x = 1;
-            for(int x = 2; x < width_m1; ++x)
+            if(HolePosy1 >= 0)
             {
-                if(map.top[x] < map.top[low_x])
+                for(int y = HolePosy1; y < map.roof; ++y)
                 {
-                    low_x = x;
+                    int CheckLine = v.HoleBits0 & map.row[y];
+                    if(CheckLine == 0)
+                    {
+                        break;
+                    }
+                    v.ClearWidth1 += (y + 1) * BitCount(CheckLine);
                 }
             }
-            if(map.top[0] < map.top[low_x])
+        }
+        int low_x = 1;
+        for(int x = 2; x < width_m1; ++x)
+        {
+            if(map.top[x] < map.top[low_x])
             {
-                low_x = 0;
-            }
-            if(map.top[width_m1] < map.top[low_x])
-            {
-                low_x = width_m1;
+                low_x = x;
             }
         }
-        else
+        if(map.top[0] <= map.top[low_x])
         {
-            low_x = (map.top[width_m1 - 3] <= map.top[width_m1 - 4]) ? width_m1 - 3 : width_m1 - 4;
-            if(map.top[width_m1 - 2] <= map.top[low_x])
-            {
-                low_x = width_m1 - 2;
-            }
+            low_x = 0;
+        }
+        if(map.top[width_m1] <= map.top[low_x])
+        {
+            low_x = width_m1;
         }
         int low_y = map.top[low_x];
 
@@ -827,13 +838,20 @@ namespace ai_zzz
                       - ColTrans * 80
                       - RowTrans * 80
                       - v.HoleCount * 60
-                      - v.HoleLine * 256
-                      - v.WellDepth * 100
-                      - v.HoleDepth * 40
-                      - v.HolePiece * 8
+                      - v.HoleLine * 380
+                      - v.ClearWidth0 * 5
+                      - v.ClearWidth1 * 2
+                      - v.WellDepthTotle * 100
+                      + v.WideWellDepth[5] * 20
+                      + v.WideWellDepth[4] * 20
+                      + v.WideWellDepth[3] * 20
+                      + v.WideWellDepth[2] * 40
+                      + v.WideWellDepth[1] * 20
+                      + v.WideWellDepth[0] * (param_->mode == 1 ? 16 : 0)
                       );
         result.clear = clear;
         result.low_y = low_y;
+        result.count = map.count;
         result.soft_drop = !node->open(map);
         return result;
     }
@@ -846,12 +864,13 @@ namespace ai_zzz
     double C2::get(eval_result const *history, size_t history_length) const
     {
         double land_point_value = 0;
+        double map_value = 0;
         int combo = param_->combo;
         for(size_t i = 0; i < history_length; ++i)
         {
             if(param_->mode == 1)
             {
-                if(param_->combo == 0 && history[i].low_y <= 5)
+                if(param_->combo == 0 && history[i].low_y <= 5 && history[i].count < 92)
                 {
                     if(history[i].clear > 0)
                     {
@@ -860,39 +879,67 @@ namespace ai_zzz
                 }
                 else if(history[i].clear > 0)
                 {
-                    if(param_->combo < 4)
+                    if(param_->combo == 0)
                     {
-                        if(history[i].clear > 2)
+                        if(history[i].clear == 4)
                         {
-                            land_point_value += history[i].clear * 100000;
+                            land_point_value += 8000;
+                        }
+                        else if(history[i].clear == 3)
+                        {
+                            land_point_value += 4000;
+                        }
+                        else if(history[i].clear == 1 && history[i].low_y < 14)
+                        {
+                            land_point_value -= 2000;
+                        }
+                    }
+                    else if(param_->combo == 1)
+                    {
+                        if(history[i].clear == 4)
+                        {
+                            land_point_value += 4000;
+                        }
+                        else if(history[i].clear == 3)
+                        {
+                            land_point_value += 2000;
+                        }
+                        else if(history[i].clear == 1 && history[i].low_y < 14)
+                        {
+                            land_point_value -= 1000;
                         }
                     }
                     else
                     {
-                        if(history[i].clear == 1)
+                        if(param_->combo > 4 && history[i].clear > 1)
+                        {
+                            land_point_value -= 1000;
+                        }
+                        if(param_->combo < 6)
                         {
                             land_point_value += 2000;
                         }
-                        if(param_->combo < 8)
-                        {
-                            land_point_value += 5000;
-                        }
                         else
                         {
-                            land_point_value += 50000;
+                            land_point_value += 40000;
                         }
                     }
+                }
+                else if(param_->combo > 0 && history[i].count < 80)
+                {
+                    land_point_value -= 2000;
+                }
+                if(history[i].clear > 0)
+                {
+                    ++combo;
                 }
             }
             if(history[i].soft_drop)
             {
                 land_point_value -= 800;
             }
-            if(history[i].clear > 0)
-            {
-                ++combo;
-            }
             land_point_value += history[i].land_point;
+            map_value += history[i].map * (1. / (history_length - 1));
         }
         return land_point_value / history_length + history[history_length - 1].map;
     }

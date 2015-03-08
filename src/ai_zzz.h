@@ -107,6 +107,7 @@ namespace ai_zzz
             double land_point, map;
             size_t clear;
             int low_y;
+            int count;
             bool soft_drop;
         };
         eval_result eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
