@@ -782,7 +782,7 @@ namespace ai_zzz
             }
             if(MaxWellWidth >= 1 && MaxWellWidth <= 6)
             {
-                ++v.WellDepth[MaxWellWidth - 1];
+                ++v.WideWellDepth[MaxWellWidth - 1];
             }
         }
         if(HolePosy0 >= 0)
@@ -837,18 +837,28 @@ namespace ai_zzz
         result.map = (0.
                       - ColTrans * 80
                       - RowTrans * 80
-                      - v.HoleCount * 60
+                      - v.HoleCount * 80
                       - v.HoleLine * 380
-                      - v.ClearWidth0 * 5
-                      - v.ClearWidth1 * 2
+                      - v.ClearWidth0 * 8
+                      - v.ClearWidth1 * 4
                       - v.WellDepthTotle * 100
-                      + v.WideWellDepth[5] * 20
-                      + v.WideWellDepth[4] * 20
-                      + v.WideWellDepth[3] * 20
-                      + v.WideWellDepth[2] * 40
-                      + v.WideWellDepth[1] * 20
-                      + v.WideWellDepth[0] * (param_->mode == 1 ? 16 : 0)
                       );
+        if(param_->mode == 1)
+        {
+            int attack_well = std::min(4, v.WideWellDepth[0]);
+            result.attack = (0.
+                             + v.WideWellDepth[5] * 16
+                             + v.WideWellDepth[4] * 24
+                             + v.WideWellDepth[3] * 32
+                             + v.WideWellDepth[2] * 40
+                             + v.WideWellDepth[1] * 8
+                             + attack_well * attack_well * 128
+                             );
+        }
+        else
+        {
+            result.attack = 0;
+        }
         result.clear = clear;
         result.low_y = low_y;
         result.count = map.count;
@@ -870,48 +880,55 @@ namespace ai_zzz
         {
             if(param_->mode == 1)
             {
-                if(param_->combo == 0 && history[i].low_y <= 5 && history[i].count < 92)
+                if(param_->combo == 0)
                 {
-                    if(history[i].clear > 0)
-                    {
-                        land_point_value -= 4000;
-                    }
+                    land_point_value += history[i].attack;
                 }
-                else if(history[i].clear > 0)
+                if(history[i].clear > 0)
                 {
                     if(param_->combo == 0)
                     {
-                        if(history[i].clear == 4)
+                        if(history[i].clear == 4 && history[i].count >= 84)
                         {
                             land_point_value += 8000;
                         }
-                        else if(history[i].clear == 3)
+                        else if(history[i].clear == 3 && history[i].count >= 92)
                         {
                             land_point_value += 4000;
                         }
-                        else if(history[i].clear == 1 && history[i].low_y < 14)
+                        else if(history[i].low_y <= 5)
                         {
-                            land_point_value -= 2000;
+                            if(history[i].count < 92)
+                            {
+                                land_point_value -= 4000;
+                            }
+                            else if(history[i].clear < 3)
+                            {
+                                if(history[i].count <= 100)
+                                {
+                                    land_point_value -= 4000;
+                                }
+                                else if(history[i].count <= 120)
+                                {
+                                    land_point_value -= 2000;
+                                }
+                            }
                         }
                     }
                     else if(param_->combo == 1)
                     {
                         if(history[i].clear == 4)
                         {
-                            land_point_value += 4000;
+                            land_point_value += 2500;
                         }
                         else if(history[i].clear == 3)
                         {
-                            land_point_value += 2000;
-                        }
-                        else if(history[i].clear == 1 && history[i].low_y < 14)
-                        {
-                            land_point_value -= 1000;
+                            land_point_value += 1000;
                         }
                     }
                     else
                     {
-                        if(param_->combo > 4 && history[i].clear > 1)
+                        if(param_->combo > 3 && history[i].clear > 1 && history[i].count <= 72)
                         {
                             land_point_value -= 1000;
                         }
@@ -925,7 +942,7 @@ namespace ai_zzz
                         }
                     }
                 }
-                else if(param_->combo > 0 && history[i].count < 80)
+                else if(param_->combo > 0 && history[i].count <= 64)
                 {
                     land_point_value -= 2000;
                 }

@@ -104,7 +104,7 @@ namespace ai_zzz
         std::string ai_name() const;
         struct eval_result
         {
-            double land_point, map;
+            double land_point, attack, map;
             size_t clear;
             int low_y;
             int count;
