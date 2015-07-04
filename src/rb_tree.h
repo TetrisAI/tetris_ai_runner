@@ -86,6 +86,18 @@ namespace zzz
             other.size_ = 0;
         }
         rb_tree(rb_tree const &other) = delete;
+        rb_tree &operator = (rb_tree &&other)
+        {
+            set_root_(other.get_root_());
+            set_most_left_(other.get_most_left_());
+            set_most_right_(other.get_most_right_());
+            size_ = other.size_;
+            other.set_root_(other.nil_());
+            other.set_most_left_(other.nil_());
+            other.set_most_right_(other.nil_());
+            other.size_ = 0;
+            return *this;
+        }
         rb_tree &operator = (rb_tree const &other) = delete;
 
         typedef std::pair<iterator, bool> pair_ib_t;
