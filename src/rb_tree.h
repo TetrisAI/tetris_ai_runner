@@ -15,6 +15,7 @@ namespace zzz
         {
         public:
             typedef std::bidirectional_iterator_tag iterator_category;
+            typedef typename bst_base<Interface>::node_t node_t;
             typedef node_t value_type;
             typedef int difference_type;
             typedef unsigned int distance_type;

@@ -1,13 +1,8 @@
 
-#define DECLSPEC_EXPORT __declspec(dllexport)
-#define WINAPI __stdcall
-
 #include <chrono>
 #include <thread>
 #include <string>
 #include <iostream>
-#include <boost/algorithm/string.hpp>
-#include <boost/lexical_cast.hpp>
 #include "tetris_core.h"
 #include "land_point_search_path.h"
 #include "ai_ax.h"
@@ -16,10 +11,48 @@
 
 m_tetris::TetrisEngine<rule_tag::TetrisRuleSet, ai_ax::AI, land_point_search_path::Search> bot_1;
 
-extern "C" void attach_init()
+namespace zzz
 {
-    ege::mtsrand(unsigned int(time(nullptr)));
+    template<size_t N> struct is_key_char
+    {
+        bool operator()(char c, char const *arr)
+        {
+            return arr[N - 2] == c || is_key_char<N - 1>()(c, arr);
+        }
+    };
+    template<> struct is_key_char<1U>
+    {
+        bool operator()(char c, char const *arr)
+        {
+            return false;
+        }
+    };
+    template<size_t N> void split(std::vector<std::string> &out, std::string const &in, char const (&arr)[N])
+    {
+        out.clear();
+        std::string temp;
+        for(auto c : in)
+        {
+            if(is_key_char<N>()(c, arr))
+            {
+                if(!temp.empty())
+                {
+                    out.emplace_back(std::move(temp));
+                    temp.clear();
+                }
+            }
+            else
+            {
+                temp += c;
+            }
+        }
+        if(!temp.empty())
+        {
+            out.emplace_back(std::move(temp));
+        }
+    }
 }
+
 
 int field_width = 0, field_height = 0;
 char this_piece = '?', next_piece = '?';
@@ -39,11 +72,11 @@ std::map<std::string, std::function<void(std::vector<std::string> const &)>> com
             }
             if(params[1] == "field_width")
             {
-                field_width = boost::lexical_cast<int>(params[2]);
+                field_width = std::atoi(params[2].c_str());
             }
             else if(params[1] == "field_height")
             {
-                field_height = boost::lexical_cast<int>(params[2]);
+                field_height = std::atoi(params[2].c_str());
             }
             else if(params[1] == "your_bot")
             {
@@ -73,27 +106,27 @@ std::map<std::string, std::function<void(std::vector<std::string> const &)>> com
             else if(params[2] == "this_piece_position")
             {
                 std::vector<std::string> token;
-                boost::split(token, params[3], boost::is_any_of(","));
+                zzz::split(token, params[3], ",");
                 if(token.size() < 2)
                 {
                     return;
                 }
-                this_piece_pos_x = boost::lexical_cast<int>(token[0]);
-                this_piece_pos_y = boost::lexical_cast<int>(token[1]);
+                this_piece_pos_x = std::atoi(token[0].c_str());
+                this_piece_pos_y = std::atoi(token[1].c_str());
             }
             else if(params[2] == "row_points")
             {
-                row_points = boost::lexical_cast<int>(params[3]);
+                row_points = std::atoi(params[3].c_str());
             }
             else if(params[2] == "combo")
             {
-                combo = boost::lexical_cast<int>(params[3]);
+                combo = std::atoi(params[3].c_str());
             }
             else if(params[2] == "field")
             {
                 std::vector<std::string> token;
                 token.reserve(field_width * field_height);
-                boost::split(token, params[3], boost::is_any_of(",;"));
+                zzz::split(token, params[3], ",;");
                 if(token.size() < size_t(field_width * field_height))
                 {
                     return;
@@ -213,7 +246,7 @@ int main()
         std::string line;
         std::getline(std::cin, line);
         std::vector<std::string> token;
-        boost::split(token, line, boost::is_any_of(" "));
+        zzz::split(token, line, " ");
         if(token.empty())
         {
             continue;
