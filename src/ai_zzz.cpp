@@ -880,13 +880,13 @@ namespace ai_zzz
         {
             if(param_->mode == 1)
             {
-                if(param_->combo == 0)
+                if(combo == 0)
                 {
                     land_point_value += history[i].attack;
                 }
                 if(history[i].clear > 0)
                 {
-                    if(param_->combo == 0)
+                    if(combo == 0)
                     {
                         if(history[i].clear == 4 && history[i].count >= 84)
                         {
@@ -915,7 +915,7 @@ namespace ai_zzz
                             }
                         }
                     }
-                    else if(param_->combo == 1)
+                    else if(combo == 1)
                     {
                         if(history[i].clear == 4)
                         {
@@ -928,21 +928,21 @@ namespace ai_zzz
                     }
                     else
                     {
-                        if(param_->combo > 3 && history[i].clear > 1 && history[i].count <= 72)
+                        if(combo > 3 && history[i].clear > 1 && history[i].count <= 72)
                         {
                             land_point_value -= 1000;
                         }
-                        if(param_->combo < 6)
+                        if(combo < 6)
                         {
                             land_point_value += 2000;
                         }
                         else
                         {
-                            land_point_value += 40000;
+                            land_point_value += (combo - i) * 10000;
                         }
                     }
                 }
-                else if(param_->combo > 0 && history[i].count <= 64)
+                else if(combo > 0 && history[i].count <= 64)
                 {
                     land_point_value -= 2000;
                 }
@@ -956,7 +956,6 @@ namespace ai_zzz
                 land_point_value -= 800;
             }
             land_point_value += history[i].land_point;
-            map_value += history[i].map * (1. / (history_length - 1));
         }
         return land_point_value / history_length + history[history_length - 1].map;
     }

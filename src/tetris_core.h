@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿//F:\git\tetris_ai_runner\the_ai_games\src>g++ -std=c++1y -static -Isrc -o bin/run_ai -O ai_ax.cpp 2> error.txt
+#pragma once
 
 #include <unordered_map>
 #include <vector>
@@ -460,21 +461,50 @@ namespace m_tetris
         typedef decltype(func<Derived>(nullptr)) type;
     };
 
-    template<class TetrisRuleSet, class AI, class LandPointSearch>
+    template<class TetrisAI>
+    struct TetrisAIHasParam
+    {
+        struct Fallback
+        {
+            int Param;
+        };
+        struct Derived : TetrisAI, Fallback
+        {
+        };
+        template<typename U, U> struct Check;
+        template<typename U>
+        static std::false_type func(Check<int Fallback::*, &U::Param> *);
+        template<typename U>
+        static std::true_type func(...);
+    public:
+        typedef decltype(func<Derived>(nullptr)) type;
+    };
+
+
+    template<class TetrisAI>
+    struct TetrisLandPointSearchHasStatus
+    {
+        struct Fallback
+        {
+            int Status;
+        };
+        struct Derived : TetrisAI, Fallback
+        {
+        };
+        template<typename U, U> struct Check;
+        template<typename U>
+        static std::false_type func(Check<int Fallback::*, &U::Status> *);
+        template<typename U>
+        static std::true_type func(...);
+    public:
+        typedef decltype(func<Derived>(nullptr)) type;
+    };
+
+    template<class TetrisRuleSet, class TetrisAI, class TetrisLandPointSearch>
     struct TetrisContextBuilder
     {
     private:
-        template<class TestAI, class = typename std::enable_if<(sizeof(TestAI::Param) > 0)>::type>
-        static std::true_type has_param(AI *);
-        template<class TestAI, class = void>
-        static std::false_type has_param(...);
-
-        template<class TestLandPointSearch, class = typename std::enable_if<(sizeof(TestLandPointSearch::Status) > 0)>::type>
-        static std::true_type has_status(LandPointSearch *);
-        template<class TestLandPointSearch, class = void>
-        static std::false_type has_status(...);
-
-        template<class CallAI, class T>
+        template<class CallAI, class>
         struct AIParam
         {
             class AIParamHolder
@@ -511,7 +541,7 @@ namespace m_tetris
             };
         };
 
-        template<class CallLandPointSearch, class T>
+        template<class CallLandPointSearch, class>
         struct LandPointSearchStatus
         {
             class LandPointSearchStatusHolder
@@ -548,7 +578,7 @@ namespace m_tetris
             };
         };
     public:
-        class TetrisContextEx : public TetrisContext, public AIParam<AI, decltype(has_param<AI>(nullptr))>::AIParamHolder, public LandPointSearchStatus<LandPointSearch, decltype(has_status<LandPointSearch>(nullptr))>::LandPointSearchStatusHolder
+        class TetrisContextEx : public TetrisContext, public AIParam<TetrisAI, typename TetrisAIHasParam<TetrisAI>::type>::AIParamHolder, public LandPointSearchStatus<TetrisLandPointSearch, typename TetrisLandPointSearchHasStatus<TetrisLandPointSearch>::type>::LandPointSearchStatusHolder
         {
         };
         static TetrisContextEx *build_context()
@@ -559,36 +589,38 @@ namespace m_tetris
             return context;
         }
     private:
-        template<class TetrisAI, class = typename std::enable_if<std::is_same<void, typename TetrisContextEx::Param>::value>::type>
-        static void call_init_ai(TetrisAI &ai, TetrisContextEx const *context, void *)
+        template<class, class>
+        struct CallInit
         {
-            TetrisCallInit<TetrisAI>(ai, context);
-        }
-        template<class TetrisAI, class = void>
-        static void call_init_ai(TetrisAI &ai, TetrisContextEx const *context, ...)
+            static void call(TetrisAI &ai, TetrisContextEx const *context)
+            {
+                TetrisCallInit<TetrisAI>(ai, context, context->get_param());
+            }
+            static void call(TetrisLandPointSearch &land_point_search, TetrisContextEx const *context)
+            {
+                TetrisCallInit<TetrisLandPointSearch>(land_point_search, context, context->get_status());
+            }
+        };
+        template<class Unuse>
+        struct CallInit<Unuse, void>
         {
-            TetrisCallInit<TetrisAI>(ai, context, context->get_param());
-        }
-        template<class TetrisLandPointSearch, class = typename std::enable_if<std::is_same<void, typename TetrisContextEx::Status>::value>::type>
-        static void call_init_land_point_search(TetrisLandPointSearch &land_point_search, TetrisContextEx const *context, void *)
-        {
-            TetrisCallInit<TetrisLandPointSearch>(land_point_search, context);
-        }
-        template<class TetrisLandPointSearch, class = void>
-        static void call_init_land_point_search(TetrisLandPointSearch &land_point_search, TetrisContextEx const *context, ...)
-        {
-            TetrisCallInit<TetrisLandPointSearch>(land_point_search, context, context->get_status());
-        }
+            static void call(TetrisAI &ai, TetrisContextEx const *context)
+            {
+                TetrisCallInit<TetrisAI>(ai, context);
+            }
+            static void call(TetrisLandPointSearch &land_point_search, TetrisContextEx const *context)
+            {
+                TetrisCallInit<TetrisLandPointSearch>(land_point_search, context);
+            }
+        };
     public:
-        template<class TetrisAI, class = void>
         static void init_ai(TetrisAI &ai, TetrisContextEx const *context)
         {
-            call_init_ai(ai, context, nullptr);
+            CallInit<TetrisContextEx, typename TetrisContextEx::Param>::call(ai, context);
         }
-        template<class TetrisLandPointSearch, class = void>
         static void init_land_point_search(TetrisLandPointSearch &land_point_search, TetrisContextEx const *context)
         {
-            call_init_land_point_search(land_point_search, context, nullptr);
+            CallInit<TetrisContextEx, typename TetrisContextEx::Status>::call(land_point_search, context);
         }
     };
 

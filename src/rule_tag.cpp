@@ -24,8 +24,8 @@ namespace rule_tag
         TetrisOpertion op_O1 =
         {
             create_node<'O', 0, 0, 0,
-            T(0, 1, 1, 0),
-            T(0, 1, 1, 0),
+            T(1, 1, 0, 0),
+            T(1, 1, 0, 0),
             T(0, 0, 0, 0),
             T(0, 0, 0, 0)>,
             nullptr,

@@ -52,6 +52,9 @@
     <ClCompile Include="src\rule_c2.cpp">
       <Filter>rules\c2</Filter>
     </ClCompile>
+    <ClCompile Include="src\ai_tag.cpp">
+      <Filter>rules\tag</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\rule_srs.h">
@@ -115,6 +118,9 @@
     <ClInclude Include="src\rule_c2.h">
       <Filter>rules\c2</Filter>
     </ClInclude>
+    <ClInclude Include="src\ai_tag.h">
+      <Filter>rules\tag</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="rules">
@@ -173,6 +179,9 @@
     </Filter>
     <Filter Include="rules\c2">
       <UniqueIdentifier>{96596db1-4348-4796-9195-120f3ceb034c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="rules\tag">
+      <UniqueIdentifier>{7daf3311-d0f2-484e-9423-a28a2aab72b2}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

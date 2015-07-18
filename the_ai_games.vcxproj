@@ -14,6 +14,7 @@
     <ClInclude Include="src\ai_ax.h" />
     <ClInclude Include="src\ai_easy.h" />
     <ClInclude Include="src\ai_farteryhr.h" />
+    <ClInclude Include="src\ai_tag.h" />
     <ClInclude Include="src\bst_base.h" />
     <ClInclude Include="src\integer_utils.h" />
     <ClInclude Include="src\land_point_search_path.h" />
@@ -37,6 +38,7 @@
   <ItemGroup>
     <ClCompile Include="src\ai_ax.cpp" />
     <ClCompile Include="src\ai_farteryhr.cpp" />
+    <ClCompile Include="src\ai_tag.cpp" />
     <ClCompile Include="src\integer_utils.cpp" />
     <ClCompile Include="src\land_point_search_path.cpp" />
     <ClCompile Include="src\land_point_search_simple.cpp" />

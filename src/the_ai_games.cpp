@@ -5,11 +5,11 @@
 #include <iostream>
 #include "tetris_core.h"
 #include "land_point_search_path.h"
-#include "ai_ax.h"
+#include "ai_tag.h"
 #include "rule_tag.h"
 #include "random.h"
 
-m_tetris::TetrisEngine<rule_tag::TetrisRuleSet, ai_ax::AI, land_point_search_path::Search> bot_1;
+m_tetris::TetrisEngine<rule_tag::TetrisRuleSet, ai_tag::the_ai_games, land_point_search_path::Search> bot_1;
 
 namespace zzz
 {
@@ -70,14 +70,20 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
             {
                 return false;
             }
-            if(params[1] == "field_width")
+            if(params[1] == "field_width" || params[1] == "field_height")
             {
-                field_width = std::atoi(params[2].c_str());
-                return true;
-            }
-            else if(params[1] == "field_height")
-            {
-                field_height = std::atoi(params[2].c_str());
+                if(params[1] == "field_width")
+                {
+                    field_width = std::atoi(params[2].c_str());
+                }
+                else
+                {
+                    field_height = std::atoi(params[2].c_str());
+                }
+                if(field_width != 0 && field_height != 0)
+                {
+                    bot_1.prepare(field_width, field_height + 1);
+                }
                 return true;
             }
             else if(params[1] == "your_bot")
@@ -143,7 +149,7 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
                 field.resize(token.size());
                 for(size_t i = 0; i < token.size(); ++i)
                 {
-                    field[i] = (token[i].length() == 1 && token[i].front() == '0') ? 0 : 1;
+                    field[i] = (token[i].length() == 1 && (token[i].front() == '2' || token[i].front() == '3')) ? 1 : 0;
                 }
                 return true;
             }
@@ -163,7 +169,7 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
             m_tetris::TetrisMap map(field_width, field_height + 1);
             m_tetris::TetrisBlockStatus status =
             {
-                this_piece, this_piece_pos_x - 1, this_piece_pos_y + map.height, 0
+                this_piece, this_piece_pos_x, this_piece_pos_y + map.height, 0
             };
             m_tetris::TetrisNode const *node = bot_1.get(status), *target = nullptr;
             if(node == nullptr)
@@ -178,12 +184,9 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
                 {
                     if(field[mx + field_width * (field_height - my - 1)] != 0)
                     {
-                        if(my < node->row || my >= node->row + node->height || ((node->data[my - node->row] >> mx) & 1) == 0)
-                        {
-                            map.top[mx] = map.roof = my + 1;
-                            map.row[my] |= 1 << mx;
-                            ++map.count;
-                        }
+                        map.top[mx] = map.roof = my + 1;
+                        map.row[my] |= 1 << mx;
+                        ++map.count;
                     }
                 }
             }
@@ -270,7 +273,7 @@ int main()
         }
         if(find->second(token))
         {
-            std::cerr << line << std::endl;
+            std::cout.flush();
         }
     }
 }
