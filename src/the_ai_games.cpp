@@ -194,6 +194,7 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
             std::vector<char> ai_path;
             if(node != nullptr)
             {
+                bot_1.param()->combo = combo;
                 target = bot_1.run(map, node, next_arr, 1, 49).target;
             }
             if(target != nullptr)
