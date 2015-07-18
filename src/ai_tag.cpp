@@ -218,19 +218,20 @@ namespace ai_tag
         result.map = (0.
                       - ColTrans * 80
                       - RowTrans * 80
-                      - v.HoleCount * 80
+                      - v.HoleCount * 120
                       - v.HoleLine * 380
                       - v.ClearWidth0 * 8
                       - v.ClearWidth1 * 4
-                      - v.WellDepthTotle * 100
+                      - v.WellDepthTotle * 160
                       + v.WideWellDepth[5] * 16
                       + v.WideWellDepth[4] * 24
-                      + v.WideWellDepth[3] * 32
+                      + v.WideWellDepth[3] * 48
                       + v.WideWellDepth[2] * 40
                       + v.WideWellDepth[1] * 8
+                      + (low_x == width_m1 ? 400 : 0)
                       );
         result.clear = clear;
-        result.danger = map.roof + 3 >= map.height;
+        result.danger = map.roof + 6 >= map.height;
         result.low_y = low_y;
         result.count = map.count;
         return result;
@@ -249,29 +250,30 @@ namespace ai_tag
         {
             if(history[i].clear > 0)
             {
+                if(history[i].clear == 4)
+                {
+                    land_point_value += 2000;
+                }
                 if(combo == 0 && history[i].danger == 0)
                 {
-                    land_point_value -= 4000;
+                    land_point_value -= (4 - std::min(4, history[i].low_y)) * 800;
                 }
                 else if(combo > 0)
                 {
-                    if(history[i].clear == 1)
-                    {
-                        land_point_value += combo * 1000;
-                    }
-                    else
-                    {
-                        land_point_value += combo * 500;
-                    }
+                    land_point_value += combo * 1000;
                 }
             }
             else if(combo > 0 && history[i].danger == 0)
             {
-                land_point_value -= 4000;
+                land_point_value -= 3200;
             }
             if(history[i].clear > 0)
             {
                 ++combo;
+            }
+            else
+            {
+                combo = 0;
             }
             land_point_value += history[i].land_point;
         }
@@ -288,7 +290,7 @@ namespace ai_tag
                 ++danger;
             }
         }
-        if(map.row[17] != 0)
+        if(map.row[map.height - 4] != 0)
         {
             ++danger;
         }

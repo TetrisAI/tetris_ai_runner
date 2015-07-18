@@ -52,7 +52,13 @@
     <ClCompile Include="src\rule_c2.cpp">
       <Filter>rules\c2</Filter>
     </ClCompile>
+    <ClCompile Include="src\land_point_search_tag.cpp">
+      <Filter>land_point_search\tag</Filter>
+    </ClCompile>
     <ClCompile Include="src\ai_tag.cpp">
+      <Filter>ai\zzz</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rule_tag.cpp">
       <Filter>rules\tag</Filter>
     </ClCompile>
   </ItemGroup>
@@ -118,7 +124,13 @@
     <ClInclude Include="src\rule_c2.h">
       <Filter>rules\c2</Filter>
     </ClInclude>
+    <ClInclude Include="src\land_point_search_tag.h">
+      <Filter>land_point_search\tag</Filter>
+    </ClInclude>
     <ClInclude Include="src\ai_tag.h">
+      <Filter>ai\zzz</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rule_tag.h">
       <Filter>rules\tag</Filter>
     </ClInclude>
   </ItemGroup>
@@ -182,6 +194,9 @@
     </Filter>
     <Filter Include="rules\tag">
       <UniqueIdentifier>{7daf3311-d0f2-484e-9423-a28a2aab72b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="land_point_search\tag">
+      <UniqueIdentifier>{51c74e1c-3b17-49ba-a5a3-fe8d4b60a954}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

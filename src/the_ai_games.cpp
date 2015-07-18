@@ -4,12 +4,12 @@
 #include <string>
 #include <iostream>
 #include "tetris_core.h"
-#include "land_point_search_path.h"
+#include "land_point_search_tag.h"
 #include "ai_tag.h"
 #include "rule_tag.h"
 #include "random.h"
 
-m_tetris::TetrisEngine<rule_tag::TetrisRuleSet, ai_tag::the_ai_games, land_point_search_path::Search> bot_1;
+m_tetris::TetrisEngine<rule_tag::TetrisRuleSet, ai_tag::the_ai_games, land_point_search_tag::Search> bot_1;
 
 namespace zzz
 {
