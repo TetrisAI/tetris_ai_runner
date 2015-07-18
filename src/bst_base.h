@@ -1,4 +1,4 @@
-
+﻿
 #pragma once
 
 #include <iterator>
@@ -11,9 +11,9 @@ namespace zzz
     {
     public:
         typedef Interface interface_t;
+        typedef typename interface_t::key_t key_t;
         typedef typename interface_t::node_t node_t;
         typedef typename interface_t::value_node_t value_node_t;
-        typedef typename interface_t::key_t key_t;
     protected:
         bst_base()
         {

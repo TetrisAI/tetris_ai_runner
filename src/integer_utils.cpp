@@ -1,5 +1,5 @@
-
-#pragma once
+﻿
+#include <cstddef>
 
 namespace zzz
 {

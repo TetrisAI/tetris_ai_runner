@@ -1,6 +1,4 @@
-
-#pragma once
-
+﻿
 #include "land_point_search_path.h"
 
 using namespace m_tetris;

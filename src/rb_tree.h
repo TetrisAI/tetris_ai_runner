@@ -1,4 +1,4 @@
-
+﻿
 #pragma once
 
 #include <utility>
@@ -11,11 +11,15 @@ namespace zzz
     class rb_tree : public bst_base<Interface>
     {
     public:
+        typedef bst_base<Interface> base_t;
+        typedef Interface interface_t;
+        typedef typename base_t::key_t key_t;
+        typedef typename base_t::node_t node_t;
+        typedef typename base_t::value_node_t value_node_t;
         class iterator
         {
         public:
             typedef std::bidirectional_iterator_tag iterator_category;
-            typedef typename bst_base<Interface>::node_t node_t;
             typedef node_t value_type;
             typedef int difference_type;
             typedef unsigned int distance_type;
@@ -30,12 +34,12 @@ namespace zzz
             }
             iterator &operator++()
             {
-                ptr_ = rb_tree::bst_move_<true>(ptr_);
+                ptr_ = rb_tree::template bst_move_<true>(ptr_);
                 return *this;
             }
             iterator &operator--()
             {
-                ptr_ = rb_tree::bst_move_<false>(ptr_);
+                ptr_ = rb_tree::template bst_move_<false>(ptr_);
                 return *this;
             }
             iterator operator++(int)
@@ -71,31 +75,31 @@ namespace zzz
         };
 
     public:
-        rb_tree() : bst_base(), size_()
+        rb_tree() : bst_base<Interface>(), size_()
         {
-            set_black_(get_root_(), true);
+            set_black_(base_t::get_root_(), true);
         }
         rb_tree(rb_tree &&other)
         {
-            set_root_(other.get_root_());
-            set_most_left_(other.get_most_left_());
-            set_most_right_(other.get_most_right_());
+            base_t::set_root_(other.get_root_());
+            base_t::set_most_left_(other.get_most_left_());
+            base_t::set_most_right_(other.get_most_right_());
             size_ = other.size_;
-            other.set_root_(other.nil_());
-            other.set_most_left_(other.nil_());
-            other.set_most_right_(other.nil_());
+            other.base_t::set_root_(other.nil_());
+            other.base_t::set_most_left_(other.nil_());
+            other.base_t::set_most_right_(other.nil_());
             other.size_ = 0;
         }
         rb_tree(rb_tree const &other) = delete;
         rb_tree &operator = (rb_tree &&other)
         {
-            set_root_(other.get_root_());
-            set_most_left_(other.get_most_left_());
-            set_most_right_(other.get_most_right_());
+            base_t::set_root_(other.get_root_());
+            base_t::set_most_left_(other.get_most_left_());
+            base_t::set_most_right_(other.get_most_right_());
             size_ = other.size_;
-            other.set_root_(other.nil_());
-            other.set_most_left_(other.nil_());
-            other.set_most_right_(other.nil_());
+            other.base_t::set_root_(other.nil_());
+            other.base_t::set_most_left_(other.nil_());
+            other.base_t::set_most_right_(other.nil_());
             other.size_ = 0;
             return *this;
         }
@@ -125,8 +129,8 @@ namespace zzz
         }
         iterator find(key_t const &key)
         {
-            node_t *where = bst_lower_bound_(key);
-            return (is_nil_(where) || interface_t::predicate(key, get_key_(where))) ? iterator(nil_()) : iterator(where);
+            node_t *where = base_t::bst_lower_bound_(key);
+            return (base_t::is_nil_(where) || interface_t::predicate(key, base_t::get_key_(where))) ? iterator(base_t::nil_()) : iterator(where);
         }
         void erase(iterator where)
         {
@@ -156,11 +160,11 @@ namespace zzz
         }
         pair_ii_t range(key_t const &min, key_t const &max)
         {
-            return pair_ii_t(bst_lower_bound_(min), bst_upper_bound_(max));
+            return pair_ii_t(base_t::bst_lower_bound_(min), bst_upper_bound_(max));
         }
         iterator lower_bound(key_t const &key)
         {
-            return iterator(bst_lower_bound_(key));
+            return iterator(base_t::bst_lower_bound_(key));
         }
         iterator upper_bound(key_t const &key)
         {
@@ -174,19 +178,19 @@ namespace zzz
         }
         iterator begin()
         {
-            return iterator(get_most_left_());
+            return iterator(base_t::get_most_left_());
         }
         iterator end()
         {
-            return iterator(nil_());
+            return iterator(base_t::nil_());
         }
         bool empty()
         {
-            return is_nil_(get_root_());
+            return base_t::is_nil_(base_t::get_root_());
         }
         void clear()
         {
-            bst_clear_();
+            base_t::bst_clear_();
             size_ = 0;
         }
         size_t size() const
@@ -210,93 +214,93 @@ namespace zzz
 
         void rbt_insert_(node_t *key)
         {
-            if(is_nil_(get_root_()))
+            if(base_t::is_nil_(base_t::get_root_()))
             {
-                set_root_(bst_init_node_(nil_(), key));
-                set_black_(get_root_(), true);
-                set_most_left_(get_root_());
-                set_most_right_(get_root_());
+                base_t::set_root_(base_t::bst_init_node_(base_t::nil_(), key));
+                set_black_(base_t::get_root_(), true);
+                base_t::set_most_left_(base_t::get_root_());
+                base_t::set_most_right_(base_t::get_root_());
                 return;
             }
             set_black_(key, false);
-            node_t *node = get_root_(), *where = nil_();
+            node_t *node = base_t::get_root_(), *where = base_t::nil_();
             bool is_left = true;
-            while(!is_nil_(node))
+            while(!base_t::is_nil_(node))
             {
                 where = node;
-                if(is_left = predicate(key, node))
+                if(is_left = base_t::predicate(key, node))
                 {
-                    node = get_left_(node);
+                    node = base_t::get_left_(node);
                 }
                 else
                 {
-                    node = get_right_(node);
+                    node = base_t::get_right_(node);
                 }
             }
             if(is_left)
             {
-                set_left_(where, node = bst_init_node_(where, key));
-                if(where == get_most_left_())
+                base_t::set_left_(where, node = base_t::bst_init_node_(where, key));
+                if(where == base_t::get_most_left_())
                 {
-                    set_most_left_(node);
+                    base_t::set_most_left_(node);
                 }
             }
             else
             {
-                set_right_(where, node = bst_init_node_(where, key));
-                if(where == get_most_right_())
+                base_t::set_right_(where, node = base_t::bst_init_node_(where, key));
+                if(where == base_t::get_most_right_())
                 {
-                    set_most_right_(node);
+                    base_t::set_most_right_(node);
                 }
             }
-            while(!is_black_(get_parent_(node)))
+            while(!is_black_(base_t::get_parent_(node)))
             {
-                if(get_parent_(node) == get_left_(get_parent_(get_parent_(node))))
+                if(base_t::get_parent_(node) == base_t::get_left_(base_t::get_parent_(base_t::get_parent_(node))))
                 {
-                    where = get_right_(get_parent_(get_parent_(node)));
+                    where = base_t::get_right_(base_t::get_parent_(base_t::get_parent_(node)));
                     if(!is_black_(where))
                     {
-                        set_black_(get_parent_(node), true);
+                        set_black_(base_t::get_parent_(node), true);
                         set_black_(where, true);
-                        set_black_(get_parent_(get_parent_(node)), false);
-                        node = get_parent_(get_parent_(node));
+                        set_black_(base_t::get_parent_(base_t::get_parent_(node)), false);
+                        node = base_t::get_parent_(base_t::get_parent_(node));
                     }
                     else
                     {
-                        if(node == get_right_(get_parent_(node)))
+                        if(node == base_t::get_right_(base_t::get_parent_(node)))
                         {
-                            node = get_parent_(node);
-                            bst_rotate_<true>(node);
+                            node = base_t::get_parent_(node);
+                            base_t::template bst_rotate_<true>(node);
                         }
-                        set_black_(get_parent_(node), true);
-                        set_black_(get_parent_(get_parent_(node)), false);
-                        bst_rotate_<false>(get_parent_(get_parent_(node)));
+                        set_black_(base_t::get_parent_(node), true);
+                        set_black_(base_t::get_parent_(base_t::get_parent_(node)), false);
+                        base_t::template bst_rotate_<false>(base_t::get_parent_(base_t::get_parent_(node)));
                     }
                 }
                 else
                 {
-                    where = get_left_(get_parent_(get_parent_(node)));
+                    where = base_t::get_left_(base_t::get_parent_(base_t::get_parent_(node)));
                     if(!is_black_(where))
                     {
-                        set_black_(get_parent_(node), true);
+                        set_black_(base_t::get_parent_(node), true);
                         set_black_(where, true);
-                        set_black_(get_parent_(get_parent_(node)), false);
-                        node = get_parent_(get_parent_(node));
+                        set_black_(base_t::get_parent_(base_t::get_parent_(node)), false);
+                        node = base_t::get_parent_(base_t::get_parent_(node));
                     }
                     else
                     {
-                        if(node == get_left_(get_parent_(node)))
+                        if(node == base_t::get_left_(base_t::get_parent_(node)))
                         {
-                            node = get_parent_(node);
-                            bst_rotate_<false>(node);
+                            node = base_t::get_parent_(node);
+                            base_t::template bst_rotate_<false>(node);
                         }
-                        set_black_(get_parent_(node), true);
-                        set_black_(get_parent_(get_parent_(node)), false);
-                        bst_rotate_<true>(get_parent_(get_parent_(node)));
+                        set_black_(base_t::get_parent_(node), true);
+                        set_black_(base_t::get_parent_(base_t::get_parent_(node)), false);
+                        base_t::template bst_rotate_<true>(base_t::get_parent_(base_t::get_parent_(node)));
                     }
                 }
             }
-            set_black_(get_root_(), true);
+            set_black_(base_t::get_root_(), true);
         }
 
         void rbt_erase_(node_t *node)
@@ -304,159 +308,159 @@ namespace zzz
             node_t *erase_node = node;
             node_t *fix_node;
             node_t *fix_node_parent;
-            if(is_nil_(get_left_(node)))
+            if(base_t::is_nil_(base_t::get_left_(node)))
             {
-                fix_node = get_right_(node);
+                fix_node = base_t::get_right_(node);
             }
-            else if(is_nil_(get_right_(node)))
+            else if(base_t::is_nil_(base_t::get_right_(node)))
             {
-                fix_node = get_left_(node);
+                fix_node = base_t::get_left_(node);
             }
             else
             {
-                node = bst_move_<true>(node);
-                fix_node = get_right_(node);
+                node = base_t::template bst_move_<true>(node);
+                fix_node = base_t::get_right_(node);
             }
             if(node == erase_node)
             {
-                fix_node_parent = get_parent_(erase_node);
-                if(!is_nil_(fix_node))
+                fix_node_parent = base_t::get_parent_(erase_node);
+                if(!base_t::is_nil_(fix_node))
                 {
-                    set_parent_(fix_node, fix_node_parent);
+                    base_t::set_parent_(fix_node, fix_node_parent);
                 }
-                if(get_root_() == erase_node)
+                if(base_t::get_root_() == erase_node)
                 {
-                    set_root_(fix_node);
+                    base_t::set_root_(fix_node);
                 }
-                else if(get_left_(fix_node_parent) == erase_node)
+                else if(base_t::get_left_(fix_node_parent) == erase_node)
                 {
-                    set_left_(fix_node_parent, fix_node);
+                    base_t::set_left_(fix_node_parent, fix_node);
                 }
                 else
                 {
-                    set_right_(fix_node_parent, fix_node);
+                    base_t::set_right_(fix_node_parent, fix_node);
                 }
-                if(get_most_left_() == erase_node)
+                if(base_t::get_most_left_() == erase_node)
                 {
-                    set_most_left_(is_nil_(fix_node) ? fix_node_parent : bst_most_<true>(fix_node));
+                    base_t::set_most_left_(base_t::is_nil_(fix_node) ? fix_node_parent : base_t::template bst_most_<true>(fix_node));
                 }
-                if(get_most_right_() == erase_node)
+                if(base_t::get_most_right_() == erase_node)
                 {
-                    set_most_right_(is_nil_(fix_node) ? fix_node_parent : bst_most_<false>(fix_node));
+                    base_t::set_most_right_(base_t::is_nil_(fix_node) ? fix_node_parent : base_t::template bst_most_<false>(fix_node));
                 }
             }
             else
             {
-                set_parent_(get_left_(erase_node), node);
-                set_left_(node, get_left_(erase_node));
-                if(node == get_right_(erase_node))
+                base_t::set_parent_(base_t::get_left_(erase_node), node);
+                base_t::set_left_(node, base_t::get_left_(erase_node));
+                if(node == base_t::get_right_(erase_node))
                 {
                     fix_node_parent = node;
                 }
                 else
                 {
-                    fix_node_parent = get_parent_(node);
-                    if(!is_nil_(fix_node))
+                    fix_node_parent = base_t::get_parent_(node);
+                    if(!base_t::is_nil_(fix_node))
                     {
-                        set_parent_(fix_node, fix_node_parent);
+                        base_t::set_parent_(fix_node, fix_node_parent);
                     }
-                    set_left_(fix_node_parent, fix_node);
-                    set_right_(node, get_right_(erase_node));
-                    set_parent_(get_right_(erase_node), node);
+                    base_t::set_left_(fix_node_parent, fix_node);
+                    base_t::set_right_(node, base_t::get_right_(erase_node));
+                    base_t::set_parent_(base_t::get_right_(erase_node), node);
                 }
-                if(get_root_() == erase_node)
+                if(base_t::get_root_() == erase_node)
                 {
-                    set_root_(node);
+                    base_t::set_root_(node);
                 }
-                else if(get_left_(get_parent_(erase_node)) == erase_node)
+                else if(base_t::get_left_(base_t::get_parent_(erase_node)) == erase_node)
                 {
-                    set_left_(get_parent_(erase_node), node);
+                    base_t::set_left_(base_t::get_parent_(erase_node), node);
                 }
                 else
                 {
-                    set_right_(get_parent_(erase_node), node);
+                    base_t::set_right_(base_t::get_parent_(erase_node), node);
                 }
-                set_parent_(node, get_parent_(erase_node));
+                base_t::set_parent_(node, base_t::get_parent_(erase_node));
                 bool is_black = is_black_(node);
                 set_black_(node, is_black_(erase_node));
                 set_black_(erase_node, is_black);
             }
             if(is_black_(erase_node))
             {
-                for(; fix_node != get_root_() && is_black_(fix_node); fix_node_parent = get_parent_(fix_node))
+                for(; fix_node != base_t::get_root_() && is_black_(fix_node); fix_node_parent = base_t::get_parent_(fix_node))
                 {
-                    if(fix_node == get_left_(fix_node_parent))
+                    if(fix_node == base_t::get_left_(fix_node_parent))
                     {
-                        node = get_right_(fix_node_parent);
+                        node = base_t::get_right_(fix_node_parent);
                         if(!is_black_(node))
                         {
                             set_black_(node, true);
                             set_black_(fix_node_parent, false);
-                            bst_rotate_<true>(fix_node_parent);
-                            node = get_right_(fix_node_parent);
+                            base_t::template bst_rotate_<true>(fix_node_parent);
+                            node = base_t::get_right_(fix_node_parent);
                         }
-                        if(is_nil_(node))
+                        if(base_t::is_nil_(node))
                         {
                             fix_node = fix_node_parent;
                         }
-                        else if(is_black_(get_left_(node)) && is_black_(get_right_(node)))
+                        else if(is_black_(base_t::get_left_(node)) && is_black_(base_t::get_right_(node)))
                         {
                             set_black_(node, false);
                             fix_node = fix_node_parent;
                         }
                         else
                         {
-                            if(is_black_(get_right_(node)))
+                            if(is_black_(base_t::get_right_(node)))
                             {
-                                set_black_(get_left_(node), true);
+                                set_black_(base_t::get_left_(node), true);
                                 set_black_(node, false);
-                                bst_rotate_<false>(node);
-                                node = get_right_(fix_node_parent);
+                                base_t::template bst_rotate_<false>(node);
+                                node = base_t::get_right_(fix_node_parent);
                             }
                             set_black_(node, is_black_(fix_node_parent));
                             set_black_(fix_node_parent, true);
-                            set_black_(get_right_(node), true);
-                            bst_rotate_<true>(fix_node_parent);
+                            set_black_(base_t::get_right_(node), true);
+                            base_t::template bst_rotate_<true>(fix_node_parent);
                             break;
                         }
                     }
                     else
                     {
-                        node = get_left_(fix_node_parent);
+                        node = base_t::get_left_(fix_node_parent);
                         if(!is_black_(node))
                         {
                             set_black_(node, true);
                             set_black_(fix_node_parent, false);
-                            bst_rotate_<false>(fix_node_parent);
-                            node = get_left_(fix_node_parent);
+                            base_t::template bst_rotate_<false>(fix_node_parent);
+                            node = base_t::get_left_(fix_node_parent);
                         }
-                        if(is_nil_(node))
+                        if(base_t::is_nil_(node))
                         {
                             fix_node = fix_node_parent;
                         }
-                        else if(is_black_(get_right_(node)) && is_black_(get_left_(node)))
+                        else if(is_black_(base_t::get_right_(node)) && is_black_(base_t::get_left_(node)))
                         {
                             set_black_(node, false);
                             fix_node = fix_node_parent;
                         }
                         else
                         {
-                            if(is_black_(get_left_(node)))
+                            if(is_black_(base_t::get_left_(node)))
                             {
-                                set_black_(get_right_(node), true);
+                                set_black_(base_t::get_right_(node), true);
                                 set_black_(node, false);
-                                bst_rotate_<true>(node);
-                                node = get_left_(fix_node_parent);
+                                base_t::template bst_rotate_<true>(node);
+                                node = base_t::get_left_(fix_node_parent);
                             }
                             set_black_(node, is_black_(fix_node_parent));
                             set_black_(fix_node_parent, true);
-                            set_black_(get_left_(node), true);
-                            bst_rotate_<false>(fix_node_parent);
+                            set_black_(base_t::get_left_(node), true);
+                            base_t::template bst_rotate_<false>(fix_node_parent);
                             break;
                         }
                     }
                 }
-                if(!is_nil_(fix_node))
+                if(!base_t::is_nil_(fix_node))
                 {
                     set_black_(fix_node, true);
                 }

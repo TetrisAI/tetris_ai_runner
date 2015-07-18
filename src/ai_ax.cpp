@@ -1,4 +1,4 @@
-
+ï»¿
 //Code by ax_pokl
 //Modify by ZouZhiZhang
 
@@ -40,15 +40,15 @@ namespace ai_ax
 
     AI::eval_result AI::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
     {
-        //ÏûĞĞÊı
+        //æ¶ˆè¡Œæ•°
         double LandHeight = node->status.y + 1;
-        //ÉèÖÃ×óÖĞÓÒÆ½ºâÆÆÈ±²ÎÊı
+        //è®¾ç½®å·¦ä¸­å³å¹³è¡¡ç ´ç¼ºå‚æ•°
         double Middle = std::abs((node->status.x + 1) * 2 - map.width);
-        //µ±Ç°¿éĞĞÊı
+        //å½“å‰å—è¡Œæ•°
         double EraseCount = clear;
 
         const int width_m1 = map.width - 1;
-        //ĞĞÁĞ±ä»»
+        //è¡Œåˆ—å˜æ¢
         int ColTrans = 2 * (map.height - map.roof);
         int RowTrans = zzz::BitCount(row_mask_ ^ map.row[0]) + zzz::BitCount(map.roof == map.height ? ~row_mask_ & map.row[map.roof - 1] : map.row[map.roof - 1]);
         for(int y = 0; y < map.roof; ++y)
@@ -71,20 +71,20 @@ namespace ai_ax
 
         struct
         {
-            //¶´Êı
+            //æ´æ•°
             int HoleCount;
-            //¶´ĞĞÊı
+            //æ´è¡Œæ•°
             int HoleLine;
-            //×î¸ß¶´ĞĞÊı
+            //æœ€é«˜æ´è¡Œæ•°
             int HolePosy;
-            //×î¸ß¶´ÉÏ·½¿éÊı
+            //æœ€é«˜æ´ä¸Šæ–¹å—æ•°
             int HolePiece;
 
-            //¶´Éî,¾®Éî
+            //æ´æ·±,äº•æ·±
             int HoleDepth;
             int WellDepth;
 
-            //¶´¼ÆÊı,¾®¼ÆÊı
+            //æ´è®¡æ•°,äº•è®¡æ•°
             int HoleNum[32];
             int WellNum[32];
 
@@ -149,7 +149,7 @@ namespace ai_ax
         }
         if(v.HolePosy != 0)
         {
-            //´Ó×î¸ßÓĞ¶´ĞĞÉÏÒ»ĞĞ¿ªÊ¼ÍùÉÏÀ÷±é
+            //ä»æœ€é«˜æœ‰æ´è¡Œä¸Šä¸€è¡Œå¼€å§‹å¾€ä¸Šå‰é
             for(int y = v.HolePosy; y < map.roof; ++y)
             {
                 int CheckLine = v.TopHoleBits & map.row[y];
@@ -161,7 +161,7 @@ namespace ai_ax
             }
         }
 
-        //ËÀÍö¾¯½ä
+        //æ­»äº¡è­¦æˆ’
         int BoardDeadZone = map_in_danger_(map);
 
         eval_result result;

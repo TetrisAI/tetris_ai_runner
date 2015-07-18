@@ -1,4 +1,4 @@
-
+﻿
 #include <chrono>
 #include <thread>
 #include <string>
@@ -61,27 +61,31 @@ int row_points = 0, combo = 0;
 std::vector<int> field;
 std::string my_name;
 
-std::map<std::string, std::function<void(std::vector<std::string> const &)>> command_map =
+std::map<std::string, std::function<bool(std::vector<std::string> const &)>> command_map =
 {
     {
         "settings", [](std::vector<std::string> const &params)
         {
             if(params.size() < 3)
             {
-                return;
+                return false;
             }
             if(params[1] == "field_width")
             {
                 field_width = std::atoi(params[2].c_str());
+                return true;
             }
             else if(params[1] == "field_height")
             {
                 field_height = std::atoi(params[2].c_str());
+                return true;
             }
             else if(params[1] == "your_bot")
             {
                 my_name = params[2];
+                return true;
             }
+            return false;
         }
     },
     {
@@ -89,19 +93,21 @@ std::map<std::string, std::function<void(std::vector<std::string> const &)>> com
         {
             if(params.size() < 4)
             {
-                return;
+                return false;
             }
             if(params[1] != my_name && params[1] != "game")
             {
-                return;
+                return false;
             }
             if(params[2] == "this_piece_type")
             {
                 this_piece = params[3].front();
+                return true;
             }
             else if(params[2] == "next_piece_type")
             {
                 next_piece = params[3].front();
+                return true;
             }
             else if(params[2] == "this_piece_position")
             {
@@ -109,18 +115,21 @@ std::map<std::string, std::function<void(std::vector<std::string> const &)>> com
                 zzz::split(token, params[3], ",");
                 if(token.size() < 2)
                 {
-                    return;
+                    return false;
                 }
                 this_piece_pos_x = std::atoi(token[0].c_str());
                 this_piece_pos_y = std::atoi(token[1].c_str());
+                return true;
             }
             else if(params[2] == "row_points")
             {
                 row_points = std::atoi(params[3].c_str());
+                return true;
             }
             else if(params[2] == "combo")
             {
                 combo = std::atoi(params[3].c_str());
+                return true;
             }
             else if(params[2] == "field")
             {
@@ -129,14 +138,16 @@ std::map<std::string, std::function<void(std::vector<std::string> const &)>> com
                 zzz::split(token, params[3], ",;");
                 if(token.size() < size_t(field_width * field_height))
                 {
-                    return;
+                    return false;
                 }
                 field.resize(token.size());
                 for(size_t i = 0; i < token.size(); ++i)
                 {
                     field[i] = (token[i].length() == 1 && token[i].front() == '0') ? 0 : 1;
                 }
+                return true;
             }
+            return false;
         }
     },
     {
@@ -147,7 +158,7 @@ std::map<std::string, std::function<void(std::vector<std::string> const &)>> com
             {
                 output += "no_moves\n";
                 std::cout << output;
-                return;
+                return false;
             }
             m_tetris::TetrisMap map(field_width, field_height + 1);
             m_tetris::TetrisBlockStatus status =
@@ -159,7 +170,7 @@ std::map<std::string, std::function<void(std::vector<std::string> const &)>> com
             {
                 output += "no_moves\n";
                 std::cout << output;
-                return;
+                return true;
             }
             for(int my = 0; my < field_height; ++my)
             {
@@ -176,7 +187,7 @@ std::map<std::string, std::function<void(std::vector<std::string> const &)>> com
                     }
                 }
             }
-            unsigned char next_arr[] = {next_piece};
+            unsigned char next_arr[] = {(unsigned char)(next_piece)};
             std::vector<char> ai_path;
             if(node != nullptr)
             {
@@ -235,6 +246,7 @@ std::map<std::string, std::function<void(std::vector<std::string> const &)>> com
             }
             output += "drop\n";
             std::cout << output;
+            return true;
         }
     },
 };
@@ -256,6 +268,9 @@ int main()
         {
             continue;
         }
-        find->second(token);
+        if(find->second(token))
+        {
+            std::cerr << line << std::endl;
+        }
     }
 }

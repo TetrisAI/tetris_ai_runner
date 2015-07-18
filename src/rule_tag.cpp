@@ -1,6 +1,4 @@
-
-#pragma once
-
+﻿
 #include "rule_tag.h"
 
 using namespace m_tetris;
