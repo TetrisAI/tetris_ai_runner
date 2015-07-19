@@ -714,10 +714,13 @@ namespace ai_zzz
             int ClearWidth0;
             int HoleBits1;
             int ClearWidth1;
+            int HoleBits2;
+            int ClearWidth2;
         } v;
         memset(&v, 0, sizeof v);
         int HolePosy0 = -1;
         int HolePosy1 = -1;
+        int HolePosy2 = -1;
 
         for(int y = map.roof - 1; y >= 0; --y)
         {
@@ -736,6 +739,11 @@ namespace ai_zzz
                 {
                     HolePosy1 = y + 1;
                     v.HoleBits1 = LineHole;
+                }
+                else if(HolePosy2 == -1)
+                {
+                    HolePosy2 = y + 1;
+                    v.HoleBits2 = LineHole;
                 }
             }
             int WellWidth = 0;
@@ -800,12 +808,24 @@ namespace ai_zzz
             {
                 for(int y = HolePosy1; y < map.roof; ++y)
                 {
-                    int CheckLine = v.HoleBits0 & map.row[y];
+                    int CheckLine = v.HoleBits1 & map.row[y];
                     if(CheckLine == 0)
                     {
                         break;
                     }
                     v.ClearWidth1 += (y + 1) * BitCount(CheckLine);
+                }
+                if(HolePosy2 >= 0)
+                {
+                    for(int y = HolePosy2; y < map.roof; ++y)
+                    {
+                        int CheckLine = v.HoleBits2 & map.row[y];
+                        if(CheckLine == 0)
+                        {
+                            break;
+                        }
+                        v.ClearWidth2 += (y + 1) * BitCount(CheckLine);
+                    }
                 }
             }
         }
@@ -841,6 +861,7 @@ namespace ai_zzz
                       - v.HoleLine * 380
                       - v.ClearWidth0 * 8
                       - v.ClearWidth1 * 4
+                      - v.ClearWidth2 * 1
                       - v.WellDepthTotle * 100
                       );
         if(param_->mode == 1)
