@@ -1521,7 +1521,7 @@ namespace m_tetris
                 tree_root_ = tree_root_->update(map, node, next, next_length);
                 do
                 {
-                    if(tree_root_->run(static_cast<int>(std::max<double>(1, (end - now) / next_length))))
+                    if(tree_root_->run(1))
                     {
                         break;
                     }
@@ -1569,7 +1569,7 @@ namespace m_tetris
             tree_root_ = tree_root_->update(map, node, hold, !hold_free, next, next_length);
             do
             {
-                if(tree_root_->run(static_cast<int>(std::max<double>(1, (end - now) / next_length))))
+                if(tree_root_->run(1))
                 {
                     break;
                 }
