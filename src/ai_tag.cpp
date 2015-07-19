@@ -47,7 +47,7 @@ namespace ai_tag
         double Middle = std::abs((node->status.x + 1) * 2 - map.width);
         double EraseCount = clear;
         double BoardDeadZone = map_in_danger_(map);
-        if(map.roof == map.height)
+        if(map.roof + param_->up >= map.height)
         {
             BoardDeadZone += 70;
         }
@@ -252,9 +252,8 @@ namespace ai_tag
                       + (low_x == width_m1 ? 400 : 0)
                       );
         result.clear = clear;
-        result.danger = map.roof + 6 >= map.height;
+        result.danger = map.roof + 4 + param_->up >= map.height;
         result.low_y = low_y;
-        result.count = map.count;
         result.save_map = &map;
         return result;
     }
@@ -318,7 +317,7 @@ namespace ai_tag
     double the_ai_games::get_impl(eval_result const *history, size_t history_length) const
     {
         double land_point_value = 0;
-        int combo = param_->combo;
+        size_t combo = param_->combo;
         for(size_t i = 0; i < history_length; ++i)
         {
             if(history[i].clear > 0)
@@ -335,17 +334,14 @@ namespace ai_tag
                 {
                     land_point_value += combo * 1000;
                 }
-            }
-            else if(combo > 0 && history[i].danger == 0)
-            {
-                land_point_value -= 3200;
-            }
-            if(history[i].clear > 0)
-            {
                 ++combo;
             }
             else
             {
+                if(combo > 0 && history[i].danger == 0)
+                {
+                    land_point_value -= 3200;
+                }
                 combo = 0;
             }
             land_point_value += history[i].land_point;
@@ -365,4 +361,53 @@ namespace ai_tag
         }
         return danger;
     }
+
+
+    void the_ai_games_enemy::init(m_tetris::TetrisContext const *context, Param const *param)
+    {
+        param_ = param;
+    }
+
+    std::string the_ai_games_enemy::ai_name() const
+    {
+        return "The AI Games (SetoSan) v0.1";
+    }
+
+    size_t the_ai_games_enemy::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
+    {
+        return clear;
+    }
+
+    size_t the_ai_games_enemy::bad() const
+    {
+        return 0;
+    }
+
+    size_t the_ai_games_enemy::get(size_t const *history, size_t history_length) const
+    {
+        size_t point = 0;
+        int combo = param_->combo;
+        for(size_t i = 0; i < history_length; ++i)
+        {
+            point += history[i];
+            if(history[i] > 0)
+            {
+                if(history[i] == 4)
+                {
+                    point += 4;
+                }
+                point += combo++;
+            }
+            else
+            {
+                combo = 0;
+            }
+        }
+        if(point > *param_->point_ptr)
+        {
+            *param_->point_ptr = point;
+        }
+        return point;
+    }
+
 }

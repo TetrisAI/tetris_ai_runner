@@ -87,15 +87,16 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     size_t next_length = std::strlen(nextPiece);
     /////////////////////////////////////////////////
     tetris_ai.param()->combo = 0;
+    tetris_ai.param()->up = 0;
     tetris_ai.param()->length = next_length + 1;
-    tetris_ai.param()->virtual_length = next_length > 0 ? 2 : 0;
+    tetris_ai.param()->virtual_length = next_length > 0 ? 1 : 0;
     tetris_ai.param()->search = std::bind(&decltype(tetris_ai)::search<m_tetris::TetrisNode const *>, &tetris_ai, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     //tetris_ai.param()->level = 10;
     //tetris_ai.param()->mode = 0;
     //tetris_ai.param()->next_length = next_length;
     /////////////////////////////////////////////////
     m_tetris::TetrisNode const *node = tetris_ai.get(status);
-    auto target = tetris_ai.run(map, node, reinterpret_cast<unsigned char const *>(nextPiece), next_length, 49).target;
+    auto target = tetris_ai.run(map, node, reinterpret_cast<unsigned char const *>(nextPiece), next_length, 999).target;
     if(target != nullptr)
     {
         std::vector<char> ai_path = tetris_ai.make_path(node, target, map);

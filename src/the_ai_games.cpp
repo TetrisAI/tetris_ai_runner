@@ -11,6 +11,7 @@
 #include "random.h"
 
 m_tetris::TetrisEngine<rule_tag::TetrisRuleSet, ai_tag::the_ai_games, land_point_search_tag::Search> bot_1;
+m_tetris::TetrisEngine<rule_tag::TetrisRuleSet, ai_tag::the_ai_games_enemy, land_point_search_tag::Search> bot_2;
 
 namespace zzz
 {
@@ -58,8 +59,8 @@ namespace zzz
 int field_width = 0, field_height = 0;
 char this_piece = '?', next_piece = '?';
 int this_piece_pos_x = 0, this_piece_pos_y = 0;
-int row_points = 0, combo = 0;
-std::vector<int> field;
+int row_points = 0, combo = 0, enemy_row_points = 0, enemy_combo = 0;
+std::vector<int> field, enemy_field;
 std::string my_name;
 
 std::map<std::string, std::function<bool(std::vector<std::string> const &)>> command_map =
@@ -84,6 +85,7 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
                 if(field_width != 0 && field_height != 0)
                 {
                     bot_1.prepare(field_width, field_height + 1);
+                    bot_2.prepare(field_width, field_height + 1);
                 }
                 return true;
             }
@@ -99,10 +101,6 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
         "update", [](std::vector<std::string> const &params)
         {
             if(params.size() < 4)
-            {
-                return false;
-            }
-            if(params[1] != my_name && params[1] != "game")
             {
                 return false;
             }
@@ -130,12 +128,26 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
             }
             else if(params[2] == "row_points")
             {
-                row_points = std::atoi(params[3].c_str());
+                if(params[1] == my_name)
+                {
+                    row_points = std::atoi(params[3].c_str());
+                }
+                else
+                {
+                    enemy_row_points = std::atoi(params[3].c_str());
+                }
                 return true;
             }
             else if(params[2] == "combo")
             {
-                combo = std::atoi(params[3].c_str());
+                if(params[1] == my_name)
+                {
+                    combo = std::atoi(params[3].c_str());
+                }
+                else
+                {
+                    enemy_combo = std::atoi(params[3].c_str());
+                }
                 return true;
             }
             else if(params[2] == "field")
@@ -147,10 +159,21 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
                 {
                     return false;
                 }
-                field.resize(token.size());
-                for(size_t i = 0; i < token.size(); ++i)
+                if(params[1] == my_name)
                 {
-                    field[i] = (token[i].length() == 1 && (token[i].front() == '2' || token[i].front() == '3')) ? 1 : 0;
+                    field.resize(token.size());
+                    for(size_t i = 0; i < token.size(); ++i)
+                    {
+                        field[i] = (token[i].length() == 1 && (token[i].front() == '2' || token[i].front() == '3')) ? 1 : 0;
+                    }
+                }
+                else
+                {
+                    enemy_field.resize(token.size());
+                    for(size_t i = 0; i < token.size(); ++i)
+                    {
+                        enemy_field[i] = (token[i].length() == 1 && (token[i].front() == '2' || token[i].front() == '3')) ? 1 : 0;
+                    }
                 }
                 return true;
             }
@@ -161,19 +184,20 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
         "action", [](std::vector<std::string> const &params)
         {
             std::string output;
-            if(params.size() < 3 || params[1] != "moves" || !bot_1.prepare(field_width, field_height + 1))
+            if(params.size() < 3 || params[1] != "moves" || !bot_1.prepare(field_width, field_height + 1) || !bot_2.prepare(field_width, field_height + 1))
             {
                 output += "no_moves\n";
                 std::cout << output;
                 return false;
             }
-            m_tetris::TetrisMap map(field_width, field_height + 1);
+            m_tetris::TetrisMap map1(field_width, field_height + 1), map2(field_width, field_height + 1);
             m_tetris::TetrisBlockStatus status =
             {
-                this_piece, this_piece_pos_x, this_piece_pos_y + map.height, 0
+                this_piece, this_piece_pos_x, this_piece_pos_y + map1.height, 0
             };
-            m_tetris::TetrisNode const *node = bot_1.get(status), *target = nullptr;
-            if(node == nullptr)
+            m_tetris::TetrisNode const *node1 = bot_1.get(status), *target = nullptr;
+            m_tetris::TetrisNode const *node2 = bot_2.get(status);
+            if(node1 == nullptr)
             {
                 output += "no_moves\n";
                 std::cout << output;
@@ -185,22 +209,36 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
                 {
                     if(field[mx + field_width * (field_height - my - 1)] != 0)
                     {
-                        map.top[mx] = map.roof = my + 1;
-                        map.row[my] |= 1 << mx;
-                        ++map.count;
+                        map1.top[mx] = map1.roof = my + 1;
+                        map1.row[my] |= 1 << mx;
+                        ++map1.count;
+                    }
+                    if(enemy_field[mx + field_width * (field_height - my - 1)] != 0)
+                    {
+                        map2.top[mx] = map2.roof = my + 1;
+                        map2.row[my] |= 1 << mx;
+                        ++map2.count;
                     }
                 }
             }
             unsigned char next_arr[] = {(unsigned char)(next_piece)};
             std::vector<char> ai_path;
-            if(node != nullptr)
+            if(node1 != nullptr)
             {
+                size_t enemy_point_add = 0;
+                bot_2.param()->combo = enemy_combo;
+                if(node2 != nullptr)
+                {
+                    bot_2.param()->point_ptr = &enemy_point_add;
+                    bot_2.run(map2, node2, next_arr, 1, 20);
+                }
+                bot_1.param()->up = (enemy_row_points % 4 + enemy_point_add) / 4;
                 bot_1.param()->combo = combo;
-                target = bot_1.run(map, node, next_arr, 1, std::max(50, std::atoi(params[2].c_str()) - 100)).target;
+                target = bot_1.run(map1, node1, next_arr, 1, std::max(50, std::atoi(params[2].c_str()) - 100)).target;
             }
             if(target != nullptr)
             {
-                ai_path = bot_1.make_path(node, target, map);
+                ai_path = bot_1.make_path(node1, target, map1);
             }
             for(auto c : ai_path)
             {
@@ -208,44 +246,44 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
                 {
                 case 'l':
                     output += "left,";
-                    node = node->move_left;
+                    node1 = node1->move_left;
                     break;
                 case 'r':
                     output += "right,";
-                    node = node->move_right;
+                    node1 = node1->move_right;
                     break;
                 case 'd':
                     output += "down,";
-                    node = node->move_down;
+                    node1 = node1->move_down;
                     break;
                 case 'L':
-                    while(node->move_left && node->move_left->check(map))
+                    while(node1->move_left && node1->move_left->check(map1))
                     {
                         output += "left,";
-                        node = node->move_left;
+                        node1 = node1->move_left;
                     }
                     break;
                 case 'R':
-                    while(node->move_right && node->move_right->check(map))
+                    while(node1->move_right && node1->move_right->check(map1))
                     {
                         output += "right,";
-                        node = node->move_right;
+                        node1 = node1->move_right;
                     }
                     break;
                 case 'D':
-                    while(node->move_down && node->move_down->check(map))
+                    while(node1->move_down && node1->move_down->check(map1))
                     {
                         output += "down,";
-                        node = node->move_down;
+                        node1 = node1->move_down;
                     }
                     break;
                 case 'z':
                     output += "turnleft,";
-                    node = node->rotate_counterclockwise;
+                    node1 = node1->rotate_counterclockwise;
                     break;
                 case 'c':
                     output += "turnright,";
-                    node = node->rotate_clockwise;
+                    node1 = node1->rotate_clockwise;
                     break;
                 }
             }
