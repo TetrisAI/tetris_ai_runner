@@ -681,7 +681,7 @@ namespace m_tetris
             history.pop_back();
             return result;
         }
-        Result run(TetrisAI &ai, TetrisLandPointSearchEngine &search, TetrisMap const &map, LandPoint &node)
+        Result run(TetrisAI &ai, TetrisLandPointSearchEngine &search, TetrisMap const &map, LandPoint const &node)
         {
             auto const *land_point = search.search(map, node);
             FinalEval final_eval = ai.bad();
@@ -1594,6 +1594,13 @@ namespace m_tetris
         std::vector<char> make_status(TetrisNode const *node, LandPoint const &land_point, TetrisMap const &map)
         {
             return search_.make_status(node, land_point, map);
+        }
+        //单块评价
+        template<class Node>
+        void search(TetrisNode const *node, TetrisMap const &map, std::vector<Node> &result)
+        {
+            auto const *land_point = search_.search(map, node);
+            result.assign(land_point->begin(), land_point->end());
         }
     };
 

@@ -1,18 +1,12 @@
 
 #include "tetris_core.h"
+#include <functional>
 
 namespace ai_tag
 {
     class the_ai_games
     {
     public:
-        struct Param
-        {
-            int combo;
-        };
-    public:
-        void init(m_tetris::TetrisContext const *context, Param const *param);
-        std::string ai_name() const;
         struct eval_result
         {
             double land_point, map;
@@ -20,10 +14,22 @@ namespace ai_tag
             int danger;
             int low_y;
             int count;
+            m_tetris::TetrisMap const *save_map;
         };
+        struct Param
+        {
+            int combo;
+            size_t length;
+            size_t virtual_length;
+            std::function<void(m_tetris::TetrisNode const *, m_tetris::TetrisMap const &, std::vector<m_tetris::TetrisNode const *> &)> search;
+        };
+    public:
+        void init(m_tetris::TetrisContext const *context, Param const *param);
+        std::string ai_name() const;
         eval_result eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
         double bad() const;
         double get(eval_result const *history, size_t history_length) const;
+        double get_impl(eval_result const *history, size_t history_length) const;
 
     private:
         Param const *param_;
@@ -34,6 +40,8 @@ namespace ai_tag
             int data[4];
         };
         std::vector<MapInDangerData> map_danger_data_;
+        mutable std::vector<eval_result> result_cache_;
+        mutable std::vector<std::vector<m_tetris::TetrisNode const *>> land_point_cache_;
         size_t map_in_danger_(m_tetris::TetrisMap const &map) const;
     };
 

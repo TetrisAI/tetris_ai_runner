@@ -863,6 +863,7 @@ namespace ai_zzz
         result.low_y = low_y;
         result.count = map.count;
         result.soft_drop = !node->open(map);
+        result.save_map = &map;
         return result;
     }
 
@@ -872,6 +873,57 @@ namespace ai_zzz
     }
 
     double C2::get(eval_result const *history, size_t history_length) const
+    {
+        if(param_->virtual_length == 0 || history_length < param_->length)
+        {
+            return get_impl(history, history_length);
+        }
+        if(land_point_cache_.size() != param_->virtual_length)
+        {
+            land_point_cache_.resize(param_->virtual_length);
+        }
+        if(result_cache_.size() != param_->length + param_->virtual_length)
+        {
+            result_cache_.resize(param_->length + param_->virtual_length);
+        }
+        if(history_length == param_->length)
+        {
+            std::copy(history, history + history_length, result_cache_.begin());
+            history = result_cache_.data();
+        }
+        eval_result &back_result = result_cache_[history_length];
+        TetrisMap const *save_map = history[history_length - 1].save_map;
+        double value = 0;
+        std::vector<TetrisNode const *> &land_point = land_point_cache_[history_length - param_->length];
+        for(size_t i = 0; i < context_->type_max(); ++i)
+        {
+            double best_eval = bad();
+            param_->search(context_->generate(i), *save_map, land_point);
+            for(auto const &node : land_point)
+            {
+                TetrisMap copy = *save_map;
+                size_t clear = node->attach(copy);
+                back_result = eval(node, copy, *save_map, clear);
+                double new_eval;
+                if(history_length + 1 < param_->length + param_->virtual_length)
+                {
+                    new_eval = get(history, history_length + 1);
+                }
+                else
+                {
+                    new_eval = get_impl(history, history_length + 1);
+                }
+                if(new_eval > best_eval)
+                {
+                    best_eval = new_eval;
+                }
+            }
+            value += best_eval;
+        }
+        return value / context_->type_max();
+    }
+
+    double C2::get_impl(eval_result const *history, size_t history_length) const
     {
         double land_point_value = 0;
         double map_value = 0;

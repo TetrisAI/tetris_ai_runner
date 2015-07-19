@@ -87,6 +87,9 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     size_t next_length = std::strlen(nextPiece);
     /////////////////////////////////////////////////
     tetris_ai.param()->combo = 0;
+    tetris_ai.param()->length = next_length + 1;
+    tetris_ai.param()->virtual_length = next_length > 0 ? 2 : 0;
+    tetris_ai.param()->search = std::bind(&decltype(tetris_ai)::search<m_tetris::TetrisNode const *>, &tetris_ai, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     //tetris_ai.param()->level = 10;
     //tetris_ai.param()->mode = 0;
     //tetris_ai.param()->next_length = next_length;
@@ -368,8 +371,11 @@ extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], c
         }
     }
     c2_ai.status()->fast_move_down = true;
+    c2_ai.param()->length = 2;
+    c2_ai.param()->virtual_length = 1;
     c2_ai.param()->mode = mode;
     c2_ai.param()->combo = combo;
+    c2_ai.param()->search = std::bind(&decltype(c2_ai)::search<m_tetris::TetrisNode const *>, &c2_ai, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     m_tetris::TetrisBlockStatus status =
     {
         nextPiece[0], curX, curY, curR
