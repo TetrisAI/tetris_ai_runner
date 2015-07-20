@@ -219,10 +219,12 @@ namespace ai_tag
             low_x = width_m1;
         }
         int low_y = map.top[low_x];
+        int full = 0;
         for(int y = map.roof - 1; y >= 0; --y)
         {
             if(map.row[y] == context_->full())
             {
+                full = y;
                 low_y -= y;
                 break;
             }
@@ -252,8 +254,9 @@ namespace ai_tag
                       + (low_x == width_m1 ? 400 : 0)
                       );
         result.clear = clear;
-        result.danger = map.roof + 4 + param_->up >= map.height;
         result.low_y = low_y;
+        result.full = std::max(0, (map.height - 4) - (full + param_->up)) * map.width;
+        result.count = map.count + v.HoleCount;
         result.save_map = &map;
         return result;
     }
@@ -320,13 +323,14 @@ namespace ai_tag
         size_t combo = param_->combo;
         for(size_t i = 0; i < history_length; ++i)
         {
+            bool building = history[i].count * 3 / 2 < history[i].full;
             if(history[i].clear > 0)
             {
                 if(history[i].clear == 4)
                 {
                     land_point_value += 2000;
                 }
-                if(combo == 0 && history[i].danger == 0)
+                if(combo == 0 && building)
                 {
                     land_point_value -= (4 - std::min(4, history[i].low_y)) * 800;
                 }
@@ -338,7 +342,7 @@ namespace ai_tag
             }
             else
             {
-                if(combo > 0 && history[i].danger == 0)
+                if(combo > 0 && !building)
                 {
                     land_point_value -= 3200;
                 }

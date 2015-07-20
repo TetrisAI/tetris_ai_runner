@@ -11,8 +11,9 @@ namespace ai_tag
         {
             double land_point, map;
             size_t clear;
-            int danger;
             int low_y;
+            int full;
+            int count;
             m_tetris::TetrisMap const *save_map;
         };
         struct Param
