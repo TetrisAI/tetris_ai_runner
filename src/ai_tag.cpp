@@ -332,7 +332,7 @@ namespace ai_tag
                 }
                 if(combo == 0 && building)
                 {
-                    land_point_value -= (4 - std::min(4, history[i].low_y)) * 800;
+                    land_point_value -= (4 - std::min(4, history[i].low_y)) * 1600;
                 }
                 else if(combo > 0)
                 {
