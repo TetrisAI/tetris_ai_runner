@@ -355,14 +355,19 @@ namespace ai_tag
 
     size_t the_ai_games::map_in_danger_(m_tetris::TetrisMap const &map) const
     {
-        size_t danger = 0;
-        for(size_t i = 0; i < context_->type_max(); ++i)
+        size_t danger = 0, up = param_->up;
+        do
         {
-            if(map_danger_data_[i].data[0] & map.row[map.height - 4] || map_danger_data_[i].data[1] & map.row[map.height - 3] || map_danger_data_[i].data[2] & map.row[map.height - 2] || map_danger_data_[i].data[3] & map.row[map.height - 1])
+            size_t height = map.height - up;
+            for(size_t i = 0; i < context_->type_max(); ++i)
             {
-                ++danger;
+                if(map_danger_data_[i].data[0] & map.row[height - 4] || map_danger_data_[i].data[1] & map.row[height - 3] || map_danger_data_[i].data[2] & map.row[height - 2] || map_danger_data_[i].data[3] & map.row[height - 1])
+                {
+                    ++danger;
+                }
             }
         }
+        while(up-- > 0);
         return danger;
     }
 
