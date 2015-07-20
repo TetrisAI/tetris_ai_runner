@@ -96,6 +96,7 @@ namespace ai_zzz
     public:
         struct Param
         {
+            int safe;
             int mode;
             int combo;
             size_t length;

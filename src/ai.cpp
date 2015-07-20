@@ -347,7 +347,7 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
 
 m_tetris::TetrisEngine<rule_c2::TetrisRuleSet, ai_zzz::C2, land_point_search_cautious::Search> c2_ai;
 
-extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int mode, int combo, char path[], size_t limit)
+extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int mode, int safe, int combo, char path[], size_t limit)
 {
     if(!c2_ai.prepare(boardW, boardH))
     {
@@ -374,6 +374,7 @@ extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], c
     c2_ai.status()->fast_move_down = true;
     c2_ai.param()->length = 2;
     c2_ai.param()->virtual_length = 1;
+    c2_ai.param()->safe = safe;
     c2_ai.param()->mode = mode;
     c2_ai.param()->combo = combo;
     c2_ai.param()->search = std::bind(&decltype(c2_ai)::search<m_tetris::TetrisNode const *>, &c2_ai, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);

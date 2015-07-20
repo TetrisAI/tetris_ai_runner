@@ -961,27 +961,27 @@ namespace ai_zzz
                 {
                     if(combo == 0)
                     {
-                        if(history[i].clear == 4 && history[i].count >= 84)
+                        if(history[i].clear == 4 && history[i].count >= 84 - param_->safe * context_->width())
                         {
                             land_point_value += 8000;
                         }
-                        else if(history[i].clear == 3 && history[i].count >= 92)
+                        else if(history[i].clear == 3 && history[i].count >= 92 - param_->safe * context_->width())
                         {
                             land_point_value += 4000;
                         }
                         else if(history[i].low_y <= 5)
                         {
-                            if(history[i].count < 92)
+                            if(history[i].count < 92 - param_->safe * context_->width())
                             {
                                 land_point_value -= 4000;
                             }
                             else if(history[i].clear < 3)
                             {
-                                if(history[i].count <= 100)
+                                if(history[i].count <= 100 - param_->safe * context_->width())
                                 {
                                     land_point_value -= 4000;
                                 }
-                                else if(history[i].count <= 120)
+                                else if(history[i].count <= 120 - param_->safe * context_->width())
                                 {
                                     land_point_value -= 2000;
                                 }
@@ -1001,7 +1001,7 @@ namespace ai_zzz
                     }
                     else
                     {
-                        if(combo > 3 && history[i].clear > 1 && history[i].count <= 72)
+                        if(combo > 3 && history[i].clear > 1 && history[i].count <= 72 - param_->safe * context_->width())
                         {
                             land_point_value -= 1000;
                         }
@@ -1015,7 +1015,7 @@ namespace ai_zzz
                         }
                     }
                 }
-                else if(combo > 0 && history[i].count <= 64)
+                else if(combo > 0 && history[i].count <= 64 - param_->safe * context_->width())
                 {
                     land_point_value -= 2000;
                 }
