@@ -224,7 +224,7 @@ namespace ai_tag
         {
             if(map.row[y] == context_->full())
             {
-                full = y;
+                full = y + 1;
                 low_y -= y;
                 break;
             }
@@ -246,17 +246,18 @@ namespace ai_tag
                       - v.ClearWidth1 * 4
                       - v.ClearWidth2 * 1
                       - v.WellDepthTotle * 160
-                      + v.WideWellDepth[5] * 16
-                      + v.WideWellDepth[4] * 32
-                      + v.WideWellDepth[3] * 48
-                      + v.WideWellDepth[2] * 8
-                      + v.WideWellDepth[1] * 4
-                      + (low_x == width_m1 ? 400 : 0)
+                      + v.WideWellDepth[5] * 8
+                      + v.WideWellDepth[4] * 16
+                      + v.WideWellDepth[3] * 32
+                      + v.WideWellDepth[2] * 48
+                      + v.WideWellDepth[1] * -8
+                      + v.WideWellDepth[0] * 4
+                      + (low_x == 0 ? 400 : 0)
                       );
         result.clear = clear;
         result.low_y = low_y;
-        result.full = std::max(0, (map.height - 4) - (full + param_->up)) * map.width;
-        result.count = map.count + v.HoleCount;
+        result.full = std::max(0, (map.height - 5) - (full + param_->up)) * map.width;
+        result.count = map.count - full * map.width + v.HoleCount;
         result.save_map = &map;
         return result;
     }
@@ -342,7 +343,7 @@ namespace ai_tag
             }
             else
             {
-                if(combo > 0 && !building)
+                if(combo > 0 && building)
                 {
                     land_point_value -= 3200;
                 }
@@ -375,6 +376,7 @@ namespace ai_tag
     void the_ai_games_enemy::init(m_tetris::TetrisContext const *context, Param const *param)
     {
         param_ = param;
+        context_ = context;
     }
 
     std::string the_ai_games_enemy::ai_name() const
@@ -382,9 +384,13 @@ namespace ai_tag
         return "The AI Games (SetoSan) v0.1";
     }
 
-    size_t the_ai_games_enemy::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
+    the_ai_games_enemy::eval_result the_ai_games_enemy::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
     {
-        return clear;
+        eval_result result =
+        {
+            clear, &map
+        };
+        return result;
     }
 
     size_t the_ai_games_enemy::bad() const
@@ -392,16 +398,65 @@ namespace ai_tag
         return 0;
     }
 
-    size_t the_ai_games_enemy::get(size_t const *history, size_t history_length) const
+    size_t the_ai_games_enemy::get(eval_result const *history, size_t history_length) const
+    {
+        if(param_->virtual_length == 0 || history_length < param_->length)
+        {
+            return get_impl(history, history_length);
+        }
+        if(land_point_cache_.size() != param_->virtual_length)
+        {
+            land_point_cache_.resize(param_->virtual_length);
+        }
+        if(result_cache_.size() != param_->length + param_->virtual_length)
+        {
+            result_cache_.resize(param_->length + param_->virtual_length);
+        }
+        if(history_length == param_->length)
+        {
+            std::copy(history, history + history_length, result_cache_.begin());
+            history = result_cache_.data();
+        }
+        eval_result &back_result = result_cache_[history_length];
+        TetrisMap const *save_map = history[history_length - 1].save_map;
+        size_t best_eval = bad();
+        std::vector<TetrisNode const *> &land_point = land_point_cache_[history_length - param_->length];
+        for(size_t i = 0; i < context_->type_max(); ++i)
+        {
+            param_->search(context_->generate(i), *save_map, land_point);
+            for(auto const &node : land_point)
+            {
+                TetrisMap copy = *save_map;
+                size_t clear = node->attach(copy);
+                back_result = eval(node, copy, *save_map, clear);
+                size_t new_eval;
+                if(history_length + 1 < param_->length + param_->virtual_length)
+                {
+                    new_eval = get(history, history_length + 1);
+                }
+                else
+                {
+                    new_eval = get_impl(history, history_length + 1);
+                }
+                if(new_eval > best_eval)
+                {
+                    best_eval = new_eval;
+                }
+            }
+        }
+        return best_eval;
+    }
+
+    size_t the_ai_games_enemy::get_impl(eval_result const *history, size_t history_length) const
     {
         size_t point = 0;
         int combo = param_->combo;
         for(size_t i = 0; i < history_length; ++i)
         {
-            point += history[i];
-            if(history[i] > 0)
+            point += history[i].clear;
+            if(history[i].clear > 0)
             {
-                if(history[i] == 4)
+                if(history[i].clear == 4)
                 {
                     point += 4;
                 }
