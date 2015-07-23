@@ -4,7 +4,7 @@
 #include "tetris_core.h"
 #include <vector>
 
-namespace land_point_search_tspin
+namespace search_tspin
 {
     class Search
     {

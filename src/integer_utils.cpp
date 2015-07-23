@@ -1,9 +1,10 @@
 ﻿
 #include <cstddef>
+#include <cstdint>
 
 namespace zzz
 {
-    size_t BitCount(unsigned int n)
+    size_t BitCount(uint32_t n)
     {
         // HD, Figure 5-2
         n = n - ((n >> 1) & 0x55555555);
@@ -14,7 +15,7 @@ namespace zzz
         return n & 0x3f;
     }
 
-    size_t NumberOfTrailingZeros(unsigned int i)
+    size_t NumberOfTrailingZeros(uint32_t i)
     {
         // HD, Figure 5-14
         size_t y;

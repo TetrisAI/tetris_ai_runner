@@ -1,12 +1,12 @@
 
 #pragma once
 
-#include "land_point_search_tspin.h"
+#include "search_tspin.h"
 #include "integer_utils.h"
 
 using namespace m_tetris;
 
-namespace land_point_search_tspin
+namespace search_tspin
 {
     void Search::init(m_tetris::TetrisContext const *context, Status const *status)
     {

@@ -1,11 +1,11 @@
 
 #pragma once
 
-#include "land_point_search_cautious.h"
+#include "search_cautious.h"
 
 using namespace m_tetris;
 
-namespace land_point_search_cautious
+namespace search_cautious
 {
     void Search::init(m_tetris::TetrisContext const *context, Status const *status)
     {

@@ -13,10 +13,14 @@ using namespace zzz;
 namespace ai_tag
 {
 
-    void the_ai_games::init(m_tetris::TetrisContext const *context, Param const *param)
+    bool the_ai_games::Status::operator < (Status const &other) const
+    {
+        return value > other.value;
+    }
+
+    void the_ai_games::init(m_tetris::TetrisContext const *context)
     {
         context_ = context;
-        param_ = param;
         map_danger_data_.resize(context->type_max());
         for(size_t i = 0; i < context->type_max(); ++i)
         {
@@ -41,21 +45,21 @@ namespace ai_tag
         return "The AI Games (SetoSan) v0.1";
     }
 
-    the_ai_games::eval_result the_ai_games::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
+    the_ai_games::Status the_ai_games::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear, Status const &status) const
     {
         double LandHeight = node->row + node->height;
-        double Middle = std::abs((node->status.x + 1) * 2 - map.width);
+        double Middle = std::abs((int(node->status.x) + 1) * 2 - int(map.width));
         double EraseCount = clear;
-        double BoardDeadZone = map_in_danger_(map);
-        if(map.roof + param_->up >= map.height)
+        double BoardDeadZone = map_in_danger_(map, status.up);
+        if(map.roof + status.up >= map.height)
         {
             BoardDeadZone += 70;
         }
 
-        const int width_m1 = map.width - 1;
+        const size_t width_m1 = map.width - 1;
         int ColTrans = 2 * (map.height - map.roof);
         int RowTrans = map.roof == map.height ? 0 : map.width;
-        for(int y = 0; y < map.roof; ++y)
+        for(size_t y = 0; y < map.roof; ++y)
         {
             if(!map.full(0, y))
             {
@@ -121,7 +125,7 @@ namespace ai_tag
             }
             int WellWidth = 0;
             int MaxWellWidth = 0;
-            for(int x = 0; x < map.width; ++x)
+            for(size_t x = 0; x < map.width; ++x)
             {
                 if((v.LineCoverBits >> x) & 1)
                 {
@@ -168,7 +172,7 @@ namespace ai_tag
         }
         if(HolePosy0 >= 0)
         {
-            for(int y = HolePosy0; y < map.roof; ++y)
+            for(size_t y = HolePosy0; y < map.roof; ++y)
             {
                 int CheckLine = v.HoleBits0 & map.row[y];
                 if(CheckLine == 0)
@@ -179,7 +183,7 @@ namespace ai_tag
             }
             if(HolePosy1 >= 0)
             {
-                for(int y = HolePosy1; y < map.roof; ++y)
+                for(size_t y = HolePosy1; y < map.roof; ++y)
                 {
                     int CheckLine = v.HoleBits1 & map.row[y];
                     if(CheckLine == 0)
@@ -190,7 +194,7 @@ namespace ai_tag
                 }
                 if(HolePosy2 >= 0)
                 {
-                    for(int y = HolePosy2; y < map.roof; ++y)
+                    for(size_t y = HolePosy2; y < map.roof; ++y)
                     {
                         int CheckLine = v.HoleBits2 & map.row[y];
                         if(CheckLine == 0)
@@ -203,7 +207,7 @@ namespace ai_tag
             }
         }
         int low_x = 1;
-        for(int x = 2; x < width_m1; ++x)
+        for(size_t x = 2; x < width_m1; ++x)
         {
             if(map.top[x] < map.top[low_x])
             {
@@ -218,8 +222,8 @@ namespace ai_tag
         {
             low_x = width_m1;
         }
-        int low_y = map.top[low_x];
-        int full = 0;
+        size_t low_y = map.top[low_x];
+        size_t full = 0;
         for(int y = map.roof - 1; y >= 0; --y)
         {
             if(map.row[y] == context_->full())
@@ -230,13 +234,14 @@ namespace ai_tag
             }
         }
 
-        eval_result result;
-        result.land_point = (0.
-                             - LandHeight * 1750 / map.height
-                             + Middle * 2
-                             + EraseCount * 60
-                             - BoardDeadZone * 50000000
-                             );
+        Status result = status;
+        ++result.depth;
+        result.land_point += (0.
+                              - LandHeight * 1750 / map.height
+                              + Middle * 2
+                              + EraseCount * 60
+                              - BoardDeadZone * 50000000
+                              );
         result.map = (0.
                       - ColTrans * 80
                       - RowTrans * 80
@@ -254,109 +259,51 @@ namespace ai_tag
                       + v.WideWellDepth[0] * 4
                       + (low_x == 0 ? 400 : 0)
                       );
-        result.clear = clear;
-        result.low_y = low_y;
-        result.full = std::max(0, (map.height - 5) - (full + param_->up)) * map.width;
-        result.count = map.count - full * map.width + v.HoleCount;
-        result.save_map = &map;
+
+        bool building = (map.count - full * map.width + v.HoleCount) * 3 / 2 < std::max(0, int(map.height - 5) - int(full + status.up)) * map.width;
+        if(clear > 0)
+        {
+            if(clear == 4)
+            {
+                result.land_point += 2000;
+            }
+            if(status.combo == 0 && building)
+            {
+                result.land_point -= (4 - std::min<int>(4, low_y)) * 1600;
+            }
+            else if(status.combo > 0)
+            {
+                result.land_point += status.combo * 1000;
+            }
+            ++result.combo;
+        }
+        else
+        {
+            if(status.combo > 0 && building)
+            {
+                result.land_point -= 3200;
+            }
+            result.combo = 0;
+        }
+        result.value = result.land_point / status.depth + status.map;
         return result;
     }
 
-    double the_ai_games::bad() const
+    the_ai_games::Status the_ai_games::bad() const
     {
-        return -999999999999;
+        Status result;
+        result.combo = 0;
+        result.depth = 1;
+        result.land_point = 0;
+        result.map = -999999999999;
+        result.up = 20;
+        result.value = -999999999999;
+        return result;
     }
 
-    double the_ai_games::get(eval_result const *history, size_t history_length) const
+    size_t the_ai_games::map_in_danger_(m_tetris::TetrisMap const &map, size_t up) const
     {
-        if(param_->virtual_length == 0 || history_length < param_->length)
-        {
-            return get_impl(history, history_length);
-        }
-        if(land_point_cache_.size() != param_->virtual_length)
-        {
-            land_point_cache_.resize(param_->virtual_length);
-        }
-        if(result_cache_.size() != param_->length + param_->virtual_length)
-        {
-            result_cache_.resize(param_->length + param_->virtual_length);
-        }
-        if(history_length == param_->length)
-        {
-            std::copy(history, history + history_length, result_cache_.begin());
-            history = result_cache_.data();
-        }
-        eval_result &back_result = result_cache_[history_length];
-        TetrisMap const *save_map = history[history_length - 1].save_map;
-        double value = 0;
-        std::vector<TetrisNode const *> &land_point = land_point_cache_[history_length - param_->length];
-        for(size_t i = 0; i < context_->type_max(); ++i)
-        {
-            double best_eval = bad();
-            param_->search(context_->generate(i), *save_map, land_point);
-            for(auto const &node : land_point)
-            {
-                TetrisMap copy = *save_map;
-                size_t clear = node->attach(copy);
-                back_result = eval(node, copy, *save_map, clear);
-                double new_eval;
-                if(history_length + 1 < param_->length + param_->virtual_length)
-                {
-                    new_eval = get(history, history_length + 1);
-                }
-                else
-                {
-                    new_eval = get_impl(history, history_length + 1);
-                }
-                if(new_eval > best_eval)
-                {
-                    best_eval = new_eval;
-                }
-            }
-            value += best_eval;
-        }
-        return value / context_->type_max();
-    }
-
-    double the_ai_games::get_impl(eval_result const *history, size_t history_length) const
-    {
-        double land_point_value = 0;
-        size_t combo = param_->combo;
-        for(size_t i = 0; i < history_length; ++i)
-        {
-            bool building = history[i].count * 3 / 2 < history[i].full;
-            if(history[i].clear > 0)
-            {
-                if(history[i].clear == 4)
-                {
-                    land_point_value += 2000;
-                }
-                if(combo == 0 && building)
-                {
-                    land_point_value -= (4 - std::min(4, history[i].low_y)) * 1600;
-                }
-                else if(combo > 0)
-                {
-                    land_point_value += combo * 1000;
-                }
-                ++combo;
-            }
-            else
-            {
-                if(combo > 0 && building)
-                {
-                    land_point_value -= 3200;
-                }
-                combo = 0;
-            }
-            land_point_value += history[i].land_point;
-        }
-        return land_point_value / history_length + history[history_length - 1].map;
-    }
-
-    size_t the_ai_games::map_in_danger_(m_tetris::TetrisMap const &map) const
-    {
-        size_t danger = 0, up = param_->up;
+        size_t danger = 0;
         do
         {
             size_t height = map.height - up;

@@ -1,9 +1,9 @@
 ﻿
-#include "land_point_search_tag.h"
+#include "search_tag.h"
 
 using namespace m_tetris;
 
-namespace land_point_search_tag
+namespace search_tag
 {
     void Search::init(m_tetris::TetrisContext const *context)
     {

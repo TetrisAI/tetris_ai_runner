@@ -4,9 +4,6 @@
     <ClCompile Include="src\rule_srs.cpp">
       <Filter>rules\srs</Filter>
     </ClCompile>
-    <ClCompile Include="src\land_point_search_cautious.cpp">
-      <Filter>land_point_search\cautious</Filter>
-    </ClCompile>
     <ClCompile Include="src\ai_zzz.cpp">
       <Filter>ai\zzz</Filter>
     </ClCompile>
@@ -16,20 +13,11 @@
     <ClCompile Include="src\ai_ax.cpp">
       <Filter>ai\ax</Filter>
     </ClCompile>
-    <ClCompile Include="src\land_point_search_path.cpp">
-      <Filter>land_point_search\path</Filter>
-    </ClCompile>
-    <ClCompile Include="src\land_point_search_simple.cpp">
-      <Filter>land_point_search\simple</Filter>
-    </ClCompile>
     <ClCompile Include="src\rule_qq.cpp">
       <Filter>rules\qq</Filter>
     </ClCompile>
     <ClCompile Include="src\rule_st.cpp">
       <Filter>rules\st</Filter>
-    </ClCompile>
-    <ClCompile Include="src\land_point_search_simulate.cpp">
-      <Filter>land_point_search\simulate</Filter>
     </ClCompile>
     <ClCompile Include="src\integer_utils.cpp">
       <Filter>util</Filter>
@@ -40,9 +28,6 @@
     <ClCompile Include="src\rule_srsx.cpp">
       <Filter>rules\srsx</Filter>
     </ClCompile>
-    <ClCompile Include="src\land_point_search_tspin.cpp">
-      <Filter>land_point_search\tspin</Filter>
-    </ClCompile>
     <ClCompile Include="src\ai_farteryhr.cpp">
       <Filter>ai\farteryhr</Filter>
     </ClCompile>
@@ -52,22 +37,34 @@
     <ClCompile Include="src\rule_c2.cpp">
       <Filter>rules\c2</Filter>
     </ClCompile>
-    <ClCompile Include="src\land_point_search_tag.cpp">
-      <Filter>land_point_search\tag</Filter>
-    </ClCompile>
     <ClCompile Include="src\ai_tag.cpp">
       <Filter>ai\zzz</Filter>
     </ClCompile>
     <ClCompile Include="src\rule_tag.cpp">
       <Filter>rules\tag</Filter>
     </ClCompile>
+    <ClCompile Include="src\search_cautious.cpp">
+      <Filter>search\cautious</Filter>
+    </ClCompile>
+    <ClCompile Include="src\search_path.cpp">
+      <Filter>search\path</Filter>
+    </ClCompile>
+    <ClCompile Include="src\search_simple.cpp">
+      <Filter>search\simple</Filter>
+    </ClCompile>
+    <ClCompile Include="src\search_simulate.cpp">
+      <Filter>search\simulate</Filter>
+    </ClCompile>
+    <ClCompile Include="src\search_tspin.cpp">
+      <Filter>search\tspin</Filter>
+    </ClCompile>
+    <ClCompile Include="src\search_tag.cpp">
+      <Filter>search\tag</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\rule_srs.h">
       <Filter>rules\srs</Filter>
-    </ClInclude>
-    <ClInclude Include="src\land_point_search_cautious.h">
-      <Filter>land_point_search\cautious</Filter>
     </ClInclude>
     <ClInclude Include="src\ai_zzz.h">
       <Filter>ai\zzz</Filter>
@@ -76,20 +73,11 @@
     <ClInclude Include="src\ai_ax.h">
       <Filter>ai\ax</Filter>
     </ClInclude>
-    <ClInclude Include="src\land_point_search_path.h">
-      <Filter>land_point_search\path</Filter>
-    </ClInclude>
-    <ClInclude Include="src\land_point_search_simple.h">
-      <Filter>land_point_search\simple</Filter>
-    </ClInclude>
     <ClInclude Include="src\rule_qq.h">
       <Filter>rules\qq</Filter>
     </ClInclude>
     <ClInclude Include="src\rule_st.h">
       <Filter>rules\st</Filter>
-    </ClInclude>
-    <ClInclude Include="src\land_point_search_simulate.h">
-      <Filter>land_point_search\simulate</Filter>
     </ClInclude>
     <ClInclude Include="src\integer_utils.h">
       <Filter>util</Filter>
@@ -99,9 +87,6 @@
     </ClInclude>
     <ClInclude Include="src\rule_srsx.h">
       <Filter>rules\srsx</Filter>
-    </ClInclude>
-    <ClInclude Include="src\land_point_search_tspin.h">
-      <Filter>land_point_search\tspin</Filter>
     </ClInclude>
     <ClInclude Include="src\ai_easy.h">
       <Filter>ai\easy</Filter>
@@ -124,14 +109,29 @@
     <ClInclude Include="src\rule_c2.h">
       <Filter>rules\c2</Filter>
     </ClInclude>
-    <ClInclude Include="src\land_point_search_tag.h">
-      <Filter>land_point_search\tag</Filter>
-    </ClInclude>
     <ClInclude Include="src\ai_tag.h">
       <Filter>ai\zzz</Filter>
     </ClInclude>
     <ClInclude Include="src\rule_tag.h">
       <Filter>rules\tag</Filter>
+    </ClInclude>
+    <ClInclude Include="src\search_cautious.h">
+      <Filter>search\cautious</Filter>
+    </ClInclude>
+    <ClInclude Include="src\search_path.h">
+      <Filter>search\path</Filter>
+    </ClInclude>
+    <ClInclude Include="src\search_simple.h">
+      <Filter>search\simple</Filter>
+    </ClInclude>
+    <ClInclude Include="src\search_simulate.h">
+      <Filter>search\simulate</Filter>
+    </ClInclude>
+    <ClInclude Include="src\search_tspin.h">
+      <Filter>search\tspin</Filter>
+    </ClInclude>
+    <ClInclude Include="src\search_tag.h">
+      <Filter>search\tag</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -144,15 +144,6 @@
     <Filter Include="ai">
       <UniqueIdentifier>{824db86c-fbb6-4f7b-9b4d-24bde6f0501b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="land_point_search">
-      <UniqueIdentifier>{2c7d56ab-e7cb-4726-b343-411785ace0b8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="land_point_search\simple">
-      <UniqueIdentifier>{24cb6bc2-0abf-4c72-826f-c433aa2d31b1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="land_point_search\path">
-      <UniqueIdentifier>{e174a12c-a5e5-458a-90aa-72fcc63c0f03}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ai\ax">
       <UniqueIdentifier>{6813cfa7-88df-4217-a710-edeb76ffb8de}</UniqueIdentifier>
     </Filter>
@@ -162,23 +153,14 @@
     <Filter Include="rules\srs">
       <UniqueIdentifier>{b1ce4a2e-25d6-4aa1-a0b0-66d9f14af61a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="land_point_search\cautious">
-      <UniqueIdentifier>{775064df-78a2-4425-aabb-52778b1e0ecb}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ai\zzz">
       <UniqueIdentifier>{c29372d2-b3b3-460a-9960-6b2952e42a27}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="land_point_search\simulate">
-      <UniqueIdentifier>{98d3c63d-334c-4aff-a452-ab9051f731c5}</UniqueIdentifier>
     </Filter>
     <Filter Include="util">
       <UniqueIdentifier>{7865d0a5-7d01-4619-8b16-7d1d1127f51b}</UniqueIdentifier>
     </Filter>
     <Filter Include="rules\srsx">
       <UniqueIdentifier>{9f30a009-ae8f-428a-9ae9-7cb8ccb3e808}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="land_point_search\tspin">
-      <UniqueIdentifier>{bb7c6b77-5056-44c8-8bb7-5967927a160f}</UniqueIdentifier>
     </Filter>
     <Filter Include="ai\easy">
       <UniqueIdentifier>{2bd18710-beb1-4ec9-9ccc-3e4f4aea96dd}</UniqueIdentifier>
@@ -195,7 +177,25 @@
     <Filter Include="rules\tag">
       <UniqueIdentifier>{7daf3311-d0f2-484e-9423-a28a2aab72b2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="land_point_search\tag">
+    <Filter Include="search">
+      <UniqueIdentifier>{2c7d56ab-e7cb-4726-b343-411785ace0b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="search\simple">
+      <UniqueIdentifier>{24cb6bc2-0abf-4c72-826f-c433aa2d31b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="search\path">
+      <UniqueIdentifier>{e174a12c-a5e5-458a-90aa-72fcc63c0f03}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="search\cautious">
+      <UniqueIdentifier>{775064df-78a2-4425-aabb-52778b1e0ecb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="search\simulate">
+      <UniqueIdentifier>{98d3c63d-334c-4aff-a452-ab9051f731c5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="search\tspin">
+      <UniqueIdentifier>{bb7c6b77-5056-44c8-8bb7-5967927a160f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="search\tag">
       <UniqueIdentifier>{51c74e1c-3b17-49ba-a5a3-fe8d4b60a954}</UniqueIdentifier>
     </Filter>
   </ItemGroup>

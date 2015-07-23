@@ -1,11 +1,11 @@
 
 #pragma once
 
-#include "land_point_search_simulate.h"
+#include "search_simulate.h"
 
 using namespace m_tetris;
 
-namespace land_point_search_simulate
+namespace search_simulate
 {
     void Search::init(m_tetris::TetrisContext const *context)
     {

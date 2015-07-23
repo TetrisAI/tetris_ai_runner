@@ -1,16 +1,15 @@
-
+﻿
 #pragma once
 
 #include "tetris_core.h"
 #include <vector>
 
-namespace land_point_search_simulate
+namespace search_path
 {
     class Search
     {
     private:
         std::vector<m_tetris::TetrisNode const *> land_point_cache_;
-        std::vector<m_tetris::TetrisNode const *> land_point_add_;
         std::vector<m_tetris::TetrisNode const *> node_search_;
         m_tetris::TetrisNodeMark node_mark_;
         m_tetris::TetrisNodeMarkFiltered node_mark_filtered_;

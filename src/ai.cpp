@@ -4,11 +4,11 @@
 
 #include <ctime>
 #include "tetris_core.h"
-#include "land_point_search_simple.h"
-#include "land_point_search_path.h"
-#include "land_point_search_simulate.h"
-#include "land_point_search_cautious.h"
-#include "land_point_search_tspin.h"
+#include "search_simple.h"
+#include "search_path.h"
+#include "search_simulate.h"
+#include "search_cautious.h"
+#include "search_tspin.h"
 #include "ai_ax.h"
 #include "ai_zzz.h"
 #include "ai_tag.h"
@@ -20,10 +20,10 @@
 #include "rule_c2.h"
 #include "random.h"
 
-m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_tag::the_ai_games, land_point_search_path::Search> tetris_ai;
-//m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_path::Search> tetris_ai;
-//m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_ax::AI, land_point_search_simple::Search> tetris_ai;
-//m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_farteryhr::AI, land_point_search_simple::Search> tetris_ai;
+m_tetris::TetrisEngine<rule_st::TetrisRule, ai_tag::the_ai_games, search_path::Search> tetris_ai;
+//m_tetris::TetrisEngine<rule_st::TetrisRule, ai_zzz::qq::Attack, search_path::Search> tetris_ai;
+//m_tetris::TetrisEngine<rule_st::TetrisRule, ai_ax::AI, search_simple::Search> tetris_ai;
+//m_tetris::TetrisEngine<rule_st::TetrisRule, ai_farteryhr::AI, search_simple::Search> tetris_ai;
 
 extern "C" void attach_init()
 {
@@ -106,7 +106,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     return 0;
 }
 
-m_tetris::TetrisEngine<rule_toj::TetrisRuleSet, ai_zzz::TOJ, land_point_search_tspin::Search> srs_ai;
+m_tetris::TetrisEngine<rule_toj::TetrisRule, ai_zzz::TOJ, search_tspin::Search> srs_ai;
 
 extern "C" DECLSPEC_EXPORT int AIDllVersion()
 {
@@ -276,12 +276,12 @@ public:
     }
 private:
     Status const *status_ptr_;
-    land_point_search_simple::Search simple_;
-    land_point_search_simulate::Search simulate_;
-    land_point_search_path::Search path_;
+    search_simple::Search simple_;
+    search_simulate::Search simulate_;
+    search_path::Search path_;
     std::vector<m_tetris::TetrisNode const *> empty_;
 };
-m_tetris::TetrisEngine<rule_qq::TetrisRuleSet, ai_zzz::qq::Attack, QQTetrisSearch> qq_ai;
+m_tetris::TetrisEngine<rule_qq::TetrisRule, ai_zzz::qq::Attack, QQTetrisSearch> qq_ai;
 
 extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int level, int mode, char path[], size_t limit)
 {
@@ -345,7 +345,7 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
     return 0;
 }
 
-m_tetris::TetrisEngine<rule_c2::TetrisRuleSet, ai_zzz::C2, land_point_search_cautious::Search> c2_ai;
+m_tetris::TetrisEngine<rule_c2::TetrisRule, ai_zzz::C2, search_cautious::Search> c2_ai;
 
 extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int mode, int safe, int combo, char path[], size_t limit)
 {

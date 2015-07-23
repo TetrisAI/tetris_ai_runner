@@ -1,6 +1,6 @@
 
 #include "tetris_core.h"
-#include "land_point_search_tspin.h"
+#include "search_tspin.h"
 
 namespace ai_zzz
 {
@@ -58,8 +58,8 @@ namespace ai_zzz
     class TOJ
     {
     public:
-        typedef land_point_search_tspin::Search::TSpinType TSpinType;
-        typedef land_point_search_tspin::Search::TetrisNodeWithTSpinType TetrisNodeEx;
+        typedef search_tspin::Search::TSpinType TSpinType;
+        typedef search_tspin::Search::TetrisNodeWithTSpinType TetrisNodeEx;
         struct Param
         {
             size_t combo;

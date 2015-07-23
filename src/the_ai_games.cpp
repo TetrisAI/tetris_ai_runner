@@ -297,7 +297,7 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
 int main()
 {
     bot_1.param()->length = 2;
-    bot_1.param()->virtual_length = 0;
+    bot_1.param()->virtual_length = 1;
     bot_1.param()->search = std::bind(&decltype(bot_1)::search<m_tetris::TetrisNode const *>, &bot_1, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     bot_2.param()->length = 2;
     bot_2.param()->virtual_length = 1;

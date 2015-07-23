@@ -10,7 +10,7 @@ using namespace m_tetris_rule_tools;
 //http://harddrop.com/wiki/SRS
 namespace rule_srs
 {
-    bool TetrisRuleSet::init(int w, int h)
+    bool TetrisRule::init(int w, int h)
     {
         return w == 10 && h == 40;
     }
@@ -25,9 +25,9 @@ namespace rule_srs
         return status;
     }
 
-    std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> TetrisRuleSet::get_opertion()
+    std::map<std::pair<char, uint8_t>, TetrisOpertion> TetrisRule::get_opertion()
     {
-        std::map<std::pair<unsigned char, unsigned char>, TetrisOpertion> info;
+        std::map<std::pair<char, uint8_t>, TetrisOpertion> info;
 #define T(a, b, c, d) (((a) ? 1 : 0) | ((b) ? 2 : 0) | ((c) ? 4 : 0) | ((d) ? 8 : 0))
         TetrisOpertion op_O1 =
         {
@@ -381,9 +381,9 @@ namespace rule_srs
         return info;
     }
 
-    std::map<unsigned char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> TetrisRuleSet::get_generate()
+    std::map<char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> TetrisRule::get_generate()
     {
-        std::map<unsigned char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> info;
+        std::map<char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> info;
         info.insert(std::make_pair('O', &game_generate_template<'O'>));
         info.insert(std::make_pair('I', &game_generate_template<'I'>));
         info.insert(std::make_pair('S', &game_generate_template<'S'>));

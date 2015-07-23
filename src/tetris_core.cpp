@@ -344,9 +344,9 @@ namespace m_tetris
         std::vector<TetrisBlockStatus> check;
         for(auto cit = generate_.begin(); cit != generate_.end(); ++cit)
         {
-            unsigned char type = cit->first;
+            char type = cit->first;
             index_to_type_[type_max_] = type;
-            type_to_index_[type] = type_max_;
+            type_to_index_[int(type) + 128] = type_max_;
             ++type_max_;
         }
         for(size_t i = 0; i < type_max_; ++i)
@@ -543,17 +543,17 @@ namespace m_tetris
         return rebuild;
     }
 
-    int TetrisContext::width() const
+    size_t TetrisContext::width() const
     {
         return width_;
     }
 
-    int TetrisContext::height() const
+    size_t TetrisContext::height() const
     {
         return height_;
     }
 
-    int TetrisContext::full() const
+    size_t TetrisContext::full() const
     {
         return full_;
     }
@@ -595,7 +595,7 @@ namespace m_tetris
         }
     }
 
-    TetrisNode const *TetrisContext::get(unsigned char t, char x, char y, unsigned char r) const
+    TetrisNode const *TetrisContext::get(char t, int8_t x, int8_t y, uint8_t r) const
     {
         TetrisBlockStatus status =
         {
@@ -604,9 +604,9 @@ namespace m_tetris
         return get(status);
     }
 
-    TetrisNode const *TetrisContext::generate(unsigned char type) const
+    TetrisNode const *TetrisContext::generate(char type) const
     {
-        return generate_cache_[type_to_index_[type]];
+        return generate_cache_[type_to_index_[int(type) + 128]];
     }
 
     TetrisNode const *TetrisContext::generate(size_t index) const

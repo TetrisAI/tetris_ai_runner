@@ -6,9 +6,9 @@
 
 namespace rule_qq
 {
-    struct TetrisRuleSet
+    struct TetrisRule
     {
-        static std::map<std::pair<unsigned char, unsigned char>, m_tetris::TetrisOpertion> get_opertion();
-        static std::map<unsigned char, m_tetris::TetrisBlockStatus(*)(m_tetris::TetrisContext const *)> get_generate();
+        static std::map<std::pair<char, uint8_t>, m_tetris::TetrisOpertion> get_opertion();
+        static std::map<char, m_tetris::TetrisBlockStatus(*)(m_tetris::TetrisContext const *)> get_generate();
     };
 }
