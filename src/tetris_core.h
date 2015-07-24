@@ -1538,6 +1538,10 @@ namespace m_tetris
             tree_context_.total += tree_context_.width;
             tree_context_.avg = tree_context_.total / tree_context_.version;
             tree_context_.width = 0;
+            tree_context_.wait.clear();
+            tree_context_.sort.clear();
+            tree_context_.wait.resize(tree_context_.max_length + 1);
+            tree_context_.sort.resize(tree_context_.max_length + 1);
         }
         //run!
         RunResult run(TetrisMap const &map, Status const &status, TetrisNode const *node, char const *next, size_t next_length, time_t limit = 100)

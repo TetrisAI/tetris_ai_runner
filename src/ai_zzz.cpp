@@ -523,8 +523,6 @@ namespace ai_zzz
             }
         }
         Status result = status;
-        int attack = 0;
-        double like = 0;
         size_t rubbish = 0;
         int up = 0;
         if(safe <= 0)
@@ -536,12 +534,12 @@ namespace ai_zzz
         case 0:
             if(status.combo > 0 && status.combo < 3)
             {
-                like -= 4;
+                result.like -= 4;
             }
             result.combo = 0;
             if(status.under_attack > 0)
             {
-                up = std::max<int>(0, status.under_attack - attack);
+                up = std::max<int>(0, status.under_attack - status.attack);
                 if(up >= safe)
                 {
                     value -= 9999999999999;
@@ -552,45 +550,45 @@ namespace ai_zzz
         case 1:
             if(t_spin == TSpinType::TSpinMini)
             {
-                attack += status.b2b ? 2 : 1;
+                result.attack += status.b2b ? 2 : 1;
             }
             else if(t_spin == TSpinType::TSpin)
             {
-                attack += status.b2b ? 3 : 2;
+                result.attack += status.b2b ? 3 : 2;
             }
-            attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
             result.b2b = t_spin != TSpinType::None;
             break;
         case 2:
             if(t_spin != TSpinType::None)
             {
-                like += 5;
-                attack += status.b2b ? 5 : 4;
+                result.like += 5;
+                result.attack += status.b2b ? 5 : 4;
             }
-            attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
             result.b2b = t_spin != TSpinType::None;
             break;
         case 3:
             if(t_spin != TSpinType::None)
             {
-                like += 10;
-                attack += status.b2b ? 8 : 6;
+                result.like += 10;
+                result.attack += status.b2b ? 8 : 6;
             }
-            attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
             result.b2b = t_spin != TSpinType::None;
             break;
         case 4:
-            like += 8;
-            attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
+            result.like += 8;
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
             result.b2b = true;
             break;
         }
         if(map.count == 0 && up == 0)
         {
-            like += 20;
-            attack += 6;
+            result.like += 20;
+            result.attack += 6;
         }
-        result.value = value + (attack * 160 + expect * 128 + (result.b2b ? 240 : 0) + like * 20) * (full_count_ - map.count) / full_count_ - up * 40;
+        result.value = value + (result.attack * 160 + expect * 128 + (result.b2b ? 240 : 0) + result.like * 20) * (full_count_ - map.count) / full_count_ - up * 40;
         return result;
     }
 

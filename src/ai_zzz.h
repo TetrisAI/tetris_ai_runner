@@ -67,6 +67,8 @@ namespace ai_zzz
             size_t combo;
             size_t under_attack;
             bool b2b;
+            int attack;
+            double like;
             double value;
             bool operator < (Status const &) const;
         };

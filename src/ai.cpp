@@ -179,6 +179,8 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
     in_status.combo = combo;
     in_status.under_attack = upcomeAtt;
     in_status.b2b = !!b2b;
+    in_status.attack = 0;
+    in_status.like = 0;
     in_status.value = 0;
     m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
     m_tetris::TetrisNode const *node = srs_ai.get(status);
