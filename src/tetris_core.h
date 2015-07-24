@@ -905,7 +905,6 @@ namespace m_tetris
         std::vector<TetrisTreeNode *> children;
         TetrisNodeFlag node_flag;
         std::vector<char> next;
-        void (TetrisTreeNode::*search_ptr)(bool);
 
         TetrisTreeNode *update_root(TetrisMap const &_map)
         {

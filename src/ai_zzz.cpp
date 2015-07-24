@@ -284,7 +284,7 @@ namespace ai_zzz
             }
 
             Status result = status;
-            ++result.deepth;
+            ++result.depth;
             result.land_point += (0.
                                   - LandHeight * 16
                                   + Middle  * 0.2
@@ -305,7 +305,7 @@ namespace ai_zzz
             double AttackClear = 0;
             double RubbishClear = 0;
 
-            double length_rate = 10. / result.deepth;
+            double length_rate = 10. / result.depth;
 
             double land_point_value = 0;
             switch(clear)
@@ -331,7 +331,7 @@ namespace ai_zzz
                               - RubbishClear * (v.Danger > 0 ? -100 : 640)
                               + AttackClear * 100
                               );
-            result.value = result.land_point / result.deepth + map_value + result.attack;
+            result.value = result.land_point / result.depth + map_value + result.attack;
             return result;
         }
 
@@ -802,7 +802,7 @@ namespace ai_zzz
         int low_y = map.top[low_x];
 
         Status result = status;
-        ++result.deepth;
+        ++result.depth;
         result.land_point += (0.
                               - LandHeight * 1750 / map.height
                               + Middle * 2
@@ -914,7 +914,7 @@ namespace ai_zzz
         {
             result.land_point -= 800;
         }
-        result.value = result.land_point / result.deepth + map_value;
+        result.value = result.land_point / result.depth + map_value;
         return result;
     }
 

@@ -18,7 +18,7 @@ namespace ai_zzz
             {
                 double land_point;
                 double attack;
-                size_t deepth;
+                size_t depth;
                 double value;
                 bool operator < (Status const &) const;
             };
@@ -95,7 +95,7 @@ namespace ai_zzz
         struct Status
         {
             double land_point;
-            size_t deepth;
+            size_t depth;
             int combo;
             double value;
             bool operator < (Status const &) const;

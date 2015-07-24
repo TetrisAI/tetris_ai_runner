@@ -20,9 +20,8 @@
 #include "rule_c2.h"
 #include "random.h"
 
-m_tetris::TetrisEngine<rule_st::TetrisRule, ai_tag::the_ai_games, search_path::Search> tetris_ai;
 //m_tetris::TetrisEngine<rule_st::TetrisRule, ai_zzz::qq::Attack, search_path::Search> tetris_ai;
-//m_tetris::TetrisEngine<rule_st::TetrisRule, ai_ax::AI, search_simple::Search> tetris_ai;
+m_tetris::TetrisEngine<rule_st::TetrisRule, ai_ax::AI, search_simple::Search> tetris_ai;
 //m_tetris::TetrisEngine<rule_st::TetrisRule, ai_farteryhr::AI, search_simple::Search> tetris_ai;
 
 extern "C" void attach_init()
@@ -81,14 +80,12 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     size_t next_length = std::strlen(nextPiece);
     /////////////////////////////////////////////////
     decltype(tetris_ai)::Status in_status;
-    in_status.combo = 0;
-    in_status.depth = 0;
     in_status.land_point = 0;
-    in_status.up = 0;
     in_status.value = 0;
+    in_status.depth = 0;
     /////////////////////////////////////////////////
     m_tetris::TetrisNode const *node = tetris_ai.get(status);
-    auto target = tetris_ai.run(map, in_status, node, nextPiece, next_length, 999).target;
+    auto target = tetris_ai.run(map, in_status, node, nextPiece, next_length, 49).target;
     if(target != nullptr)
     {
         std::vector<char> ai_path = tetris_ai.make_path(node, target, map);
@@ -141,10 +138,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
         *result = '\0';
         return result;
     }
-    m_tetris::TetrisMap map =
-    {
-        10, 40
-    };
+    m_tetris::TetrisMap map(10, 40);
     for(size_t d = 0, s = 22; d < 23; ++d, --s)
     {
         map.row[d] = field[s];
@@ -317,7 +311,7 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
     qq_ai.ai_config()->mode = mode;
     decltype(qq_ai)::Status in_status;
     in_status.land_point = 0;
-    in_status.deepth = 0;
+    in_status.depth = 0;
     in_status.attack = 0;
     in_status.value = 0;
     m_tetris::TetrisNode const *node = qq_ai.get(status);

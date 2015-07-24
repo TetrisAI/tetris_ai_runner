@@ -11,6 +11,12 @@ using namespace m_tetris;
 
 namespace ai_ax
 {
+
+    bool AI::Status::operator < (Status const &other) const
+    {
+        return value < other.value;
+    }
+
     void AI::init(m_tetris::TetrisContext const *context)
     {
         context_ = context;
@@ -35,7 +41,7 @@ namespace ai_ax
         return "Tetris_ax_C ZZZ Mod v1.2";
     }
 
-    AI::eval_result AI::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
+    AI::Status AI::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear, Status const &status) const
     {
         //消行数
         double LandHeight = node->status.y + 1;
@@ -161,45 +167,36 @@ namespace ai_ax
         //死亡警戒
         int BoardDeadZone = map_in_danger_(map);
 
-        eval_result result;
-        result.land_point = (0
-                             - LandHeight * 1750 / map.height
-                             + Middle * 2
-                             + EraseCount * 60
-                             );
-        result.map = (0
-                      - ColTrans * 80
-                      - RowTrans * 80
-                      - v.HoleCount * 60
-                      - v.HoleLine * 380
-                      - v.WellDepth * 100
-                      - v.HoleDepth * 40
-                      - v.HolePiece * 5
-                      - BoardDeadZone * 50000
-                      );
+        Status result = status;
+        ++result.depth;
+        result.land_point += (0
+                              - LandHeight * 1750 / map.height
+                              + Middle * 2
+                              + EraseCount * 60
+                              );
+        double map_value = (0
+                            - ColTrans * 80
+                            - RowTrans * 80
+                            - v.HoleCount * 60
+                            - v.HoleLine * 380
+                            - v.WellDepth * 100
+                            - v.HoleDepth * 40
+                            - v.HolePiece * 5
+                            - BoardDeadZone * 50000
+                            );
+        result.value = result.land_point / result.depth + map_value;
         return result;
     }
 
-    double AI::get(eval_result const *history, size_t history_length) const
+    AI::Status AI::iterated(Status const **status, size_t status_length) const
     {
-        double land_point_value = 0;
-        for(size_t i = 0; i < history_length; ++i)
+        Status result = **status;
+        for(size_t i = 1; i < status_length; ++i)
         {
-            land_point_value += history[i].land_point;
+            result.value += status[i]->value;
         }
-        return land_point_value / history_length + history[history_length - 1].map;
-    }
-
-    AI::eval_result AI::iterated(eval_result const *eval, size_t eval_length) const
-    {
-        eval_result result = *eval;
-        for(size_t i = 1; i < eval_length; ++i)
-        {
-            result.land_point += eval[i].land_point;
-            result.map += eval[i].map;
-        }
-        result.land_point /= eval_length;
-        result.map /= eval_length;
+        result.land_point = 0;
+        result.value /= status_length;
         return result;
     }
 
