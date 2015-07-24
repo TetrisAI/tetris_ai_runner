@@ -12,7 +12,7 @@ namespace ai_tag
 			double land_point, map;
 			size_t depth;
 			size_t combo;
-			size_t up;
+			int up;
             double value;
             bool operator < (Status const &) const;
 		};
@@ -20,7 +20,6 @@ namespace ai_tag
         void init(m_tetris::TetrisContext const *context);
         std::string ai_name() const;
 		Status eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear, Status const &status) const;
-        Status bad() const;
 
     private:
         m_tetris::TetrisContext const *context_;
@@ -36,32 +35,21 @@ namespace ai_tag
     class the_ai_games_enemy
     {
     public:
-        struct eval_result
+        struct Config
         {
-            size_t clear;
-            m_tetris::TetrisMap const *save_map;
+            int *point_ptr;
         };
-        struct Param
+        struct Status
         {
-            size_t combo;
-            size_t length;
-            size_t virtual_length;
-            size_t *point_ptr;
-            std::function<void(m_tetris::TetrisNode const *, m_tetris::TetrisMap const &, std::vector<m_tetris::TetrisNode const *> &)> search;
+            int point, combo;
         };
     public:
-        void init(m_tetris::TetrisContext const *context, Param const *param);
+        void init(m_tetris::TetrisContext const *context, Config const *param);
         std::string ai_name() const;
-        eval_result eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
-        size_t bad() const;
-        size_t get(eval_result const *history, size_t history_length) const;
-        size_t get_impl(eval_result const *history, size_t history_length) const;
+        Status eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear, Status const &status) const;
 
     private:
-        Param const *param_;
-        m_tetris::TetrisContext const *context_;
-        mutable std::vector<eval_result> result_cache_;
-        mutable std::vector<std::vector<m_tetris::TetrisNode const *>> land_point_cache_;
+        Config const *config_;
     };
 
 }

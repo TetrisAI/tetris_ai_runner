@@ -46,17 +46,24 @@ namespace
         //LLLLLLL   JJJJJJJ   TTTTTTT   OOOOOOO   IIIIIII   ZZZZZZZ   SSSSSSS//
 #undef I
     };
-    
+
 }
 
 namespace ai_zzz
 {
     namespace qq
     {
-        void Attack::init(m_tetris::TetrisContext const *context, Param const *param)
+
+        bool Attack::Status::operator < (Status const &other) const
+        {
+            return value < other.value;
+        }
+
+
+        void Attack::init(m_tetris::TetrisContext const *context, Config const *config)
         {
             context_ = context;
-            param_ = param;
+            config_ = config;
             check_line_1_end_ = check_line_1_;
             check_line_2_end_ = check_line_2_;
             const int full = context->full();
@@ -73,10 +80,7 @@ namespace ai_zzz
             map_danger_data_.resize(context->type_max());
             for(size_t i = 0; i < context->type_max(); ++i)
             {
-                TetrisMap map =
-                {
-                    context->width(), context->height()
-                };
+                TetrisMap map(context->width(), context->height());
                 TetrisNode const *node = context->generate(i);
                 node->attach(map);
                 memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
@@ -94,7 +98,7 @@ namespace ai_zzz
             return "AX Attack v0.1";
         }
 
-        Attack::eval_result Attack::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
+        Attack::Status Attack::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear, Status const &status) const
         {
             double LandHeight = node->row + node->height;
             double Middle = std::abs((node->status.x + 1) * 2 - map.width);
@@ -215,7 +219,7 @@ namespace ai_zzz
                 }
             }
             int low_x;
-            if((param_->mode & 1) == 0)
+            if((config_->mode & 1) == 0)
             {
                 low_x = 1;
                 for(int x = 2; x < width_m1; ++x)
@@ -245,9 +249,9 @@ namespace ai_zzz
             int low_y = map.top[low_x];
             for(int y = map.roof - 1; y >= low_y; --y)
             {
-                if(std::binary_search<int const *>(check_line_1_, check_line_1_end_, map.row[y]))
+                if(std::binary_search<uint32_t const *>(check_line_1_, check_line_1_end_, map.row[y]))
                 {
-                    if(y + 1 < map.height && std::binary_search<int const *>(check_line_2_, check_line_2_end_, map.row[y + 1]))
+                    if(y + 1 < map.height && std::binary_search<uint32_t const *>(check_line_2_, check_line_2_end_, map.row[y + 1]))
                     {
                         v.AttackDepth += 20;
                     }
@@ -257,7 +261,7 @@ namespace ai_zzz
                     }
                     for(--y; y >= low_y; --y)
                     {
-                        if(std::binary_search<int const *>(check_line_1_, check_line_1_end_, map.row[y]))
+                        if(std::binary_search<uint32_t const *>(check_line_1_, check_line_1_end_, map.row[y]))
                         {
                             v.AttackDepth += 3;
                         }
@@ -279,73 +283,57 @@ namespace ai_zzz
                 v.AttackDepth = 0;
             }
 
-            eval_result result;
-            result.land_point = (0.
-                                 - LandHeight * 16
-                                 + Middle  * 0.2
-                                 + EraseCount * 6
-                                 - DeadZone
-                                 - BoardDeadZone * 500000
-                                 );
-            result.map = (0.
-                          - ColTrans * 32
-                          - RowTrans * 32
-                          - v.HoleCount * 400
-                          - v.HoleLine * 38
-                          - v.WellDepth * 16
-                          - v.HoleDepth * 4
-                          - v.HolePiece * 2
-                          + v.AttackDepth * 100
-                          );
-            result.clear = clear;
-            result.danger = v.Danger;
-            return result;
-        }
-
-        double Attack::bad() const
-        {
-            return -999999999999;
-        }
-
-        double Attack::get(eval_result const *history, size_t history_length) const
-        {
+            Status result = status;
+            ++result.deepth;
+            result.land_point += (0.
+                                  - LandHeight * 16
+                                  + Middle  * 0.2
+                                  + EraseCount * 6
+                                  - DeadZone
+                                  - BoardDeadZone * 500000
+                                  );
+            double map_value = (0.
+                                - ColTrans * 32
+                                - RowTrans * 32
+                                - v.HoleCount * 400
+                                - v.HoleLine * 38
+                                - v.WellDepth * 16
+                                - v.HoleDepth * 4
+                                - v.HolePiece * 2
+                                + v.AttackDepth * 100
+                                );
             double AttackClear = 0;
             double RubbishClear = 0;
 
-            double length_rate = 10. / history_length;
+            double length_rate = 10. / result.deepth;
 
             double land_point_value = 0;
-            for(size_t i = 0; i < history_length; ++i)
+            switch(clear)
             {
-                land_point_value += history[i].land_point;
-                size_t clear = history[i].clear;
-                switch(clear)
+            case 0:
+                break;
+            case 1:
+            case 2:
+                RubbishClear += clear;
+                break;
+            case 3:
+                if(config_->mode != 0)
                 {
-                case 0:
-                    break;
-                case 1:
-                case 2:
-                    RubbishClear += clear;
-                    break;
-                case 3:
-                    if(param_->mode != 0)
-                    {
-                        AttackClear += 12;
-                        break;
-                    }
-                default:
-                    AttackClear += (clear * 10 + (history_length - i)) * (1 + (history_length - i) * length_rate);
+                    AttackClear += 12;
                     break;
                 }
+            default:
+                AttackClear += (clear * 10 * length_rate);
+                break;
             }
-            return (0.
-                    + land_point_value / history_length
-                    + history[history_length - 1].map
-                    - RubbishClear * (history[history_length - 1].danger > 0 ? -100 : 640)
-                    + AttackClear * 100
-                    );
-        }
 
+            result.attack += (0.
+                              - RubbishClear * (v.Danger > 0 ? -100 : 640)
+                              + AttackClear * 100
+                              );
+            result.value = result.land_point / result.deepth + map_value + result.attack;
+            return result;
+        }
 
         size_t Attack::map_in_danger_(m_tetris::TetrisMap const &map) const
         {
@@ -361,18 +349,13 @@ namespace ai_zzz
         }
     }
 
-        
+
     std::string Dig::ai_name() const
     {
         return "ZZZ Dig v0.2";
     }
 
-    double Dig::bad() const
-    {
-        return -99999999;
-    }
-
-    double Dig::eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
+    double Dig::eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear, double const &status) const
     {
         double value = 0;
 
@@ -424,19 +407,14 @@ namespace ai_zzz
         return value;
     }
 
-    double Dig::get(double const *history, size_t history_length) const
+    bool TOJ::Status::operator < (Status const &other) const
     {
-        double result = 0;
-        for(size_t i = 0; i < history_length; ++i)
-        {
-            result += history[i];
-        }
-        return result / history_length;
+        return value < other.value;
     }
 
-    void TOJ::init(m_tetris::TetrisContext const *context, Param const *param)
+    void TOJ::init(m_tetris::TetrisContext const *context, Config const *config)
     {
-        param_ = param;
+        config_ = config;
         col_mask_ = context->full() & ~1;
         row_mask_ = context->full();
         danger_line_ = context->height();
@@ -458,12 +436,7 @@ namespace ai_zzz
         return "ZZZ TOJ v0.4";
     }
 
-    double TOJ::bad() const
-    {
-        return -99999999;
-    }
-
-    TOJ::eval_result TOJ::eval(TetrisNodeEx &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
+    TOJ::Status TOJ::eval(TetrisNodeEx &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear, Status const &status) const
     {
         double value = 0;
 
@@ -504,10 +477,6 @@ namespace ai_zzz
                 }
             }
         }
-        eval_result result;
-        result.eval = value;
-        result.clear = clear;
-        result.count = map.count;
         int line;
         for(line = map.roof - 1; line > 0; --line)
         {
@@ -516,141 +485,128 @@ namespace ai_zzz
                 break;
             }
         }
-        result.safe = danger_line_ - line;
-        result.t_spin = node.type;
+        int safe = danger_line_ - line;
+        TSpinType t_spin = node.type;
         if(clear > 0 && node.is_check && node.is_last_rotate)
         {
             if(clear == 1 && node.is_mini_ready)
             {
-                result.t_spin = TSpinType::TSpinMini;
+                t_spin = TSpinType::TSpinMini;
             }
             else if(node.is_ready)
             {
-                result.t_spin = TSpinType::TSpin;
+                t_spin = TSpinType::TSpin;
             }
-            node.type = result.t_spin;
+            node.type = t_spin;
         }
-        result.expect = 0;
-        if(true) //T-Spin
+        int expect = 0;
+        bool finding = true;
+        for(int y = 0; finding && y < map.roof - 1; ++y)
         {
-            bool finding = true;
-            for(int y = 0; finding && y < map.roof - 1; ++y)
+            int row0 = map.row[y];
+            int row1 = map.row[y + 1];
+            for(int x = 0; finding && x < map.width - 3; ++x)
             {
-                int row0 = map.row[y];
-                int row1 = map.row[y + 1];
-                for(int x = 0; finding && x < map.width - 3; ++x)
+                if((((row0 >> x) & 7) == 5) && (((row1 >> x) & 7) == 0))
                 {
-                    if((((row0 >> x) & 7) == 5) && (((row1 >> x) & 7) == 0))
+                    int row2_check = ((y + 2 < map.height ? map.row[y + 2] : 0) >> x) & 7;
+                    if(row2_check == 1 || row2_check == 4)
                     {
-                        int row2_check = ((y + 2 < map.height ? map.row[y + 2] : 0) >> x) & 7;
-                        if(row2_check == 1 || row2_check == 4)
-                        {
-                            result.expect = 4;
-                        }
-                        else
-                        {
-                            result.expect = 3;
-                        }
-                        finding = false;
+                        expect = 4;
                     }
+                    else
+                    {
+                        expect = 3;
+                    }
+                    finding = false;
                 }
             }
         }
-        return result;
-    }
-
-    double TOJ::get(eval_result const *history, size_t history_length) const
-    {
-        int under_attack = param_->under_attack;
-        int up = 0;
-        bool b2b = param_->b2b;
-        size_t combo = param_->combo;
+        Status result = status;
         int attack = 0;
         double like = 0;
         size_t rubbish = 0;
-        for(size_t i = 0; i < history_length; ++i)
+        int up = 0;
+        if(safe <= 0)
         {
-            if(history[i].safe <= 0)
-            {
-                return bad();
-            }
-            TSpinType t_spin = history[i].t_spin;
-            switch(history[i].clear)
-            {
-            case 0:
-                if(combo > 0 && combo < 3)
-                {
-                    like -= 4;
-                }
-                combo = 0;
-                if(under_attack > 0)
-                {
-                    up = std::max<int>(0, under_attack - attack);
-                    if(up >= history[i].safe)
-                    {
-                        return bad();
-                    }
-                    under_attack = 0;
-                }
-                break;
-            case 1:
-                if(t_spin == TSpinType::TSpinMini)
-                {
-                    attack += b2b ? 2 : 1;
-                }
-                else if(t_spin == TSpinType::TSpin)
-                {
-                    attack += b2b ? 3 : 2;
-                }
-                attack += param_->table[std::min(param_->table_max - 1, ++combo)];
-                b2b = t_spin != TSpinType::None;
-                break;
-            case 2:
-                if(t_spin != TSpinType::None)
-                {
-                    like += 5;
-                    attack += b2b ? 5 : 4;
-                }
-                attack += param_->table[std::min(param_->table_max - 1, ++combo)];
-                b2b = t_spin != TSpinType::None;
-                break;
-            case 3:
-                if(t_spin != TSpinType::None)
-                {
-                    like += 10;
-                    attack += b2b ? 8 : 6;
-                }
-                attack += param_->table[std::min(param_->table_max - 1, ++combo)] + 2;
-                b2b = t_spin != TSpinType::None;
-                break;
-            case 4:
-                like += 8;
-                attack += param_->table[std::min(param_->table_max - 1, ++combo)] + (b2b ? 5 : 4);
-                b2b = true;
-                break;
-            }
-            if(history[i].count == 0 && up == 0)
-            {
-                like += 20;
-                attack += 6;
-            }
+            value -= 9999999999999;
         }
-        eval_result const &last = history[history_length - 1];
-        return last.eval + (attack * 160 + last.expect * 128 + (b2b ? 240 : 0) + like * 20) * (full_count_ - last.count) / full_count_ - up * 40;
+        switch(clear)
+        {
+        case 0:
+            if(status.combo > 0 && status.combo < 3)
+            {
+                like -= 4;
+            }
+            result.combo = 0;
+            if(status.under_attack > 0)
+            {
+                up = std::max<int>(0, status.under_attack - attack);
+                if(up >= safe)
+                {
+                    value -= 9999999999999;
+                }
+                result.under_attack = 0;
+            }
+            break;
+        case 1:
+            if(t_spin == TSpinType::TSpinMini)
+            {
+                attack += status.b2b ? 2 : 1;
+            }
+            else if(t_spin == TSpinType::TSpin)
+            {
+                attack += status.b2b ? 3 : 2;
+            }
+            attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
+            result.b2b = t_spin != TSpinType::None;
+            break;
+        case 2:
+            if(t_spin != TSpinType::None)
+            {
+                like += 5;
+                attack += status.b2b ? 5 : 4;
+            }
+            attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
+            result.b2b = t_spin != TSpinType::None;
+            break;
+        case 3:
+            if(t_spin != TSpinType::None)
+            {
+                like += 10;
+                attack += status.b2b ? 8 : 6;
+            }
+            attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
+            result.b2b = t_spin != TSpinType::None;
+            break;
+        case 4:
+            like += 8;
+            attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
+            result.b2b = true;
+            break;
+        }
+        if(map.count == 0 && up == 0)
+        {
+            like += 20;
+            attack += 6;
+        }
+        result.value = value + (attack * 160 + expect * 128 + (result.b2b ? 240 : 0) + like * 20) * (full_count_ - map.count) / full_count_ - up * 40;
+        return result;
     }
 
+    bool C2::Status::operator < (Status const &other) const
+    {
+        return value < other.value;
+    }
 
-    void C2::init(m_tetris::TetrisContext const *context, Param const *param)
+    void C2::init(m_tetris::TetrisContext const *context, Config const *config)
     {
         context_ = context;
-        param_ = param;
+        config_ = config;
         map_danger_data_.resize(context->type_max());
         for(size_t i = 0; i < context->type_max(); ++i)
         {
-            TetrisMap map =
-            {
-                context->width(), context->height()
-            };
+            TetrisMap map(context->width(), context->height());
             TetrisNode const *node = context->generate(i);
             node->move_down->attach(map);
             memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
@@ -668,7 +624,7 @@ namespace ai_zzz
         return "C2 v0.1";
     }
 
-    C2::eval_result C2::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
+    C2::Status C2::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear, Status const &status) const
     {
         double LandHeight = node->row + node->height;
         double Middle = std::abs((node->status.x + 1) * 2 - map.width);
@@ -847,192 +803,122 @@ namespace ai_zzz
         }
         int low_y = map.top[low_x];
 
-        eval_result result;
-        result.land_point = (0.
-                             - LandHeight * 1750 / map.height
-                             + Middle * 2
-                             + EraseCount * 60
-                             - BoardDeadZone * 50000000
-                             );
-        result.map = (0.
-                      - ColTrans * 80
-                      - RowTrans * 80
-                      - v.HoleCount * 80
-                      - v.HoleLine * 380
-                      - v.ClearWidth0 * 8
-                      - v.ClearWidth1 * 4
-                      - v.ClearWidth2 * 1
-                      - v.WellDepthTotle * 100
-                      );
-        if(param_->mode == 1)
+        Status result = status;
+        ++result.deepth;
+        result.land_point += (0.
+                              - LandHeight * 1750 / map.height
+                              + Middle * 2
+                              + EraseCount * 60
+                              - BoardDeadZone * 50000000
+                              );
+        double map_value = (0.
+                            - ColTrans * 80
+                            - RowTrans * 80
+                            - v.HoleCount * 80
+                            - v.HoleLine * 380
+                            - v.ClearWidth0 * 8
+                            - v.ClearWidth1 * 4
+                            - v.ClearWidth2 * 1
+                            - v.WellDepthTotle * 100
+                            );
+        double attack_value;
+        if(config_->mode == 1)
         {
             int attack_well = std::min(4, v.WideWellDepth[0]);
-            result.attack = (0.
-                             + v.WideWellDepth[5] * 16
-                             + v.WideWellDepth[4] * 24
-                             + v.WideWellDepth[3] * 32
-                             + v.WideWellDepth[2] * 40
-                             + v.WideWellDepth[1] * 8
-                             + attack_well * attack_well * 128
-                             );
+            attack_value = (0.
+                            + v.WideWellDepth[5] * 16
+                            + v.WideWellDepth[4] * 24
+                            + v.WideWellDepth[3] * 32
+                            + v.WideWellDepth[2] * 40
+                            + v.WideWellDepth[1] * 8
+                            + attack_well * attack_well * 128
+                            );
         }
         else
         {
-            result.attack = 0;
+            attack_value = 0;
         }
-        result.clear = clear;
-        result.low_y = low_y;
-        result.count = map.count;
-        result.soft_drop = !node->open(map);
-        result.save_map = &map;
-        return result;
-    }
-
-    double C2::bad() const
-    {
-        return -999999999999;
-    }
-
-    double C2::get(eval_result const *history, size_t history_length) const
-    {
-        if(param_->virtual_length == 0 || history_length < param_->length)
+        int count = map.count + v.HoleCount;
+        if(config_->mode == 1)
         {
-            return get_impl(history, history_length);
-        }
-        if(land_point_cache_.size() != param_->virtual_length)
-        {
-            land_point_cache_.resize(param_->virtual_length);
-        }
-        if(result_cache_.size() != param_->length + param_->virtual_length)
-        {
-            result_cache_.resize(param_->length + param_->virtual_length);
-        }
-        if(history_length == param_->length)
-        {
-            std::copy(history, history + history_length, result_cache_.begin());
-            history = result_cache_.data();
-        }
-        eval_result &back_result = result_cache_[history_length];
-        TetrisMap const *save_map = history[history_length - 1].save_map;
-        double value = 0;
-        std::vector<TetrisNode const *> &land_point = land_point_cache_[history_length - param_->length];
-        for(size_t i = 0; i < context_->type_max(); ++i)
-        {
-            double best_eval = bad();
-            param_->search(context_->generate(i), *save_map, land_point);
-            for(auto const &node : land_point)
+            if(status.combo == 0)
             {
-                TetrisMap copy = *save_map;
-                size_t clear = node->attach(copy);
-                back_result = eval(node, copy, *save_map, clear);
-                double new_eval;
-                if(history_length + 1 < param_->length + param_->virtual_length)
+                result.land_point += attack_value;
+            }
+            if(clear > 0)
+            {
+                if(status.combo == 0)
                 {
-                    new_eval = get(history, history_length + 1);
+                    if(clear == 4 && count >= 84 - config_->safe * context_->width())
+                    {
+                        result.land_point += 8000;
+                    }
+                    else if(clear == 3 && count >= 92 - config_->safe * context_->width())
+                    {
+                        result.land_point += 4000;
+                    }
+                    else if(low_y <= 5)
+                    {
+                        if(count < 92 - config_->safe * context_->width())
+                        {
+                            result.land_point -= 4000;
+                        }
+                        else if(clear < 3)
+                        {
+                            if(count <= 100 - config_->safe * context_->width())
+                            {
+                                result.land_point -= 4000;
+                            }
+                            else if(count <= 120 - config_->safe * context_->width())
+                            {
+                                result.land_point -= 2000;
+                            }
+                        }
+                    }
+                }
+                else if(status.combo == 1)
+                {
+                    if(clear == 4)
+                    {
+                        result.land_point += 2500;
+                    }
+                    else if(clear == 3)
+                    {
+                        result.land_point += 1000;
+                    }
                 }
                 else
                 {
-                    new_eval = get_impl(history, history_length + 1);
-                }
-                if(new_eval > best_eval)
-                {
-                    best_eval = new_eval;
-                }
-            }
-            value += best_eval;
-        }
-        return value / context_->type_max();
-    }
-
-    double C2::get_impl(eval_result const *history, size_t history_length) const
-    {
-        double land_point_value = 0;
-        double map_value = 0;
-        int combo = param_->combo;
-        for(size_t i = 0; i < history_length; ++i)
-        {
-            if(param_->mode == 1)
-            {
-                if(combo == 0)
-                {
-                    land_point_value += history[i].attack;
-                }
-                if(history[i].clear > 0)
-                {
-                    if(combo == 0)
+                    if(status.combo > 3 && clear > 1 && count <= 72 - config_->safe * context_->width())
                     {
-                        if(history[i].clear == 4 && history[i].count >= 84 - param_->safe * context_->width())
-                        {
-                            land_point_value += 8000;
-                        }
-                        else if(history[i].clear == 3 && history[i].count >= 92 - param_->safe * context_->width())
-                        {
-                            land_point_value += 4000;
-                        }
-                        else if(history[i].low_y <= 5)
-                        {
-                            if(history[i].count < 92 - param_->safe * context_->width())
-                            {
-                                land_point_value -= 4000;
-                            }
-                            else if(history[i].clear < 3)
-                            {
-                                if(history[i].count <= 100 - param_->safe * context_->width())
-                                {
-                                    land_point_value -= 4000;
-                                }
-                                else if(history[i].count <= 120 - param_->safe * context_->width())
-                                {
-                                    land_point_value -= 2000;
-                                }
-                            }
-                        }
+                        result.land_point -= 1000;
                     }
-                    else if(combo == 1)
+                    if(status.combo < 6)
                     {
-                        if(history[i].clear == 4)
-                        {
-                            land_point_value += 2500;
-                        }
-                        else if(history[i].clear == 3)
-                        {
-                            land_point_value += 1000;
-                        }
+                        result.land_point += 2000;
                     }
                     else
                     {
-                        if(combo > 3 && history[i].clear > 1 && history[i].count <= 72 - param_->safe * context_->width())
-                        {
-                            land_point_value -= 1000;
-                        }
-                        if(combo < 6)
-                        {
-                            land_point_value += 2000;
-                        }
-                        else
-                        {
-                            land_point_value += (combo - i) * 10000;
-                        }
+                        result.land_point += status.combo * 10000;
                     }
                 }
-                else if(combo > 0 && history[i].count <= 64 - param_->safe * context_->width())
-                {
-                    land_point_value -= 2000;
-                }
-                if(history[i].clear > 0)
-                {
-                    ++combo;
-                }
             }
-            if(history[i].soft_drop)
+            else if(status.combo > 0 && count <= 64 - config_->safe * context_->width())
             {
-                land_point_value -= 800;
+                result.land_point -= 2000;
             }
-            land_point_value += history[i].land_point;
+            if(clear > 0)
+            {
+                ++result.combo;
+            }
         }
-        return land_point_value / history_length + history[history_length - 1].map;
+        if(!node->open(map))
+        {
+            result.land_point -= 800;
+        }
+        result.value = result.land_point / result.deepth + map_value;
+        return result;
     }
-
 
     size_t C2::map_in_danger_(m_tetris::TetrisMap const &map) const
     {

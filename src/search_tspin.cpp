@@ -8,9 +8,9 @@ using namespace m_tetris;
 
 namespace search_tspin
 {
-    void Search::init(m_tetris::TetrisContext const *context, Status const *status)
+    void Search::init(m_tetris::TetrisContext const *context, Config const *config)
     {
-        status_ = status;
+        config_ = config;
         node_mark_.init(context->node_max());
         node_mark_filtered_.init(context->node_max());
         block_data_.clear();
@@ -18,7 +18,7 @@ namespace search_tspin
         {
             block_data_[i] = 0;
         }
-        TetrisNode const *node = context->generate(static_cast<unsigned char>('T'));
+        TetrisNode const *node = context->generate('T');
         if(node != nullptr)
         {
             int bottom = node->row, top = node->row + node->height, left = node->col, right = node->col + node->width;
@@ -51,7 +51,7 @@ namespace search_tspin
         {
             return make_path_t(node, land_point, map);
         }
-        bool allow_180 = status_->allow_180;
+        bool allow_180 = config_->allow_180;
         node_mark_.clear();
         node_search_.clear();
         const int index = land_point->index_filtered;
@@ -312,7 +312,7 @@ namespace search_tspin
         {
             return &land_point_cache_;
         }
-        bool allow_180 = status_->allow_180;
+        bool allow_180 = config_->allow_180;
         node_mark_.clear();
         node_mark_filtered_.clear();
         node_search_.clear();
@@ -610,7 +610,7 @@ namespace search_tspin
 
     std::vector<char> Search::make_path_t(TetrisNode const *node, TetrisNodeWithTSpinType const &land_point, TetrisMap const &map)
     {
-        bool allow_180 = status_->allow_180;
+        bool allow_180 = config_->allow_180;
         node_mark_.clear();
         node_search_.clear();
         const int index = land_point.last->index;
@@ -928,7 +928,7 @@ namespace search_tspin
 
     std::vector<Search::TetrisNodeWithTSpinType> const *Search::search_t(TetrisMap const &map, TetrisNode const *node)
     {
-        bool allow_180 = status_->allow_180;
+        bool allow_180 = config_->allow_180;
         node_search_.push_back(node);
         node_mark_.mark(node);
         node_incomplete_.clear();

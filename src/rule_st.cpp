@@ -12,10 +12,7 @@ namespace rule_st
     template<unsigned char T>
     TetrisBlockStatus generate_template(TetrisContext const *context)
     {
-        TetrisBlockStatus status =
-        {
-            T, context->width() / 2, context->height() - 2, 0
-        };
+        TetrisBlockStatus status(T, context->width() / 2, context->height() - 2, 0);
         return status;
     }
 

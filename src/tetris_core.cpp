@@ -373,7 +373,7 @@ namespace m_tetris
             };
         };
         std::map<IndexFilter, int, IndexFilter::Less> index_filter;
-        TetrisMap map = {width, height};
+        TetrisMap map(width, height);
         size_t check_index = 0;
         do
         {
@@ -523,10 +523,7 @@ namespace m_tetris
 /**//**//**//**//**/for(size_t i = 0; i < node.op.wall_kick_##func.length; ++i)\
 /**//**//**//**//**/{\
 /**//**//**//**//**//**/TetrisWallKickOpertion::WallKickNode &n = node.op.wall_kick_##func.data[i];\
-/**//**//**//**//**//**/TetrisBlockStatus wall_kick_status =\
-/**//**//**//**//**//**/{\
-/**//**//**//**//**//**//**/status.t, node.status.x + n.x, node.status.y + n.y, status.r\
-/**//**//**//**//**//**/};\
+/**//**//**//**//**//**/TetrisBlockStatus wall_kick_status(status.t, node.status.x + n.x, node.status.y + n.y, status.r);\
 /**//**//**//**//**//**/if(create(wall_kick_status, copy))\
 /**//**//**//**//**//**/{\
 /**//**//**//**//**//**//**/node.wall_kick_##func[wall_kick_index++] = get(copy.status);\
@@ -543,12 +540,12 @@ namespace m_tetris
         return rebuild;
     }
 
-    size_t TetrisContext::width() const
+    int TetrisContext::width() const
     {
         return width_;
     }
 
-    size_t TetrisContext::height() const
+    int TetrisContext::height() const
     {
         return height_;
     }
@@ -676,13 +673,10 @@ namespace m_tetris
 
 namespace m_tetris_rule_tools
 {
-    TetrisNode create_node(int w, int h, unsigned char T, char X, char Y, unsigned char R, int line1, int line2, int line3, int line4, TetrisOpertion const &op)
+    TetrisNode create_node(size_t w, size_t h, char T, int8_t X, int8_t Y, uint8_t R, uint32_t line1, uint32_t line2, uint32_t line3, uint32_t line4, TetrisOpertion const &op)
     {
         assert(X < 0 || X >= 4 || Y < 0 || Y >= 4 || (line1 || line2 || line3 || line3));
-        TetrisBlockStatus status =
-        {
-            T, X, h - Y - 1, R
-        };
+        TetrisBlockStatus status(T, X, int8_t(h - Y - 1), R);
         TetrisNode node =
         {
             status, op, {line4, line3, line2, line1}, {}, {}, char(h - 4), char(4), char(0), char(4)

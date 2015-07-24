@@ -313,11 +313,6 @@ namespace ai_farteryhr
         return pts;
     }
 
-    int AI::bad() const
-    {
-        return -99999999;
-    }
-
     int AI::get(int const *history, size_t history_length) const
     {
         int result = 0;

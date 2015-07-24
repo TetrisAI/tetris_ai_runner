@@ -15,7 +15,7 @@ namespace ai_tag
 
     bool the_ai_games::Status::operator < (Status const &other) const
     {
-        return value > other.value;
+        return value < other.value;
     }
 
     void the_ai_games::init(m_tetris::TetrisContext const *context)
@@ -24,10 +24,7 @@ namespace ai_tag
         map_danger_data_.resize(context->type_max());
         for(size_t i = 0; i < context->type_max(); ++i)
         {
-            TetrisMap map =
-            {
-                context->width(), context->height()
-            };
+            TetrisMap map(context->width(), context->height());
             TetrisNode const *node = context->generate(i);
             node->move_down->attach(map);
             memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
@@ -56,10 +53,10 @@ namespace ai_tag
             BoardDeadZone += 70;
         }
 
-        const size_t width_m1 = map.width - 1;
+        const int width_m1 = map.width - 1;
         int ColTrans = 2 * (map.height - map.roof);
         int RowTrans = map.roof == map.height ? 0 : map.width;
-        for(size_t y = 0; y < map.roof; ++y)
+        for(int y = 0; y < map.roof; ++y)
         {
             if(!map.full(0, y))
             {
@@ -125,7 +122,7 @@ namespace ai_tag
             }
             int WellWidth = 0;
             int MaxWellWidth = 0;
-            for(size_t x = 0; x < map.width; ++x)
+            for(int x = 0; x < map.width; ++x)
             {
                 if((v.LineCoverBits >> x) & 1)
                 {
@@ -172,7 +169,7 @@ namespace ai_tag
         }
         if(HolePosy0 >= 0)
         {
-            for(size_t y = HolePosy0; y < map.roof; ++y)
+            for(int y = HolePosy0; y < map.roof; ++y)
             {
                 int CheckLine = v.HoleBits0 & map.row[y];
                 if(CheckLine == 0)
@@ -183,7 +180,7 @@ namespace ai_tag
             }
             if(HolePosy1 >= 0)
             {
-                for(size_t y = HolePosy1; y < map.roof; ++y)
+                for(int y = HolePosy1; y < map.roof; ++y)
                 {
                     int CheckLine = v.HoleBits1 & map.row[y];
                     if(CheckLine == 0)
@@ -194,7 +191,7 @@ namespace ai_tag
                 }
                 if(HolePosy2 >= 0)
                 {
-                    for(size_t y = HolePosy2; y < map.roof; ++y)
+                    for(int y = HolePosy2; y < map.roof; ++y)
                     {
                         int CheckLine = v.HoleBits2 & map.row[y];
                         if(CheckLine == 0)
@@ -207,7 +204,7 @@ namespace ai_tag
             }
         }
         int low_x = 1;
-        for(size_t x = 2; x < width_m1; ++x)
+        for(int x = 2; x < width_m1; ++x)
         {
             if(map.top[x] < map.top[low_x])
             {
@@ -222,8 +219,8 @@ namespace ai_tag
         {
             low_x = width_m1;
         }
-        size_t low_y = map.top[low_x];
-        size_t full = 0;
+        int low_y = map.top[low_x];
+        int full = 0;
         for(int y = map.roof - 1; y >= 0; --y)
         {
             if(map.row[y] == context_->full())
@@ -260,7 +257,7 @@ namespace ai_tag
                       + (low_x == 0 ? 400 : 0)
                       );
 
-        bool building = (map.count - full * map.width + v.HoleCount) * 3 / 2 < std::max(0, int(map.height - 5) - int(full + status.up)) * map.width;
+        bool building = (map.count - full * map.width + v.HoleCount) * 3 / 2 < std::max(0, (map.height - 5) - (full + status.up)) * map.width;
         if(clear > 0)
         {
             if(clear == 4)
@@ -289,18 +286,6 @@ namespace ai_tag
         return result;
     }
 
-    the_ai_games::Status the_ai_games::bad() const
-    {
-        Status result;
-        result.combo = 0;
-        result.depth = 1;
-        result.land_point = 0;
-        result.map = -999999999999;
-        result.up = 20;
-        result.value = -999999999999;
-        return result;
-    }
-
     size_t the_ai_games::map_in_danger_(m_tetris::TetrisMap const &map, size_t up) const
     {
         size_t danger = 0;
@@ -320,10 +305,9 @@ namespace ai_tag
     }
 
 
-    void the_ai_games_enemy::init(m_tetris::TetrisContext const *context, Param const *param)
+    void the_ai_games_enemy::init(m_tetris::TetrisContext const *context, Config const *config)
     {
-        param_ = param;
-        context_ = context;
+        config_ = config;
     }
 
     std::string the_ai_games_enemy::ai_name() const
@@ -331,94 +315,28 @@ namespace ai_tag
         return "The AI Games (SetoSan) v0.1";
     }
 
-    the_ai_games_enemy::eval_result the_ai_games_enemy::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
+    the_ai_games_enemy::Status the_ai_games_enemy::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear, Status const &status) const
     {
-        eval_result result =
+        Status result;
+        result.point = status.point + clear;
+        if(clear > 0)
         {
-            clear, &map
-        };
+            if(clear == 4)
+            {
+                result.point += 4;
+            }
+            result.point += status.combo;
+            result.combo = status.combo + 1;
+        }
+        else
+        {
+            result.combo = 0;
+        }
+        if(result.point > *config_->point_ptr)
+        {
+            *config_->point_ptr = result.point;
+        }
         return result;
-    }
-
-    size_t the_ai_games_enemy::bad() const
-    {
-        return 0;
-    }
-
-    size_t the_ai_games_enemy::get(eval_result const *history, size_t history_length) const
-    {
-        if(param_->virtual_length == 0 || history_length < param_->length)
-        {
-            return get_impl(history, history_length);
-        }
-        if(land_point_cache_.size() != param_->virtual_length)
-        {
-            land_point_cache_.resize(param_->virtual_length);
-        }
-        if(result_cache_.size() != param_->length + param_->virtual_length)
-        {
-            result_cache_.resize(param_->length + param_->virtual_length);
-        }
-        if(history_length == param_->length)
-        {
-            std::copy(history, history + history_length, result_cache_.begin());
-            history = result_cache_.data();
-        }
-        eval_result &back_result = result_cache_[history_length];
-        TetrisMap const *save_map = history[history_length - 1].save_map;
-        size_t best_eval = bad();
-        std::vector<TetrisNode const *> &land_point = land_point_cache_[history_length - param_->length];
-        for(size_t i = 0; i < context_->type_max(); ++i)
-        {
-            param_->search(context_->generate(i), *save_map, land_point);
-            for(auto const &node : land_point)
-            {
-                TetrisMap copy = *save_map;
-                size_t clear = node->attach(copy);
-                back_result = eval(node, copy, *save_map, clear);
-                size_t new_eval;
-                if(history_length + 1 < param_->length + param_->virtual_length)
-                {
-                    new_eval = get(history, history_length + 1);
-                }
-                else
-                {
-                    new_eval = get_impl(history, history_length + 1);
-                }
-                if(new_eval > best_eval)
-                {
-                    best_eval = new_eval;
-                }
-            }
-        }
-        return best_eval;
-    }
-
-    size_t the_ai_games_enemy::get_impl(eval_result const *history, size_t history_length) const
-    {
-        size_t point = 0;
-        int combo = param_->combo;
-        for(size_t i = 0; i < history_length; ++i)
-        {
-            point += history[i].clear;
-            if(history[i].clear > 0)
-            {
-                if(history[i].clear == 4)
-                {
-                    point += 4;
-                }
-                point += combo++;
-            }
-            else
-            {
-                combo = 0;
-            }
-        }
-        if(point > *param_->point_ptr)
-        {
-            *param_->point_ptr = point;
-        }
-        return point;
     }
 
 }

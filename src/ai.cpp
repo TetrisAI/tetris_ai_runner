@@ -64,10 +64,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     {
         return 0;
     }
-    m_tetris::TetrisMap map =
-    {
-        boardW, boardH
-    };
+    m_tetris::TetrisMap map(boardW, boardH);
     for(int y = 0, add = 0; y < boardH; ++y, add += boardW)
     {
         for(int x = 0; x < boardW; ++x)
@@ -80,23 +77,19 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
             }
         }
     }
-    m_tetris::TetrisBlockStatus status =
-    {
-        curPiece, curX - 1, curY - 1, curR - 1
-    };
+    m_tetris::TetrisBlockStatus status(curPiece, curX - 1, curY - 1, curR - 1);
     size_t next_length = std::strlen(nextPiece);
     /////////////////////////////////////////////////
-    tetris_ai.param()->combo = 0;
-    tetris_ai.param()->up = 0;
-    tetris_ai.param()->length = next_length + 1;
-    tetris_ai.param()->virtual_length = next_length > 0 ? 1 : 0;
-    tetris_ai.param()->search = std::bind(&decltype(tetris_ai)::search<m_tetris::TetrisNode const *>, &tetris_ai, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-    //tetris_ai.param()->level = 10;
-    //tetris_ai.param()->mode = 0;
-    //tetris_ai.param()->next_length = next_length;
+    decltype(tetris_ai)::Status in_status;
+    in_status.combo = 0;
+    in_status.depth = 0;
+    in_status.land_point = 0;
+    in_status.map = 0;
+    in_status.up = 0;
+    in_status.value = 0;
     /////////////////////////////////////////////////
     m_tetris::TetrisNode const *node = tetris_ai.get(status);
-    auto target = tetris_ai.run(map, node, reinterpret_cast<unsigned char const *>(nextPiece), next_length, 999).target;
+    auto target = tetris_ai.run(map, in_status, node, nextPiece, next_length, 999).target;
     if(target != nullptr)
     {
         std::vector<char> ai_path = tetris_ai.make_path(node, target, map);
@@ -174,26 +167,25 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
         }
     }
     srs_ai.update();
-    srs_ai.status()->allow_180 = can180spin;
-    srs_ai.param()->combo = combo;
-    srs_ai.param()->under_attack = upcomeAtt;
-    srs_ai.param()->b2b = !!b2b;
-    srs_ai.param()->table = comboTable;
-    srs_ai.param()->table_max = [comboTable]()->size_t
+    decltype(srs_ai)::Status in_status;
+    srs_ai.search_config()->allow_180 = can180spin;
+    srs_ai.ai_config()->table = comboTable;
+    srs_ai.ai_config()->table_max = [comboTable]()->size_t
     {
         size_t max = 0;
         while(comboTable[max++] != -1)
             ;
         return max - 1;
     }();
-    m_tetris::TetrisBlockStatus status =
-    {
-        active, x, 22 - y, (4 - spin) % 4
-    };
+    in_status.combo = combo;
+    in_status.under_attack = upcomeAtt;
+    in_status.b2b = !!b2b;
+    in_status.value = 0;
+    m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
     m_tetris::TetrisNode const *node = srs_ai.get(status);
     if(canhold)
     {
-        auto run_result = srs_ai.run_hold(map, node, hold, curCanHold, reinterpret_cast<unsigned char const *>(next), maxDepth, level * 5 + 1);
+        auto run_result = srs_ai.run_hold(map, in_status, node, hold, curCanHold, next, maxDepth, level * 5 + 1);
         if(run_result.change_hold)
         {
             result++[0] = 'v';
@@ -216,7 +208,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
     }
     else
     {
-        auto target = srs_ai.run(map, node, reinterpret_cast<unsigned char *>(next), maxDepth).target;
+        auto target = srs_ai.run(map, in_status, node, next, maxDepth).target;
         if(target != nullptr)
         {
             std::vector<char> ai_path = srs_ai.make_path(node, target, map);
@@ -233,20 +225,20 @@ class QQTetrisSearch
 {
 
 public:
-    enum Status
+    enum Config
     {
         Simple, Simulate, Path
     };
-    void init(m_tetris::TetrisContext const *context, Status const *status)
+    void init(m_tetris::TetrisContext const *context, Config const *config)
     {
         simple_.init(context);
         simulate_.init(context);
         path_.init(context);
-        status_ptr_ = status;
+        config_ptr = config;
     }
     std::vector<char> make_path(m_tetris::TetrisNode const *node, m_tetris::TetrisNode const *land_point, m_tetris::TetrisMap const &map)
     {
-        switch(*status_ptr_)
+        switch(*config_ptr)
         {
         case Simple:
             return simple_.make_path(node, land_point, map);
@@ -260,7 +252,7 @@ public:
     }
     std::vector<m_tetris::TetrisNode const *> const *search(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node)
     {
-        switch(*status_ptr_)
+        switch(*config_ptr)
         {
         case Simple:
             return simple_.search(map, node);
@@ -275,7 +267,7 @@ public:
         }
     }
 private:
-    Status const *status_ptr_;
+    Config const *config_ptr;
     search_simple::Search simple_;
     search_simulate::Search simulate_;
     search_path::Search path_;
@@ -290,10 +282,7 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
         *path = '\0';
         return 0;
     }
-    m_tetris::TetrisMap map =
-    {
-        boardW, boardH
-    };
+    m_tetris::TetrisMap map(boardW, boardH);
     memcpy(map.row, board, boardH * sizeof(int));
     for(int my = 0; my < map.height; ++my)
     {
@@ -307,33 +296,34 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
             }
         }
     }
-    m_tetris::TetrisBlockStatus status =
-    {
-        nextPiece[0], curX, curY, (4 - curR) % 4
-    };
+    m_tetris::TetrisBlockStatus status(nextPiece[0], curX, curY, (4 - curR) % 4);
     size_t next_length = (std::strlen(nextPiece) - 1) * std::min(9, level) / 9;
     if(level == 10)
     {
-        *qq_ai.status() = QQTetrisSearch::Path;
+        *qq_ai.search_config() = QQTetrisSearch::Path;
     }
     else if(mode == 0 || map.count <= boardW * 2)
     {
-        *qq_ai.status() = QQTetrisSearch::Simulate;
+        *qq_ai.search_config() = QQTetrisSearch::Simulate;
     }
     else
     {
-        *qq_ai.status() = QQTetrisSearch::Simple;
+        *qq_ai.search_config() = QQTetrisSearch::Simple;
     }
-    qq_ai.param()->next_length = next_length;
-    qq_ai.param()->level = level;
-    qq_ai.param()->mode = mode;
+    qq_ai.ai_config()->level = level;
+    qq_ai.ai_config()->mode = mode;
+    decltype(qq_ai)::Status in_status;
+    in_status.land_point = 0;
+    in_status.deepth = 0;
+    in_status.attack = 0;
+    in_status.value = 0;
     m_tetris::TetrisNode const *node = qq_ai.get(status);
     while(node == nullptr && status.y > 0)
     {
         --status.y;
         node = qq_ai.get(status);
     }
-    auto target = qq_ai.run(map, node, reinterpret_cast<unsigned char const *>(nextPiece + 1), next_length, 60).target;
+    auto target = qq_ai.run(map, in_status, node, nextPiece + 1, next_length, 60).target;
     std::vector<char> ai_path;
     if(target != nullptr)
     {
@@ -354,10 +344,7 @@ extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], c
         *path = '\0';
         return 0;
     }
-    m_tetris::TetrisMap map =
-    {
-        boardW, boardH
-    };
+    m_tetris::TetrisMap map(boardW, boardH);
     memcpy(map.row, board, boardH * sizeof(int));
     for(int my = 0; my < map.height; ++my)
     {
@@ -371,20 +358,17 @@ extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], c
             }
         }
     }
-    c2_ai.status()->fast_move_down = true;
-    c2_ai.param()->length = 2;
-    c2_ai.param()->virtual_length = 1;
-    c2_ai.param()->safe = safe;
-    c2_ai.param()->mode = mode;
-    c2_ai.param()->combo = combo;
-    c2_ai.param()->search = std::bind(&decltype(c2_ai)::search<m_tetris::TetrisNode const *>, &c2_ai, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-    m_tetris::TetrisBlockStatus status =
-    {
-        nextPiece[0], curX, curY, curR
-    };
+    c2_ai.search_config()->fast_move_down = true;
+    c2_ai.ai_config()->safe = safe;
+    c2_ai.ai_config()->mode = mode;
+    decltype(c2_ai)::Status in_status;
+    in_status.combo = combo;
+    in_status.land_point = 0;
+    in_status.value;
+    m_tetris::TetrisBlockStatus status(nextPiece[0], curX, curY, curR);
     size_t next_length = nextPiece[1] == ' ' ? 0 : 1;
     m_tetris::TetrisNode const *node = c2_ai.get(status);
-    auto target = c2_ai.run(map, node, reinterpret_cast<unsigned char const *>(nextPiece + 1), next_length, limit).target;
+    auto target = c2_ai.run(map, in_status, node, nextPiece + 1, next_length, limit).target;
     std::vector<char> ai_path;
     if(target != nullptr)
     {

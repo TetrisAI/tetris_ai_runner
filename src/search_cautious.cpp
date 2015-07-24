@@ -7,9 +7,9 @@ using namespace m_tetris;
 
 namespace search_cautious
 {
-    void Search::init(m_tetris::TetrisContext const *context, Status const *status)
+    void Search::init(m_tetris::TetrisContext const *context, Config const *config)
     {
-        status_ = status;
+        config_ = config;
         node_mark_.init(context->node_max());
         node_mark_filtered_.init(context->node_max());
     }
@@ -352,7 +352,7 @@ namespace search_cautious
                         }
                     }
                 }
-                if(status_->fast_move_down)
+                if(config_->fast_move_down)
                 {
                     //D
                     TetrisNode const *node_D = node->drop(map);
@@ -523,7 +523,7 @@ namespace search_cautious
                 {
                     node_search_.push_back(node->move_right);
                 }
-                if(status_->fast_move_down)
+                if(config_->fast_move_down)
                 {
                     //D
                     TetrisNode const *node_drop = node->drop(map);

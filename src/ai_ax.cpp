@@ -17,10 +17,7 @@ namespace ai_ax
         map_danger_data_.resize(context->type_max());
         for(size_t i = 0; i < context->type_max(); ++i)
         {
-            TetrisMap map =
-            {
-                context->width(), context->height()
-            };
+            TetrisMap map(context->width(), context->height());
             TetrisNode const *node = context->generate(i);
             node->attach(map);
             memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
@@ -181,11 +178,6 @@ namespace ai_ax
                       - BoardDeadZone * 50000
                       );
         return result;
-    }
-
-    double AI::bad() const
-    {
-        return -99999999;
     }
 
     double AI::get(eval_result const *history, size_t history_length) const
