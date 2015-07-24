@@ -96,7 +96,8 @@ namespace search_simple
                     right = right->move_right;
                 }
                 rotate = rotate->rotate_counterclockwise;
-            } while(rotate != nullptr  && rotate != node && rotate->check(map));
+            }
+            while(rotate != nullptr  && rotate != node && rotate->check(map));
         }
         return &land_point_cache_;
     }

@@ -30,7 +30,7 @@ namespace m_tetris
         //行数据,具体用法看full函数吧...
         uint32_t row[max_height];
         //每一列的高度
-		int32_t top[32];
+        int32_t top[32];
         //场景宽
         int32_t width;
         //场景高
@@ -93,7 +93,7 @@ namespace m_tetris
 
     struct TetrisBlockStatusHash
     {
-		size_t operator()(TetrisBlockStatus const &block) const
+        size_t operator()(TetrisBlockStatus const &block) const
         {
             return std::hash<uint32_t>()(block.status);
         };
@@ -155,9 +155,9 @@ namespace m_tetris
         //方块每行的数据
         uint32_t data[4];
         //方块每列的上沿高度
-		int32_t top[4];
+        int32_t top[4];
         //方块每列的下沿高度
-		int32_t bottom[4];
+        int32_t bottom[4];
         //方块在场景中的矩形位置
         int8_t row, height, col, width;
         //各种变形会触及到的最低高度
@@ -662,7 +662,7 @@ namespace m_tetris
             {
                 char : 8;
                 char : 8;
-                uint8_t : 8;
+            uint8_t: 8;
                 uint8_t is_dead : 1;
                 uint8_t is_hold : 1;
                 uint8_t is_hold_lock : 1;
@@ -1380,7 +1380,8 @@ namespace m_tetris
                     {
                         next->insert(child->children.begin(), child->children.end());
                     }
-                } while(level_prune_hold > 0 && !wait->empty());
+                }
+                while(level_prune_hold > 0 && !wait->empty());
             }
             if(complete)
             {
@@ -1577,7 +1578,8 @@ namespace m_tetris
                 {
                     break;
                 }
-            } while((now = clock() / double(CLOCKS_PER_SEC)) < end);
+            }
+            while((now = clock() / double(CLOCKS_PER_SEC)) < end);
             if(tree_root_->hold == ' ' && tree_root_->next.empty() && !tree_root_->is_hold_lock)
             {
                 return RunResult(true);

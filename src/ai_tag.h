@@ -7,19 +7,19 @@ namespace ai_tag
     class the_ai_games
     {
     public:
-		struct Status
-		{
-			double land_point;
-			size_t depth;
-			size_t combo;
-			int up;
+        struct Status
+        {
+            double land_point;
+            size_t depth;
+            size_t combo;
+            int up;
             double value;
             bool operator < (Status const &) const;
-		};
+        };
     public:
         void init(m_tetris::TetrisContext const *context);
         std::string ai_name() const;
-		Status eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear, Status const &status) const;
+        Status eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear, Status const &status) const;
 
     private:
         m_tetris::TetrisContext const *context_;

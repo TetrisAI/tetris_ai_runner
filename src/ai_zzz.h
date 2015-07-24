@@ -113,7 +113,6 @@ namespace ai_zzz
             m_tetris::TetrisMap const *save_map;
         };
         Status eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear, Status const &status) const;
-        Status bad() const;
 
     private:
         Config const *config_;

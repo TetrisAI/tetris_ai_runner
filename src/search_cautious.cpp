@@ -148,7 +148,8 @@ namespace search_cautious
                     }
                 }
             }
-        } while(node_search_.size() > cache_index);
+        }
+        while(node_search_.size() > cache_index);
         node_mark_.clear();
         node_search_.clear();
         node_search_.push_back(node);
@@ -397,7 +398,8 @@ namespace search_cautious
                     }
                 }
             }
-        } while(node_search_.size() > cache_index);
+        }
+        while(node_search_.size() > cache_index);
         return std::vector<char>();
     }
 
@@ -541,7 +543,8 @@ namespace search_cautious
                     }
                 }
             }
-        } while(node_search_.size() > cache_index);
+        }
+        while(node_search_.size() > cache_index);
         return &land_point_cache_;
     }
 }

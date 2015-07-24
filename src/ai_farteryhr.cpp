@@ -193,7 +193,7 @@ namespace ai_farteryhr
                     if(fmap.get(cx + dx, cy) != BLK_EMPTY)
                         continue;
                     int getgaptmp = fmap.getgapdep(cx + dx, cy);
-                    if(maxgapside<getgaptmp)
+                    if(maxgapside < getgaptmp)
                         maxgapside = getgaptmp;
                 }
                 if(maxgapside >= 6)
@@ -287,7 +287,7 @@ namespace ai_farteryhr
             if(fmap.count(i) == fw)
             {
                 lcC++;
-                if(i<6)
+                if(i < 6)
                     lcW = 5;
             }
         }

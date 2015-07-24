@@ -378,7 +378,7 @@ namespace rule_toj
         info.insert(std::make_pair(std::make_pair('T', 3), op_T4));
         return info;
     }
-    
+
     std::map<char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> TetrisRule::get_generate()
     {
         std::map<char, m_tetris::TetrisBlockStatus(*)(TetrisContext const *)> info;

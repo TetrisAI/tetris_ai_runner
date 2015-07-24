@@ -248,7 +248,7 @@ namespace m_tetris
         mark.version = version_;
         return true;
     }
-    
+
     bool TetrisNodeMark::mark(TetrisNode const *key)
     {
         Mark &mark = data_[key->index];
@@ -449,7 +449,8 @@ namespace m_tetris
                     }
                 }
             }
-        } while(check.size() > check_index);
+        }
+        while(check.size() > check_index);
         for(size_t i = 0; i < type_max_; ++i)
         {
             TetrisNode node_generate;
@@ -469,9 +470,11 @@ namespace m_tetris
                 {
                     land_point->push_back(move);
                     move = move->move_right;
-                } while(move != nullptr);
+                }
+                while(move != nullptr);
                 rotate = rotate->rotate_counterclockwise != nullptr ? rotate->rotate_counterclockwise : rotate->rotate_clockwise;
-            } while(rotate != nullptr  && rotate != node);
+            }
+            while(rotate != nullptr  && rotate != node);
             rotate = node;
             int low = map.height;
             do
@@ -481,7 +484,8 @@ namespace m_tetris
                     low = std::min(low, rotate->bottom[y]);
                 }
                 rotate = rotate->rotate_counterclockwise != nullptr ? rotate->rotate_counterclockwise : rotate->rotate_clockwise;
-            } while(rotate != nullptr  && rotate != node);
+            }
+            while(rotate != nullptr  && rotate != node);
             auto set_column_data = [land_point](TetrisNode const *node, int low)->void
             {
                 do
@@ -490,7 +494,8 @@ namespace m_tetris
                     set_node->low = low--;
                     set_node->land_point = land_point;
                     node = set_node->move_down;
-                } while(node != nullptr);
+                }
+                while(node != nullptr);
             };
             rotate = node;
             do
@@ -504,9 +509,11 @@ namespace m_tetris
                 {
                     set_column_data(move, low);
                     move = move->move_right;
-                } while(move != nullptr);
+                }
+                while(move != nullptr);
                 rotate = rotate->rotate_counterclockwise;
-            } while(rotate != nullptr  && rotate != node);
+            }
+            while(rotate != nullptr  && rotate != node);
         }
         for(auto it = node_cache_.begin(); it != node_cache_.end(); ++it)
         {
@@ -619,7 +626,8 @@ namespace m_tetris
             do
             {
                 index = ege::mtirand() & 7;
-            } while(index >= 7);
+            }
+            while(index >= 7);
             return generate(index);
         }
         else

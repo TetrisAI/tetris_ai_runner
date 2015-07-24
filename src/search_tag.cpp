@@ -117,7 +117,8 @@ namespace search_tag
                     }
                 }
             }
-        } while(node_search_.size() > cache_index);
+        }
+        while(node_search_.size() > cache_index);
         return std::vector<char>();
     }
 
@@ -214,7 +215,8 @@ namespace search_tag
                         node_search_.push_back(node->move_down);
                     }
                 }
-            } while(node_search_.size() > cache_index);
+            }
+            while(node_search_.size() > cache_index);
         }
         else
         {
@@ -264,7 +266,8 @@ namespace search_tag
                         node_search_.push_back(node->move_down);
                     }
                 }
-            } while(node_search_.size() > cache_index);
+            }
+            while(node_search_.size() > cache_index);
         }
         return &land_point_cache_;
     }

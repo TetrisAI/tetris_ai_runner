@@ -194,7 +194,7 @@ namespace zzz
             }
             return node;
         }
-        
+
         node_t *bst_lower_bound_(key_t const &key)
         {
             node_t *node = get_root_(), *where = nil_();

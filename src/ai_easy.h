@@ -7,7 +7,7 @@ namespace ai_easy
     class AI
     {
     public:
-        typedef double (*eval_func_t)(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear);
+        typedef double(*eval_func_t)(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear);
         struct Param
         {
             eval_func_t eval_func;

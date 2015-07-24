@@ -301,7 +301,8 @@ namespace search_tspin
                     }
                 }
             }
-        } while(node_search_.size() > cache_index);
+        }
+        while(node_search_.size() > cache_index);
         return std::vector<char>();
     }
 
@@ -478,7 +479,8 @@ namespace search_tspin
                         node_search_.push_back(node->move_down);
                     }
                 }
-            } while(node_search_.size() > cache_index);
+            }
+            while(node_search_.size() > cache_index);
         }
         else
         {
@@ -603,7 +605,8 @@ namespace search_tspin
                         node_search_.push_back(node->move_down);
                     }
                 }
-            } while(node_search_.size() > cache_index);
+            }
+            while(node_search_.size() > cache_index);
         }
         return &land_point_cache_;
     }
@@ -922,7 +925,8 @@ namespace search_tspin
                     }
                 }
             }
-        } while(node_search_.size() > cache_index);
+        }
+        while(node_search_.size() > cache_index);
         return std::vector<char>();
     }
 
@@ -1051,7 +1055,8 @@ namespace search_tspin
                     }
                 }
             }
-        } while(node_search_.size() > cache_index);
+        }
+        while(node_search_.size() > cache_index);
         for(auto const &node : node_incomplete_)
         {
             auto last = node_mark_.get(node);
