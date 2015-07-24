@@ -4,10 +4,10 @@
 
 #include <ctime>
 #include "tetris_core.h"
-#include "land_point_search_simple.h"
-#include "land_point_search_path.h"
-#include "land_point_search_simulate.h"
-#include "land_point_search_cautious.h"
+#include "search_simple.h"
+#include "search_path.h"
+#include "search_simulate.h"
+#include "search_cautious.h"
 #include "ai_ax.h"
 #include "ai_zzz.h"
 #include "rule_st.h"
@@ -34,10 +34,10 @@ extern "C" void attach_init()
 struct tetris_game
 {
     typedef int(*ai_run_t)(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int level, int mode, char path[], size_t limit);
-    m_tetris::TetrisEngine<rule_qq::TetrisRuleSet, ai_zzz::qq::Attack, land_point_search_path::Search> tetris_ai;
+    m_tetris::TetrisEngine<rule_qq::TetrisRule, ai_zzz::qq::Attack, search_path::Search> tetris_ai;
     ege::mtrandom random;
     m_tetris::TetrisMap map;
-    std::vector<unsigned char> next;
+    std::vector<char> next;
     size_t next_length;
     HMODULE hDll;
     void *ai;
@@ -118,7 +118,7 @@ struct tetris_game
         }
         memset(path, 0, sizeof path);
         next.push_back(0);
-        ((ai_run_t)ai)(tetris_ai.context()->width(), tetris_ai.context()->height(), map.row, reinterpret_cast<char *>(next.data()), node->status.x, node->status.y, (4 - node->status.r) % 4, 10, 0, path, limit);
+        ((ai_run_t)ai)(tetris_ai.context()->width(), tetris_ai.context()->height(), reinterpret_cast<int *>(map.row), next.data(), node->status.x, node->status.y, (4 - node->status.r) % 4, 10, 0, path, limit);
         char *move = path, *move_end = path + sizeof path;
         next.pop_back();
         next.erase(next.begin());
@@ -309,7 +309,7 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
     }
 }
 
-m_tetris::TetrisEngine<rule_st::TetrisRuleSet, ai_zzz::Dig, land_point_search_simple::Search> tetris_ai;
+m_tetris::TetrisEngine<rule_st::TetrisRule, ai_zzz::Dig, search_simple::Search> tetris_ai;
 
 //这是一个加载dll测试数据的控制台,优先调用AIPath,找不到则调用AI
 int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
@@ -373,10 +373,7 @@ int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
     }
     SetWindowTextA(GetConsoleWindow(), ((char const *(*)())name)());
     int w = 10, h = 20;
-    m_tetris::TetrisMap map =
-    {
-        w, h
-    };
+    m_tetris::TetrisMap map(w, h);
     char *param_map = new char[w * h];
     char *path = new char[1024];
     tetris_ai.prepare(w, h);

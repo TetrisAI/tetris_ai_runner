@@ -6,12 +6,6 @@
     </ClCompile>
     <ClCompile Include="src\dllmain.c" />
     <ClCompile Include="src\tetris_core.cpp" />
-    <ClCompile Include="src\land_point_search_path.cpp">
-      <Filter>land_point_search\path</Filter>
-    </ClCompile>
-    <ClCompile Include="src\land_point_search_simple.cpp">
-      <Filter>land_point_search\simple</Filter>
-    </ClCompile>
     <ClCompile Include="src\rule_qq.cpp">
       <Filter>rules\qq</Filter>
     </ClCompile>
@@ -24,12 +18,6 @@
     <ClCompile Include="src\ai_ax.cpp">
       <Filter>ai\ax</Filter>
     </ClCompile>
-    <ClCompile Include="src\land_point_search_cautious.cpp">
-      <Filter>land_point_search\cautious</Filter>
-    </ClCompile>
-    <ClCompile Include="src\land_point_search_simulate.cpp">
-      <Filter>land_point_search\simulate</Filter>
-    </ClCompile>
     <ClCompile Include="src\integer_utils.cpp">
       <Filter>util</Filter>
     </ClCompile>
@@ -40,9 +28,6 @@
     <ClCompile Include="src\rule_srsx.cpp">
       <Filter>rules\srsx</Filter>
     </ClCompile>
-    <ClCompile Include="src\land_point_search_tspin.cpp">
-      <Filter>land_point_search\tspin</Filter>
-    </ClCompile>
     <ClCompile Include="src\ai_farteryhr.cpp">
       <Filter>ai\farteryhr</Filter>
     </ClCompile>
@@ -52,18 +37,36 @@
     <ClCompile Include="src\rule_c2.cpp">
       <Filter>rules\c2</Filter>
     </ClCompile>
+    <ClCompile Include="src\search_cautious.cpp">
+      <Filter>search\cautious</Filter>
+    </ClCompile>
+    <ClCompile Include="src\search_path.cpp">
+      <Filter>search\path</Filter>
+    </ClCompile>
+    <ClCompile Include="src\search_simple.cpp">
+      <Filter>search\simple</Filter>
+    </ClCompile>
+    <ClCompile Include="src\search_simulate.cpp">
+      <Filter>search\simulate</Filter>
+    </ClCompile>
+    <ClCompile Include="src\search_tspin.cpp">
+      <Filter>search\tspin</Filter>
+    </ClCompile>
+    <ClCompile Include="src\search_tag.cpp">
+      <Filter>search\tag</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rule_tag.cpp">
+      <Filter>rules\tag</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ai_tag.cpp">
+      <Filter>ai\zzz</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\rule_srs.h">
       <Filter>rules\srs</Filter>
     </ClInclude>
     <ClInclude Include="src\tetris_core.h" />
-    <ClInclude Include="src\land_point_search_path.h">
-      <Filter>land_point_search\path</Filter>
-    </ClInclude>
-    <ClInclude Include="src\land_point_search_simple.h">
-      <Filter>land_point_search\simple</Filter>
-    </ClInclude>
     <ClInclude Include="src\rule_qq.h">
       <Filter>rules\qq</Filter>
     </ClInclude>
@@ -76,12 +79,6 @@
     <ClInclude Include="src\ai_ax.h">
       <Filter>ai\ax</Filter>
     </ClInclude>
-    <ClInclude Include="src\land_point_search_cautious.h">
-      <Filter>land_point_search\cautious</Filter>
-    </ClInclude>
-    <ClInclude Include="src\land_point_search_simulate.h">
-      <Filter>land_point_search\simulate</Filter>
-    </ClInclude>
     <ClInclude Include="src\integer_utils.h">
       <Filter>util</Filter>
     </ClInclude>
@@ -90,9 +87,6 @@
     </ClInclude>
     <ClInclude Include="src\rule_srsx.h">
       <Filter>rules\srsx</Filter>
-    </ClInclude>
-    <ClInclude Include="src\land_point_search_tspin.h">
-      <Filter>land_point_search\tspin</Filter>
     </ClInclude>
     <ClInclude Include="src\ai_easy.h">
       <Filter>ai\easy</Filter>
@@ -115,6 +109,30 @@
     <ClInclude Include="src\rule_c2.h">
       <Filter>rules\c2</Filter>
     </ClInclude>
+    <ClInclude Include="src\search_cautious.h">
+      <Filter>search\cautious</Filter>
+    </ClInclude>
+    <ClInclude Include="src\search_path.h">
+      <Filter>search\path</Filter>
+    </ClInclude>
+    <ClInclude Include="src\search_simple.h">
+      <Filter>search\simple</Filter>
+    </ClInclude>
+    <ClInclude Include="src\search_simulate.h">
+      <Filter>search\simulate</Filter>
+    </ClInclude>
+    <ClInclude Include="src\search_tspin.h">
+      <Filter>search\tspin</Filter>
+    </ClInclude>
+    <ClInclude Include="src\search_tag.h">
+      <Filter>search\tag</Filter>
+    </ClInclude>
+    <ClInclude Include="src\rule_tag.h">
+      <Filter>rules\tag</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ai_tag.h">
+      <Filter>ai\zzz</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="rules">
@@ -125,15 +143,6 @@
     </Filter>
     <Filter Include="ai">
       <UniqueIdentifier>{824db86c-fbb6-4f7b-9b4d-24bde6f0501b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="land_point_search">
-      <UniqueIdentifier>{2c7d56ab-e7cb-4726-b343-411785ace0b8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="land_point_search\simple">
-      <UniqueIdentifier>{24cb6bc2-0abf-4c72-826f-c433aa2d31b1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="land_point_search\path">
-      <UniqueIdentifier>{e174a12c-a5e5-458a-90aa-72fcc63c0f03}</UniqueIdentifier>
     </Filter>
     <Filter Include="ai\ax">
       <UniqueIdentifier>{6813cfa7-88df-4217-a710-edeb76ffb8de}</UniqueIdentifier>
@@ -147,20 +156,11 @@
     <Filter Include="ai\zzz">
       <UniqueIdentifier>{17867b95-f48e-4c79-9352-827e8d9ff322}</UniqueIdentifier>
     </Filter>
-    <Filter Include="land_point_search\cautious">
-      <UniqueIdentifier>{6df7d9c8-f940-4473-a596-db2b0324de0c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="land_point_search\simulate">
-      <UniqueIdentifier>{3fd41077-54f2-4242-99d9-717889aa8de3}</UniqueIdentifier>
-    </Filter>
     <Filter Include="util">
       <UniqueIdentifier>{f4efb2af-b96a-4959-af8c-55c0b28240ab}</UniqueIdentifier>
     </Filter>
     <Filter Include="rules\srsx">
       <UniqueIdentifier>{02477aa6-30a8-48a2-be01-5e167e70cd1c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="land_point_search\tspin">
-      <UniqueIdentifier>{a3464f38-c29d-4aa0-b859-2f0a05c3f2ea}</UniqueIdentifier>
     </Filter>
     <Filter Include="ai\easy">
       <UniqueIdentifier>{76dff1d7-ccd2-4913-95a0-4aa877216740}</UniqueIdentifier>
@@ -173,6 +173,30 @@
     </Filter>
     <Filter Include="rules\c2">
       <UniqueIdentifier>{17e8a281-f3b6-4715-a7ce-601579e8a36b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="search">
+      <UniqueIdentifier>{2c7d56ab-e7cb-4726-b343-411785ace0b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="search\simple">
+      <UniqueIdentifier>{24cb6bc2-0abf-4c72-826f-c433aa2d31b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="search\path">
+      <UniqueIdentifier>{e174a12c-a5e5-458a-90aa-72fcc63c0f03}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="search\cautious">
+      <UniqueIdentifier>{6df7d9c8-f940-4473-a596-db2b0324de0c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="search\simulate">
+      <UniqueIdentifier>{3fd41077-54f2-4242-99d9-717889aa8de3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="search\tspin">
+      <UniqueIdentifier>{a3464f38-c29d-4aa0-b859-2f0a05c3f2ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="search\tag">
+      <UniqueIdentifier>{feeaaf0d-bfcc-4288-80f6-02de840818c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="rules\tag">
+      <UniqueIdentifier>{8f0445e7-a7c8-47b3-b017-bac1641edf41}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

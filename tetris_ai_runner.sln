@@ -1,19 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+# Visual Studio 14
+VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tetris_ai_runner", "tetris_ai_runner.vcxproj", "{2EF25942-7BE9-41F8-B540-DAE8034BE8F7}"
-	ProjectSection(ProjectDependencies) = postProject
-		{16175EAB-4F9E-4070-BF4C-AA4B8C6B1278} = {16175EAB-4F9E-4070-BF4C-AA4B8C6B1278}
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tetris_ai_dll", "tetris_ai_dll.vcxproj", "{7190EA95-4DF4-4F70-AC20-194B0FB7B6E2}"
-	ProjectSection(ProjectDependencies) = postProject
-		{16175EAB-4F9E-4070-BF4C-AA4B8C6B1278} = {16175EAB-4F9E-4070-BF4C-AA4B8C6B1278}
-	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gason", "gason.vcxproj", "{16175EAB-4F9E-4070-BF4C-AA4B8C6B1278}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "the_ai_games", "the_ai_games.vcxproj", "{5A4C9125-3594-4784-96F8-FC7B4C060F13}"
 EndProject
@@ -31,10 +23,6 @@ Global
 		{7190EA95-4DF4-4F70-AC20-194B0FB7B6E2}.Debug|Win32.Build.0 = Debug|Win32
 		{7190EA95-4DF4-4F70-AC20-194B0FB7B6E2}.Release|Win32.ActiveCfg = Release|Win32
 		{7190EA95-4DF4-4F70-AC20-194B0FB7B6E2}.Release|Win32.Build.0 = Release|Win32
-		{16175EAB-4F9E-4070-BF4C-AA4B8C6B1278}.Debug|Win32.ActiveCfg = Debug|Win32
-		{16175EAB-4F9E-4070-BF4C-AA4B8C6B1278}.Debug|Win32.Build.0 = Debug|Win32
-		{16175EAB-4F9E-4070-BF4C-AA4B8C6B1278}.Release|Win32.ActiveCfg = Release|Win32
-		{16175EAB-4F9E-4070-BF4C-AA4B8C6B1278}.Release|Win32.Build.0 = Release|Win32
 		{5A4C9125-3594-4784-96F8-FC7B4C060F13}.Debug|Win32.ActiveCfg = Debug|Win32
 		{5A4C9125-3594-4784-96F8-FC7B4C060F13}.Debug|Win32.Build.0 = Debug|Win32
 		{5A4C9125-3594-4784-96F8-FC7B4C060F13}.Release|Win32.ActiveCfg = Release|Win32
