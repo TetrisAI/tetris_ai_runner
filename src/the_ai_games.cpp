@@ -297,6 +297,7 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
     },
 };
 
+#if 0
 
 int main()
 {
@@ -321,3 +322,82 @@ int main()
         }
     }
 }
+
+#else
+
+#include <windows.h>
+
+
+int main()
+{
+    auto &ai = bot_1;
+    ai.prepare(10, 21);
+    std::remove_reference<decltype(ai)>::type::Status in_status;
+    in_status.land_point = 0;
+    in_status.up = 0;
+    in_status.depth = 0;
+    in_status.combo = 0;
+    in_status.value = 0;
+
+
+    char out[81920] = "";
+    char box_0[3] = "□";
+    char box_1[3] = "■";
+
+    CONSOLE_CURSOR_INFO cursorInfo = {1, FALSE};  // 光标信息
+    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);  // 设置光标隐藏
+
+    ege::mtsrand(1);
+
+    std::vector<char> next;
+    m_tetris::TetrisMap map(10, 21);
+    char hold = ' ';
+    for(; ; )
+    {
+        COORD cd;
+        cd.X = 0;
+        cd.Y = 0;
+        SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), cd);
+
+        while(next.size() <= 1)
+        {
+            next.push_back(ai.context()->generate()->status.t);
+        }
+        m_tetris::TetrisNode const *node = ai.context()->generate(next.front());
+        next.erase(next.begin());
+
+        out[0] = '\0';
+        m_tetris::TetrisMap map_copy = map;
+        node->attach(map_copy);
+        for(int y = 21; y >= 0; --y)
+        {
+            for(int x = 0; x < 10; ++x)
+            {
+                strcat_s(out, map_copy.full(x, y) ? box_1 : box_0);
+            }
+            strcat_s(out, "\r\n");
+        }
+        strcat_s(out, "\r\n");
+        printf(out);
+
+        auto result = ai.run(map, in_status, node, next.data(), next.size(), 333);
+        if(result.change_hold)
+        {
+            hold = node->status.t;
+        }
+        size_t clear = 0;
+        if(result.target != nullptr)
+        {
+            clear = result.target->attach(map);
+        }
+        if(clear > 0)
+        {
+            ++in_status.combo;
+        }
+        else
+        {
+            in_status.combo = 0;
+        }
+    }
+}
+#endif
