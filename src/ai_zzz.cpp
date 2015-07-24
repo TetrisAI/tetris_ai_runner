@@ -596,7 +596,7 @@ namespace ai_zzz
 
     bool C2::Status::operator < (Status const &other) const
     {
-        return value < other.value;
+        return false;//value < other.value;
     }
 
     void C2::init(m_tetris::TetrisContext const *context, Config const *config)

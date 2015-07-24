@@ -931,7 +931,7 @@ namespace m_tetris
             }
             context->dealloc(this);
             context->is_complete = false;
-            new_root->parent = new_root;
+            new_root->parent = nullptr;
             return new_root;
         }
         TetrisTreeNode *update(TetrisMap const &_map, Status const &status, TetrisNode const *_node, char const *_next, size_t _next_length)
@@ -1222,15 +1222,22 @@ namespace m_tetris
                 return false;
             }
             version = context->version;
-            if(parent == this)
+            if(parent == nullptr)
             {
                 assert(context->current->status.t == node);
                 level = 0;
                 if(EnableHold)
                 {
-                    if(hold == ' ' || is_hold_lock)
+                    if(hold == ' ')
                     {
-                        search(context->current, false);
+                        if(is_hold_lock || next.empty())
+                        {
+                            search(context->current, false);
+                        }
+                        else
+                        {
+                            search(context->current, context->context->generate(next.front()));
+                        }
                     }
                     else
                     {
@@ -1248,24 +1255,52 @@ namespace m_tetris
             {
                 if(is_hold)
                 {
-                    if(parent->hold == ' ' && parent->next.empty())
+                    if(parent->hold == ' ')
+                    {
+                        assert(!parent->next.empty());
+                        if(parent->next.size() == 1)
+                        {
+                            node = ' ';
+                            hold = parent->node;
+                            next.clear();
+                        }
+                        else
+                        {
+                            node = parent->next[1];
+                            hold = parent->node;
+                            next.assign(parent->next.begin() + 2, parent->next.end());
+                        }
+                    }
+                    else
+                    {
+                        if(parent->next.empty())
+                        {
+                            node = ' ';
+                            hold = parent->node;
+                            next.clear();
+                        }
+                        else
+                        {
+                            node = parent->next.front();
+                            hold = parent->node;
+                            next.assign(parent->next.begin() + 1, parent->next.end());
+                        }
+                    }
+                }
+                else
+                {
+                    if(parent->next.empty())
                     {
                         node = ' ';
-                        hold = parent->node;
+                        hold = parent->hold;
                         next.clear();
                     }
                     else
                     {
                         node = parent->next.front();
-                        hold = parent->node;
+                        hold = parent->hold;
                         next.assign(parent->next.begin() + 1, parent->next.end());
                     }
-                }
-                else
-                {
-                    node = parent->next.front();
-                    hold = parent->hold;
-                    next.assign(parent->next.begin() + 1, parent->next.end());
                 }
                 assert(node != ' ' || hold != ' ');
                 if(node == ' ')
@@ -1276,7 +1311,14 @@ namespace m_tetris
                 {
                     if(hold == ' ')
                     {
-                        search(context->context->generate(node), context->context->generate(parent->next.front()));
+                        if(next.empty())
+                        {
+                            search(context->context->generate(node), false);
+                        }
+                        else
+                        {
+                            search(context->context->generate(node), context->context->generate(next.front()));
+                        }
                     }
                     else
                     {
@@ -1305,7 +1347,7 @@ namespace m_tetris
             {
                 return false;
             }
-            assert(parent == this);
+            assert(parent == nullptr);
             if(context->width == 0)
             {
                 build_children<EnableHold>();
@@ -1409,6 +1451,9 @@ namespace m_tetris
         struct RunResult
         {
             RunResult() : target(), status(), change_hold()
+            {
+            }
+            RunResult(bool _change_hold) : target(), status(), change_hold(_change_hold)
             {
             }
             RunResult(std::pair<TreeNode const *, typename Status const *> const &_result) : target(_result.first ? _result.first->identity : nullptr), status(_result.second), change_hold()
@@ -1529,8 +1574,15 @@ namespace m_tetris
                     break;
                 }
             } while((now = clock() / double(CLOCKS_PER_SEC)) < end);
-            auto best = tree_root_->get_best();
-            return RunResult(best, best.first == nullptr ? false : best.first->is_hold);
+            if(tree_root_->hold == ' ' && tree_root_->next.empty() && !tree_root_->is_hold_lock)
+            {
+                return RunResult(true);
+            }
+            else
+            {
+                auto best = tree_root_->get_best();
+                return RunResult(best, best.first == nullptr ? false : best.first->is_hold);
+            }
         }
         //根据run的结果得到一个操作路径
         std::vector<char> make_path(TetrisNode const *node, LandPoint const &land_point, TetrisMap const &map, bool cut_drop = true)

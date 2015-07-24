@@ -5,13 +5,13 @@
 #include <iostream>
 #include <functional>
 #include "tetris_core.h"
-#include "land_point_search_tag.h"
+#include "search_tag.h"
 #include "ai_tag.h"
 #include "rule_tag.h"
 #include "random.h"
 
-m_tetris::TetrisEngine<rule_tag::TetrisRuleSet, ai_tag::the_ai_games, land_point_search_tag::Search> bot_1;
-m_tetris::TetrisEngine<rule_tag::TetrisRuleSet, ai_tag::the_ai_games_enemy, land_point_search_tag::Search> bot_2;
+m_tetris::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games, search_tag::Search> bot_1;
+m_tetris::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games_enemy, search_tag::Search> bot_2;
 
 namespace zzz
 {
@@ -191,10 +191,7 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
                 return false;
             }
             m_tetris::TetrisMap map1(field_width, field_height + 1), map2(field_width, field_height + 1);
-            m_tetris::TetrisBlockStatus status =
-            {
-                this_piece, this_piece_pos_x, this_piece_pos_y + map1.height, 0
-            };
+            m_tetris::TetrisBlockStatus status(this_piece, this_piece_pos_x, this_piece_pos_y + map1.height, 0);
             m_tetris::TetrisNode const *node1 = bot_1.get(status), *target = nullptr;
             m_tetris::TetrisNode const *node2 = bot_2.get(status);
             if(node1 == nullptr)
@@ -221,20 +218,26 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
                     }
                 }
             }
-            unsigned char next_arr[] = {(unsigned char)(next_piece)};
+            char next_arr[] = {next_piece, '?'};
             std::vector<char> ai_path;
             if(node1 != nullptr)
             {
-                size_t enemy_point_add = 0;
-                bot_2.param()->combo = enemy_combo;
+                int enemy_point_add = 0;
                 if(node2 != nullptr)
                 {
-                    bot_2.param()->point_ptr = &enemy_point_add;
-                    bot_2.run(map2, node2, next_arr, 1, 20);
+                    decltype(bot_2)::Status in_status2;
+                    in_status2.combo = enemy_combo;
+                    in_status2.point = 0;
+                    bot_2.ai_config()->point_ptr = &enemy_point_add;
+                    bot_2.run(map2, in_status2, node2, next_arr, 2, 20);
                 }
-                bot_1.param()->up = (enemy_row_points % 4 + enemy_point_add) / 4;
-                bot_1.param()->combo = combo;
-                target = bot_1.run(map1, node1, next_arr, 1, std::max(50, std::atoi(params[2].c_str()) - 100)).target;
+                decltype(bot_1)::Status in_status1;
+                in_status1.combo = combo;
+                in_status1.depth = 0;
+                in_status1.land_point = 0;
+                in_status1.up = (enemy_row_points % 4 + enemy_point_add) / 4;
+                in_status1.value = 0;
+                target = bot_1.run(map1, in_status1, node1, next_arr, 2, std::max(50, std::atoi(params[2].c_str()) - 100)).target;
             }
             if(target != nullptr)
             {
@@ -294,14 +297,91 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
     },
 };
 
+
+#include <windows.h>
+#include "search_tspin.h"
+#include "ai_zzz.h"
+#include "rule_srsx.h"
+
+m_tetris::TetrisEngine<rule_srsx::TetrisRule, ai_zzz::TOJ, search_tspin::Search> srs_ai;
+
 int main()
 {
-    bot_1.param()->length = 2;
-    bot_1.param()->virtual_length = 1;
-    bot_1.param()->search = std::bind(&decltype(bot_1)::search<m_tetris::TetrisNode const *>, &bot_1, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-    bot_2.param()->length = 2;
-    bot_2.param()->virtual_length = 1;
-    bot_2.param()->search = std::bind(&decltype(bot_2)::search<m_tetris::TetrisNode const *>, &bot_2, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    srs_ai.prepare(10, 40);
+    decltype(srs_ai)::Status in_status;
+    in_status.combo = 0;
+    in_status.b2b = false;
+    in_status.under_attack = 0;
+    in_status.value = 0;
+
+    int combo_table[] = {0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 4, 5};
+    srs_ai.ai_config()->table = combo_table;
+    srs_ai.ai_config()->table_max = 12;
+
+    char out[81920] = "";
+    char box_0[3] = "□";
+    char box_1[3] = "■";
+
+    CONSOLE_CURSOR_INFO cursorInfo = {1, FALSE};  // 光标信息
+    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);  // 设置光标隐藏
+
+    ege::mtsrand(1);
+    
+    std::vector<char> next;
+    m_tetris::TetrisMap map(10, 21);
+    char hold = ' ';
+    for(; ; )
+    {
+        COORD cd;
+        cd.X = 0;
+        cd.Y = 0;
+        SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), cd);
+
+        while(next.size() <= 6)
+        {
+            next.push_back(srs_ai.context()->generate()->status.t);
+        }
+        m_tetris::TetrisNode const *node = srs_ai.context()->generate(next.front());
+        next.erase(next.begin());
+        
+        out[0] = '\0';
+        m_tetris::TetrisMap map_copy = map;
+        node->attach(map_copy);
+        for(int y = 21; y >= 0; --y)
+        {
+            for(int x = 0; x < 10; ++x)
+            {
+                strcat_s(out, map_copy.full(x, y) ? box_1 : box_0);
+            }
+            strcat_s(out, "\r\n");
+        }
+        strcat_s(out, "\r\n");
+        printf(out);
+
+        auto result = srs_ai.run_hold(map, in_status, node, hold, true, next.data(), next.size(), 50);
+        if(result.change_hold)
+        {
+            hold = node->status.t;
+        }
+        size_t clear = 0;
+        in_status.b2b = false;
+        if(result.target != nullptr)
+        {
+            clear = result.target->attach(map);
+            if(result.target.type != ai_zzz::TOJ::TSpinType::None || clear == 4)
+            {
+                in_status.b2b = true;
+            }
+        }
+        if(clear > 0)
+        {
+            ++in_status.combo;
+        }
+        else
+        {
+            in_status.combo = 0;
+        }
+    }
     while(true)
     {
         std::string line;

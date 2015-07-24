@@ -17,11 +17,6 @@
     <ClInclude Include="src\ai_tag.h" />
     <ClInclude Include="src\bst_base.h" />
     <ClInclude Include="src\integer_utils.h" />
-    <ClInclude Include="src\land_point_search_path.h" />
-    <ClInclude Include="src\land_point_search_simple.h" />
-    <ClInclude Include="src\land_point_search_simulate.h" />
-    <ClInclude Include="src\land_point_search_tag.h" />
-    <ClInclude Include="src\land_point_search_tspin.h" />
     <ClInclude Include="src\random.h" />
     <ClInclude Include="src\rule_c2.h" />
     <ClInclude Include="src\rule_qq.h" />
@@ -31,9 +26,14 @@
     <ClInclude Include="src\rule_toj.h" />
     <ClInclude Include="src\rb_tree.h" />
     <ClInclude Include="src\sb_tree.h" />
+    <ClInclude Include="src\search_cautious.h" />
+    <ClInclude Include="src\search_path.h" />
+    <ClInclude Include="src\search_simple.h" />
+    <ClInclude Include="src\search_simulate.h" />
+    <ClInclude Include="src\search_tag.h" />
+    <ClInclude Include="src\search_tspin.h" />
     <ClInclude Include="src\tetris_core.h" />
     <ClInclude Include="src\ai_zzz.h" />
-    <ClInclude Include="src\land_point_search_cautious.h" />
     <ClInclude Include="src\rule_srs.h" />
   </ItemGroup>
   <ItemGroup>
@@ -41,11 +41,6 @@
     <ClCompile Include="src\ai_farteryhr.cpp" />
     <ClCompile Include="src\ai_tag.cpp" />
     <ClCompile Include="src\integer_utils.cpp" />
-    <ClCompile Include="src\land_point_search_path.cpp" />
-    <ClCompile Include="src\land_point_search_simple.cpp" />
-    <ClCompile Include="src\land_point_search_simulate.cpp" />
-    <ClCompile Include="src\land_point_search_tag.cpp" />
-    <ClCompile Include="src\land_point_search_tspin.cpp" />
     <ClCompile Include="src\random.cpp" />
     <ClCompile Include="src\rule_c2.cpp" />
     <ClCompile Include="src\rule_qq.cpp" />
@@ -53,9 +48,14 @@
     <ClCompile Include="src\rule_st.cpp" />
     <ClCompile Include="src\rule_tag.cpp" />
     <ClCompile Include="src\rule_toj.cpp" />
+    <ClCompile Include="src\search_cautious.cpp" />
+    <ClCompile Include="src\search_path.cpp" />
+    <ClCompile Include="src\search_simple.cpp" />
+    <ClCompile Include="src\search_simulate.cpp" />
+    <ClCompile Include="src\search_tag.cpp" />
+    <ClCompile Include="src\search_tspin.cpp" />
     <ClCompile Include="src\tetris_core.cpp" />
     <ClCompile Include="src\ai_zzz.cpp" />
-    <ClCompile Include="src\land_point_search_cautious.cpp" />
     <ClCompile Include="src\rule_srs.cpp" />
     <ClCompile Include="src\the_ai_games.cpp" />
   </ItemGroup>

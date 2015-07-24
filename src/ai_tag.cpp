@@ -239,23 +239,23 @@ namespace ai_tag
                               + EraseCount * 60
                               - BoardDeadZone * 50000000
                               );
-        result.map = (0.
-                      - ColTrans * 80
-                      - RowTrans * 80
-                      - v.HoleCount * 120
-                      - v.HoleLine * 380
-                      - v.ClearWidth0 * 8
-                      - v.ClearWidth1 * 4
-                      - v.ClearWidth2 * 1
-                      - v.WellDepthTotle * 160
-                      + v.WideWellDepth[5] * 8
-                      + v.WideWellDepth[4] * 16
-                      + v.WideWellDepth[3] * 32
-                      + v.WideWellDepth[2] * 48
-                      + v.WideWellDepth[1] * -8
-                      + v.WideWellDepth[0] * 4
-                      + (low_x == 0 ? 400 : 0)
-                      );
+        double map_value = (0.
+                            - ColTrans * 80
+                            - RowTrans * 80
+                            - v.HoleCount * 120
+                            - v.HoleLine * 380
+                            - v.ClearWidth0 * 8
+                            - v.ClearWidth1 * 4
+                            - v.ClearWidth2 * 1
+                            - v.WellDepthTotle * 160
+                            + v.WideWellDepth[5] * 8
+                            + v.WideWellDepth[4] * 16
+                            + v.WideWellDepth[3] * 32
+                            + v.WideWellDepth[2] * 48
+                            + v.WideWellDepth[1] * -8
+                            + v.WideWellDepth[0] * 4
+                            + (low_x == 0 ? 400 : 0)
+                            );
 
         bool building = (map.count - full * map.width + v.HoleCount) * 3 / 2 < std::max(0, (map.height - 5) - (full + status.up)) * map.width;
         if(clear > 0)
@@ -282,7 +282,7 @@ namespace ai_tag
             }
             result.combo = 0;
         }
-        result.value = result.land_point / status.depth + status.map;
+        result.value = result.land_point / status.depth + map_value;
         return result;
     }
 
@@ -304,6 +304,10 @@ namespace ai_tag
         return danger;
     }
 
+    bool the_ai_games_enemy::Status::operator < (Status const &other) const
+    {
+        return point < other.point;
+    }
 
     void the_ai_games_enemy::init(m_tetris::TetrisContext const *context, Config const *config)
     {

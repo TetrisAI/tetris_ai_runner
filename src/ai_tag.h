@@ -9,7 +9,7 @@ namespace ai_tag
     public:
 		struct Status
 		{
-			double land_point, map;
+			double land_point;
 			size_t depth;
 			size_t combo;
 			int up;
@@ -42,6 +42,7 @@ namespace ai_tag
         struct Status
         {
             int point, combo;
+            bool operator < (Status const &) const;
         };
     public:
         void init(m_tetris::TetrisContext const *context, Config const *param);

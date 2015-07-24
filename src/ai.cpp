@@ -84,7 +84,6 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     in_status.combo = 0;
     in_status.depth = 0;
     in_status.land_point = 0;
-    in_status.map = 0;
     in_status.up = 0;
     in_status.value = 0;
     /////////////////////////////////////////////////
@@ -194,6 +193,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
                 std::vector<char> ai_path = srs_ai.make_path(srs_ai.context()->generate(run_result.target->status.t), run_result.target, map);
                 memcpy(result, ai_path.data(), ai_path.size());
                 result += ai_path.size();
+                result++[0] = 'V';
             }
         }
         else
@@ -204,6 +204,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
                 memcpy(result, ai_path.data(), ai_path.size());
                 result += ai_path.size();
             }
+            result++[0] = 'V';
         }
     }
     else
@@ -215,8 +216,8 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
             memcpy(result, ai_path.data(), ai_path.size());
             result += ai_path.size();
         }
+        result++[0] = 'V';
     }
-    result[0] = 'V';
     result[1] = '\0';
     return result_buffer[player];
 }
