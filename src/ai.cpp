@@ -81,11 +81,11 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     /////////////////////////////////////////////////
     decltype(tetris_ai)::Status in_status;
     in_status.land_point = 0;
-    in_status.value = 0;
     in_status.depth = 0;
+    in_status.value = 0;
     /////////////////////////////////////////////////
     m_tetris::TetrisNode const *node = tetris_ai.get(status);
-    auto target = tetris_ai.run(map, in_status, node, next.data(), next.length(), 49).target;
+    auto target = tetris_ai.run(map, in_status, node, next.data(), next.size(), 49).target;
     if(target != nullptr)
     {
         std::vector<char> ai_path = tetris_ai.make_path(node, target, map);
@@ -180,7 +180,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
     m_tetris::TetrisNode const *node = srs_ai.get(status);
     if(canhold)
     {
-        auto run_result = srs_ai.run_hold(map, in_status, node, hold, curCanHold, next, maxDepth, level * 100 + 1);
+        auto run_result = srs_ai.run_hold(map, in_status, node, hold, curCanHold, next, maxDepth, level * 5 + 1);
         if(run_result.change_hold)
         {
             result++[0] = 'v';
@@ -359,13 +359,16 @@ extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], c
     c2_ai.ai_config()->safe = safe;
     c2_ai.ai_config()->mode = mode;
     decltype(c2_ai)::Status in_status;
-    in_status.combo = combo;
     in_status.land_point = 0;
-    in_status.value;
+    in_status.depth = 0;
+    in_status.combo = combo;
+    in_status.value = 0;
     m_tetris::TetrisBlockStatus status(nextPiece[0], curX, curY, curR);
     size_t next_length = nextPiece[1] == ' ' ? 0 : 1;
+    std::string next(nextPiece + 1, nextPiece + 1 + next_length);
+    next += '?';
     m_tetris::TetrisNode const *node = c2_ai.get(status);
-    auto target = c2_ai.run(map, in_status, node, nextPiece + 1, next_length, limit).target;
+    auto target = c2_ai.run(map, in_status, node, next.data(), next.size(), limit).target;
     std::vector<char> ai_path;
     if(target != nullptr)
     {

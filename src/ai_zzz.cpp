@@ -598,7 +598,7 @@ namespace ai_zzz
 
     bool C2::Status::operator < (Status const &other) const
     {
-        return false;//value < other.value;
+        return value < other.value;
     }
 
     void C2::init(m_tetris::TetrisContext const *context, Config const *config)
@@ -919,6 +919,28 @@ namespace ai_zzz
             result.land_point -= 800;
         }
         result.value = result.land_point / result.depth + map_value;
+        return result;
+    }
+
+    C2::Status C2::iterate(Status const **status, size_t status_length) const
+    {
+        Status result;
+        result.land_point = 0;
+        result.depth = 0;
+        result.combo = 0;
+        result.value = 0;
+        for(size_t i = 0; i < status_length; ++i)
+        {
+            if(status[i] == nullptr)
+            {
+                result.value += -9999999999;
+            }
+            else
+            {
+                result.value += status[i]->value;
+            }
+        }
+        result.value /= status_length;
         return result;
     }
 

@@ -96,23 +96,15 @@ namespace ai_zzz
         {
             double land_point;
             size_t depth;
-            int combo;
+            size_t combo;
             double value;
             bool operator < (Status const &) const;
         };
     public:
         void init(m_tetris::TetrisContext const *context, Config const *config);
         std::string ai_name() const;
-        struct eval_result
-        {
-            double land_point, attack, map;
-            size_t clear;
-            int low_y;
-            int count;
-            bool soft_drop;
-            m_tetris::TetrisMap const *save_map;
-        };
         Status eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear, Status const &status) const;
+        Status iterate(Status const **status, size_t status_length) const;
 
     private:
         Config const *config_;
@@ -123,8 +115,6 @@ namespace ai_zzz
             int data[4];
         };
         std::vector<MapInDangerData> map_danger_data_;
-        mutable std::vector<eval_result> result_cache_;
-        mutable std::vector<std::vector<m_tetris::TetrisNode const *>> land_point_cache_;
         size_t map_in_danger_(m_tetris::TetrisMap const &map) const;
     };
 

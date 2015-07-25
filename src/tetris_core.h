@@ -654,9 +654,11 @@ namespace m_tetris
         {
             TetrisMap &new_map = tree_node->map;
             new_map = map;
-            size_t clear = node->attach(new_map);
             tree_node->identity = node;
-            tree_node->status = TetrisCallEval<TetrisAI, LandPoint>::eval(ai, tree_node->identity, new_map, map, clear, tree_node->parent->status);
+            //TODO fix
+            //size_t clear = node->attach(new_map);
+            //tree_node->status = TetrisCallEval<TetrisAI, LandPoint>::eval(ai, tree_node->identity, new_map, map, clear, tree_node->parent->status);
+            //TODO fix end
         }
         template<class TreeNode>
         static void iterate(TetrisAI &ai, Status const **status, size_t status_length, TreeNode *tree_node)
@@ -1389,6 +1391,10 @@ namespace m_tetris
             iterate_cache.resize(context->engine->type_max(), nullptr);
             for(auto it = children; it != nullptr; it = it->children_next)
             {
+                //TODO fix
+                size_t clear = it->identity->attach(it->map);
+                it->status = TetrisCallEval<TetrisAI, Core::LandPoint>::eval(*context->ai, it->identity, it->map, map, clear, status);
+                //TODO fix end
                 auto &status = iterate_cache[engine->convert(it->identity->status.t)];
                 if(status == nullptr || *status < it->status)
                 {
@@ -1410,6 +1416,13 @@ namespace m_tetris
             {
                 is_dead = true;
                 return false;
+            }
+            for(auto it = children; it != nullptr; it = it->children_next)
+            {
+                //TODO fix
+                size_t clear = it->identity->attach(it->map);
+                it->status = TetrisCallEval<TetrisAI, Core::LandPoint>::eval(*context->ai, it->identity, it->map, map, clear, status);
+                //TODO fix end
             }
             if(TetrisAIHasIterate<TetrisAI>::type::value && context->next[level].get_vp())
             {
@@ -1531,7 +1544,7 @@ namespace m_tetris
             size_t next_length = context->max_length;
             while(next_length-- > 0)
             {
-                size_t level_prune_hold = (next_length * context->width * 4) / context->max_length + 1;
+                size_t level_prune_hold = ((next_length + 1) * context->width * 4) / context->max_length + 1;
                 auto wait = &context->wait[next_length + 1];
                 if(wait->empty())
                 {
