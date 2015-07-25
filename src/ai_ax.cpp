@@ -200,10 +200,12 @@ namespace ai_ax
             }
             else
             {
+                result.land_point += status[i]->land_point;
+                result.depth = status[i]->depth;
                 result.value += status[i]->value;
             }
         }
-        result.land_point = 0;
+        result.land_point /= status_length;
         result.value /= status_length;
         return result;
     }

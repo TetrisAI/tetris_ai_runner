@@ -583,6 +583,10 @@ namespace ai_zzz
             result.b2b = true;
             break;
         }
+        if(result.combo < 5)
+        {
+            result.like -= 4;
+        }
         if(map.count == 0 && up == 0)
         {
             result.like += 20;

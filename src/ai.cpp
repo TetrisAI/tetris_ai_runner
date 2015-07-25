@@ -78,7 +78,6 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     }
     m_tetris::TetrisBlockStatus status(curPiece, curX - 1, curY - 1, curR - 1);
     std::string next(nextPiece);
-    next.insert(next.begin(), '?');
     /////////////////////////////////////////////////
     decltype(tetris_ai)::Status in_status;
     in_status.land_point = 0;
@@ -181,7 +180,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
     m_tetris::TetrisNode const *node = srs_ai.get(status);
     if(canhold)
     {
-        auto run_result = srs_ai.run_hold(map, in_status, node, hold, curCanHold, next, maxDepth, level * 5 + 1);
+        auto run_result = srs_ai.run_hold(map, in_status, node, hold, curCanHold, next, maxDepth, level * 100 + 1);
         if(run_result.change_hold)
         {
             result++[0] = 'v';
