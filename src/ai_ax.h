@@ -17,7 +17,7 @@ namespace ai_ax
             bool operator < (Status const &) const;
         };
         Status eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear, Status const &status) const;
-        Status iterated(Status const **status, size_t status_length) const;
+        Status iterate(Status const **status, size_t status_length) const;
 
     private:
         struct MapInDangerData

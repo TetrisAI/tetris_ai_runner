@@ -1,5 +1,6 @@
 ﻿
 #include <map>
+#include <iostream>
 #include "tetris_core.h"
 #include "random.h"
 
@@ -345,14 +346,15 @@ namespace m_tetris
         for(auto cit = generate_.begin(); cit != generate_.end(); ++cit)
         {
             char type = cit->first;
-            index_to_type_[type_max_] = type;
-            type_to_index_[int(type) + 128] = type_max_;
+            index_to_type_[type_max_] = ::toupper(type);
+            type_to_index_[::tolower(type) + 128] = type_max_;
+            type_to_index_[::toupper(type) + 128] = type_max_;
             ++type_max_;
         }
         for(size_t i = 0; i < type_max_; ++i)
         {
             TetrisNode node;
-            create(generate_[index_to_type_[i]](this), node);
+            create(generate_[convert(i)](this), node);
             check.push_back(node.status);
             node_cache_.insert(std::make_pair(node.status, node));
         }
@@ -454,7 +456,7 @@ namespace m_tetris
         for(size_t i = 0; i < type_max_; ++i)
         {
             TetrisNode node_generate;
-            create(generate_[index_to_type_[i]](this), node_generate);
+            create(generate_[convert(i)](this), node_generate);
             TetrisNode const *node = generate_cache_[i] = get(node_generate.status);
             place_cache_.insert(std::make_pair(node->status.t, std::vector<TetrisNode const *>()));
             std::vector<TetrisNode const *> *land_point = &place_cache_.find(node->status.t)->second;
@@ -572,6 +574,16 @@ namespace m_tetris
         return node_cache_.size();
     }
 
+    size_t TetrisContext::convert(char type) const
+    {
+        return type_to_index_[int(type) + 128];
+    }
+
+    char TetrisContext::convert(size_t index) const
+    {
+        return index_to_type_[index];
+    }
+
     TetrisOpertion TetrisContext::get_opertion(unsigned char t, unsigned char r) const
     {
         auto find = opertion_.find(std::make_pair(t, r));
@@ -610,7 +622,7 @@ namespace m_tetris
 
     TetrisNode const *TetrisContext::generate(char type) const
     {
-        return generate_cache_[type_to_index_[int(type) + 128]];
+        return generate_cache_[convert(type)];
     }
 
     TetrisNode const *TetrisContext::generate(size_t index) const

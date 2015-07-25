@@ -70,8 +70,6 @@ namespace ai_ax
                 RowTrans += zzz::BitCount(map.row[y - 1] ^ map.row[y]);
             }
         }
-
-
         struct
         {
             //洞数
@@ -188,12 +186,22 @@ namespace ai_ax
         return result;
     }
 
-    AI::Status AI::iterated(Status const **status, size_t status_length) const
+    AI::Status AI::iterate(Status const **status, size_t status_length) const
     {
-        Status result = **status;
-        for(size_t i = 1; i < status_length; ++i)
+        Status result;
+        result.land_point = 0;
+        result.depth = 0;
+        result.value = 0;
+        for(size_t i = 0; i < status_length; ++i)
         {
-            result.value += status[i]->value;
+            if(status[i] == nullptr)
+            {
+                result.value += -9999999999;
+            }
+            else
+            {
+                result.value += status[i]->value;
+            }
         }
         result.land_point = 0;
         result.value /= status_length;
