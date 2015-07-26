@@ -620,7 +620,7 @@ namespace m_tetris
             typedef TemplateElement Element;
         };
         template <typename T>
-        struct function_traits : public function_traits<decltype(&T::eval)>
+        struct function_traits : public function_traits<T>
         {
         };
 
@@ -631,15 +631,15 @@ namespace m_tetris
         };
     public:
         typedef typename element_traits<decltype(TetrisSearch().search(TetrisMap(), nullptr))>::Element LandPoint;
-        typedef typename function_traits<TetrisAI>::result_type Status;
-        typedef std::pair<LandPoint, Status> Result;
+        typedef typename function_traits<decltype(&TetrisAI::eval)>::result_type Result;
+        typedef typename function_traits<decltype(&TetrisAI::get)>::result_type Status;
 
         template<class TreeNode, class>
         struct TetrisSelectIterate
         {
             static void iterate(TetrisAI &ai, Status const **status, size_t status_length, TreeNode *tree_node)
             {
-                tree_node->status = ai.iterate(status, status_length);
+                tree_node->status.set_vp(ai.iterate(status, status_length));
             }
         };
         template<class TreeNode>
@@ -655,10 +655,8 @@ namespace m_tetris
             TetrisMap &new_map = tree_node->map;
             new_map = map;
             tree_node->identity = node;
-            //TODO fix
-            //size_t clear = node->attach(new_map);
-            //tree_node->status = TetrisCallEval<TetrisAI, LandPoint>::eval(ai, tree_node->identity, new_map, map, clear, tree_node->parent->status);
-            //TODO fix end
+            size_t clear = node->attach(new_map);
+            tree_node->result = TetrisCallEval<TetrisAI, LandPoint>::eval(ai, tree_node->identity, new_map, map, clear);
         }
         template<class TreeNode>
         static void iterate(TetrisAI &ai, Status const **status, size_t status_length, TreeNode *tree_node)
@@ -755,7 +753,7 @@ namespace m_tetris
                 }
                 static bool predicate(key_t const &left, key_t const &right)
                 {
-                    return right < left;
+                    return right.get() < left.get();
                 }
             };
             template<class, class>
@@ -958,6 +956,50 @@ namespace m_tetris
                 flag[1] = nullptr;
             }
         };
+        template<class, class>
+        struct TreeNodeStatus
+        {
+            Status status_raw;
+            Status status;
+            Status const &get() const
+            {
+                return status;
+            }
+            Status const &get_raw() const
+            {
+                return status_raw;
+            }
+            void set(Status const &_status)
+            {
+                status = _status;
+                status_raw = _status;
+            }
+            void set_vp(Status const &_status)
+            {
+                status = _status;
+            }
+        };
+        template<class Unuse>
+        struct TreeNodeStatus<Unuse, std::false_type>
+        {
+            Status status;
+            Status const &get() const
+            {
+                return status;
+            }
+            Status const &get_raw() const
+            {
+                return status;
+            }
+            void set(Status const &_status)
+            {
+                status = _status;
+            }
+            void set_vp(Status const &_status)
+            {
+                status = _status;
+            }
+        };
         typedef zzz::rb_tree<StatusTreeInterface> children_sort_t;
         typedef typename Context::next_t next_t;
         TetrisTreeNode(Context *_context) : TetrisTreeNodeBase(), context(_context), version(context->version - 1), identity(), parent(), children()
@@ -967,7 +1009,8 @@ namespace m_tetris
         size_t version;
         TetrisMap map;
         typename Core::LandPoint identity;
-        Status status;
+        typename Core::Result result;
+        TreeNodeStatus<TetrisAI, typename TetrisAIHasIterate<TetrisAI>::type> status;
         TetrisTreeNode *parent;
         TetrisTreeNode *children;
         TetrisTreeNode *children_next;
@@ -1042,7 +1085,7 @@ namespace m_tetris
                 context->current = _node;
                 context->next = next;
                 root->node = _node->status.t;
-                root->status = status;
+                root->status.set(status);
                 root->next = std::next(context->next.begin());
             }
             else if(context->current != _node)
@@ -1067,7 +1110,7 @@ namespace m_tetris
                 context->is_open_hold = true;
                 context->current = _node;
                 context->next = next;
-                root->status = status;
+                root->status.set(status);
                 root->node = _node->status.t;
                 root->hold = _hold;
                 root->is_hold = false;
@@ -1391,14 +1434,10 @@ namespace m_tetris
             iterate_cache.resize(context->engine->type_max(), nullptr);
             for(auto it = children; it != nullptr; it = it->children_next)
             {
-                //TODO fix
-                size_t clear = it->identity->attach(it->map);
-                it->status = TetrisCallEval<TetrisAI, Core::LandPoint>::eval(*context->ai, it->identity, it->map, map, clear, status);
-                //TODO fix end
                 auto &status = iterate_cache[engine->convert(it->identity->status.t)];
-                if(status == nullptr || *status < it->status)
+                if(status == nullptr || *status < it->status.get())
                 {
-                    status = &it->status;
+                    status = &it->status.get();
                 }
             }
             Core::iterate(*context->ai, iterate_cache.data(), iterate_cache.size(), this);
@@ -1419,10 +1458,7 @@ namespace m_tetris
             }
             for(auto it = children; it != nullptr; it = it->children_next)
             {
-                //TODO fix
-                size_t clear = it->identity->attach(it->map);
-                it->status = TetrisCallEval<TetrisAI, Core::LandPoint>::eval(*context->ai, it->identity, it->map, map, clear, status);
-                //TODO fix end
+                it->status.set(context->ai->get(it->result, level + 1, it->hold, status.get_raw()));
             }
             if(TetrisAIHasIterate<TetrisAI>::type::value && context->next[level].get_vp())
             {
@@ -1604,7 +1640,7 @@ namespace m_tetris
                     }
                     else
                     {
-                        best = sort_best->status < wait_best->status ? wait_best : sort_best;
+                        best = sort_best->status.get() < wait_best->status.get() ? wait_best : sort_best;
                     }
                 }
                 break;
@@ -1617,7 +1653,7 @@ namespace m_tetris
             {
                 best = best->parent;
             }
-            return std::make_pair(best, &best->status);
+            return std::make_pair(best, &best->status.get_raw());
         }
     };
 
@@ -1634,6 +1670,7 @@ namespace m_tetris
         TetrisSearch search_;
         typename TreeNode::Context tree_context_;
         TreeNode *tree_root_;
+        typename Core::Status status_;
 
     public:
         typedef typename Core::Status Status;
@@ -1657,7 +1694,7 @@ namespace m_tetris
         };
 
     public:
-        TetrisEngine() : context_(ContextBuilder::build_context()), ai_(), tree_root_(new TreeNode(&tree_context_))
+        TetrisEngine() : context_(ContextBuilder::build_context()), ai_(), tree_root_(new TreeNode(&tree_context_)), status_()
         {
             tree_context_.engine = context_;
             tree_context_.ai = &ai_;
@@ -1684,21 +1721,29 @@ namespace m_tetris
         {
             return ai_.ai_name();
         }
+        auto ai_config() const->decltype(context_->ai_config())
+        {
+            return context_->ai_config();
+        }
         auto ai_config()->decltype(context_->ai_config())
         {
             return context_->ai_config();
         }
-        auto ai_config() const->decltype(context_->ai_config())
+        auto search_config() const->decltype(context_->search_config())
         {
-            return context_->ai_config();
+            return context_->search_config();
         }
         auto search_config()->decltype(context_->search_config())
         {
             return context_->search_config();
         }
-        auto search_config() const->decltype(context_->search_config())
+        Status const *status() const
         {
-            return context_->search_config();
+            return &status_;
+        }
+        Status *status()
+        {
+            return &status_;
         }
         //准备好上下文
         bool prepare(int width, int height)
@@ -1733,14 +1778,14 @@ namespace m_tetris
             tree_context_.sort.resize(tree_context_.max_length + 1);
         }
         //run!
-        RunResult run(TetrisMap const &map, Status const &status, TetrisNode const *node, char const *next, size_t next_length, time_t limit = 100)
+        RunResult run(TetrisMap const &map, TetrisNode const *node, char const *next, size_t next_length, time_t limit = 100)
         {
             if(node == nullptr || !node->check(map))
             {
                 return RunResult();
             }
             double now = clock() / double(CLOCKS_PER_SEC), end = now + limit / 1000.;
-            tree_root_ = tree_root_->update(map, status, node, next, next_length);
+            tree_root_ = tree_root_->update(map, status_, node, next, next_length);
             do
             {
                 if(tree_root_->run<false>())
@@ -1752,14 +1797,14 @@ namespace m_tetris
             return RunResult(tree_root_->get_best());
         }
         //带hold的run!
-        RunResult run_hold(TetrisMap const &map, Status const &status, TetrisNode const *node, char hold, bool hold_free, char const *next, size_t next_length, time_t limit = 100)
+        RunResult run_hold(TetrisMap const &map, TetrisNode const *node, char hold, bool hold_free, char const *next, size_t next_length, time_t limit = 100)
         {
             if(node == nullptr || !node->check(map))
             {
                 return RunResult();
             }
             double now = clock() / double(CLOCKS_PER_SEC), end = now + limit / 1000.;
-            tree_root_ = tree_root_->update(map, status, node, hold, !hold_free, next, next_length);
+            tree_root_ = tree_root_->update(map, status_, node, hold, !hold_free, next, next_length);
             do
             {
                 if(tree_root_->run<true>())

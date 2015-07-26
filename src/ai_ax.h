@@ -9,14 +9,18 @@ namespace ai_ax
     public:
         void init(m_tetris::TetrisContext const *context);
         std::string ai_name() const;
+        struct Result
+        {
+            double land_point, map;
+        };
         struct Status
         {
             double land_point;
-            size_t depth;
             double value;
             bool operator < (Status const &) const;
         };
-        Status eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear, Status const &status) const;
+        Result eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
+        Status get(Result const &eval_result, size_t depth, char hold, Status const &status) const;
         Status iterate(Status const **status, size_t status_length) const;
 
     private:

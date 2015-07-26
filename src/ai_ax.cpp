@@ -41,7 +41,7 @@ namespace ai_ax
         return "Tetris_ax_C ZZZ Mod v1.2";
     }
 
-    AI::Status AI::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear, Status const &status) const
+    AI::Result AI::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
     {
         //消行数
         double LandHeight = node->status.y + 1;
@@ -165,24 +165,30 @@ namespace ai_ax
         //死亡警戒
         int BoardDeadZone = map_in_danger_(map);
 
-        Status result = status;
-        ++result.depth;
-        result.land_point += (0
-                              - LandHeight * 1750 / map.height
-                              + Middle * 2
-                              + EraseCount * 60
-                              );
-        double map_value = (0
-                            - ColTrans * 80
-                            - RowTrans * 80
-                            - v.HoleCount * 60
-                            - v.HoleLine * 380
-                            - v.WellDepth * 100
-                            - v.HoleDepth * 40
-                            - v.HolePiece * 5
-                            - BoardDeadZone * 50000
-                            );
-        result.value = result.land_point / result.depth + map_value;
+        Result result;
+        result.land_point = (0
+                             - LandHeight * 1750 / map.height
+                             + Middle * 2
+                             + EraseCount * 60
+                             );
+        result.map = (0
+                      - ColTrans * 80
+                      - RowTrans * 80
+                      - v.HoleCount * 60
+                      - v.HoleLine * 380
+                      - v.WellDepth * 100
+                      - v.HoleDepth * 40
+                      - v.HolePiece * 5
+                      - BoardDeadZone * 50000
+                      );
+        return result;
+    }
+
+    AI::Status AI::get(Result const &eval_result, size_t depth, char hold, Status const &status) const
+    {
+        Status result;
+        result.land_point = eval_result.land_point + status.land_point;
+        result.value = result.land_point / depth + eval_result.map;
         return result;
     }
 
@@ -190,7 +196,6 @@ namespace ai_ax
     {
         Status result;
         result.land_point = 0;
-        result.depth = 0;
         result.value = 0;
         for(size_t i = 0; i < status_length; ++i)
         {
@@ -200,12 +205,9 @@ namespace ai_ax
             }
             else
             {
-                result.land_point += status[i]->land_point;
-                result.depth = status[i]->depth;
                 result.value += status[i]->value;
             }
         }
-        result.land_point /= status_length;
         result.value /= status_length;
         return result;
     }
