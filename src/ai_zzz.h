@@ -73,7 +73,7 @@ namespace ai_zzz
         {
             double eval;
             size_t clear;
-            size_t count;
+            int count;
             int safe;
             double expect;
             TSpinType t_spin;
@@ -98,7 +98,7 @@ namespace ai_zzz
         Config const *config_;
         int danger_line_;
         int danger_data_;
-        size_t full_count_;
+        int full_count_;
     };
 
     class C2

@@ -432,7 +432,7 @@ namespace ai_zzz
                 danger_data_ |= 1 << x;
             }
         }
-        full_count_ = context->width() * (danger_line_ + 2);
+        full_count_ = context->width() * (danger_line_ - 4);
     }
 
     std::string TOJ::ai_name() const
@@ -576,7 +576,7 @@ namespace ai_zzz
         case 2:
             if(eval_result.t_spin != TSpinType::None)
             {
-                result.like += 5;
+                result.like += 6;
                 result.attack += status.b2b ? 5 : 4;
             }
             result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
@@ -585,7 +585,7 @@ namespace ai_zzz
         case 3:
             if(eval_result.t_spin != TSpinType::None)
             {
-                result.like += 10;
+                result.like += 12;
                 result.attack += status.b2b ? 8 : 6;
             }
             result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
@@ -599,7 +599,7 @@ namespace ai_zzz
         }
         if(result.combo < 5)
         {
-            result.like -= 4;
+            result.like -= result.combo * 2;
         }
         if(eval_result.count == 0 && up == 0)
         {
@@ -609,13 +609,16 @@ namespace ai_zzz
         switch(hold)
         {
         case 'T':
-            result.like += 4;
+            if(eval_result.t_spin == TSpinType::None)
+            {
+                result.like += 4;
+            }
             break;
         case 'I':
             result.like += 2;
             break;
         }
-        result.value += (result.attack * 160 + eval_result.expect * 128 + (result.b2b ? 240 : 0) + result.like * 20) * (full_count_ - eval_result.count) / full_count_ - up * 40;
+        result.value += (result.attack * 160 + eval_result.expect * 128 + (result.b2b ? 240 : 0) + result.like * 24) * std::max(0, full_count_ - eval_result.count) / full_count_ - up * 40;
         return result;
     }
 
