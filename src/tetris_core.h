@@ -1432,8 +1432,12 @@ namespace m_tetris
             auto &iterate_cache = context->iterate_cache;
             iterate_cache.clear();
             iterate_cache.resize(context->engine->type_max(), nullptr);
+            char children_level = level + 1;
+            size_t depth = level + 2;
             for(auto it = children; it != nullptr; it = it->children_next)
             {
+                it->level = children_level;
+                it->status.set(context->ai->get(it->result, depth, it->hold, status.get_raw()));
                 auto &status = iterate_cache[engine->convert(it->identity->status.t)];
                 if(status == nullptr || *status < it->status.get())
                 {

@@ -864,7 +864,7 @@ namespace ai_zzz
         }
         result.clear = clear;
         result.low_y = low_y;
-        result.count = map.count;
+        result.count = map.count + v.HoleCount;
         result.soft_drop = !node->open(map);
         return result;
     }
@@ -872,6 +872,7 @@ namespace ai_zzz
     C2::Status C2::get(Result const &eval_result, size_t depth, char hold, Status const &status) const
     {
         Status result = status;
+        result.land_point += eval_result.land_point;
         if(config_->mode == 1)
         {
             if(status.combo == 0)
