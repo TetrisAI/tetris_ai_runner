@@ -693,11 +693,11 @@ namespace ai_zzz
                                     result.t3_value += 1;
                                     if(((row3 >> x) & 15) == 8)
                                     {
-                                        result.t3_value += 3;
+                                        result.t3_value += 1;
                                         int row4_check = ((row4 >> x) & 15);
                                         if(row4_check == 4 || row4_check == 12)
                                         {
-                                            result.t3_value += 5;
+                                            result.t3_value += 1;
                                         }
                                     }
                                 }
@@ -722,11 +722,11 @@ namespace ai_zzz
                                     result.t3_value += 1;
                                     if(((row3 >> x) & 15) == 1)
                                     {
-                                        result.t3_value += 3;
+                                        result.t3_value += 1;
                                         int row4_check = ((row4 >> x) & 15);
                                         if(row4_check == 3 || row4_check == 1)
                                         {
-                                            result.t3_value += 5;
+                                            result.t3_value += 1;
                                         }
                                     }
                                 }
