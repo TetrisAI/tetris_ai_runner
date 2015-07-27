@@ -54,9 +54,28 @@ namespace ai_zzz
     class Dig
     {
     public:
+        void init(m_tetris::TetrisContext const *context);
         std::string ai_name() const;
-        double eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear, double const &status) const;
-
+        struct Result
+        {
+            double land_point, map;
+        };
+        struct Status
+        {
+            double land_point, value;
+            bool operator < (Status const &) const;
+        };
+        Result eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
+        Status get(Result const &eval_result, size_t depth, char hold, Status const &status) const;
+    private:
+        struct MapInDangerData
+        {
+            int data[4];
+        };
+        std::vector<MapInDangerData> map_danger_data_;
+        m_tetris::TetrisContext const *context_;
+        size_t map_in_danger_(m_tetris::TetrisMap const &map) const;
+        int col_mask_, row_mask_;
     };
 
     class TOJ
@@ -67,21 +86,22 @@ namespace ai_zzz
         struct Config
         {
             int const *table;
-            size_t table_max;
+            int table_max;
         };
         struct Result
         {
             double eval;
-            size_t clear;
+            int clear;
             int count;
             int safe;
-            double expect;
+            int t2_value;
+            int t3_value;
             TSpinType t_spin;
         };
         struct Status
         {
-            size_t combo;
-            size_t under_attack;
+            int combo;
+            int under_attack;
             bool b2b;
             int attack;
             double like;
@@ -94,8 +114,9 @@ namespace ai_zzz
         Result eval(TetrisNodeEx &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
         Status get(Result const &eval_result, size_t depth, char hold, Status const & status) const;
     private:
-        int col_mask_, row_mask_;
+        m_tetris::TetrisContext const *context_;
         Config const *config_;
+        int col_mask_, row_mask_;
         int danger_line_;
         int danger_data_;
         int full_count_;
@@ -132,8 +153,8 @@ namespace ai_zzz
         Status iterate(Status const **status, size_t status_length) const;
 
     private:
-        Config const *config_;
         m_tetris::TetrisContext const *context_;
+        Config const *config_;
         int col_mask_, row_mask_;
         struct MapInDangerData
         {

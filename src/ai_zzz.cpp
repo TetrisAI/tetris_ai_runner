@@ -353,62 +353,196 @@ namespace ai_zzz
         }
     }
 
+    bool Dig::Status::operator < (Status const &other) const
+    {
+        return value < other.value;
+    }
+
+    void Dig::init(m_tetris::TetrisContext const *context)
+    {
+        context_ = context;
+        map_danger_data_.resize(context->type_max());
+        for(size_t i = 0; i < context->type_max(); ++i)
+        {
+            TetrisMap map(context->width(), context->height());
+            TetrisNode const *node = context->generate(i);
+            node->attach(map);
+            memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
+            for(int y = 0; y < 3; ++y)
+            {
+                map_danger_data_[i].data[y + 1] |= map_danger_data_[i].data[y];
+            }
+        }
+        col_mask_ = context->full() & ~1;
+        row_mask_ = context->full();
+    }
 
     std::string Dig::ai_name() const
     {
         return "ZZZ Dig v0.2";
     }
 
-    double Dig::eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear, double const &status) const
+    Dig::Result Dig::eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
     {
-        double value = 0;
+        double LandHeight = node->status.y + 1;
+        double Middle = std::abs((node->status.x + 1) * 2 - map.width);
+        double EraseCount = clear;
 
-        const int width = map.width;
-
-        for(int x = 0; x < width; ++x)
+        const int width_m1 = map.width - 1;
+        int ColTrans = 2 * (map.height - map.roof);
+        int RowTrans = zzz::BitCount(row_mask_ ^ map.row[0]) + zzz::BitCount(map.roof == map.height ? ~row_mask_ & map.row[map.roof - 1] : map.row[map.roof - 1]);
+        for(int y = 0; y < map.roof; ++y)
         {
-            for(int y = 0; y < map.roof; ++y)
+            if(!map.full(0, y))
             {
-                if(map.full(x, y))
-                {
-                    value -= 2 * (y + 1);
-                    continue;
-                }
-                if(x == width - 1 || map.full(x + 1, y))
-                {
-                    value -= 3 * (y + 1);
-                }
-                if(x == 0 || map.full(x - 1, y))
-                {
-                    value -= 3 * (y + 1);
-                }
-                if(map.full(x, y + 1))
-                {
-                    value -= 10 * (y + 1);
-                    if(map.full(x, y + 2))
-                    {
-                        value -= 4;
-                        if(map.full(x, y + 3))
-                        {
-                            value -= 3;
-                            if(map.full(x, y + 4))
-                            {
-                                value -= 2;
-                            }
-                        }
-                    }
-                }
+                ++ColTrans;
+            }
+            if(!map.full(width_m1, y))
+            {
+                ++ColTrans;
+            }
+            ColTrans += zzz::BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+            if(y != 0)
+            {
+                RowTrans += zzz::BitCount(map.row[y - 1] ^ map.row[y]);
             }
         }
-        if(clear > 0)
+        struct
         {
-            value += map.height * 1000;
-        }
-        if(map.count == 0)
+            int HoleCount;
+            int HoleLine;
+
+            int HoleDepth;
+            int WellDepth;
+
+            int HoleNum[32];
+            int WellNum[32];
+
+            int LineCoverBits;
+            
+            int HoleBits[8];
+            int HolePosy[8];
+            int ClearWidth[8];
+            int PosyIndex;
+        } v;
+        memset(&v, 0, sizeof v);
+
+        for(int y = map.roof - 1; y >= 0; --y)
         {
-            value += 99999999;
+            v.LineCoverBits |= map.row[y];
+            int LineHole = v.LineCoverBits ^ map.row[y];
+            if(LineHole != 0)
+            {
+                v.HoleCount += zzz::BitCount(LineHole);
+                v.HoleLine++;
+                if(v.PosyIndex < 8 && v.HolePosy[v.PosyIndex] == 0)
+                {
+                    v.HolePosy[v.PosyIndex] = y + 1;
+                    v.HoleBits[v.PosyIndex] = LineHole;
+                    ++v.PosyIndex;
+                }
+            }
+            for(int x = 1; x < width_m1; ++x)
+            {
+                if((LineHole >> x) & 1)
+                {
+                    v.HoleDepth += ++v.HoleNum[x];
+                }
+                else
+                {
+                    v.HoleNum[x] = 0;
+                }
+                if(((v.LineCoverBits >> (x - 1)) & 7) == 5)
+                {
+                    v.WellDepth += ++v.WellNum[x];
+                }
+            }
+            if(LineHole & 1)
+            {
+                v.HoleDepth += ++v.HoleNum[0];
+            }
+            else
+            {
+                v.HoleNum[0] = 0;
+            }
+            if((v.LineCoverBits & 3) == 2)
+            {
+                v.WellDepth += ++v.WellNum[0];
+            }
+            if((LineHole >> width_m1) & 1)
+            {
+                v.HoleDepth += ++v.HoleNum[width_m1];
+            }
+            else
+            {
+                v.HoleNum[width_m1] = 0;
+            }
+            if(((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
+            {
+                v.WellDepth += ++v.WellNum[width_m1];
+            }
         }
-        return value;
+        for(int i = 0; i < v.PosyIndex; ++i)
+        {
+            for(int y = v.HolePosy[i]; y < map.roof; ++y)
+            {
+                int CheckLine = v.HoleBits[i] & map.row[y];
+                if(CheckLine == 0)
+                {
+                    break;
+                }
+                v.ClearWidth[i] += (y + 1) * zzz::BitCount(CheckLine);
+            }
+        }
+
+        //ËÀÍö¾¯½ä
+        int BoardDeadZone = map_in_danger_(map);
+
+        Result result;
+        result.land_point = (0
+                             - LandHeight * 1750 / map.height
+                             + Middle * 2
+                             + EraseCount * 60
+                             );
+        result.map = (0.
+                      - ColTrans * 80
+                      - RowTrans * 80
+                      - v.HoleCount * 60
+                      - v.HoleLine * 380
+                      - v.WellDepth * 100
+                      - v.HoleDepth * 40
+                      - v.ClearWidth[0] * 4
+                      - v.ClearWidth[1] * 1
+                      - v.ClearWidth[2] * 0.25
+                      - v.ClearWidth[3] * 0.125
+                      - v.ClearWidth[4] * 0.0625
+                      - v.ClearWidth[5] * 0.03125
+                      - v.ClearWidth[6] * 0.015625
+                      - v.ClearWidth[7] * 0.0078125
+                      - BoardDeadZone * 50000
+                      );
+        return result;
+    }
+
+    Dig::Status Dig::get(Result const &eval_result, size_t depth, char hold, Status const &status) const
+    {
+        Status result;
+        result.land_point = eval_result.land_point + status.land_point;
+        result.value = result.land_point / depth + eval_result.map;
+        return result;
+    }
+
+    size_t Dig::map_in_danger_(m_tetris::TetrisMap const &map) const
+    {
+        size_t danger = 0;
+        for(size_t i = 0; i < context_->type_max(); ++i)
+        {
+            if(map_danger_data_[i].data[0] & map.row[map.height - 4] || map_danger_data_[i].data[1] & map.row[map.height - 3] || map_danger_data_[i].data[2] & map.row[map.height - 2] || map_danger_data_[i].data[3] & map.row[map.height - 1])
+            {
+                ++danger;
+            }
+        }
+        return danger;
     }
 
     bool TOJ::Status::operator < (Status const &other) const
@@ -418,6 +552,7 @@ namespace ai_zzz
 
     void TOJ::init(m_tetris::TetrisContext const *context, Config const *config)
     {
+        context_ = context;
         config_ = config;
         col_mask_ = context->full() & ~1;
         row_mask_ = context->full();
@@ -432,59 +567,58 @@ namespace ai_zzz
                 danger_data_ |= 1 << x;
             }
         }
-        full_count_ = context->width() * (danger_line_ - 4);
+        full_count_ = context->width() * (danger_line_ - 1);
     }
 
     std::string TOJ::ai_name() const
     {
-        return "ZZZ TOJ v0.4";
+        return "ZZZ TOJ v0.5";
     }
 
     TOJ::Result TOJ::eval(TetrisNodeEx &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
     {
-        double value = 0;
-
+        Result result;
+        result.eval = 0;
+        result.count = 0;
         const int width = map.width;
 
         for(int x = 0; x < width; ++x)
         {
+            result.count += map.top[x];
             for(int y = 0; y < map.roof; ++y)
             {
                 if(map.full(x, y))
                 {
-                    value -= 2 * (y + 1);
+                    result.eval -= 2 * (y + 1);
                     continue;
                 }
                 if(x == width - 1 || map.full(x + 1, y))
                 {
-                    value -= 3 * (y + 1);
+                    result.eval -= 3 * (y + 1);
                 }
                 if(x == 0 || map.full(x - 1, y))
                 {
-                    value -= 3 * (y + 1);
+                    result.eval -= 3 * (y + 1);
                 }
                 if(map.full(x, y + 1))
                 {
-                    value -= 10 * (y + 1);
+                    result.eval -= 10 * (y + 1);
                     if(map.full(x, y + 2))
                     {
-                        value -= 4;
+                        result.eval -= 4;
                         if(map.full(x, y + 3))
                         {
-                            value -= 3;
+                            result.eval -= 3;
                             if(map.full(x, y + 4))
                             {
-                                value -= 2;
+                                result.eval -= 2;
                             }
                         }
                     }
                 }
             }
         }
-        Result result;
-        result.eval = value;
         result.clear = clear;
-        result.count = map.count;
         int line;
         for(line = map.roof - 1; line > 0; --line)
         {
@@ -493,62 +627,143 @@ namespace ai_zzz
                 break;
             }
         }
-        result.safe = danger_line_ - line;
-        result.t_spin = node.type;
+        result.safe = danger_line_ - (line + 2);
         if(clear > 0 && node.is_check && node.is_last_rotate)
         {
             if(clear == 1 && node.is_mini_ready)
             {
-                result.t_spin = TSpinType::TSpinMini;
+                node.type = TSpinType::TSpinMini;
             }
             else if(node.is_ready)
             {
-                result.t_spin = TSpinType::TSpin;
+                node.type = TSpinType::TSpin;
             }
-            node.type = result.t_spin;
+            else
+            {
+                node.type = TSpinType::None;
+            }
         }
-        result.expect = 0;
-        bool finding = true;
-        for(int y = 0; finding && y < map.roof - 1; ++y)
+        result.t_spin = node.type;
+        result.t2_value = 0;
+        result.t3_value = 0;
+        bool finding2 = true;
+        bool finding3 = true;
+        for(int y = 0; (finding2 || finding3) && y < map.roof - 2; ++y)
         {
             int row0 = map.row[y];
             int row1 = map.row[y + 1];
-            for(int x = 0; finding && x < map.width - 3; ++x)
+            int row2 = y + 2 < map.height ? map.row[y + 2] : 0;
+            int row3 = y + 3 < map.height ? map.row[y + 3] : 0;
+            int row4 = y + 4 < map.height ? map.row[y + 4] : 0;
+            for(int x = 0; finding2 && x < map.width - 2; ++x)
             {
-                if((((row0 >> x) & 7) == 5) && (((row1 >> x) & 7) == 0))
+                if(((row0 >> x) & 7) == 5)
                 {
-                    int row2_check = ((y + 2 < map.height ? map.row[y + 2] : 0) >> x) & 7;
-                    if(row2_check == 1 || row2_check == 4)
+                    if(((row1 >> x) & 7) == 0)
                     {
-                        result.expect = 4;
+                        if(BitCount(row0) == map.width - 1)
+                        {
+                            result.t2_value += 1;
+                            if(BitCount(row1) == map.width - 3)
+                            {
+                                result.t2_value += 2;
+                                int row2_check = (row2 >> x) & 7;
+                                if(row2_check == 1 || row2_check == 4)
+                                {
+                                    result.t2_value += 2;
+                                }
+                                finding2 = false;
+                            }
+                        }
                     }
-                    else
+                }
+            }
+            for(int x = 0; finding3 && x < map.width - 3; ++x)
+            {
+                if(((row0 >> x) & 15) == 11)
+                {
+                    if(((row1 >> x) & 15) == 9)
                     {
-                        result.expect = 3;
+                        if(BitCount(row0) == map.width - 1)
+                        {
+                            result.t3_value += 1;
+                            if(BitCount(row1) == map.width - 2)
+                            {
+                                result.t3_value += 2;
+                                if(((row2 >> x) & 15) == 11)
+                                {
+                                    result.t3_value += 1;
+                                    if(BitCount(row2) == map.width - 1)
+                                    {
+                                        result.t3_value += 1;
+                                        if(((row3 >> x) & 15) == 8)
+                                        {
+                                            result.t3_value += 3;
+                                            int row4_check = ((row4 >> x) & 15);
+                                            if(row4_check == 4 || row4_check == 12)
+                                            {
+                                                result.t3_value += 5;
+                                            }
+                                        }
+                                    }
+                                    finding3 = false;
+                                }
+                            }
+                        }
                     }
-                    finding = false;
+                }
+                if(((row0 >> x) & 15) == 13)
+                {
+                    if(((row1 >> x) & 15) == 9)
+                    {
+                        if(BitCount(row0) == map.width - 1)
+                        {
+                            result.t3_value += 1;
+                            if(BitCount(row1) == map.width - 2)
+                            {
+                                result.t3_value += 2;
+                                if(((row2 >> x) & 15) == 13)
+                                {
+                                    result.t3_value += 1;
+                                    if(BitCount(row2) == map.width - 1)
+                                    {
+                                        result.t3_value += 1;
+                                        if(((row3 >> x) & 15) == 1)
+                                        {
+                                            result.t3_value += 3;
+                                            int row4_check = ((row4 >> x) & 15);
+                                            if(row4_check == 3 || row4_check == 1)
+                                            {
+                                                result.t3_value += 5;
+                                            }
+                                        }
+                                    }
+                                    finding3 = false;
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
         return result;
     }
 
-    TOJ::Status TOJ::get(Result const &eval_result, size_t depth, char hold, Status const & status) const
+    TOJ::Status TOJ::get(Result const &eval_result, size_t depth, char hold, Status const &status) const
     {
         Status result = status;
         result.value = eval_result.eval;
-        size_t rubbish = 0;
         int up = 0;
         if(eval_result.safe <= 0)
         {
-            result.value -= 9999999999999;
+            result.value -= 99999;
         }
         switch(eval_result.clear)
         {
         case 0:
             if(status.combo > 0 && status.combo < 3)
             {
-                result.like -= 4;
+                result.like -= 2;
             }
             result.combo = 0;
             if(status.under_attack > 0)
@@ -556,7 +771,7 @@ namespace ai_zzz
                 up = std::max(0, int(status.under_attack) - status.attack);
                 if(up >= eval_result.safe)
                 {
-                    result.value -= 9999999999999;
+                    result.value -= 99999;
                 }
                 result.under_attack = 0;
             }
@@ -576,7 +791,7 @@ namespace ai_zzz
         case 2:
             if(eval_result.t_spin != TSpinType::None)
             {
-                result.like += 6;
+                result.like += 8;
                 result.attack += status.b2b ? 5 : 4;
             }
             result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
@@ -599,7 +814,7 @@ namespace ai_zzz
         }
         if(result.combo < 5)
         {
-            result.like -= result.combo * 2;
+            result.like -= result.combo;
         }
         if(eval_result.count == 0 && up == 0)
         {
@@ -615,10 +830,20 @@ namespace ai_zzz
             }
             break;
         case 'I':
-            result.like += 2;
+            if(eval_result.clear != 4)
+            {
+                result.like += 2;
+            }
             break;
         }
-        result.value += (result.attack * 160 + eval_result.expect * 128 + (result.b2b ? 240 : 0) + result.like * 24) * std::max(0, full_count_ - eval_result.count) / full_count_ - up * 40;
+        double rate = (1. / depth) + 1.;
+        result.value += (0.
+                         + result.attack * 160
+                         + eval_result.t2_value * 128
+                         + (eval_result.safe >= 12 && result.under_attack < 2 ? eval_result.t3_value * (result.b2b ? 128 : 80) : 0)
+                         + (result.b2b ? 240 : 0)
+                         + result.like * 24
+                         ) * rate * std::max(0, full_count_ - eval_result.count - result.under_attack * context_->width()) / full_count_;
         return result;
     }
 
