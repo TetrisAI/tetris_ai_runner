@@ -567,7 +567,7 @@ namespace ai_zzz
                 danger_data_ |= 1 << x;
             }
         }
-        full_count_ = context->width() * (danger_line_ - 1);
+        full_count_ = context->width() * danger_line_;
     }
 
     std::string TOJ::ai_name() const
@@ -821,6 +821,10 @@ namespace ai_zzz
             result.like += 20;
             result.attack += 6;
         }
+        if(status.b2b && !result.b2b)
+        {
+            result.like -= 2;
+        }
         switch(hold)
         {
         case 'T':
@@ -840,7 +844,7 @@ namespace ai_zzz
         result.value += (0.
                          + result.attack * 160
                          + eval_result.t2_value * 128
-                         + (eval_result.safe >= 12 && result.under_attack < 2 ? eval_result.t3_value * (result.b2b ? 128 : 80) : 0)
+                         + (eval_result.safe >= 12 && result.under_attack < 2 ? eval_result.t3_value * (hold == 'T' ? 1.5 : 1.) * (result.b2b ? 128 : 80) : 0)
                          + (result.b2b ? 240 : 0)
                          + result.like * 24
                          ) * rate * std::max(0, full_count_ - eval_result.count - result.under_attack * context_->width()) / full_count_;
