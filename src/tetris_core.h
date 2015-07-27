@@ -1604,18 +1604,18 @@ namespace m_tetris
                 {
                     wait.insert(it);
                 }
-                context->width = 2;
             }
-            else
-            {
-                ++context->width;
-            }
+            ++context->width;
             bool complete = true;
             size_t next_length = context->max_length;
             while(next_length-- > 0)
             {
-                size_t level_prune_hold = ((next_length + 1) * context->width * 4) / context->max_length + 1;
+                size_t level_prune_hold = next_length * 12 / context->max_length + 1;
                 auto wait = &context->wait[next_length + 1];
+                if(level_prune_hold <= wait->size())
+                {
+                    complete = false;
+                }
                 if(wait->empty())
                 {
                     continue;
@@ -1635,11 +1635,7 @@ namespace m_tetris
                         }
                     }
                 }
-                while(sort->size() < level_prune_hold && !wait->empty());
-                if(!wait->empty())
-                {
-                    complete = false;
-                }
+                while(level_prune_hold-- > 0 && !wait->empty());
             }
             if(complete)
             {

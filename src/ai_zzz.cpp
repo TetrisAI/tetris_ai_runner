@@ -657,89 +657,80 @@ namespace ai_zzz
             int row4 = y + 4 < map.height ? map.row[y + 4] : 0;
             for(int x = 0; finding2 && x < map.width - 2; ++x)
             {
-                if(((row0 >> x) & 7) == 5)
+                if(((row0 >> x) & 7) == 5 && ((row1 >> x) & 7) == 0)
                 {
-                    if(((row1 >> x) & 7) == 0)
+                    if(BitCount(row0) == map.width - 1)
                     {
-                        if(BitCount(row0) == map.width - 1)
+                        result.t2_value += 1;
+                        if(BitCount(row1) == map.width - 3)
                         {
-                            result.t2_value += 1;
-                            if(BitCount(row1) == map.width - 3)
+                            result.t2_value += 2;
+                            int row2_check = (row2 >> x) & 7;
+                            if(row2_check == 1 || row2_check == 4)
                             {
                                 result.t2_value += 2;
-                                int row2_check = (row2 >> x) & 7;
-                                if(row2_check == 1 || row2_check == 4)
-                                {
-                                    result.t2_value += 2;
-                                }
-                                finding2 = false;
                             }
+                            finding2 = false;
                         }
                     }
                 }
             }
             for(int x = 0; finding3 && x < map.width - 3; ++x)
             {
-                if(((row0 >> x) & 15) == 11)
+                if(((row0 >> x) & 15) == 11 && ((row1 >> x) & 15) == 9)
                 {
-                    if(((row1 >> x) & 15) == 9)
+                    if(BitCount(row0) == map.width - 1)
                     {
-                        if(BitCount(row0) == map.width - 1)
+                        result.t3_value += 1;
+                        if(BitCount(row1) == map.width - 2)
                         {
-                            result.t3_value += 1;
-                            if(BitCount(row1) == map.width - 2)
+                            result.t3_value += 2;
+                            if(((row2 >> x) & 15) == 11)
                             {
-                                result.t3_value += 2;
-                                if(((row2 >> x) & 15) == 11)
+                                result.t3_value += 1;
+                                if(BitCount(row2) == map.width - 1)
                                 {
                                     result.t3_value += 1;
-                                    if(BitCount(row2) == map.width - 1)
+                                    if(((row3 >> x) & 15) == 8)
                                     {
-                                        result.t3_value += 1;
-                                        if(((row3 >> x) & 15) == 8)
+                                        result.t3_value += 3;
+                                        int row4_check = ((row4 >> x) & 15);
+                                        if(row4_check == 4 || row4_check == 12)
                                         {
-                                            result.t3_value += 3;
-                                            int row4_check = ((row4 >> x) & 15);
-                                            if(row4_check == 4 || row4_check == 12)
-                                            {
-                                                result.t3_value += 5;
-                                            }
+                                            result.t3_value += 5;
                                         }
                                     }
-                                    finding3 = false;
                                 }
+                                finding3 = false;
                             }
                         }
                     }
                 }
-                if(((row0 >> x) & 15) == 13)
+                if(((row0 >> x) & 15) == 13 && ((row1 >> x) & 15) == 9)
                 {
-                    if(((row1 >> x) & 15) == 9)
+                    if(BitCount(row0) == map.width - 1)
                     {
-                        if(BitCount(row0) == map.width - 1)
+                        result.t3_value += 1;
+                        if(BitCount(row1) == map.width - 2)
                         {
-                            result.t3_value += 1;
-                            if(BitCount(row1) == map.width - 2)
+                            result.t3_value += 2;
+                            if(((row2 >> x) & 15) == 13)
                             {
-                                result.t3_value += 2;
-                                if(((row2 >> x) & 15) == 13)
+                                result.t3_value += 1;
+                                if(BitCount(row2) == map.width - 1)
                                 {
                                     result.t3_value += 1;
-                                    if(BitCount(row2) == map.width - 1)
+                                    if(((row3 >> x) & 15) == 1)
                                     {
-                                        result.t3_value += 1;
-                                        if(((row3 >> x) & 15) == 1)
+                                        result.t3_value += 3;
+                                        int row4_check = ((row4 >> x) & 15);
+                                        if(row4_check == 3 || row4_check == 1)
                                         {
-                                            result.t3_value += 3;
-                                            int row4_check = ((row4 >> x) & 15);
-                                            if(row4_check == 3 || row4_check == 1)
-                                            {
-                                                result.t3_value += 5;
-                                            }
+                                            result.t3_value += 5;
                                         }
                                     }
-                                    finding3 = false;
                                 }
+                                finding3 = false;
                             }
                         }
                     }
@@ -814,7 +805,7 @@ namespace ai_zzz
         }
         if(result.combo < 5)
         {
-            result.like -= result.combo;
+            result.like -= 1.5 * result.combo;
         }
         if(eval_result.count == 0 && up == 0)
         {
