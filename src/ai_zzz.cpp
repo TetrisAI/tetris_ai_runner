@@ -306,7 +306,7 @@ namespace ai_zzz
             return result;
         }
 
-        Attack::Status Attack::get(Result const &eval_result, size_t depth, char hold, Status const &status) const
+        Attack::Status Attack::get(Result const &eval_result, size_t depth, char const *next, size_t length, char hold, Status const &status) const
         {
 
             Status result = status;
@@ -524,7 +524,7 @@ namespace ai_zzz
         return result;
     }
 
-    Dig::Status Dig::get(Result const &eval_result, size_t depth, char hold, Status const &status) const
+    Dig::Status Dig::get(Result const &eval_result, size_t depth, char const *next, size_t length, char hold, Status const &status) const
     {
         Status result;
         result.land_point = eval_result.land_point + status.land_point;
@@ -760,7 +760,7 @@ namespace ai_zzz
         return result;
     }
 
-    TOJ::Status TOJ::get(Result const &eval_result, size_t depth, char hold, Status const &status) const
+    TOJ::Status TOJ::get(Result const &eval_result, size_t depth, char const *next, size_t length, char hold, Status const &status) const
     {
         Status result = status;
         result.value = eval_result.eval;
@@ -1111,7 +1111,7 @@ namespace ai_zzz
         return result;
     }
 
-    C2::Status C2::get(Result const &eval_result, size_t depth, char hold, Status const &status) const
+    C2::Status C2::get(Result const &eval_result, size_t depth, char const *next, size_t length, char hold, Status const &status) const
     {
         Status result = status;
         result.land_point += eval_result.land_point;

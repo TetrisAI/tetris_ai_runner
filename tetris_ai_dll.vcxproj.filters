@@ -61,6 +61,9 @@
     <ClCompile Include="src\search_tag.cpp">
       <Filter>search\tag</Filter>
     </ClCompile>
+    <ClCompile Include="src\ai_misaka.cpp">
+      <Filter>ai\misaka</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\rule_srs.h">
@@ -133,6 +136,9 @@
     <ClInclude Include="src\search_tag.h">
       <Filter>search\tag</Filter>
     </ClInclude>
+    <ClInclude Include="src\ai_misaka.h">
+      <Filter>ai\misaka</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="rules">
@@ -197,6 +203,9 @@
     </Filter>
     <Filter Include="search\tag">
       <UniqueIdentifier>{51c74e1c-3b17-49ba-a5a3-fe8d4b60a954}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ai\misaka">
+      <UniqueIdentifier>{6757bd40-2045-4bfe-8f3d-3e3f566e6706}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

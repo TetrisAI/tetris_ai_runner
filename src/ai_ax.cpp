@@ -184,7 +184,7 @@ namespace ai_ax
         return result;
     }
 
-    AI::Status AI::get(Result const &eval_result, size_t depth, char hold, Status const &status) const
+    AI::Status AI::get(Result const &eval_result, size_t depth, char const *next, size_t length, char hold, Status const &status) const
     {
         Status result;
         result.land_point = eval_result.land_point + status.land_point;

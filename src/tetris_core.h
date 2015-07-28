@@ -803,6 +803,10 @@ namespace m_tetris
                 {
                     return node == other.node && vp == other.vp;
                 }
+                operator char() const
+                {
+                    return node;
+                }
                 char node;
                 bool vp;
             };
@@ -822,6 +826,10 @@ namespace m_tetris
                 bool operator == (TetrisNext const &other) const
                 {
                     return node == other.node;
+                }
+                operator char() const
+                {
+                    return node;
                 }
                 char node;
             };
@@ -856,6 +864,7 @@ namespace m_tetris
             TetrisNode virtual_flag;
             TetrisNode const *current;
             std::vector<next_t> next;
+            std::vector<char> next_c;
             double total;
             double avg;
         public:
@@ -1113,6 +1122,7 @@ namespace m_tetris
                 context->is_open_hold = false;
                 context->current = _node;
                 context->next = next;
+                context->next_c.assign(next.begin(), next.end());
                 root->node = _node->status.t;
                 root->status.set(status);
                 root->next = std::next(context->next.begin());
@@ -1139,6 +1149,7 @@ namespace m_tetris
                 context->is_open_hold = true;
                 context->current = _node;
                 context->next = next;
+                context->next_c.assign(next.begin(), next.end());
                 root->status.set(status);
                 root->node = _node->status.t;
                 root->hold = _hold;
@@ -1496,7 +1507,7 @@ namespace m_tetris
             for(auto it = children; it != nullptr; it = it->children_next)
             {
                 it->level = children_level;
-                it->status.set(context->ai->get(it->result, depth, it->hold, status.get_raw()));
+                it->status.set(context->ai->get(it->result, depth, nullptr, 0, it->hold, status.get_raw()));
                 auto &status = iterate_cache[engine->convert(it->identity->status.t)];
                 if(status == nullptr || *status < it->status.get())
                 {
@@ -1521,7 +1532,17 @@ namespace m_tetris
             }
             for(auto it = children; it != nullptr; it = it->children_next)
             {
-                it->status.set(context->ai->get(it->result, level + 1, it->hold, status.get_raw()));
+                char const *next_ptr;
+                size_t next_length = std::distance(next, context->next.cend());
+                if(next_length == 0)
+                {
+                    next_ptr = nullptr;
+                }
+                else
+                {
+                    next_ptr = context->next_c.data() + (context->next_c.size() - next_length);
+                }
+                it->status.set(context->ai->get(it->result, level + 1, next_ptr, next_length, it->hold, status.get_raw()));
             }
             if(TetrisAIHasIterate<TetrisAI>::type::value && context->next[level].get_vp())
             {
