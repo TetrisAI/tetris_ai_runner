@@ -51,7 +51,6 @@ namespace ai_misaka
             int b2b;
             int total_clear_att;
             int total_clears;
-            int clear_att;
             int clearScore;
             int att;
             int max_att;

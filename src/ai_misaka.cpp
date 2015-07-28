@@ -242,7 +242,7 @@ namespace ai_misaka
         char cur_num = eval_result.node->status.t;
         int total_clear_att = status.total_clear_att;
         int total_clears = status.total_clears;
-        int clear_att = status.clear_att;
+        int clear_att = status.att;
         int upcomeAtt = status.upcomeAtt;
         int8_t wallkick_spin = eval_result.t_spin != TSpinType::None ? 2 : 0;
         int t_dis = [=]()->int
@@ -1426,6 +1426,9 @@ namespace ai_misaka
         {
             att += m_pc_att;
         }
+        result.total_clear_att += att;
+        result.total_clears += eval_result.clear;
+        result.att = att;
         result.max_att = std::max(status.max_att, status.att + att);
         result.max_combo = std::max(status.max_combo, result.combo);
         result.score = score;
