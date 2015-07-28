@@ -8,16 +8,14 @@ using namespace m_tetris;
 
 namespace search_tspin
 {
-    void Search::init(m_tetris::TetrisContext const *context, Config const *config)
+    void Search::init(TetrisContext const *context, Config const *config)
     {
+        context_ = context;
         config_ = config;
         node_mark_.init(context->node_max());
         node_mark_filtered_.init(context->node_max());
-        block_data_.clear();
-        for(int i = -10; i < context->width() + 10; ++i)
-        {
-            block_data_[i] = 0;
-        }
+        block_data_ = block_data_buffer_ + 10;
+        ::memset(block_data_buffer_, 0, sizeof block_data_buffer_);
         TetrisNode const *node = context->generate('T');
         if(node != nullptr)
         {
@@ -617,7 +615,7 @@ namespace search_tspin
         node_mark_.clear();
         node_search_.clear();
         const int index = land_point.last->index;
-        auto build_path = [&land_point, &map, allow_180](TetrisNode const *node, decltype(node_mark_) &node_mark)->std::vector < char >
+        auto build_path = [&land_point, &map, allow_180](TetrisNode const *node, decltype(node_mark_) &node_mark)->std::vector<char>
         {
             std::vector<char> path;
             while(true)
@@ -932,6 +930,8 @@ namespace search_tspin
 
     std::vector<Search::TetrisNodeWithTSpinType> const *Search::search_t(TetrisMap const &map, TetrisNode const *node)
     {
+        TetrisMapSnap snap;
+        node->build_snap(map, context_, snap);
         bool allow_180 = config_->allow_180;
         node_search_.push_back(node);
         node_mark_.mark(node);
@@ -942,7 +942,7 @@ namespace search_tspin
             for(size_t max_index = node_search_.size(); cache_index < max_index; ++cache_index)
             {
                 node = node_search_[cache_index];
-                if(!node->move_down || !node->move_down->check(map))
+                if(!node->move_down || !node->move_down->check(snap))
                 {
                     if(node_mark_filtered_.mark(node))
                     {
@@ -950,24 +950,24 @@ namespace search_tspin
                     }
                 }
                 //d
-                if(node->move_down && node_mark_.set(node->move_down, node, ' ') && node->move_down->check(map))
+                if(node->move_down && node_mark_.set(node->move_down, node, ' ') && node->move_down->check(snap))
                 {
                     node_search_.push_back(node->move_down);
                 }
                 //l
-                if(node->move_left && node_mark_.set(node->move_left, node, ' ') && node->move_left->check(map))
+                if(node->move_left && node_mark_.set(node->move_left, node, ' ') && node->move_left->check(snap))
                 {
                     node_search_.push_back(node->move_left);
                 }
                 //r
-                if(node->move_right && node_mark_.set(node->move_right, node, ' ') && node->move_right->check(map))
+                if(node->move_right && node_mark_.set(node->move_right, node, ' ') && node->move_right->check(snap))
                 {
                     node_search_.push_back(node->move_right);
                 }
                 if(allow_180)
                 {
                     //x
-                    if(node->rotate_opposite && node->rotate_opposite->check(map))
+                    if(node->rotate_opposite && node->rotate_opposite->check(snap))
                     {
                         if(node_mark_.cover(node->rotate_opposite, node, 'x'))
                         {
@@ -980,7 +980,7 @@ namespace search_tspin
                         {
                             if(wall_kick_node)
                             {
-                                if(wall_kick_node->check(map))
+                                if(wall_kick_node->check(snap))
                                 {
                                     if(node_mark_.cover(wall_kick_node, node, 'x'))
                                     {
@@ -997,7 +997,7 @@ namespace search_tspin
                     }
                 }
                 //z
-                if(node->rotate_counterclockwise && node->rotate_counterclockwise->check(map))
+                if(node->rotate_counterclockwise && node->rotate_counterclockwise->check(snap))
                 {
                     if(node_mark_.cover(node->rotate_counterclockwise, node, 'z'))
                     {
@@ -1010,7 +1010,7 @@ namespace search_tspin
                     {
                         if(wall_kick_node)
                         {
-                            if(wall_kick_node->check(map))
+                            if(wall_kick_node->check(snap))
                             {
                                 if(node_mark_.cover(wall_kick_node, node, 'z'))
                                 {
@@ -1026,7 +1026,7 @@ namespace search_tspin
                     }
                 }
                 //c
-                if(node->rotate_clockwise && node->rotate_clockwise->check(map))
+                if(node->rotate_clockwise && node->rotate_clockwise->check(snap))
                 {
                     if(node_mark_.cover(node->rotate_clockwise, node, 'c'))
                     {
@@ -1039,7 +1039,7 @@ namespace search_tspin
                     {
                         if(wall_kick_node)
                         {
-                            if(wall_kick_node->check(map))
+                            if(wall_kick_node->check(snap))
                             {
                                 if(node_mark_.cover(wall_kick_node, node, 'c'))
                                 {
@@ -1065,7 +1065,7 @@ namespace search_tspin
             node_ex.is_check = true;
             node_ex.is_last_rotate = last.second != ' ';
             node_ex.is_ready = check_ready(map, node);
-            node_ex.is_mini_ready = check_mini_ready(map, node_ex);
+            node_ex.is_mini_ready = check_mini_ready(snap, node_ex);
             land_point_cache_.push_back(node_ex);
         }
         return &land_point_cache_;
@@ -1075,7 +1075,7 @@ namespace search_tspin
     {
         int count;
         int y = node->status.y + y_diff_;
-        int row = block_data_.find(node->status.x)->second;
+        int row = block_data_[node->status.x];
         if(y == 0)
         {
             return zzz::BitCount(map.row[1] & row) + 2 >= 3;
@@ -1095,8 +1095,8 @@ namespace search_tspin
         }
     }
 
-    bool Search::check_mini_ready(m_tetris::TetrisMap const &map, TetrisNodeWithTSpinType const &node)
+    bool Search::check_mini_ready(TetrisMapSnap const &snap, TetrisNodeWithTSpinType const &node)
     {
-        return node.is_ready && !(node->rotate_opposite && node->rotate_opposite->check(map) || node->rotate_counterclockwise && node->rotate_counterclockwise->check(map) || node->rotate_clockwise && node->rotate_clockwise->check(map));
+        return node.is_ready && !(node->rotate_opposite && node->rotate_opposite->check(snap) || node->rotate_counterclockwise && node->rotate_counterclockwise->check(snap) || node->rotate_clockwise && node->rotate_clockwise->check(snap));
     }
 }

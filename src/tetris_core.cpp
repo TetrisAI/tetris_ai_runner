@@ -44,6 +44,52 @@ namespace m_tetris
         return true;
     }
 
+    bool TetrisNode::check(TetrisMapSnap const &snap) const
+    {
+        return ((snap.row[status.r][row] >> col) & 1) == 0;
+    }
+
+    void TetrisNode::build_snap(TetrisMap const &map, TetrisContext const *context, TetrisMapSnap &snap) const
+    {
+        for(int r = 0; r < 4; ++r)
+        {
+            auto block = context->get_block(status.t, r);
+            if(block->count > 0)
+            {
+                for(uint32_t i = 0; i < block->count; ++i)
+                {
+                    int bx = block->data[i].x, by = block->data[i].y;
+                    if(bx > 0)
+                    {
+                        uint32_t wall = 1U << (context->width() - bx);
+                        int y = 0, e1 = map.roof - by, e2 = map.height - by;
+                        while(y < e1)
+                        {
+                            snap.row[r][y] |= map.row[y + by] >> bx | wall;
+                            ++y;
+                        }
+                        while(y < e2)
+                        {
+                            snap.row[r][y] |= wall;
+                            ++y;
+                        }
+                    }
+                    else
+                    {
+                        for(int y = 0, ey = map.roof - by; y < ey; ++y)
+                        {
+                            snap.row[r][y] |= map.row[y + by] >> bx;
+                        }
+                    }
+                    if(by > 0)
+                    {
+                        snap.row[r][map.height - by] = context->full();
+                    }
+                }
+            }
+        }
+    }
+
     bool TetrisNode::open(TetrisMap const &map) const
     {
         switch(width)
@@ -338,6 +384,7 @@ namespace m_tetris
         }
         place_cache_.clear();
         node_cache_.clear();
+        node_block_.clear();
         width_ = width;
         height_ = height;
         type_max_ = 0;
@@ -351,6 +398,7 @@ namespace m_tetris
             type_to_index_[::toupper(type) + 128] = type_max_;
             ++type_max_;
         }
+        node_block_.resize(type_max_ * 4);
         for(size_t i = 0; i < type_max_; ++i)
         {
             TetrisNode node;
@@ -448,6 +496,22 @@ namespace m_tetris
                         }
                         node.move_down_multi[index] = &result.first->second;
                         ++index;
+                    }
+                }
+                auto &block = node_block_[convert(node.status.t) * 4 + node.status.r];
+                if(block.count == 0)
+                {
+                    for(int x = node.col; x < node.col + node.width; ++x)
+                    {
+                        for(int y = 0; y < node.height; ++y)
+                        {
+                            if((node.data[y] >> x) & 1)
+                            {
+                                auto &b = block.data[block.count++];
+                                b.x = x - node.col;
+                                b.y = y;
+                            }
+                        }
                     }
                 }
             }
@@ -559,7 +623,7 @@ namespace m_tetris
         return height_;
     }
 
-    size_t TetrisContext::full() const
+    uint32_t TetrisContext::full() const
     {
         return full_;
     }
@@ -584,7 +648,7 @@ namespace m_tetris
         return index_to_type_[index];
     }
 
-    TetrisOpertion TetrisContext::get_opertion(unsigned char t, unsigned char r) const
+    TetrisOpertion TetrisContext::get_opertion(char t, unsigned char r) const
     {
         auto find = opertion_.find(std::make_pair(t, r));
         if(find == opertion_.end())
@@ -596,6 +660,11 @@ namespace m_tetris
         {
             return find->second;
         }
+    }
+
+    TetrisNodeBlockLocate const *TetrisContext::get_block(char t, unsigned char r) const
+    {
+        return &node_block_[convert(t) * 4 + r];
     }
 
     TetrisNode const *TetrisContext::get(TetrisBlockStatus const &status) const

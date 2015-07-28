@@ -71,6 +71,28 @@ namespace m_tetris
         }
     };
 
+    struct TetrisNodeBlockLocate
+    {
+        uint32_t count;
+        struct
+        {
+            uint16_t x, y;
+        } data[16];
+        TetrisNodeBlockLocate()
+        {
+            count = 0;
+        }
+    };
+
+    struct TetrisMapSnap
+    {
+        uint32_t row[4][max_height];
+        TetrisMapSnap()
+        {
+            ::memset(row, 0, sizeof row);
+        }
+    };
+
     //方块状态
     //t:OISZLJT字符
     //[x,y]坐标,y越大高度越大
@@ -159,7 +181,7 @@ namespace m_tetris
         //方块每列的下沿高度
         int32_t bottom[4];
         //方块在场景中的矩形位置
-        int8_t row, height, col, width;
+        int32_t row, height, col, width;
         //各种变形会触及到的最低高度
         int32_t low;
 
@@ -197,6 +219,10 @@ namespace m_tetris
 
         //检查当前块是否能够合并入场景
         bool check(TetrisMap const &map) const;
+        //检查当前块是否能够合并入场景
+        bool check(TetrisMapSnap const &snap) const;
+        //构建场景快照
+        void build_snap(TetrisMap const &map, TetrisContext const *context, TetrisMapSnap &snap) const;
         //检查当前块是否是露天的
         bool open(TetrisMap const &map) const;
         //当前块合并入场景,同时更新场景数据
@@ -274,8 +300,10 @@ namespace m_tetris
         //指针网数据
         std::unordered_map<TetrisBlockStatus, TetrisNode, TetrisBlockStatusHash, TetrisBlockStatusEqual> node_cache_;
 
-        //规则信息
+        //方块偏移数据
+        std::vector<TetrisNodeBlockLocate> node_block_;
 
+        //规则信息
         std::map<std::pair<char, unsigned char>, TetrisOpertion> opertion_;
         std::map<char, TetrisBlockStatus(*)(TetrisContext const *)> generate_;
 
@@ -301,12 +329,13 @@ namespace m_tetris
 
         int width() const;
         int height() const;
-        size_t full() const;
+        uint32_t full() const;
         size_t type_max() const;
         size_t node_max() const;
         size_t convert(char type) const;
         char convert(size_t index) const;
-        TetrisOpertion get_opertion(unsigned char t, unsigned char r) const;
+        TetrisOpertion get_opertion(char t, unsigned char r) const;
+        TetrisNodeBlockLocate const *get_block(char t, unsigned char r) const;
         TetrisNode const *get(TetrisBlockStatus const &status) const;
         TetrisNode const *get(char t, int8_t x, int8_t y, uint8_t r) const;
         TetrisNode const *generate(char type) const;

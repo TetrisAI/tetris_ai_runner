@@ -102,6 +102,7 @@ namespace ai_zzz
         {
             int combo;
             int under_attack;
+            int map_rise;
             bool b2b;
             int attack;
             double like;

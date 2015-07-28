@@ -627,7 +627,7 @@ namespace ai_zzz
                 break;
             }
         }
-        result.safe = danger_line_ - (line + 2);
+        result.safe = danger_line_ - (line + 1);
         if(clear > 0 && node.is_check && node.is_last_rotate)
         {
             if(clear == 1 && node.is_mini_ready)
@@ -744,7 +744,6 @@ namespace ai_zzz
     {
         Status result = status;
         result.value = eval_result.eval;
-        int up = 0;
         if(eval_result.safe <= 0)
         {
             result.value -= 99999;
@@ -759,8 +758,8 @@ namespace ai_zzz
             result.combo = 0;
             if(status.under_attack > 0)
             {
-                up = std::max(0, int(status.under_attack) - status.attack);
-                if(up >= eval_result.safe)
+                result.map_rise += std::max(0, int(status.under_attack) - status.attack);
+                if(result.map_rise >= eval_result.safe)
                 {
                     result.value -= 99999;
                 }
@@ -807,7 +806,7 @@ namespace ai_zzz
         {
             result.like -= 1.5 * result.combo;
         }
-        if(eval_result.count == 0 && up == 0)
+        if(eval_result.count == 0 && result.map_rise == 0)
         {
             result.like += 20;
             result.attack += 6;
@@ -834,11 +833,11 @@ namespace ai_zzz
         double rate = (1. / depth) + 1.;
         result.value += (0.
                          + result.attack * 160
-                         + eval_result.t2_value * 128
-                         + (eval_result.safe >= 12 && result.under_attack < 2 ? eval_result.t3_value * (hold == 'T' ? 1.5 : 1.) * (result.b2b ? 128 : 80) : 0)
+                         + eval_result.t2_value * 160
+                         + (eval_result.safe >= 12 && result.under_attack < 2 ? eval_result.t3_value * (hold == 'T' ? 1.5 : 1.) * (result.b2b ? 200 : 160) : 0)
                          + (result.b2b ? 240 : 0)
                          + result.like * 24
-                         ) * rate * std::max(0, full_count_ - eval_result.count - result.under_attack * context_->width()) / full_count_;
+                         ) * rate * std::max(0, full_count_ - eval_result.count - (result.map_rise + result.under_attack) * (context_->width() - 1)) / full_count_;
         return result;
     }
 

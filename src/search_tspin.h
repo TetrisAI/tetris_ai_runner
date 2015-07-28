@@ -49,14 +49,16 @@ namespace search_tspin
         std::vector<char> make_path_t(m_tetris::TetrisNode const *node, TetrisNodeWithTSpinType const &land_point, m_tetris::TetrisMap const &map);
         std::vector<TetrisNodeWithTSpinType> const *search_t(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
         bool check_ready(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
-        bool check_mini_ready(m_tetris::TetrisMap const &map, TetrisNodeWithTSpinType const &node);
+        bool check_mini_ready(m_tetris::TetrisMapSnap const &snap, TetrisNodeWithTSpinType const &node);
         std::vector<TetrisNodeWithTSpinType> land_point_cache_;
         std::vector<m_tetris::TetrisNode const *> node_incomplete_;
         std::vector<m_tetris::TetrisNode const *> node_search_;
         m_tetris::TetrisNodeMark node_mark_;
         m_tetris::TetrisNodeMarkFiltered node_mark_filtered_;
-        std::map<int, int> block_data_;
+        uint32_t *block_data_;
+        uint32_t block_data_buffer_[52];
         int x_diff_, y_diff_;
         Config const *config_;
+        m_tetris::TetrisContext const *context_;
     };
 }
