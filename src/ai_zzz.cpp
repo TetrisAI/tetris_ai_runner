@@ -854,10 +854,10 @@ namespace ai_zzz
         result.value += (0.
                          + result.attack * 160
                          + eval_result.t2_value * 160
-                         + (eval_result.safe >= 12 && result.under_attack < 2 ? eval_result.t3_value * (hold == 'T' ? 1.5 : 1.) * (result.b2b ? 200 : 160) : 0)
+                         + (eval_result.safe >= 12 ? eval_result.t3_value * (hold == 'T' ? 1.5 : 1.) * (result.b2b ? 200 : 160) / (1 + result.under_attack) : 0)
                          + (result.b2b ? 240 : 0)
                          + result.like * 24
-                         ) * rate * std::max(0, full_count_ - eval_result.count - (result.map_rise + result.under_attack) * (context_->width() - 1)) / full_count_;
+                         ) * rate * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_));
         return result;
     }
 

@@ -1639,7 +1639,7 @@ namespace m_tetris
             size_t next_length = context->max_length;
             while(next_length-- > 0)
             {
-                size_t level_prune_hold = next_length * 12 / context->max_length + 1;
+                size_t level_prune_hold = next_length * 40 / 3 / context->max_length + 1;
                 auto wait = &context->wait[next_length + 1];
                 if(level_prune_hold <= wait->size())
                 {
