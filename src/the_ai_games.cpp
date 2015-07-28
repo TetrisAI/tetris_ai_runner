@@ -225,19 +225,16 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
                 int enemy_point_add = 0;
                 if(node2 != nullptr)
                 {
-                    decltype(bot_2)::Status in_status2;
-                    in_status2.combo = enemy_combo;
-                    in_status2.point = 0;
+                    bot_2.status()->combo = enemy_combo;
+                    bot_2.status()->point = 0;
                     bot_2.ai_config()->point_ptr = &enemy_point_add;
-                    bot_2.run(map2, in_status2, node2, next_arr, 2, 20);
+                    bot_2.run(map2, node2, next_arr, 2, 20);
                 }
-                decltype(bot_1)::Status in_status1;
-                in_status1.combo = combo;
-                in_status1.depth = 0;
-                in_status1.land_point = 0;
-                in_status1.up = (enemy_row_points % 4 + enemy_point_add) / 4;
-                in_status1.value = 0;
-                target = bot_1.run(map1, in_status1, node1, next_arr, 2, std::max(50, std::atoi(params[2].c_str()) - 100)).target;
+                bot_1.status()->combo = combo;
+                bot_1.status()->land_point = 0;
+                bot_1.status()->up = (enemy_row_points % 4 + enemy_point_add) / 4;
+                bot_1.status()->value = 0;
+                target = bot_1.run(map1, node1, next_arr, 2, std::max(50, std::atoi(params[2].c_str()) - 100)).target;
             }
             if(target != nullptr)
             {
@@ -332,12 +329,10 @@ int main()
 {
     auto &ai = bot_1;
     ai.prepare(10, 21);
-    std::remove_reference<decltype(ai)>::type::Status in_status;
-    in_status.land_point = 0;
-    in_status.up = 0;
-    in_status.depth = 0;
-    in_status.combo = 0;
-    in_status.value = 0;
+    ai.status()->land_point = 0;
+    ai.status()->up = 0;
+    ai.status()->combo = 0;
+    ai.status()->value = 0;
 
 
     char out[81920] = "";
@@ -367,6 +362,7 @@ int main()
         next.erase(next.begin());
 
         out[0] = '\0';
+        snprintf(out, sizeof out, "%02d\r\n", ai.status()->combo);
         m_tetris::TetrisMap map_copy = map;
         node->attach(map_copy);
         for(int y = 21; y >= 0; --y)
@@ -380,7 +376,10 @@ int main()
         strcat_s(out, "\r\n");
         printf(out);
 
-        auto result = ai.run(map, in_status, node, next.data(), next.size(), 333);
+        next.push_back('?');
+        auto result = ai.run(map, node, next.data(), next.size(), 10000);
+        next.pop_back();
+        Sleep(200);
         if(result.change_hold)
         {
             hold = node->status.t;
@@ -392,11 +391,11 @@ int main()
         }
         if(clear > 0)
         {
-            ++in_status.combo;
+            ++ai.status()->combo;
         }
         else
         {
-            in_status.combo = 0;
+            ai.status()->combo = 0;
         }
     }
 }

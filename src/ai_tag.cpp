@@ -42,16 +42,11 @@ namespace ai_tag
         return "The AI Games (SetoSan) v0.1";
     }
 
-    the_ai_games::Status the_ai_games::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear, Status const &status) const
+    the_ai_games::Result the_ai_games::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
     {
         double LandHeight = node->row + node->height;
         double Middle = std::abs((int(node->status.x) + 1) * 2 - int(map.width));
         double EraseCount = clear;
-        double BoardDeadZone = map_in_danger_(map, status.up);
-        if(map.roof + status.up >= map.height)
-        {
-            BoardDeadZone += 70;
-        }
 
         const int width_m1 = map.width - 1;
         int ColTrans = 2 * (map.height - map.roof);
@@ -231,42 +226,56 @@ namespace ai_tag
             }
         }
 
-        Status result = status;
-        ++result.depth;
-        result.land_point += (0.
-                              - LandHeight * 1750 / map.height
-                              + Middle * 2
-                              + EraseCount * 60
-                              - BoardDeadZone * 50000000
-                              );
-        double map_value = (0.
-                            - ColTrans * 80
-                            - RowTrans * 80
-                            - v.HoleCount * 120
-                            - v.HoleLine * 380
-                            - v.ClearWidth0 * 8
-                            - v.ClearWidth1 * 4
-                            - v.ClearWidth2 * 1
-                            - v.WellDepthTotle * 160
-                            + v.WideWellDepth[5] * 8
-                            + v.WideWellDepth[4] * 16
-                            + v.WideWellDepth[3] * 32
-                            + v.WideWellDepth[2] * 48
-                            + v.WideWellDepth[1] * -8
-                            + v.WideWellDepth[0] * 4
-                            + (low_x == 0 ? 400 : 0)
-                            );
+        Result result;
+        result.land_point = (0.
+                             - LandHeight * 1750 / map.height
+                             + Middle * 2
+                             + EraseCount * 60
+                             );
+        result.map = (0.
+                      - ColTrans * 80
+                      - RowTrans * 80
+                      - v.HoleCount * 120
+                      - v.HoleLine * 380
+                      - v.ClearWidth0 * 8
+                      - v.ClearWidth1 * 4
+                      - v.ClearWidth2 * 1
+                      - v.WellDepthTotle * 160
+                      + v.WideWellDepth[5] * 8
+                      + v.WideWellDepth[4] * 32
+                      + v.WideWellDepth[3] * 8
+                      + v.WideWellDepth[2] * 48
+                      + v.WideWellDepth[1] * -8
+                      + v.WideWellDepth[0] * 4
+                      + (low_x == 0 ? 400 : 0)
+                      );
+        result.full = full;
+        result.count = map.count - v.HoleCount;
+        result.clear = clear;
+        result.low_y = low_y;
+        result.save_map = &map;
+        return result;
+    }
 
-        bool building = (map.count - full * map.width + v.HoleCount) * 3 / 2 < std::max(0, (map.height - 5) - (full + status.up)) * map.width;
-        if(clear > 0)
+    the_ai_games::Status the_ai_games::get(Result const &eval_result, size_t depth, char hold, Status const &status) const
+    {
+        Status result = status;
+        double BoardDeadZone = map_in_danger_(*eval_result.save_map, status.up);
+        if(eval_result.save_map->roof + status.up >= context_->height())
         {
-            if(clear == 4)
+            BoardDeadZone += 70;
+        }
+        result.land_point -= BoardDeadZone * 50000000;
+        bool building = (eval_result.count - eval_result.full * context_->width()) * 3 / 2 < std::max(0, (context_->height() - 5) - (eval_result.full + status.up)) * context_->width();
+        if(eval_result.clear > 0)
+        {
+            if(eval_result.clear == 4)
             {
                 result.land_point += 2000;
             }
             if(status.combo == 0 && building)
             {
-                result.land_point -= (4 - std::min<int>(4, low_y)) * 1600;
+                result.land_point -= (4 - std::min<int>(4, eval_result.low_y)) * 1600;
             }
             else if(status.combo > 0)
             {
@@ -276,13 +285,35 @@ namespace ai_tag
         }
         else
         {
-            if(status.combo > 0 && building)
+            if(status.combo > 0 && building && eval_result.low_y > 4)
             {
                 result.land_point -= 3200;
             }
             result.combo = 0;
         }
-        result.value = result.land_point / status.depth + map_value;
+        result.value = result.land_point + eval_result.map;
+        return result;
+    }
+
+    the_ai_games::Status the_ai_games::iterate(Status const **status, size_t status_length) const
+    {
+        Status result;
+        result.combo = 0;
+        result.up = 0;
+        result.land_point = 0;
+        result.value = 0;
+        for(size_t i = 0; i < status_length; ++i)
+        {
+            if(status[i] == nullptr)
+            {
+                result.value += -9999999999;
+            }
+            else
+            {
+                result.value += status[i]->value;
+            }
+        }
+        result.value /= status_length;
         return result;
     }
 
@@ -319,7 +350,12 @@ namespace ai_tag
         return "The AI Games (SetoSan) v0.1";
     }
 
-    the_ai_games_enemy::Status the_ai_games_enemy::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear, Status const &status) const
+    size_t the_ai_games_enemy::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
+    {
+        return clear;
+    }
+
+    the_ai_games_enemy::Status the_ai_games_enemy::get(size_t clear, size_t depth, char hold, Status const &status) const
     {
         Status result;
         result.point = status.point + clear;
@@ -339,6 +375,21 @@ namespace ai_tag
         if(result.point > *config_->point_ptr)
         {
             *config_->point_ptr = result.point;
+        }
+        return result;
+    }
+
+    the_ai_games_enemy::Status the_ai_games_enemy::iterate(Status const **status, size_t status_length) const
+    {
+        Status result;
+        result.combo = 0;
+        result.point = 0;
+        for(size_t i = 0; i < status_length; ++i)
+        {
+            if(status[i] != nullptr && status[i]->point > result.point)
+            {
+                result.point += status[i]->point;
+            }
         }
         return result;
     }
