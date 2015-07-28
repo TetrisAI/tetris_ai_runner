@@ -679,60 +679,80 @@ namespace ai_zzz
             {
                 if(((row0 >> x) & 15) == 11 && ((row1 >> x) & 15) == 9)
                 {
+                    int t3_value = 0;
                     if(BitCount(row0) == map.width - 1)
                     {
-                        result.t3_value += 1;
+                        t3_value += 1;
                         if(BitCount(row1) == map.width - 2)
                         {
-                            result.t3_value += 2;
+                            t3_value += 2;
                             if(((row2 >> x) & 15) == 11)
                             {
-                                result.t3_value += 1;
+                                t3_value += 1;
                                 if(BitCount(row2) == map.width - 1)
                                 {
-                                    result.t3_value += 1;
-                                    if(((row3 >> x) & 15) == 8)
-                                    {
-                                        result.t3_value += 1;
-                                        int row4_check = ((row4 >> x) & 15);
-                                        if(row4_check == 4 || row4_check == 12)
-                                        {
-                                            result.t3_value += 1;
-                                        }
-                                    }
+                                    t3_value += 1;
                                 }
-                                finding3 = false;
+                            }
+                            int row3_check = ((row3 >> x) & 15);
+                            if(row3_check == 8 || row3_check == 0)
+                            {
+                                t3_value += 1;
+                                int row4_check = ((row4 >> x) & 15);
+                                if(row4_check == 4 || row4_check == 12)
+                                {
+                                    t3_value += 1;
+                                }
+                            }
+                            else
+                            {
+                                t3_value = 0;
                             }
                         }
+                    }
+                    result.t3_value += t3_value;
+                    if(t3_value > 3)
+                    {
+                        finding3 = false;
                     }
                 }
                 if(((row0 >> x) & 15) == 13 && ((row1 >> x) & 15) == 9)
                 {
+                    int t3_value = 0;
                     if(BitCount(row0) == map.width - 1)
                     {
-                        result.t3_value += 1;
+                        t3_value += 1;
                         if(BitCount(row1) == map.width - 2)
                         {
-                            result.t3_value += 2;
+                            t3_value += 2;
                             if(((row2 >> x) & 15) == 13)
                             {
-                                result.t3_value += 1;
+                                t3_value += 1;
                                 if(BitCount(row2) == map.width - 1)
                                 {
-                                    result.t3_value += 1;
-                                    if(((row3 >> x) & 15) == 1)
-                                    {
-                                        result.t3_value += 1;
-                                        int row4_check = ((row4 >> x) & 15);
-                                        if(row4_check == 3 || row4_check == 1)
-                                        {
-                                            result.t3_value += 1;
-                                        }
-                                    }
+                                    t3_value += 1;
                                 }
-                                finding3 = false;
+                            }
+                            int row3_check = ((row3 >> x) & 15);
+                            if(row3_check == 1 || row3_check == 0)
+                            {
+                                t3_value += 1;
+                                int row4_check = ((row4 >> x) & 15);
+                                if(row4_check == 3 || row4_check == 1)
+                                {
+                                    t3_value += 1;
+                                }
+                            }
+                            else
+                            {
+                                t3_value = 0;
                             }
                         }
+                    }
+                    result.t3_value += t3_value;
+                    if(t3_value > 3)
+                    {
+                        finding3 = false;
                     }
                 }
             }
