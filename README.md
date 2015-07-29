@@ -12,10 +12,9 @@ tetris_ai_runner
 这是一个高性能俄罗斯积木的AI框架...<br/>
 基于位运算,最大支持32x40的游戏场景<br/>
 这里为了性能使用了各种优化!<br/>
-目前处于研究虚拟计算next的阶段.<br/>
 AI排行榜参见[http://misakamm.com/blog/504](http://misakamm.com/blog/504).<br/>
 <br/>
-如果您认为接口太复杂,可以参考demo.cpp以更简单的方式使用AI框架.<br/>
+如果您认为接口太复杂,可以参考demo工程以更简单的方式使用AI框架.<br/>
 <br/>
 如果你有什么想法,请联系我们!<br/>
 默认AI为[ax_pokl](https://github.com/axpokl)贡献,再次感谢!<br/>
