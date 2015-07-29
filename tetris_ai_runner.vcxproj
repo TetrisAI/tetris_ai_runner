@@ -13,7 +13,8 @@
   <ItemGroup>
     <ClInclude Include="src\ai_ax.h" />
     <ClInclude Include="src\ai_easy.h" />
-    <ClInclude Include="src\ai_farteryhr.h" />
+    <ClInclude Include="src\ai_farter.h" />
+    <ClInclude Include="src\ai_misaka.h" />
     <ClInclude Include="src\ai_tag.h" />
     <ClInclude Include="src\ai_zzz.h" />
     <ClInclude Include="src\bst_base.h" />
@@ -38,7 +39,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ai_ax.cpp" />
-    <ClCompile Include="src\ai_farteryhr.cpp" />
+    <ClCompile Include="src\ai_farter.cpp" />
+    <ClCompile Include="src\ai_misaka.cpp" />
     <ClCompile Include="src\ai_tag.cpp" />
     <ClCompile Include="src\ai_zzz.cpp" />
     <ClCompile Include="src\dllmain.c" />

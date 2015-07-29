@@ -7,7 +7,6 @@
     <ClCompile Include="src\ai_zzz.cpp">
       <Filter>ai\zzz</Filter>
     </ClCompile>
-    <ClCompile Include="src\ai.cpp" />
     <ClCompile Include="src\dllmain.c" />
     <ClCompile Include="src\tetris_core.cpp" />
     <ClCompile Include="src\ai_ax.cpp">
@@ -27,9 +26,6 @@
     </ClCompile>
     <ClCompile Include="src\rule_srsx.cpp">
       <Filter>rules\srsx</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ai_farteryhr.cpp">
-      <Filter>ai\farteryhr</Filter>
     </ClCompile>
     <ClCompile Include="src\rule_toj.cpp">
       <Filter>rules\toj</Filter>
@@ -64,6 +60,10 @@
     <ClCompile Include="src\ai_misaka.cpp">
       <Filter>ai\misaka</Filter>
     </ClCompile>
+    <ClCompile Include="src\ai_farter.cpp">
+      <Filter>ai\farter</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ai.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\rule_srs.h">
@@ -93,9 +93,6 @@
     </ClInclude>
     <ClInclude Include="src\ai_easy.h">
       <Filter>ai\easy</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ai_farteryhr.h">
-      <Filter>ai\farteryhr</Filter>
     </ClInclude>
     <ClInclude Include="src\rule_toj.h">
       <Filter>rules\toj</Filter>
@@ -139,6 +136,9 @@
     <ClInclude Include="src\ai_misaka.h">
       <Filter>ai\misaka</Filter>
     </ClInclude>
+    <ClInclude Include="src\ai_farter.h">
+      <Filter>ai\farter</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="rules">
@@ -170,9 +170,6 @@
     </Filter>
     <Filter Include="ai\easy">
       <UniqueIdentifier>{2bd18710-beb1-4ec9-9ccc-3e4f4aea96dd}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ai\farteryhr">
-      <UniqueIdentifier>{58feda22-7255-4863-8a56-00665c649e44}</UniqueIdentifier>
     </Filter>
     <Filter Include="rules\toj">
       <UniqueIdentifier>{5f2f8ab9-e9b0-4e66-947a-1205412c5e21}</UniqueIdentifier>
@@ -206,6 +203,9 @@
     </Filter>
     <Filter Include="ai\misaka">
       <UniqueIdentifier>{6757bd40-2045-4bfe-8f3d-3e3f566e6706}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ai\farter">
+      <UniqueIdentifier>{58feda22-7255-4863-8a56-00665c649e44}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

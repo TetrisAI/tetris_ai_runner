@@ -28,9 +28,6 @@
     <ClCompile Include="src\rule_srsx.cpp">
       <Filter>rules\srsx</Filter>
     </ClCompile>
-    <ClCompile Include="src\ai_farteryhr.cpp">
-      <Filter>ai\farteryhr</Filter>
-    </ClCompile>
     <ClCompile Include="src\rule_toj.cpp">
       <Filter>rules\toj</Filter>
     </ClCompile>
@@ -61,6 +58,12 @@
     <ClCompile Include="src\ai_tag.cpp">
       <Filter>ai\zzz</Filter>
     </ClCompile>
+    <ClCompile Include="src\ai_farter.cpp">
+      <Filter>ai\farter</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ai_misaka.cpp">
+      <Filter>ai\misaka</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\rule_srs.h">
@@ -90,9 +93,6 @@
     </ClInclude>
     <ClInclude Include="src\ai_easy.h">
       <Filter>ai\easy</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ai_farteryhr.h">
-      <Filter>ai\farteryhr</Filter>
     </ClInclude>
     <ClInclude Include="src\rule_toj.h">
       <Filter>rules\toj</Filter>
@@ -133,6 +133,12 @@
     <ClInclude Include="src\ai_tag.h">
       <Filter>ai\zzz</Filter>
     </ClInclude>
+    <ClInclude Include="src\ai_farter.h">
+      <Filter>ai\farter</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ai_misaka.h">
+      <Filter>ai\misaka</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="rules">
@@ -165,9 +171,6 @@
     <Filter Include="ai\easy">
       <UniqueIdentifier>{76dff1d7-ccd2-4913-95a0-4aa877216740}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ai\farteryhr">
-      <UniqueIdentifier>{0574e13d-108d-49ea-9681-875afda47edf}</UniqueIdentifier>
-    </Filter>
     <Filter Include="rules\toj">
       <UniqueIdentifier>{a7357bb7-1496-4b42-93ba-1ca197f72e25}</UniqueIdentifier>
     </Filter>
@@ -197,6 +200,12 @@
     </Filter>
     <Filter Include="rules\tag">
       <UniqueIdentifier>{8f0445e7-a7c8-47b3-b017-bac1641edf41}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ai\farter">
+      <UniqueIdentifier>{0574e13d-108d-49ea-9681-875afda47edf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ai\misaka">
+      <UniqueIdentifier>{fc7ed7b5-2d89-43cb-8f94-57f334a7f39b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

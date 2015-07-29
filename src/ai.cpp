@@ -12,7 +12,7 @@
 #include "ai_ax.h"
 #include "ai_zzz.h"
 #include "ai_tag.h"
-#include "ai_farteryhr.h"
+#include "ai_farter.h"
 #include "ai_misaka.h"
 #include "rule_st.h"
 #include "rule_qq.h"

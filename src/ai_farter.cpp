@@ -3,7 +3,7 @@
 //Modify by ZouZhiZhang
 
 #include "tetris_core.h"
-#include "ai_farteryhr.h"
+#include "ai_farter.h"
 #include "integer_utils.h"
 
 using namespace m_tetris;
@@ -123,6 +123,12 @@ namespace
 
 namespace ai_farteryhr
 {
+
+    bool AI::Status::operator < (Status const &other) const
+    {
+        return value < other.value;
+    }
+
     void AI::init(m_tetris::TetrisContext const *context)
     {
         fhh = 0;
@@ -142,10 +148,7 @@ namespace ai_farteryhr
 
     int AI::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
     {
-        FarteryhrMap fmap =
-        {
-            node, &src_map, fhh
-        };
+        FarteryhrMap fmap(node, &src_map, fhh);
         int pts = 0;
 
         int fw = map.width;
@@ -313,15 +316,14 @@ namespace ai_farteryhr
         return pts;
     }
 
-    int AI::get(int const *history, size_t history_length) const
+    AI::Status AI::get(int eval_result, size_t depth, Status const &status) const
     {
-        int result = 0;
-        for(size_t i = 0; i < history_length; ++i)
+        Status result =
         {
-            result += history[i];
-        }
-        return result / history_length;
-        //return history[history_length - 1];
+            eval_result + status.eval
+        };
+        result.value = result.eval / depth;
+        return result;
     }
 
 }

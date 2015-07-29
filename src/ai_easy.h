@@ -8,33 +8,29 @@ namespace ai_easy
     {
     public:
         typedef double(*eval_func_t)(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear);
-        struct Param
+        struct Config
         {
             eval_func_t eval_func;
-            double bad_value;
+            std::string str_name;
         };
     public:
-        void init(m_tetris::TetrisContext const *context, Param const *param)
+        void init(m_tetris::TetrisContext const *context, Config const *config)
         {
-            param_ = param;
+            config_ = config;
         }
         std::string ai_name() const
         {
-            return std::string();
+            return config_->str_name;
         }
         double eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
         {
-            return param_->eval_func(node, map, src_map, clear);
+            return config_->eval_func(node, map, src_map, clear);
         }
-        double bad() const
+        double get(double const &eval_result) const
         {
-            return param_->bad_value;
-        }
-        double get(double const *history, size_t history_length) const
-        {
-            return history[history_length - 1];
+            return eval_result;
         }
     private:
-        Param const *param_;
+        Config const *config_;
     };
 }
