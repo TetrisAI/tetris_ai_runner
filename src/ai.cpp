@@ -163,7 +163,8 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
     srs_ai.search_config()->allow_180 = can180spin;
     std::remove_reference<decltype(*srs_ai.ai_config())>::type in_config =
     {
-        47,  62,  94,  90,  11,  35,  48,  19, -21,  78,  64,  20,  42,  42,  39,  300
+        71,  12,  78,  52,  96,  37,  14,  24,  40,  99,  44,  49,  93,  25,  44,  380
+        //47,  62,  94,  90,  11,  35,  48,  19, -21,  78,  64,  20,  42,  42,  39,  300
     };
     *srs_ai.ai_config() = in_config;
     srs_ai.ai_config()->strategy_4w = true;

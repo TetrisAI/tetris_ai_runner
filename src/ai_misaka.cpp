@@ -237,13 +237,77 @@ namespace ai_misaka
         const int gem_beg_x = 3;
         const int m_pc_att = 6;
         const int combo_step_max = 32;
-        int curdepth = depth;
+        Status result = status;
+        result.att = 0;
+        switch(eval_result.clear)
+        {
+        case 1:
+            if(eval_result.t_spin == TSpinType::TSpinMini)
+            {
+                result.att += status.b2b ? 2 : 1;
+            }
+            else if(eval_result.t_spin == TSpinType::TSpin)
+            {
+                result.att += status.b2b ? 3 : 2;
+            }
+            result.att += config_->table[std::min(config_->table_max - 1, ++result.combo)];
+            result.b2b = eval_result.t_spin != TSpinType::None;
+            break;
+        case 2:
+            if(eval_result.t_spin != TSpinType::None)
+            {
+                result.att += status.b2b ? 5 : 4;
+            }
+            result.att += config_->table[std::min(config_->table_max - 1, ++result.combo)];
+            result.b2b = eval_result.t_spin != TSpinType::None;
+            break;
+        case 3:
+            if(eval_result.t_spin != TSpinType::None)
+            {
+                result.att += status.b2b ? 8 : 6;
+            }
+            result.att += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
+            result.b2b = eval_result.t_spin != TSpinType::None;
+            break;
+        case 4:
+            result.att += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
+            result.b2b = true;
+            break;
+        }
+        if(eval_result.clear > 0)
+        {
+            result.combo = status.combo + combo_step_max + 1 - eval_result.clear;
+            if(status.upcomeAtt > 0)
+                result.upcomeAtt = std::max(0, status.upcomeAtt - result.att);
+        }
+        else
+        {
+            result.combo = 0;
+            if(status.upcomeAtt > 0)
+            {
+                result.upcomeAtt = -status.upcomeAtt;
+            }
+        }
+        if(eval_result.map->count == 0 && result.upcomeAtt >= 0)
+        {
+            result.att += m_pc_att;
+        }
+        result.total_clear_att += result.att;
+        result.total_clears += eval_result.clear;
+        result.max_att = std::max(status.max_att, result.att);
+        result.max_combo = std::max(status.max_combo, result.combo);
+        result.score = 0;
+        result.strategy_4w = config_->strategy_4w;
+        int clear_att = result.att;
         int clears = eval_result.clear;
+        int total_clear_att = result.total_clear_att;
+        int total_clears = result.total_clears;
+        int lastCombo = status.combo;
+        int upcomeAtt = result.upcomeAtt;
+        int &clearScore = result.clearScore;
+        int &score = result.score;
+        int curdepth = depth;
         char cur_num = eval_result.node->status.t;
-        int total_clear_att = status.total_clear_att;
-        int total_clears = status.total_clears;
-        int clear_att = status.att;
-        int upcomeAtt = status.upcomeAtt;
         int8_t wallkick_spin = eval_result.t_spin != TSpinType::None ? 2 : 0;
         int t_dis = [=]()->int
         {
@@ -261,11 +325,6 @@ namespace ai_misaka
             return 14;
         }();
 
-        Status result = status;
-        int &clearScore = result.clearScore;
-
-
-        int score = 0;
         // ²â¸ß¶È
         //int last_min_y[32] = {0};
         int min_y[32] = {0};
@@ -1371,68 +1430,6 @@ namespace ai_misaka
 #pragma warning(pop)
         score += clearScore;
 
-        int att = 0;
-        switch(eval_result.clear)
-        {
-        case 1:
-            if(eval_result.t_spin == TSpinType::TSpinMini)
-            {
-                att += status.b2b ? 2 : 1;
-            }
-            else if(eval_result.t_spin == TSpinType::TSpin)
-            {
-                att += status.b2b ? 3 : 2;
-            }
-            att += config_->table[std::min(config_->table_max - 1, ++result.combo)];
-            result.b2b = eval_result.t_spin != TSpinType::None;
-            break;
-        case 2:
-            if(eval_result.t_spin != TSpinType::None)
-            {
-                att += status.b2b ? 5 : 4;
-            }
-            att += config_->table[std::min(config_->table_max - 1, ++result.combo)];
-            result.b2b = eval_result.t_spin != TSpinType::None;
-            break;
-        case 3:
-            if(eval_result.t_spin != TSpinType::None)
-            {
-                att += status.b2b ? 8 : 6;
-            }
-            att += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
-            result.b2b = eval_result.t_spin != TSpinType::None;
-            break;
-        case 4:
-            att += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
-            result.b2b = true;
-            break;
-        }
-
-        if(eval_result.clear > 0)
-        {
-            result.combo = status.combo + combo_step_max + 1 - eval_result.clear;
-            if(status.upcomeAtt > 0)
-                result.upcomeAtt = std::max(0, status.upcomeAtt - att);
-        }
-        else
-        {
-            result.combo = 0;
-            if(status.upcomeAtt > 0)
-            {
-                result.upcomeAtt = -status.upcomeAtt;
-            }
-        }
-        if(eval_result.map->count == 0 && result.upcomeAtt >= 0)
-        {
-            att += m_pc_att;
-        }
-        result.total_clear_att += att;
-        result.total_clears += eval_result.clear;
-        result.att = att;
-        result.max_att = std::max(status.max_att, status.att + att);
-        result.max_combo = std::max(status.max_combo, result.combo);
-        result.score = score;
-        result.strategy_4w = config_->strategy_4w;
         return result;
     }
 
