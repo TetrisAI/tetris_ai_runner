@@ -21,7 +21,7 @@ extern "C" void attach_init()
 //返回AI名字，会显示在界面上
 extern "C" DECLSPEC_EXPORT char const *WINAPI Name()
 {
-    static std::string name = tetris_ai.ai_name();
+    static std::string name = "Demo Random AI";
     return name.c_str();
 }
 
@@ -56,7 +56,6 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
         return 0;
     }
     tetris_ai.ai_config()->eval_func = demo::eval;
-    tetris_ai.ai_config()->str_name = "Demo Random AI";
     m_tetris::TetrisMap map(boardW, boardH);
     for(int y = 0, add = 0; y < boardH; ++y, add += boardW)
     {
