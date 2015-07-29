@@ -304,7 +304,7 @@ namespace ai_misaka
         int total_clears = result.total_clears;
         int lastCombo = status.combo;
         int upcomeAtt = result.upcomeAtt;
-        int &clearScore = result.clearScore;
+        int clearScore = 0;
         int &score = result.score;
         int curdepth = depth;
         char cur_num = eval_result.node->status.t;
