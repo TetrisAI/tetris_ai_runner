@@ -56,7 +56,13 @@ namespace m_tetris
             auto block = context->get_block(status.t, r);
             if(block->count > 0)
             {
-                for(uint32_t i = 0; i < block->count; ++i)
+                uint32_t i = 0;
+                if(block->data[0].x == 0 && block->data[0].y == 0)
+                {
+                    std::memcpy(snap.row[r], map.row, sizeof(uint32_t) * map.roof);
+                    i = 1;
+                }
+                for(; i < block->count; ++i)
                 {
                     int bx = block->data[i].x, by = block->data[i].y;
                     if(bx > 0)

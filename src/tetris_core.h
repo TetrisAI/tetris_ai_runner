@@ -694,7 +694,7 @@ namespace m_tetris
             typedef std::true_type enable_next_c;
             static void get(TetrisAI &ai, TreeNode *node, TreeNode *parent)
             {
-                node->status.set(ai.get(node->result, parent->level + 1, parent->status.get_raw(), node->env<EnableEnv>()));
+                node->status.set(ai.get(node->result, parent->level + 1, parent->status.get_raw(), parent->env<EnableEnv>()));
             }
         };
         template<class TreeNode, bool EnableEnv>
