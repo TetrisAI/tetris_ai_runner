@@ -11,7 +11,7 @@
 
 //for https://misakamm.com/blog/504
 
-m_tetris::TetrisEngine<rule_st::TetrisRule, ai_easy::AI,search_simple::Search> tetris_ai;
+m_tetris::TetrisEngine<rule_st::TetrisRule, ai_easy::AI, search_simple::Search> tetris_ai;
 
 extern "C" void attach_init()
 {
@@ -55,7 +55,6 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     {
         return 0;
     }
-    tetris_ai.ai_config()->eval_func = demo::eval;
     m_tetris::TetrisMap map(boardW, boardH);
     for(int y = 0, add = 0; y < boardH; ++y, add += boardW)
     {
@@ -70,9 +69,13 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
         }
     }
     m_tetris::TetrisBlockStatus status(curPiece, curX - 1, curY - 1, curR - 1);
-    size_t next_length = nextPiece == ' ' ? 0 : 1;
+    std::string next;
+    if(nextPiece != ' ')
+    {
+        next += nextPiece;
+    }
     m_tetris::TetrisNode const *node = tetris_ai.get(status);
-    auto target = tetris_ai.run(map, node, &nextPiece, next_length, 49).target;
+    auto target = tetris_ai.run(map, node, next.data(), next.size(), 99).target;
     if(target != nullptr)
     {
         std::vector<char> ai_path = tetris_ai.make_path(node, target, map);
