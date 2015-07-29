@@ -306,7 +306,7 @@ namespace ai_zzz
             return result;
         }
 
-        Attack::Status Attack::get(Result const &eval_result, size_t depth, char const *next, size_t length, char hold, Status const &status) const
+        Attack::Status Attack::get(Result const &eval_result, size_t depth, Status const &status) const
         {
 
             Status result = status;
@@ -524,7 +524,7 @@ namespace ai_zzz
         return result;
     }
 
-    Dig::Status Dig::get(Result const &eval_result, size_t depth, char const *next, size_t length, char hold, Status const &status) const
+    Dig::Status Dig::get(Result const &eval_result, size_t depth, Status const &status) const
     {
         Status result;
         result.land_point = eval_result.land_point + status.land_point;
@@ -760,7 +760,7 @@ namespace ai_zzz
         return result;
     }
 
-    TOJ::Status TOJ::get(Result const &eval_result, size_t depth, char const *next, size_t length, char hold, Status const &status) const
+    TOJ::Status TOJ::get(Result const &eval_result, size_t depth, Status const &status, TetrisContext::Env const &env) const
     {
         Status result = status;
         result.value = eval_result.eval;
@@ -835,7 +835,7 @@ namespace ai_zzz
         {
             result.like -= 2;
         }
-        switch(hold)
+        switch(env.hold)
         {
         case 'T':
             if(eval_result.t_spin == TSpinType::None)
@@ -854,7 +854,7 @@ namespace ai_zzz
         result.value += (0.
                          + result.attack * 160
                          + eval_result.t2_value * 160
-                         + (eval_result.safe >= 12 ? eval_result.t3_value * (hold == 'T' ? 1.5 : 1.) * (result.b2b ? 200 : 160) / (1 + result.under_attack) : 0)
+                         + (eval_result.safe >= 12 ? eval_result.t3_value * (env.hold == 'T' ? 1.5 : 1.) * (result.b2b ? 200 : 160) / (1 + result.under_attack) : 0)
                          + (result.b2b ? 240 : 0)
                          + result.like * 24
                          ) * rate * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_));
@@ -1111,7 +1111,7 @@ namespace ai_zzz
         return result;
     }
 
-    C2::Status C2::get(Result const &eval_result, size_t depth, char const *next, size_t length, char hold, Status const &status) const
+    C2::Status C2::get(Result const &eval_result, size_t depth, Status const &status) const
     {
         Status result = status;
         result.land_point += eval_result.land_point;

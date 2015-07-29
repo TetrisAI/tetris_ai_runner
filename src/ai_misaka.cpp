@@ -166,7 +166,7 @@ namespace ai_misaka
         };
     }
 
-    misaka::Status misaka::get(Result const &eval_result, size_t depth, char const *next, size_t length, char hold, Status const &status) const
+    misaka::Status misaka::get(Result const &eval_result, size_t depth, Status const &status, TetrisContext::Env const &env) const
     {
 #pragma warning(push)
 #pragma warning(disable:4244 4554)
@@ -197,7 +197,7 @@ namespace ai_misaka
                 , row(eval_result.map->row, context->height())
                 , m_hold(hold)
                 , m_w_mask(context->full())
-                , combo(status_.combo)
+                , combo(status.combo)
                 , b2b(status.b2b)
             {
             }
@@ -226,7 +226,7 @@ namespace ai_misaka
                 return 6;
             }
 
-        } pool(context_, eval_result, depth, hold, status);
+        } pool(context_, eval_result, depth, env.hold, status);
         Config const &ai_param = *config_;
         char const GEMTYPE_T = 'T';
         char const GEMTYPE_I = 'I';
@@ -247,13 +247,13 @@ namespace ai_misaka
         int8_t wallkick_spin = eval_result.t_spin != TSpinType::None ? 2 : 0;
         int t_dis = [=]()->int
         {
-            if(hold == GEMTYPE_T)
+            if(env.hold == GEMTYPE_T)
             {
                 return 0;
             }
-            for(size_t i = 0; i < length; ++i)
+            for(size_t i = 0; i < env.length; ++i)
             {
-                if(next[i] == GEMTYPE_T)
+                if(env.next[i] == GEMTYPE_T)
                 {
                     return i;
                 }

@@ -55,13 +55,13 @@ namespace m_tetris
         }
         TetrisMap(TetrisMap const &other)
         {
-            memcpy(this, &other, sizeof *this);
+            std::memcpy(this, &other, sizeof *this);
         }
         TetrisMap &operator = (TetrisMap const &other)
         {
             if(this != &other)
             {
-                memcpy(this, &other, sizeof *this);
+                std::memcpy(this, &other, sizeof *this);
             }
             return *this;
         }
@@ -89,7 +89,7 @@ namespace m_tetris
         uint32_t row[4][max_height];
         TetrisMapSnap()
         {
-            ::memset(row, 0, sizeof row);
+            std::memset(row, 0, sizeof row);
         }
     };
 
@@ -320,6 +320,12 @@ namespace m_tetris
         size_t type_to_index_[256];
 
     public:
+        struct Env
+        {
+            char const *next;
+            size_t length;
+            char hold;
+        };
         enum PrepareResult : int
         {
             fail = 0, ok = 1, rebuild = 2,
@@ -652,17 +658,21 @@ namespace m_tetris
         struct function_traits : public function_traits<T>
         {
         };
-
         template <typename ClassType, typename ReturnType, typename... Args>
         struct function_traits<ReturnType(ClassType::*)(Args...) const>
         {
+            enum
+            {
+                arity = sizeof...(Args)
+            };
             typedef ReturnType result_type;
         };
+
     public:
         typedef typename element_traits<decltype(TetrisSearch().search(TetrisMap(), nullptr))>::Element LandPoint;
         typedef typename function_traits<decltype(&TetrisAI::eval)>::result_type Result;
         typedef typename function_traits<decltype(&TetrisAI::get)>::result_type Status;
-
+    private:
         template<class TreeNode, class>
         struct TetrisSelectIterate
         {
@@ -678,6 +688,45 @@ namespace m_tetris
             {
             }
         };
+        template<class TreeNode, bool EnableEnv, size_t>
+        struct TetrisSelectGet
+        {
+            typedef std::true_type enable_next_c;
+            static void get(TetrisAI &ai, TreeNode *node, TreeNode *parent)
+            {
+                node->status.set(ai.get(node->result, parent->level + 1, parent->status.get_raw(), node->env<EnableEnv>()));
+            }
+        };
+        template<class TreeNode, bool EnableEnv>
+        struct TetrisSelectGet<TreeNode, EnableEnv, 3>
+        {
+            typedef std::false_type enable_next_c;
+            static void get(TetrisAI &ai, TreeNode *node, TreeNode *parent)
+            {
+                node->status.set(ai.get(node->result, parent->level + 1, parent->status.get_raw()));
+            }
+        };
+        template<class TreeNode, bool EnableEnv>
+        struct TetrisSelectGet<TreeNode, EnableEnv, 2>
+        {
+            typedef std::false_type enable_next_c;
+            static void get(TetrisAI &ai, TreeNode *node, TreeNode *parent)
+            {
+                node->status.set(ai.get(node->result, parent->level + 1));
+            }
+        };
+        template<class TreeNode, bool EnableEnv>
+        struct TetrisSelectGet<TreeNode, EnableEnv, 1>
+        {
+            typedef std::false_type enable_next_c;
+            static void get(TetrisAI &ai, TreeNode *node, TreeNode *parent)
+            {
+                node->status.set(ai.get(node->result));
+            }
+        };
+    public:
+        typedef typename TetrisSelectGet<void, false, function_traits<decltype(&TetrisAI::get)>::arity>::enable_next_c EnableNextC;
+
         template<class TreeNode>
         static void eval(TetrisAI &ai, TetrisMap &map, LandPoint &node, TreeNode *tree_node)
         {
@@ -686,6 +735,11 @@ namespace m_tetris
             tree_node->identity = node;
             size_t clear = node->attach(new_map);
             tree_node->result = TetrisCallEval<TetrisAI, LandPoint>::eval(ai, tree_node->identity, new_map, map, clear);
+        }
+        template<bool EnableEnv, class TreeNode>
+        static void get(TetrisAI &ai, TreeNode *node, TreeNode *parent)
+        {
+            TetrisSelectGet<TreeNode, EnableEnv, function_traits<decltype(&TetrisAI::get)>::arity>::get(ai, node, parent);
         }
         template<class TreeNode>
         static void iterate(TetrisAI &ai, Status const **status, size_t status_length, TreeNode *tree_node)
@@ -1122,7 +1176,10 @@ namespace m_tetris
                 context->is_open_hold = false;
                 context->current = _node;
                 context->next = next;
-                context->next_c.assign(next.begin(), next.end());
+                if(Core::EnableNextC::value)
+                {
+                    context->next_c.assign(next.begin(), next.end());
+                }
                 root->node = _node->status.t;
                 root->status.set(status);
                 root->next = std::next(context->next.begin());
@@ -1149,7 +1206,10 @@ namespace m_tetris
                 context->is_open_hold = true;
                 context->current = _node;
                 context->next = next;
-                context->next_c.assign(next.begin(), next.end());
+                if(Core::EnableNextC::value)
+                {
+                    context->next_c.assign(next.begin(), next.end());
+                }
                 root->status.set(status);
                 root->node = _node->status.t;
                 root->hold = _hold;
@@ -1507,7 +1567,7 @@ namespace m_tetris
             for(auto it = children; it != nullptr; it = it->children_next)
             {
                 it->level = children_level;
-                it->status.set(context->ai->get(it->result, depth, nullptr, 0, it->hold, status.get_raw()));
+                Core::get<false>(*context->ai, it, this);
                 auto &status = iterate_cache[engine->convert(it->identity->status.t)];
                 if(status == nullptr || *status < it->status.get())
                 {
@@ -1515,6 +1575,32 @@ namespace m_tetris
                 }
             }
             Core::iterate(*context->ai, iterate_cache.data(), iterate_cache.size(), this);
+        }
+        template<bool EnableEnv>
+        TetrisContext::Env env()
+        {
+            if(EnableEnv)
+            {
+                TetrisContext::Env result;
+                result.length = std::distance(next, context->next.cend());
+                if(result.length == 0)
+                {
+                    result.next = nullptr;
+                }
+                else
+                {
+                    result.next = context->next_c.data() + (context->next_c.size() - result.length);
+                }
+                result.hold = hold;
+                return result;
+            }
+            else
+            {
+                return
+                {
+                    nullptr, 0, ' '
+                };
+            }
         }
         template<bool EnableHold>
         bool build_children()
@@ -1532,17 +1618,7 @@ namespace m_tetris
             }
             for(auto it = children; it != nullptr; it = it->children_next)
             {
-                char const *next_ptr;
-                size_t next_length = std::distance(next, context->next.cend());
-                if(next_length == 0)
-                {
-                    next_ptr = nullptr;
-                }
-                else
-                {
-                    next_ptr = context->next_c.data() + (context->next_c.size() - next_length);
-                }
-                it->status.set(context->ai->get(it->result, level + 1, next_ptr, next_length, it->hold, status.get_raw()));
+                Core::get<true>(*context->ai, it, this);
             }
             if(TetrisAIHasIterate<TetrisAI>::type::value && context->next[level].get_vp())
             {

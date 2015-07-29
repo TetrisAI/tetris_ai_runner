@@ -257,7 +257,7 @@ namespace ai_tag
         return result;
     }
 
-    the_ai_games::Status the_ai_games::get(Result const &eval_result, size_t depth, char const *next, size_t length, char hold, Status const &status) const
+    the_ai_games::Status the_ai_games::get(Result const &eval_result, size_t depth, Status const &status) const
     {
         Status result = status;
         double BoardDeadZone = map_in_danger_(*eval_result.save_map, status.up);
@@ -355,7 +355,7 @@ namespace ai_tag
         return clear;
     }
 
-    the_ai_games_enemy::Status the_ai_games_enemy::get(size_t clear, size_t depth, char const *next, size_t length, char hold, Status const &status) const
+    the_ai_games_enemy::Status the_ai_games_enemy::get(size_t clear, size_t depth, Status const &status) const
     {
         Status result;
         result.point = status.point + clear;

@@ -63,7 +63,7 @@ namespace ai_misaka
         void init(m_tetris::TetrisContext const *context, Config const *config);
         std::string ai_name() const;
         Result eval(TetrisNodeEx &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
-        Status get(Result const &eval_result, size_t depth, char const *next, size_t length, char hold, Status const &status) const;
+        Status get(Result const &eval_result, size_t depth, Status const &status, m_tetris::TetrisContext::Env const &env) const;
 
     private:
         m_tetris::TetrisContext const *context_;
