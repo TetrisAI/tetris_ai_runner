@@ -9,7 +9,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tetris_ai_dll", "tetris_ai_
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "the_ai_games", "the_ai_games.vcxproj", "{5A4C9125-3594-4784-96F8-FC7B4C060F13}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "demo", "..\demo\demo.vcxproj", "{6AEF5DAD-17DB-4855-B083-757AD993290C}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "demo", "demo.vcxproj", "{6AEF5DAD-17DB-4855-B083-757AD993290C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

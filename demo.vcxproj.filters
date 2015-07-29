@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\tetris_ai_runner\src\demo.cpp" />
+    <ClCompile Include="..\tetris_ai_runner\src\rule_st.cpp" />
+    <ClCompile Include="..\tetris_ai_runner\src\search_simple.cpp" />
+    <ClCompile Include="..\tetris_ai_runner\src\tetris_core.cpp" />
+    <ClCompile Include="..\tetris_ai_runner\src\dllmain.c" />
+    <ClCompile Include="..\tetris_ai_runner\src\integer_utils.cpp" />
+    <ClCompile Include="..\tetris_ai_runner\src\random.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\tetris_ai_runner\src\ai_easy.h" />
+    <ClInclude Include="..\tetris_ai_runner\src\rule_st.h" />
+    <ClInclude Include="..\tetris_ai_runner\src\search_simple.h" />
+    <ClInclude Include="..\tetris_ai_runner\src\tetris_core.h" />
+    <ClInclude Include="..\tetris_ai_runner\src\bst_base.h" />
+    <ClInclude Include="..\tetris_ai_runner\src\integer_utils.h" />
+    <ClInclude Include="..\tetris_ai_runner\src\random.h" />
+    <ClInclude Include="..\tetris_ai_runner\src\rb_tree.h" />
+  </ItemGroup>
+</Project>
