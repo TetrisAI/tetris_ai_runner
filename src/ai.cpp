@@ -94,8 +94,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     return 0;
 }
 
-//m_tetris::TetrisEngine<rule_toj::TetrisRule, ai_zzz::TOJ, search_tspin::Search> srs_ai;
-m_tetris::TetrisEngine<rule_toj::TetrisRule, ai_misaka::misaka, search_tspin::Search> srs_ai;
+m_tetris::TetrisEngine<rule_toj::TetrisRule, ai_zzz::TOJ, search_tspin::Search> srs_ai;
 
 extern "C" DECLSPEC_EXPORT int AIDllVersion()
 {
@@ -161,13 +160,6 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
     }
     srs_ai.update();
     srs_ai.search_config()->allow_180 = can180spin;
-    std::remove_reference<decltype(*srs_ai.ai_config())>::type in_config =
-    {
-        71,  12,  78,  52,  96,  37,  14,  24,  40,  99,  44,  49,  93,  25,  44,  380
-        //47,  62,  94,  90,  11,  35,  48,  19, -21,  78,  64,  20,  42,  42,  39,  300
-    };
-    *srs_ai.ai_config() = in_config;
-    srs_ai.ai_config()->strategy_4w = true;
     srs_ai.ai_config()->table = comboTable;
     srs_ai.ai_config()->table_max = [comboTable]()->size_t
     {
@@ -176,18 +168,13 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
             ;
         return max - 1;
     }();
-    std::remove_reference<decltype(*srs_ai.status())>::type in_status =
-    {
-        upcomeAtt, combo, !!b2b
-    };
-    //srs_ai.status()->combo = combo;
-    //srs_ai.status()->under_attack = upcomeAtt;
-    //srs_ai.status()->map_rise = 0;
-    //srs_ai.status()->b2b = !!b2b;
-    //srs_ai.status()->attack = 0;
-    //srs_ai.status()->like = 0;
-    //srs_ai.status()->value = 0;
-
+    srs_ai.status()->combo = combo;
+    srs_ai.status()->under_attack = upcomeAtt;
+    srs_ai.status()->map_rise = 0;
+    srs_ai.status()->b2b = !!b2b;
+    srs_ai.status()->attack = 0;
+    srs_ai.status()->like = 0;
+    srs_ai.status()->value = 0;
     m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
     m_tetris::TetrisNode const *node = srs_ai.get(status);
     if(canhold)
