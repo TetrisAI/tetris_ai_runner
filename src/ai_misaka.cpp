@@ -238,39 +238,39 @@ namespace ai_misaka
         const int m_pc_att = 6;
         const int combo_step_max = 32;
         Status result = status;
-        result.att = 0;
+        int att = 0;
         switch(eval_result.clear)
         {
         case 1:
             if(eval_result.t_spin == TSpinType::TSpinMini)
             {
-                result.att += status.b2b ? 2 : 1;
+                att += status.b2b ? 2 : 1;
             }
             else if(eval_result.t_spin == TSpinType::TSpin)
             {
-                result.att += status.b2b ? 3 : 2;
+                att += status.b2b ? 3 : 2;
             }
-            result.att += config_->table[std::min(config_->table_max - 1, ++result.combo)];
+            att += config_->table[std::min(config_->table_max - 1, result.combo)];
             result.b2b = eval_result.t_spin != TSpinType::None;
             break;
         case 2:
             if(eval_result.t_spin != TSpinType::None)
             {
-                result.att += status.b2b ? 5 : 4;
+                att += status.b2b ? 5 : 4;
             }
-            result.att += config_->table[std::min(config_->table_max - 1, ++result.combo)];
+            att += config_->table[std::min(config_->table_max - 1, result.combo)];
             result.b2b = eval_result.t_spin != TSpinType::None;
             break;
         case 3:
             if(eval_result.t_spin != TSpinType::None)
             {
-                result.att += status.b2b ? 8 : 6;
+                att += status.b2b ? 8 : 6;
             }
-            result.att += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
+            att += config_->table[std::min(config_->table_max - 1, result.combo)] + 2;
             result.b2b = eval_result.t_spin != TSpinType::None;
             break;
         case 4:
-            result.att += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
+            att += config_->table[std::min(config_->table_max - 1, result.combo)] + (status.b2b ? 5 : 4);
             result.b2b = true;
             break;
         }
@@ -278,7 +278,7 @@ namespace ai_misaka
         {
             result.combo = status.combo + combo_step_max + 1 - eval_result.clear;
             if(status.upcomeAtt > 0)
-                result.upcomeAtt = std::max(0, status.upcomeAtt - result.att);
+                result.upcomeAtt = std::max(0, status.upcomeAtt - att);
         }
         else
         {
@@ -290,18 +290,18 @@ namespace ai_misaka
         }
         if(eval_result.map->count == 0 && result.upcomeAtt >= 0)
         {
-            result.att += m_pc_att;
+            att += m_pc_att;
         }
-        result.total_clear_att += result.att;
-        result.total_clears += eval_result.clear;
+        result.att += att;
+        result.clear += eval_result.clear;
         result.max_att = std::max(status.max_att, result.att);
         result.max_combo = std::max(status.max_combo, result.combo);
         result.score = 0;
         result.strategy_4w = config_->strategy_4w;
-        int clear_att = result.att;
+        int total_clear_att = result.att;
+        int total_clears = result.clear;
+        int clear_att = att;
         int clears = eval_result.clear;
-        int total_clear_att = result.total_clear_att;
-        int total_clears = result.total_clears;
         int lastCombo = status.combo;
         int upcomeAtt = result.upcomeAtt;
         int clearScore = 0;

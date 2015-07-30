@@ -49,9 +49,8 @@ namespace ai_misaka
             int upcomeAtt;
             int combo;
             int b2b;
-            int total_clear_att;
-            int total_clears;
             int att;
+            int clear;
             int max_att;
             int max_combo;
             int strategy_4w;
