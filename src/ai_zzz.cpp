@@ -835,6 +835,21 @@ namespace ai_zzz
         {
             result.like -= 2;
         }
+        size_t t_expect = [=]()->int
+        {
+            if(env.hold == 'T')
+            {
+                return 0;
+            }
+            for(size_t i = 0; i < env.length; ++i)
+            {
+                if(env.next[i] == 'T')
+                {
+                    return i;
+                }
+            }
+            return 14;
+        }();
         switch(env.hold)
         {
         case 'T':
@@ -852,9 +867,9 @@ namespace ai_zzz
         }
         double rate = (1. / depth) + 1.;
         result.value += (0.
-                         + result.attack * 160
-                         + eval_result.t2_value * 160
-                         + (eval_result.safe >= 12 ? eval_result.t3_value * (env.hold == 'T' ? 1.5 : 1.) * (result.b2b ? 200 : 160) / (1 + result.under_attack) : 0)
+                         + result.attack * 160 * rate
+                         + eval_result.t2_value * (t_expect < 8 ? 160 : 128)
+                         + (eval_result.safe >= 12 ? eval_result.t3_value * (t_expect < 4 ? 1.5 : 1.) * (result.b2b ? 200 : 160) / (1 + result.under_attack) : 0)
                          + (result.b2b ? 240 : 0)
                          + result.like * 24
                          ) * rate * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_));
