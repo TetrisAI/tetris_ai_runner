@@ -323,12 +323,14 @@ int main()
 #else
 
 #include <windows.h>
-
+#include "ai_ax.h"
 
 int main()
 {
+    m_tetris::TetrisEngine<rule_tag::TetrisRule, ai_ax::AI, search_tag::Search> ai2;
     auto &ai = bot_1;
     ai.prepare(10, 21);
+    ai2.prepare(10, 21);
     ai.status()->land_point = 0;
     ai.status()->up = 0;
     ai.status()->combo = 0;
@@ -342,11 +344,13 @@ int main()
     CONSOLE_CURSOR_INFO cursorInfo = {1, FALSE};  // 光标信息
     SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);  // 设置光标隐藏
 
-    ege::mtsrand(1);
+    ege::mtsrand(4);
 
     std::vector<char> next;
     m_tetris::TetrisMap map(10, 21);
-    char hold = ' ';
+    m_tetris::TetrisMap map2(10, 21);
+    int point = 0, combo = 0;
+    int point2 = 0, combo2 = 0;
     for(; ; )
     {
         COORD cd;
@@ -364,12 +368,19 @@ int main()
         out[0] = '\0';
         snprintf(out, sizeof out, "%02d\r\n", ai.status()->combo);
         m_tetris::TetrisMap map_copy = map;
+        m_tetris::TetrisMap map_copy2 = map2;
         node->attach(map_copy);
+        node->attach(map_copy2);
         for(int y = 21; y >= 0; --y)
         {
             for(int x = 0; x < 10; ++x)
             {
                 strcat_s(out, map_copy.full(x, y) ? box_1 : box_0);
+            }
+            strcat_s(out, "  ");
+            for(int x = 0; x < 10; ++x)
+            {
+                strcat_s(out, map_copy2.full(x, y) ? box_1 : box_0);
             }
             strcat_s(out, "\r\n");
         }
@@ -377,25 +388,86 @@ int main()
         printf(out);
 
         next.push_back('?');
-        auto result = ai.run(map, node, next.data(), next.size(), 10000);
+        ai.status()->combo = combo;
+        auto result = ai.run(map, node, next.data(), next.size(), 200);
+        auto result2 = ai2.run(map2, node, next.data(), next.size(), 200);
         next.pop_back();
-        Sleep(200);
-        if(result.change_hold)
+        Sleep(400);
+        size_t clear;
+        size_t clear2;
+        if(result.target == nullptr)
         {
-            hold = node->status.t;
-        }
-        size_t clear = 0;
-        if(result.target != nullptr)
-        {
-            clear = result.target->attach(map);
-        }
-        if(clear > 0)
-        {
-            ++ai.status()->combo;
+            clear = 0;
         }
         else
         {
-            ai.status()->combo = 0;
+            clear = result.target->attach(map);
+        }
+        if(result2.target == nullptr)
+        {
+            clear2 = 0;
+        }
+        else
+        {
+            clear2 = result2.target->attach(map2);
+        }
+        auto under_attack = [](auto &map, auto &ai, int line)
+        {
+            if(line == 0)
+            {
+                return;
+            }
+            int w = map.width, h = map.height;
+            for(int y = h - 1; y >= line; --y)
+            {
+                map.row[y] = map.row[y - line];
+            }
+            for(int y = 0; y < line; ++y)
+            {
+                map.row[y] = ai.context()->full();
+            }
+            map.count = 0;
+            for(int my = 0; my < map.height; ++my)
+            {
+                for(int mx = 0; mx < map.width; ++mx)
+                {
+                    if(map.full(mx, my))
+                    {
+                        map.top[mx] = map.roof = my + 1;
+                        ++map.count;
+                    }
+                }
+            }
+        };
+        if(clear > 0)
+        {
+            int add_point = combo + clear;
+            if(clear == 4)
+            {
+                add_point += 4;
+            }
+            under_attack(map2, ai2, (add_point + point % 4) / 4);
+            point += add_point;
+            ++combo;
+        }
+        else
+        {
+            combo = 0;
+        }
+        if(clear2 > 0)
+        {
+            int add_point2 = combo2 + clear2;
+            if(clear2 == 4)
+            {
+                add_point2 += 4;
+            }
+            under_attack(map, ai, (add_point2 + point2 % 4) / 4);
+            point2 += add_point2;
+            ++combo2;
+        }
+        else
+        {
+            combo2 = 0;
         }
     }
 }
