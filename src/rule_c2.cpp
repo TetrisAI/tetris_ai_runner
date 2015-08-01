@@ -14,13 +14,10 @@ namespace rule_c2
         return w == 10 && h == 21;
     }
 
-    template<unsigned char T>
+    template<char T>
     TetrisBlockStatus game_generate_template(TetrisContext const *context)
     {
-        TetrisBlockStatus status =
-        {
-            T, 3, 20, 0
-        };
+        TetrisBlockStatus status(T, 3, 20, 0);
         return status;
     }
 
