@@ -270,17 +270,17 @@ namespace ai_tag
                       - v.ClearWidth1 * 4
                       - v.ClearWidth2 * 1
                       - v.WellDepthTotle * 160
-                      + v.WideWellDepth[5] * 2
-                      + v.WideWellDepth[4] * 8
-                      + v.WideWellDepth[3] * 4
-                      + v.WideWellDepth[2] * 16
+                      + v.WideWellDepth[5] * 1
+                      + v.WideWellDepth[4] * 2
+                      + v.WideWellDepth[3] * 1
+                      + v.WideWellDepth[2] * 48
                       + v.WideWellDepth[1] * -8
                       + v.WideWellDepth[0] * 2
                       + (low_x == 0 ? 200 : 0)
                       );
         result.tilt = tilt;
         result.full = full;
-        result.count = map.count - v.HoleCount;
+        result.count = map.count;
         result.clear = clear;
         result.low_y = low_y;
         result.save_map = &map;
@@ -290,13 +290,17 @@ namespace ai_tag
     the_ai_games::Status the_ai_games::get(Result const &eval_result, size_t depth, Status const &status) const
     {
         Status result = status;
-        double BoardDeadZone = map_in_danger_(*eval_result.save_map, status.up);
+        double BoardDeadZone = 0;
         if(eval_result.save_map->roof + status.up >= context_->height())
         {
-            BoardDeadZone += 70;
+            BoardDeadZone = context_->type_max();
+        }
+        else
+        {
+            BoardDeadZone = map_in_danger_(*eval_result.save_map, status.up);
         }
         result.land_point -= BoardDeadZone * 50000000;
-        bool building = (eval_result.count - eval_result.full * context_->width()) * 3 / 2 < std::max(0, (context_->height() - 5) - (eval_result.full + status.up)) * context_->width();
+        bool building = (eval_result.count - eval_result.full * context_->width()) * 3 / 2 < std::max(0, (context_->height() - 6) - (eval_result.full + status.up)) * context_->width();
         if(eval_result.clear > 0)
         {
             if(eval_result.clear == 4)
@@ -305,14 +309,14 @@ namespace ai_tag
             }
             if(status.combo == 0 && building)
             {
-                result.land_point -= (4 - std::min<int>(4, eval_result.low_y)) * 1600;
+                result.land_point -= (4 - std::min<int>(4, eval_result.low_y)) * 2000;
             }
             else if(status.combo > 0)
             {
-                result.land_point += status.combo * 1000;
-                if(eval_result.tilt > 2)
+                result.land_point += status.combo * 1200;
+                if(eval_result.tilt > 5)
                 {
-                    result.land_point += 500;
+                    result.land_point += 100;
                 }
             }
             ++result.combo;
@@ -321,7 +325,7 @@ namespace ai_tag
         {
             if(status.combo > 0 && building && eval_result.low_y > 4)
             {
-                result.land_point -= status.combo * 500 + 500;
+                result.land_point -= status.combo * 600 + 600;
             }
             result.combo = 0;
         }
@@ -341,7 +345,7 @@ namespace ai_tag
         {
             if(status[i] == nullptr)
             {
-                result.value += -9999999999;
+                result.value -= 9999999999;
             }
             else
             {
@@ -355,18 +359,20 @@ namespace ai_tag
     size_t the_ai_games::map_in_danger_(m_tetris::TetrisMap const &map, size_t up) const
     {
         size_t danger = 0;
-        do
+        for(size_t i = 0; i < context_->type_max(); ++i)
         {
-            size_t height = map.height - up;
-            for(size_t i = 0; i < context_->type_max(); ++i)
+            size_t check_up = up;
+            do
             {
+                size_t height = map.height - check_up;
                 if(map_danger_data_[i].data[0] & map.row[height - 4] || map_danger_data_[i].data[1] & map.row[height - 3] || map_danger_data_[i].data[2] & map.row[height - 2] || map_danger_data_[i].data[3] & map.row[height - 1])
                 {
                     ++danger;
+                    break;
                 }
             }
+            while(check_up-- > 0);
         }
-        while(up-- > 0);
         return danger;
     }
 
