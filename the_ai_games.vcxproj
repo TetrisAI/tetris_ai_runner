@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ai_ax.h" />
     <ClInclude Include="src\ai_tag.h" />
     <ClInclude Include="src\bst_base.h" />
     <ClInclude Include="src\integer_utils.h" />
@@ -21,6 +22,7 @@
     <ClInclude Include="src\tetris_core.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\ai_ax.cpp" />
     <ClCompile Include="src\ai_tag.cpp" />
     <ClCompile Include="src\integer_utils.cpp" />
     <ClCompile Include="src\random.cpp" />

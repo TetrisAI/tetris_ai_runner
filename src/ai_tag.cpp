@@ -159,7 +159,14 @@ namespace ai_tag
             }
             if(MaxWellWidth >= 1 && MaxWellWidth <= 6)
             {
-                ++v.WideWellDepth[MaxWellWidth - 1];
+                if(zzz::BitCount(map.row[y]) + MaxWellWidth == map.width)
+                {
+                    v.WideWellDepth[MaxWellWidth - 1] += 2;
+                }
+                else
+                {
+                    v.WideWellDepth[MaxWellWidth - 1] -= 1;
+                }
             }
         }
         if(HolePosy0 >= 0)
@@ -225,7 +232,29 @@ namespace ai_tag
                 break;
             }
         }
-
+        int tilt = 0;
+        for(int x = low_x, ex = std::max(0, low_x - 5); x > ex; --x)
+        {
+            if(map.top[x] > map.top[x + 1])
+            {
+                tilt += 2;
+            }
+            else if(map.top[x] == map.top[x + 1])
+            {
+                tilt += 1;
+            }
+        }
+        for(int x = low_x, ex = std::min(width_m1, low_x + 5); x < ex; ++x)
+        {
+            if(map.top[x] > map.top[x - 1])
+            {
+                tilt += 2;
+            }
+            else if(map.top[x] == map.top[x - 1])
+            {
+                tilt += 1;
+            }
+        }
         Result result;
         result.land_point = (0.
                              - LandHeight * 1750 / map.height
@@ -235,20 +264,21 @@ namespace ai_tag
         result.map = (0.
                       - ColTrans * 80
                       - RowTrans * 80
-                      - v.HoleCount * 120
+                      - v.HoleCount * 160
                       - v.HoleLine * 380
                       - v.ClearWidth0 * 8
                       - v.ClearWidth1 * 4
                       - v.ClearWidth2 * 1
                       - v.WellDepthTotle * 160
-                      + v.WideWellDepth[5] * 8
-                      + v.WideWellDepth[4] * 32
-                      + v.WideWellDepth[3] * 8
-                      + v.WideWellDepth[2] * 48
+                      + v.WideWellDepth[5] * 2
+                      + v.WideWellDepth[4] * 8
+                      + v.WideWellDepth[3] * 4
+                      + v.WideWellDepth[2] * 16
                       + v.WideWellDepth[1] * -8
-                      + v.WideWellDepth[0] * 4
-                      + (low_x == 0 ? 400 : 0)
+                      + v.WideWellDepth[0] * 2
+                      + (low_x == 0 ? 200 : 0)
                       );
+        result.tilt = tilt;
         result.full = full;
         result.count = map.count - v.HoleCount;
         result.clear = clear;
@@ -271,7 +301,7 @@ namespace ai_tag
         {
             if(eval_result.clear == 4)
             {
-                result.land_point += 2000;
+                result.land_point += 1000;
             }
             if(status.combo == 0 && building)
             {
@@ -280,6 +310,10 @@ namespace ai_tag
             else if(status.combo > 0)
             {
                 result.land_point += status.combo * 1000;
+                if(eval_result.tilt > 2)
+                {
+                    result.land_point += 500;
+                }
             }
             ++result.combo;
         }
@@ -287,11 +321,12 @@ namespace ai_tag
         {
             if(status.combo > 0 && building && eval_result.low_y > 4)
             {
-                result.land_point -= 3200;
+                result.land_point -= status.combo * 500 + 500;
             }
             result.combo = 0;
         }
-        result.value = result.land_point + eval_result.map;
+        double rate = (depth - 1.f) / 5 + 1;
+        result.value = result.land_point + eval_result.map * rate;
         return result;
     }
 

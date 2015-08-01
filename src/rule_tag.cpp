@@ -7,7 +7,7 @@ using namespace m_tetris_rule_tools;
 namespace rule_tag
 {
 
-    template<unsigned char T>
+    template<char T>
     TetrisBlockStatus generate_template(TetrisContext const *context)
     {
         TetrisBlockStatus status(T, context->width() / 2 - 2, context->height(), 0);

@@ -13,7 +13,7 @@ namespace rule_toj
         return w == 10 && h == 40;
     }
 
-    template<unsigned char T>
+    template<char T>
     TetrisBlockStatus game_generate_template(TetrisContext const *context)
     {
         TetrisBlockStatus status =
