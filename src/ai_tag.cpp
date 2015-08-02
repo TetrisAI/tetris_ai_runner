@@ -284,6 +284,7 @@ namespace ai_tag
         result.clear = clear;
         result.low_y = low_y;
         result.save_map = &map;
+        result.node_top = node->row + node->height;
         return result;
     }
 
@@ -291,7 +292,7 @@ namespace ai_tag
     {
         Status result = status;
         double BoardDeadZone = 0;
-        if(eval_result.save_map->roof + status.up >= context_->height())
+        if(eval_result.save_map->roof + status.up >= context_->height() || eval_result.node_top >= context_->height())
         {
             BoardDeadZone = context_->type_max();
         }

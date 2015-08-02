@@ -344,13 +344,43 @@ int main()
     CONSOLE_CURSOR_INFO cursorInfo = {1, FALSE};  // 光标信息
     SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);  // 设置光标隐藏
 
-    ege::mtsrand(4);
+    ege::mtsrand(1);
+
+    auto under_attack = [](auto &map, auto &ai, int line)
+    {
+        if(line == 0)
+        {
+            return;
+        }
+        int w = map.width, h = map.height;
+        for(int y = h - 1; y >= line; --y)
+        {
+            map.row[y] = map.row[y - line];
+        }
+        for(int y = 0; y < line; ++y)
+        {
+            map.row[y] = ai.context()->full();
+        }
+        map.count = 0;
+        for(int my = 0; my < map.height; ++my)
+        {
+            for(int mx = 0; mx < map.width; ++mx)
+            {
+                if(map.full(mx, my))
+                {
+                    map.top[mx] = map.roof = my + 1;
+                    ++map.count;
+                }
+            }
+        }
+    };
 
     std::vector<char> next;
     m_tetris::TetrisMap map(10, 21);
     m_tetris::TetrisMap map2(10, 21);
     int point = 0, combo = 0;
     int point2 = 0, combo2 = 0;
+    under_attack(map, ai, 5);
     for(; ; )
     {
         COORD cd;
@@ -411,34 +441,6 @@ int main()
         {
             clear2 = result2.target->attach(map2);
         }
-        auto under_attack = [](auto &map, auto &ai, int line)
-        {
-            if(line == 0)
-            {
-                return;
-            }
-            int w = map.width, h = map.height;
-            for(int y = h - 1; y >= line; --y)
-            {
-                map.row[y] = map.row[y - line];
-            }
-            for(int y = 0; y < line; ++y)
-            {
-                map.row[y] = ai.context()->full();
-            }
-            map.count = 0;
-            for(int my = 0; my < map.height; ++my)
-            {
-                for(int mx = 0; mx < map.width; ++mx)
-                {
-                    if(map.full(mx, my))
-                    {
-                        map.top[mx] = map.roof = my + 1;
-                        ++map.count;
-                    }
-                }
-            }
-        };
         if(clear > 0)
         {
             int add_point = combo + clear;

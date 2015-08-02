@@ -10,7 +10,7 @@ namespace ai_tag
         struct Result
         {
             double land_point, map;
-            int tilt, full, count, clear, low_y;
+            int tilt, full, count, clear, low_y, node_top;
             m_tetris::TetrisMap const *save_map;
         };
         struct Status
