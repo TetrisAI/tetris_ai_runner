@@ -79,7 +79,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     if(target != nullptr)
     {
         std::vector<char> ai_path = tetris_ai.make_path(node, target, map);
-        memcpy(path, ai_path.data(), ai_path.size());
+        std::memcpy(path, ai_path.data(), ai_path.size());
         path[ai_path.size()] = '\0';
     }
     return 0;

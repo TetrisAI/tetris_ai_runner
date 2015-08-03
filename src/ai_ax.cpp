@@ -26,7 +26,7 @@ namespace ai_ax
             TetrisMap map(context->width(), context->height());
             TetrisNode const *node = context->generate(i);
             node->attach(map);
-            memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
+            std::memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
             for(int y = 0; y < 3; ++y)
             {
                 map_danger_data_[i].data[y + 1] |= map_danger_data_[i].data[y];
@@ -92,7 +92,7 @@ namespace ai_ax
             int LineCoverBits;
             int TopHoleBits;
         } v;
-        memset(&v, 0, sizeof v);
+        std::memset(&v, 0, sizeof v);
 
         for(int y = map.roof - 1; y >= 0; --y)
         {

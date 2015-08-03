@@ -394,7 +394,7 @@ namespace m_tetris
         width_ = width;
         height_ = height;
         type_max_ = 0;
-        full_ = width == 32 ? 0xFFFFFFFF : (1 << width) - 1;
+        full_ = width == 32 ? 0xFFFFFFFFU : (1 << width) - 1;
         std::vector<TetrisBlockStatus> check;
         for(auto cit = generate_.begin(); cit != generate_.end(); ++cit)
         {
@@ -416,19 +416,19 @@ namespace m_tetris
         {
             IndexFilter(TetrisNode const &node)
             {
-                memcpy(data, node.data, sizeof node.data);
+                std::memcpy(data, node.data, sizeof node.data);
                 data[4] = node.row;
             }
-            int data[5];
+            uint32_t data[5];
             struct Less
             {
                 bool operator()(IndexFilter const &left, IndexFilter const &right)
                 {
-                    return memcmp(left.data, right.data, sizeof left.data) < 0;
+                    return std::memcmp(left.data, right.data, sizeof left.data) < 0;
                 }
             };
         };
-        std::map<IndexFilter, int, IndexFilter::Less> index_filter;
+        std::map<IndexFilter, uint32_t, IndexFilter::Less> index_filter;
         TetrisMap map(width, height);
         size_t check_index = 0;
         do
@@ -437,7 +437,7 @@ namespace m_tetris
             {
                 TetrisNode &node = node_cache_.find(check[check_index])->second;
                 node.index = check_index;
-                node.index_filtered = index_filter.insert(std::make_pair(node, check_index)).first->second;
+                node.index_filtered = index_filter.insert(std::make_pair(node, uint32_t(check_index))).first->second;
                 node.context = this;
 #define ROTATE(func)\
 /**//**//**//**/do\
@@ -619,12 +619,12 @@ namespace m_tetris
         return rebuild;
     }
 
-    int TetrisContext::width() const
+    int32_t TetrisContext::width() const
     {
         return width_;
     }
 
-    int TetrisContext::height() const
+    int32_t TetrisContext::height() const
     {
         return height_;
     }

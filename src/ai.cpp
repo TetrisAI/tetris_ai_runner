@@ -88,7 +88,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     if(target != nullptr)
     {
         std::vector<char> ai_path = tetris_ai.make_path(node, target, map);
-        memcpy(path, ai_path.data(), ai_path.size());
+        std::memcpy(path, ai_path.data(), ai_path.size());
         path[ai_path.size()] = '\0';
     }
     return 0;
@@ -186,7 +186,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
             if(run_result.target != nullptr)
             {
                 std::vector<char> ai_path = srs_ai.make_path(srs_ai.context()->generate(run_result.target->status.t), run_result.target, map);
-                memcpy(result, ai_path.data(), ai_path.size());
+                std::memcpy(result, ai_path.data(), ai_path.size());
                 result += ai_path.size();
                 result++[0] = 'V';
             }
@@ -196,7 +196,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
             if(run_result.target != nullptr)
             {
                 std::vector<char> ai_path = srs_ai.make_path(node, run_result.target, map);
-                memcpy(result, ai_path.data(), ai_path.size());
+                std::memcpy(result, ai_path.data(), ai_path.size());
                 result += ai_path.size();
             }
             result++[0] = 'V';
@@ -208,7 +208,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
         if(target != nullptr)
         {
             std::vector<char> ai_path = srs_ai.make_path(node, target, map);
-            memcpy(result, ai_path.data(), ai_path.size());
+            std::memcpy(result, ai_path.data(), ai_path.size());
             result += ai_path.size();
         }
         result++[0] = 'V';
@@ -279,7 +279,7 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
         return 0;
     }
     m_tetris::TetrisMap map(boardW, boardH);
-    memcpy(map.row, board, boardH * sizeof(int));
+    std::memcpy(map.row, board, boardH * sizeof(int));
     for(int my = 0; my < map.height; ++my)
     {
         for(int mx = 0; mx < map.width; ++mx)
@@ -323,7 +323,7 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
     if(target != nullptr)
     {
         ai_path = qq_ai.make_path(node, target, map);
-        memcpy(path, ai_path.data(), ai_path.size());
+        std::memcpy(path, ai_path.data(), ai_path.size());
     }
     path[ai_path.size()] = 'V';
     path[ai_path.size() + 1] = '\0';
@@ -340,7 +340,7 @@ extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], c
         return 0;
     }
     m_tetris::TetrisMap map(boardW, boardH);
-    memcpy(map.row, board, boardH * sizeof(int));
+    std::memcpy(map.row, board, boardH * sizeof(int));
     for(int my = 0; my < map.height; ++my)
     {
         for(int mx = 0; mx < map.width; ++mx)
@@ -369,7 +369,7 @@ extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], c
     if(target != nullptr)
     {
         ai_path = c2_ai.make_path(node, target, map);
-        memcpy(path, ai_path.data(), ai_path.size());
+        std::memcpy(path, ai_path.data(), ai_path.size());
     }
     path[ai_path.size()] = 'V';
     path[ai_path.size() + 1] = '\0';

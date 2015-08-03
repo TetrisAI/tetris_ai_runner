@@ -47,11 +47,11 @@ namespace m_tetris
         TetrisMap()
         {
         }
-        TetrisMap(size_t w, size_t h)
+        TetrisMap(int32_t w, int32_t h)
         {
-            memset(this, 0, sizeof *this);
+            std::memset(this, 0, sizeof *this);
             width = w;
-            height = h;
+            height =h;
         }
         TetrisMap(TetrisMap const &other)
         {
@@ -308,9 +308,9 @@ namespace m_tetris
         std::map<char, TetrisBlockStatus(*)(TetrisContext const *)> generate_;
 
         //宽,高什么的...
-        size_t width_, height_;
+        int32_t width_, height_;
         //满行
-        size_t full_;
+        uint32_t full_;
 
         //一些用于加速的数据...
         std::map<char, std::vector<TetrisNode const *>> place_cache_;
@@ -331,10 +331,10 @@ namespace m_tetris
             fail = 0, ok = 1, rebuild = 2,
         };
         //准备好上下文,返回fail表示上下错误
-        PrepareResult prepare(int width, int height);
+        PrepareResult prepare(int32_t width, int32_t height);
 
-        int width() const;
-        int height() const;
+        int32_t width() const;
+        int32_t height() const;
         uint32_t full() const;
         size_t type_max() const;
         size_t node_max() const;

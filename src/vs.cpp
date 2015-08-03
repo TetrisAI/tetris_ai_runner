@@ -116,7 +116,7 @@ struct tetris_game
         {
             return -1;
         }
-        memset(path, 0, sizeof path);
+        std::memset(path, 0, sizeof path);
         next.push_back(0);
         ((ai_run_t)ai)(tetris_ai.context()->width(), tetris_ai.context()->height(), reinterpret_cast<int *>(map.row), next.data(), node->status.x, node->status.y, (4 - node->status.r) % 4, 10, 0, path, limit);
         char *move = path, *move_end = path + sizeof path;
@@ -214,8 +214,8 @@ struct tetris_game
         map.height = tetris_ai.context()->height();
         map.count = 0;
         map.roof = 0;
-        memset(map.top, 0, sizeof map.top);
-        memset(map.row, 0, sizeof map.row);
+        std::memset(map.top, 0, sizeof map.top);
+        std::memset(map.row, 0, sizeof map.row);
         next.clear();
         fill_next();
     }
@@ -412,8 +412,8 @@ int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
             this_lines = 0;
             map.count = 0;
             map.roof = 0;
-            memset(map.top, 0, sizeof map.top);
-            memset(map.row, 0, sizeof map.row);
+            std::memset(map.top, 0, sizeof map.top);
+            std::memset(map.row, 0, sizeof map.row);
         }
         for(int y = 0; y < h; ++y)
         {
@@ -425,7 +425,7 @@ int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
         }
         if(version == 0)
         {
-            memset(path, 0, 1024);
+            std::memset(path, 0, 1024);
             typedef int(__stdcall *ai_run_t)(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char *nextPiece, char path[]);
             char next[] = {'\0'};
             ((ai_run_t)ai[version])(w, h, param_map, node->status.t, node->status.x + 1, node->status.y + 1, node->status.r + 1, next, path);

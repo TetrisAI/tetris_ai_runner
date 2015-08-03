@@ -15,7 +15,7 @@ namespace search_tspin
         node_mark_.init(context->node_max());
         node_mark_filtered_.init(context->node_max());
         block_data_ = block_data_buffer_ + 10;
-        ::memset(block_data_buffer_, 0, sizeof block_data_buffer_);
+        std::memset(block_data_buffer_, 0, sizeof block_data_buffer_);
         TetrisNode const *node = context->generate('T');
         if(node != nullptr)
         {

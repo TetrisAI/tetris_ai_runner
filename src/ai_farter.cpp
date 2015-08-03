@@ -26,7 +26,7 @@ namespace
     {
         FarteryhrMap(TetrisNode const *_node, TetrisMap const *_map, int _fhh) : node(_node), map(_map), fhh(_fhh), fh(_map->height - fhh)
         {
-            memset(node_data, 0, sizeof(node_data));
+            std::memset(node_data, 0, sizeof(node_data));
             for(int y = 0; y < node->height; ++y)
             {
                 node_data[y + node->row] = node->data[y];

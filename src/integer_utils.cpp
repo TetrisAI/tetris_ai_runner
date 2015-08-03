@@ -18,7 +18,7 @@ namespace zzz
     size_t NumberOfTrailingZeros(uint32_t i)
     {
         // HD, Figure 5-14
-        size_t y;
+        uint32_t y;
         if(i == 0)
         {
             return 32;
