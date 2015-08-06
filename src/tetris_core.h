@@ -437,7 +437,9 @@ namespace m_tetris
         template<class... Params>
         static auto eval(AI const &ai, Node &node, Params const &... params)->result_type
         {
-            return CallEval<AI, Node &, OtherNode &>::template eval<result_type, Node>(ai, node, params...);
+            typedef typename std::remove_reference<typename std::remove_const<Node>::type>::type NodeLeft;
+            typedef typename std::remove_reference<typename std::remove_const<OtherNode>::type>::type NodeRight;
+            return CallEval<AI, NodeLeft, NodeRight>::template eval<result_type, Node>(ai, node, params...);
         }
     };
 

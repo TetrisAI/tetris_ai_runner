@@ -90,7 +90,7 @@ namespace ai_zzz
         };
         struct Result
         {
-            double eval;
+            double land_point, value;
             int clear;
             int count;
             int safe;
@@ -100,11 +100,14 @@ namespace ai_zzz
         };
         struct Status
         {
+            double land_point;
+            int max_combo;
+            int max_attack;
             int combo;
+            int attack;
             int under_attack;
             int map_rise;
             bool b2b;
-            int attack;
             double like;
             double value;
             bool operator < (Status const &) const;
@@ -118,9 +121,13 @@ namespace ai_zzz
         m_tetris::TetrisContext const *context_;
         Config const *config_;
         int col_mask_, row_mask_;
-        int danger_line_;
-        int danger_data_;
         int full_count_;
+        struct MapInDangerData
+        {
+            int data[4];
+        };
+        std::vector<MapInDangerData> map_danger_data_;
+        size_t map_in_danger_(m_tetris::TetrisMap const &map, size_t up) const;
     };
 
     class C2

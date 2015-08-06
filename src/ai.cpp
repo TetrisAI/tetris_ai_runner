@@ -168,11 +168,14 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
             ;
         return max - 1;
     }();
+    srs_ai.status()->land_point = 0;
+    srs_ai.status()->max_combo = combo;
+    srs_ai.status()->max_attack = 0;
     srs_ai.status()->combo = combo;
+    srs_ai.status()->attack = 0;
     srs_ai.status()->under_attack = upcomeAtt;
     srs_ai.status()->map_rise = 0;
     srs_ai.status()->b2b = !!b2b;
-    srs_ai.status()->attack = 0;
     srs_ai.status()->like = 0;
     srs_ai.status()->value = 0;
     m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);

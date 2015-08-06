@@ -419,11 +419,7 @@ namespace ai_zzz
             int WellNum[32];
 
             int LineCoverBits;
-            
-            int HoleBits[8];
-            int HolePosy[8];
-            int ClearWidth[8];
-            int PosyIndex;
+            int ClearWidth;
         } v;
         std::memset(&v, 0, sizeof v);
 
@@ -435,11 +431,14 @@ namespace ai_zzz
             {
                 v.HoleCount += zzz::BitCount(LineHole);
                 v.HoleLine++;
-                if(v.PosyIndex < 8 && v.HolePosy[v.PosyIndex] == 0)
+                for(int hy = y + 1; hy < map.roof; ++hy)
                 {
-                    v.HolePosy[v.PosyIndex] = y + 1;
-                    v.HoleBits[v.PosyIndex] = LineHole;
-                    ++v.PosyIndex;
+                    uint32_t CheckLine = LineHole & map.row[hy];
+                    if(CheckLine == 0)
+                    {
+                        break;
+                    }
+                    v.ClearWidth += (hy + 1) * zzz::BitCount(CheckLine);
                 }
             }
             for(int x = 1; x < width_m1; ++x)
@@ -482,18 +481,6 @@ namespace ai_zzz
                 v.WellDepth += ++v.WellNum[width_m1];
             }
         }
-        for(int i = 0; i < v.PosyIndex; ++i)
-        {
-            for(int y = v.HolePosy[i]; y < map.roof; ++y)
-            {
-                int CheckLine = v.HoleBits[i] & map.row[y];
-                if(CheckLine == 0)
-                {
-                    break;
-                }
-                v.ClearWidth[i] += (y + 1) * zzz::BitCount(CheckLine);
-            }
-        }
 
         //ËÀÍö¾¯½ä
         int BoardDeadZone = map_in_danger_(map);
@@ -511,14 +498,7 @@ namespace ai_zzz
                       - v.HoleLine * 380
                       - v.WellDepth * 100
                       - v.HoleDepth * 40
-                      - v.ClearWidth[0] * 4
-                      - v.ClearWidth[1] * 1
-                      - v.ClearWidth[2] * 0.25
-                      - v.ClearWidth[3] * 0.125
-                      - v.ClearWidth[4] * 0.0625
-                      - v.ClearWidth[5] * 0.03125
-                      - v.ClearWidth[6] * 0.015625
-                      - v.ClearWidth[7] * 0.0078125
+                      - v.ClearWidth * 4
                       - BoardDeadZone * 50000
                       );
         return result;
@@ -556,18 +536,19 @@ namespace ai_zzz
         config_ = config;
         col_mask_ = context->full() & ~1;
         row_mask_ = context->full();
-        danger_line_ = context->height();
-        danger_data_ = 0;
+        full_count_ = context->width() * 20;
+        map_danger_data_.resize(context->type_max());
         for(size_t i = 0; i < context->type_max(); ++i)
         {
+            TetrisMap map(context->width(), context->height());
             TetrisNode const *node = context->generate(i);
-            danger_line_ = std::min<int>(danger_line_, node->row);
-            for(int x = node->col; x < node->col + node->width; ++x)
+            node->attach(map);
+            std::memcpy(map_danger_data_[i].data, &map.row[18], sizeof map_danger_data_[i].data);
+            for(int y = 0; y < 3; ++y)
             {
-                danger_data_ |= 1 << x;
+                map_danger_data_[i].data[y + 1] |= map_danger_data_[i].data[y];
             }
         }
-        full_count_ = context->width() * danger_line_;
     }
 
     std::string TOJ::ai_name() const
@@ -577,57 +558,126 @@ namespace ai_zzz
 
     TOJ::Result TOJ::eval(TetrisNodeEx &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
     {
-        Result result;
-        result.eval = 0;
-        result.count = 0;
-        const int width = map.width;
+        double LandHeight = node->status.y + 1;
+        double Middle = std::abs((node->status.x + 1) * 2 - map.width);
+        double EraseCount = clear;
 
-        for(int x = 0; x < width; ++x)
+        const int width_m1 = map.width - 1;
+        int ColTrans = 2 * (map.height - map.roof);
+        int RowTrans = zzz::BitCount(row_mask_ ^ map.row[0]) + zzz::BitCount(map.roof == map.height ? ~row_mask_ & map.row[map.roof - 1] : map.row[map.roof - 1]);
+        for(int y = 0; y < map.roof; ++y)
         {
-            result.count += map.top[x];
-            for(int y = 0; y < map.roof; ++y)
+            if(!map.full(0, y))
             {
-                if(map.full(x, y))
+                ++ColTrans;
+            }
+            if(!map.full(width_m1, y))
+            {
+                ++ColTrans;
+            }
+            ColTrans += zzz::BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+            if(y != 0)
+            {
+                RowTrans += zzz::BitCount(map.row[y - 1] ^ map.row[y]);
+            }
+        }
+        struct
+        {
+            int HoleCount;
+            int HoleLine;
+
+            int HoleDepth;
+            int WellDepth;
+
+            int HoleNum[32];
+            int WellNum[32];
+
+            int LineCoverBits;
+            int ClearWidth;
+        } v;
+        std::memset(&v, 0, sizeof v);
+
+        for(int y = map.roof - 1; y >= 0; --y)
+        {
+            v.LineCoverBits |= map.row[y];
+            int LineHole = v.LineCoverBits ^ map.row[y];
+            if(LineHole != 0)
+            {
+                v.HoleCount += zzz::BitCount(LineHole);
+                v.HoleLine++;
+                for(int hy = y + 1; hy < map.roof; ++hy)
                 {
-                    result.eval -= 2 * (y + 1);
-                    continue;
-                }
-                if(x == width - 1 || map.full(x + 1, y))
-                {
-                    result.eval -= 3 * (y + 1);
-                }
-                if(x == 0 || map.full(x - 1, y))
-                {
-                    result.eval -= 3 * (y + 1);
-                }
-                if(map.full(x, y + 1))
-                {
-                    result.eval -= 10 * (y + 1);
-                    if(map.full(x, y + 2))
+                    uint32_t CheckLine = LineHole & map.row[hy];
+                    if(CheckLine == 0)
                     {
-                        result.eval -= 4;
-                        if(map.full(x, y + 3))
-                        {
-                            result.eval -= 3;
-                            if(map.full(x, y + 4))
-                            {
-                                result.eval -= 2;
-                            }
-                        }
+                        break;
                     }
+                    v.ClearWidth += (hy + 1) * zzz::BitCount(CheckLine);
                 }
             }
-        }
-        result.clear = clear;
-        int line;
-        for(line = map.roof - 1; line > 0; --line)
-        {
-            if(map.row[line] & danger_data_)
+            for(int x = 1; x < width_m1; ++x)
             {
-                break;
+                if((LineHole >> x) & 1)
+                {
+                    v.HoleDepth += ++v.HoleNum[x];
+                }
+                else
+                {
+                    v.HoleNum[x] = 0;
+                }
+                if(((v.LineCoverBits >> (x - 1)) & 7) == 5)
+                {
+                    v.WellDepth += ++v.WellNum[x];
+                }
+            }
+            if(LineHole & 1)
+            {
+                v.HoleDepth += ++v.HoleNum[0];
+            }
+            else
+            {
+                v.HoleNum[0] = 0;
+            }
+            if((v.LineCoverBits & 3) == 2)
+            {
+                v.WellDepth += ++v.WellNum[0];
+            }
+            if((LineHole >> width_m1) & 1)
+            {
+                v.HoleDepth += ++v.HoleNum[width_m1];
+            }
+            else
+            {
+                v.HoleNum[width_m1] = 0;
+            }
+            if(((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
+            {
+                v.WellDepth += ++v.WellNum[width_m1];
             }
         }
-        result.safe = danger_line_ - (line + 1);
+
+        Result result;
+        result.land_point = (0
+                             - LandHeight * 1750 / map.height
+                             + Middle * 2
+                             + EraseCount * 60
+                             );
+        result.value = (0.
+                      - ColTrans * 80
+                      - RowTrans * 80
+                      - v.HoleCount * 60
+                      - v.HoleLine * 380
+                      - v.WellDepth * 100
+                      - v.HoleDepth * 40
+                      - v.ClearWidth * 4
+                      );
+        result.count = map.count + v.HoleCount;
+        result.clear = clear;
+        result.safe = 0;
+        while(map_in_danger_(map, result.safe + 1) == 0)
+        {
+            ++result.safe;
+        }
         if(clear > 0 && node.is_check && node.is_last_rotate)
         {
             if(clear == 1 && node.is_mini_ready)
@@ -763,7 +813,8 @@ namespace ai_zzz
     TOJ::Status TOJ::get(Result const &eval_result, size_t depth, Status const &status, TetrisContext::Env const &env) const
     {
         Status result = status;
-        result.value = eval_result.eval;
+        result.land_point += eval_result.land_point;
+        result.value = result.land_point / depth + eval_result.value;
         if(eval_result.safe <= 0)
         {
             result.value -= 99999;
@@ -865,15 +916,37 @@ namespace ai_zzz
             }
             break;
         }
-        double rate = (1. / depth) + 1.;
+        double rate = (1. / depth) + 2.;
+        result.combo = std::max(result.combo, result.max_combo);
+        result.attack = std::max(result.attack, result.max_attack);
         result.value += (0.
-                         + result.attack * 160 * rate
-                         + eval_result.t2_value * (t_expect < 8 ? 160 : 128)
-                         + (eval_result.safe >= 12 ? eval_result.t3_value * (t_expect < 4 ? 1.5 : 1.) * (result.b2b ? 200 : 160) / (1 + result.under_attack) : 0)
-                         + (result.b2b ? 240 : 0)
-                         + result.like * 24
+                         + result.max_attack * 20
+                         + result.max_combo * (result.max_combo - 1) * 20
+                         + result.attack * 256 * rate
+                         + eval_result.t2_value * (t_expect < 8 ? 512 : 320)
+                         + (eval_result.safe >= 12 ? eval_result.t3_value * (t_expect < 4 ? 2 : 1.5) * (result.b2b ? 280 : 200) / (1 + result.under_attack) : 0)
+                         + (result.b2b ? 320 : 0)
+                         + result.like * 40
                          ) * rate * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_));
         return result;
+    }
+
+    size_t TOJ::map_in_danger_(m_tetris::TetrisMap const &map, size_t up) const
+    {
+        size_t danger = 0;
+        for(size_t i = 0; i < context_->type_max(); ++i)
+        {
+            if(up >= 20)
+            {
+                return context_->type_max();
+            }
+            size_t height = 22 - up;
+            if(map_danger_data_[i].data[0] & map.row[height - 4] || map_danger_data_[i].data[1] & map.row[height - 3] || map_danger_data_[i].data[2] & map.row[height - 2] || map_danger_data_[i].data[3] & map.row[height - 1])
+            {
+                ++danger;
+            }
+        }
+        return danger;
     }
 
     bool C2::Status::operator < (Status const &other) const
@@ -949,12 +1022,7 @@ namespace ai_zzz
             int WellDepthTotle;
 
             int LineCoverBits;
-            int HoleBits0;
-            int ClearWidth0;
-            int HoleBits1;
-            int ClearWidth1;
-            int HoleBits2;
-            int ClearWidth2;
+            int ClearWidth;
         } v;
         std::memset(&v, 0, sizeof v);
         int HolePosy0 = -1;
@@ -969,20 +1037,14 @@ namespace ai_zzz
             {
                 v.HoleCount += BitCount(LineHole);
                 v.HoleLine++;
-                if(HolePosy0 == -1)
+                for(int hy = y + 1; hy < map.roof; ++hy)
                 {
-                    HolePosy0 = y + 1;
-                    v.HoleBits0 = LineHole;
-                }
-                else if(HolePosy1 == -1)
-                {
-                    HolePosy1 = y + 1;
-                    v.HoleBits1 = LineHole;
-                }
-                else if(HolePosy2 == -1)
-                {
-                    HolePosy2 = y + 1;
-                    v.HoleBits2 = LineHole;
+                    uint32_t CheckLine = LineHole & map.row[hy];
+                    if(CheckLine == 0)
+                    {
+                        break;
+                    }
+                    v.ClearWidth += (hy + 1) * zzz::BitCount(CheckLine);
                 }
             }
             int WellWidth = 0;
@@ -1029,42 +1091,13 @@ namespace ai_zzz
             }
             if(MaxWellWidth >= 1 && MaxWellWidth <= 6)
             {
-                ++v.WideWellDepth[MaxWellWidth - 1];
-            }
-        }
-        if(HolePosy0 >= 0)
-        {
-            for(int y = HolePosy0; y < map.roof; ++y)
-            {
-                int CheckLine = v.HoleBits0 & map.row[y];
-                if(CheckLine == 0)
+                if(zzz::BitCount(map.row[y]) + MaxWellWidth == map.width)
                 {
-                    break;
+                    v.WideWellDepth[MaxWellWidth - 1] += 2;
                 }
-                v.ClearWidth0 += (y + 1) * BitCount(CheckLine);
-            }
-            if(HolePosy1 >= 0)
-            {
-                for(int y = HolePosy1; y < map.roof; ++y)
+                else
                 {
-                    int CheckLine = v.HoleBits1 & map.row[y];
-                    if(CheckLine == 0)
-                    {
-                        break;
-                    }
-                    v.ClearWidth1 += (y + 1) * BitCount(CheckLine);
-                }
-                if(HolePosy2 >= 0)
-                {
-                    for(int y = HolePosy2; y < map.roof; ++y)
-                    {
-                        int CheckLine = v.HoleBits2 & map.row[y];
-                        if(CheckLine == 0)
-                        {
-                            break;
-                        }
-                        v.ClearWidth2 += (y + 1) * BitCount(CheckLine);
-                    }
+                    v.WideWellDepth[MaxWellWidth - 1] -= 1;
                 }
             }
         }
@@ -1098,9 +1131,7 @@ namespace ai_zzz
                       - RowTrans * 80
                       - v.HoleCount * 80
                       - v.HoleLine * 380
-                      - v.ClearWidth0 * 8
-                      - v.ClearWidth1 * 4
-                      - v.ClearWidth2 * 1
+                      - v.ClearWidth * 8
                       - v.WellDepthTotle * 100
                       );
         if(config_->mode == 1)
@@ -1110,8 +1141,8 @@ namespace ai_zzz
                              + v.WideWellDepth[5] * 16
                              + v.WideWellDepth[4] * 24
                              + v.WideWellDepth[3] * 32
-                             + v.WideWellDepth[2] * 40
-                             + v.WideWellDepth[1] * 8
+                             + v.WideWellDepth[2] * 48
+                             + v.WideWellDepth[1] * -8
                              + attack_well * attack_well * 128
                              );
         }

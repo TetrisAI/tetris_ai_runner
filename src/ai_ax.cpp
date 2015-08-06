@@ -89,8 +89,8 @@ namespace ai_ax
             int HoleNum[32];
             int WellNum[32];
 
-            int LineCoverBits;
-            int TopHoleBits;
+            uint32_t LineCoverBits;
+            uint32_t TopHoleBits;
         } v;
         std::memset(&v, 0, sizeof v);
 
@@ -153,7 +153,7 @@ namespace ai_ax
             //从最高有洞行上一行开始往上厉遍
             for(int y = v.HolePosy; y < map.roof; ++y)
             {
-                int CheckLine = v.TopHoleBits & map.row[y];
+                uint32_t CheckLine = v.TopHoleBits & map.row[y];
                 if(CheckLine == 0)
                 {
                     break;
