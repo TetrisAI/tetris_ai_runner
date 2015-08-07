@@ -449,7 +449,6 @@ namespace ai_tag
 
             int LineCoverBits;
             int ClearWidth;
-            int ClearWidthCheck;
         } v;
         std::memset(&v, 0, sizeof v);
 
@@ -461,18 +460,14 @@ namespace ai_tag
             {
                 v.HoleCount += BitCount(LineHole);
                 v.HoleLine++;
-                if(v.ClearWidthCheck == 0)
+                for(int hy = y + 1; hy < map.roof; ++hy)
                 {
-                    v.ClearWidthCheck = 1;
-                    for(int hy = y + 1; hy < map.roof; ++hy)
+                    uint32_t CheckLine = LineHole & map.row[hy];
+                    if(CheckLine == 0)
                     {
-                        uint32_t CheckLine = LineHole & map.row[hy];
-                        if(CheckLine == 0)
-                        {
-                            break;
-                        }
-                        v.ClearWidth += (hy + 1) * zzz::BitCount(CheckLine);
+                        break;
                     }
+                    v.ClearWidth += zzz::BitCount(CheckLine);
                 }
             }
             for(int x = 1; x < width_m1; ++x)
@@ -515,55 +510,15 @@ namespace ai_tag
                 v.WellDepth += ++v.WellNum[width_m1];
             }
         }
-        int attack_x = 1, depth = 0;
-        for(int x = 2; x < map.width; ++x)
-        {
-            if(map.top[x] <= map.top[attack_x])
-            {
-                attack_x = x;
-            }
-        }
-        if(map.top[0] <= map.top[attack_x])
-        {
-            attack_x = 0;
-        }
-        int tilt;
-        for(int x = attack_x, ex = std::max(0, attack_x - 5); x > ex; --x)
-        {
-            if(map.top[x] > map.top[x + 1])
-            {
-                tilt += 2;
-            }
-            else if(map.top[x] == map.top[x + 1])
-            {
-                tilt += 1;
-            }
-        }
-        for(int x = attack_x, ex = std::min(width_m1, attack_x + 5); x < ex; ++x)
-        {
-            if(map.top[x] > map.top[x - 1])
-            {
-                tilt += 2;
-            }
-            else if(map.top[x] == map.top[x - 1])
-            {
-                tilt += 1;
-            }
-        }
-        result.land_point = (0.
-                             - map.width * node->row * 32
-                             + clear * 60
-                             );
         result.map = (0.
-                      - map.roof * 128
-                      - ColTrans * 80
-                      - RowTrans * 80
-                      - v.HoleCount * 60
-                      - v.HoleLine * 380
+                      - map.roof * 96
+                      - ColTrans * 170
+                      - RowTrans * 128
+                      - v.HoleCount * 64
+                      - v.HoleLine * 400
                       - v.WellDepth * 100
                       - v.HoleDepth * 40
-                      - v.ClearWidth * 4
-                      + tilt * 2
+                      - v.ClearWidth * 32
                       );
         result.map_low = 0;
         while(result.map_low < map.height && map.row[result.map_low] == context_->full())
@@ -571,6 +526,14 @@ namespace ai_tag
             ++result.map_low;
         }
         result.attack = 0;
+        int attack_x = 0, depth = 0;
+        for(int x = 1; x < map.width; ++x)
+        {
+            if(map.top[x] < map.top[attack_x])
+            {
+                attack_x = x;
+            }
+        }
         if(map.top[attack_x] == result.map_low)
         {
             for(int y = 3; y >= result.map_low; --y)
@@ -605,10 +568,6 @@ namespace ai_tag
         {
             result.attack = -200;
         }
-        if(attack_x == 0 || attack_x == width_m1)
-        {
-            result.attack += 200;
-        }
         result.node_top = node->row + node->height;
         result.clear = clear;
         result.tspin = node.is_check && node.is_ready && node.is_last_rotate ? clear : 0;
@@ -625,7 +584,6 @@ namespace ai_tag
     the_ai_games_1::Status the_ai_games_1::get(Result const &eval_result, size_t depth, Status const &status) const
     {
         Status result = status;
-        result.land_point += eval_result.land_point;
         double BoardDeadZone = 0;
         if(eval_result.save_map->roof + status.up >= context_->height() || eval_result.node_top >= context_->height())
         {
@@ -637,6 +595,7 @@ namespace ai_tag
         }
         result.attack -= BoardDeadZone * 50000000;
         int full = std::max(0, eval_result.full - status.up * eval_result.save_map->width);
+        result.attack += eval_result.clear * (eval_result.clear + 1) * 32;
         if(eval_result.count * 3 < full)
         {
             result.attack += eval_result.attack;
@@ -646,7 +605,7 @@ namespace ai_tag
             }
             if(eval_result.clear == 4)
             {
-                result.attack += 99999;
+                result.attack += 4096;
             }
         }
         else
@@ -664,7 +623,7 @@ namespace ai_tag
         {
             if(result.combo > 0)
             {
-                result.attack += result.combo * 48;
+                result.attack += result.combo * 64;
             }
             else
             {
@@ -677,7 +636,6 @@ namespace ai_tag
             ++result.combo = 0;
         }
         result.value = (0.
-                        + result.land_point / depth
                         + result.attack
                         + eval_result.map
                         );
@@ -699,7 +657,7 @@ namespace ai_tag
         {
             if(status[i] == nullptr)
             {
-                result.value -= 7 * 50000000;
+                result.value -= 10 * 50000000;
             }
             else
             {
@@ -866,7 +824,7 @@ namespace ai_tag
         }
         result.map = (0.
                       - map.roof * 96
-                      - ColTrans * 160
+                      - ColTrans * 170
                       - RowTrans * 128
                       - v.HoleCount * 64
                       - v.HoleLine * 400
