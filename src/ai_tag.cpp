@@ -937,6 +937,14 @@ namespace ai_tag
                     }
                 }
             }
+            for(int y = 2; y >= result.map_low; --y)
+            {
+                if((~map.row[y] & map.row[y + 1]) != 0)
+                {
+                    depth = 0;
+                    break;
+                }
+            }
         }
         if(depth > 0)
         {
@@ -972,6 +980,7 @@ namespace ai_tag
         {
             BoardDeadZone = map_in_danger_(*eval_result.save_map, status.up);
         }
+        result.attack -= BoardDeadZone * 50000000;
         int full = std::max(0, eval_result.full - status.up * eval_result.save_map->width);
         if(eval_result.count * 3 < full)
         {
@@ -982,7 +991,7 @@ namespace ai_tag
             }
             if(eval_result.clear == 4)
             {
-                result.attack += 8192;
+                result.attack += 99999;
             }
         }
         else
@@ -996,11 +1005,26 @@ namespace ai_tag
                 result.attack += 1024;
             }
         }
+        if(eval_result.clear > 0)
+        {
+            if(result.combo > 0)
+            {
+                result.attack += result.combo * 32;
+            }
+            else
+            {
+                result.attack -= 32;
+            }
+            ++result.combo;
+        }
+        else
+        {
+            ++result.combo = 0;
+        }
         result.value = (0.
                         + result.land_point / depth
                         + result.attack
                         + eval_result.map
-                        - BoardDeadZone * 50000000
                         );
         result.max_attack = std::max(status.max_attack, result.attack);
         return result;

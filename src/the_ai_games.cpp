@@ -364,7 +364,7 @@ int main()
     CONSOLE_CURSOR_INFO cursorInfo = {1, FALSE};  // 光标信息
     SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);  // 设置光标隐藏
 
-    ege::mtsrand(5);
+    ege::mtsrand(1);
 
     auto under_attack = [](auto &map, auto &ai, int line, int hole)
     {
