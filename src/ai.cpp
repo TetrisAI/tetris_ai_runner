@@ -21,8 +21,8 @@
 #include "rule_c2.h"
 #include "random.h"
 
-//m_tetris::TetrisEngine<rule_st::TetrisRule, ai_zzz::qq::Attack, search_path::Search> tetris_ai;
-m_tetris::TetrisEngine<rule_st::TetrisRule, ai_ax::AI, search_simple::Search> tetris_ai;
+m_tetris::TetrisEngine<rule_st::TetrisRule, ai_zzz::Dig, search_path::Search> tetris_ai;
+//m_tetris::TetrisEngine<rule_st::TetrisRule, ai_ax::AI, search_simple::Search> tetris_ai;
 //m_tetris::TetrisEngine<rule_st::TetrisRule, ai_farteryhr::AI, search_simple::Search> tetris_ai;
 
 extern "C" void attach_init()
@@ -79,10 +79,6 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     }
     m_tetris::TetrisBlockStatus status(curPiece, curX - 1, curY - 1, curR - 1);
     std::string next(nextPiece);
-    /////////////////////////////////////////////////
-    tetris_ai.status()->land_point = 0;
-    tetris_ai.status()->value = 0;
-    /////////////////////////////////////////////////
     m_tetris::TetrisNode const *node = tetris_ai.get(status);
     auto target = tetris_ai.run(map, node, next.data(), next.size(), 49).target;
     if(target != nullptr)
@@ -168,7 +164,6 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
             ;
         return max - 1;
     }();
-    srs_ai.status()->land_point = 0;
     srs_ai.status()->max_combo = combo;
     srs_ai.status()->max_attack = 0;
     srs_ai.status()->combo = combo;

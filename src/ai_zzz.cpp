@@ -352,12 +352,7 @@ namespace ai_zzz
             return danger;
         }
     }
-
-    bool Dig::Status::operator < (Status const &other) const
-    {
-        return value < other.value;
-    }
-
+    
     void Dig::init(m_tetris::TetrisContext const *context)
     {
         context_ = context;
@@ -382,12 +377,8 @@ namespace ai_zzz
         return "ZZZ Dig v0.2";
     }
 
-    Dig::Result Dig::eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
+    double Dig::eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
     {
-        double LandHeight = node->status.y + 1;
-        double Middle = std::abs((node->status.x + 1) * 2 - map.width);
-        double EraseCount = clear;
-
         const int width_m1 = map.width - 1;
         int ColTrans = 2 * (map.height - map.roof);
         int RowTrans = zzz::BitCount(row_mask_ ^ map.row[0]) + zzz::BitCount(map.roof == map.height ? ~row_mask_ & map.row[map.roof - 1] : map.row[map.roof - 1]);
@@ -438,7 +429,7 @@ namespace ai_zzz
                     {
                         break;
                     }
-                    v.ClearWidth += (hy + 1) * zzz::BitCount(CheckLine);
+                    v.ClearWidth += zzz::BitCount(CheckLine);
                 }
             }
             for(int x = 1; x < width_m1; ++x)
@@ -485,31 +476,22 @@ namespace ai_zzz
         //ËÀÍö¾¯½ä
         int BoardDeadZone = map_in_danger_(map);
 
-        Result result;
-        result.land_point = (0
-                             - LandHeight * 1750 / map.height
-                             + Middle * 2
-                             + EraseCount * 60
-                             );
-        result.map = (0.
-                      - ColTrans * 80
-                      - RowTrans * 80
-                      - v.HoleCount * 60
-                      - v.HoleLine * 380
-                      - v.WellDepth * 100
-                      - v.HoleDepth * 40
-                      - v.ClearWidth * 4
-                      - BoardDeadZone * 50000
-                      );
-        return result;
+        return (0.
+                - map.roof * 96
+                - ColTrans * 160
+                - RowTrans * 128
+                - v.HoleCount * 60
+                - v.HoleLine * 380
+                - v.WellDepth * 100
+                - v.HoleDepth * 40
+                - v.ClearWidth * 16
+                - BoardDeadZone * 50000
+                );
     }
 
-    Dig::Status Dig::get(Result const &eval_result, size_t depth, Status const &status) const
+    double Dig::get(double const &eval_result) const
     {
-        Status result;
-        result.land_point = eval_result.land_point + status.land_point;
-        result.value = result.land_point / depth + eval_result.map;
-        return result;
+        return eval_result;
     }
 
     size_t Dig::map_in_danger_(m_tetris::TetrisMap const &map) const
@@ -610,7 +592,7 @@ namespace ai_zzz
                     {
                         break;
                     }
-                    v.ClearWidth += (hy + 1) * zzz::BitCount(CheckLine);
+                    v.ClearWidth += zzz::BitCount(CheckLine);
                 }
             }
             for(int x = 1; x < width_m1; ++x)
@@ -655,19 +637,15 @@ namespace ai_zzz
         }
 
         Result result;
-        result.land_point = (0.
-                             - map.width * node->row * 32
-                             + clear * 60
-                             );
         result.value = (0.
-                        - map.roof * 128
-                        - ColTrans * 80
-                        - RowTrans * 80
+                        - map.roof * 96
+                        - ColTrans * 160
+                        - RowTrans * 128
                         - v.HoleCount * 60
                         - v.HoleLine * 380
                         - v.WellDepth * 100
                         - v.HoleDepth * 40
-                        - v.ClearWidth * 4
+                        - v.ClearWidth * 32
                       );
         result.count = map.count + v.HoleCount;
         result.clear = clear;
@@ -811,8 +789,7 @@ namespace ai_zzz
     TOJ::Status TOJ::get(Result const &eval_result, size_t depth, Status const &status, TetrisContext::Env const &env) const
     {
         Status result = status;
-        result.land_point += eval_result.land_point;
-        result.value = result.land_point / depth + eval_result.value;
+        result.value = eval_result.value;
         if(eval_result.safe <= 0)
         {
             result.value -= 99999;
@@ -914,12 +891,12 @@ namespace ai_zzz
             }
             break;
         }
-        double rate = (1. / depth) + 2.;
+        double rate = (1. / depth) + 3;
         result.combo = std::max(result.combo, result.max_combo);
         result.attack = std::max(result.attack, result.max_attack);
         result.value += (0.
-                         + result.max_attack * 20
-                         + result.max_combo * (result.max_combo - 1) * 20
+                         + result.max_attack * 40
+                         + result.max_combo * (result.max_combo - 1) * 40
                          + result.attack * 256 * rate
                          + eval_result.t2_value * (t_expect < 8 ? 512 : 320)
                          + (eval_result.safe >= 12 ? eval_result.t3_value * (t_expect < 4 ? 2 : 1.5) * (result.b2b ? 280 : 200) / (1 + result.under_attack) : 0)

@@ -56,17 +56,8 @@ namespace ai_zzz
     public:
         void init(m_tetris::TetrisContext const *context);
         std::string ai_name() const;
-        struct Result
-        {
-            double land_point, map;
-        };
-        struct Status
-        {
-            double land_point, value;
-            bool operator < (Status const &) const;
-        };
-        Result eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
-        Status get(Result const &eval_result, size_t depth, Status const &status) const;
+        double eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
+        double get(double const &eval_result) const;
     private:
         struct MapInDangerData
         {
@@ -90,7 +81,7 @@ namespace ai_zzz
         };
         struct Result
         {
-            double land_point, value;
+            double value;
             int clear;
             int count;
             int safe;
@@ -100,7 +91,6 @@ namespace ai_zzz
         };
         struct Status
         {
-            double land_point;
             int max_combo;
             int max_attack;
             int combo;

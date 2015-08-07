@@ -10,7 +10,7 @@
 #include "rule_tag.h"
 #include "random.h"
 
-m_tetris::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games, search_tag::Search> bot_1;
+m_tetris::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games_2, search_tag::Search> bot_1;
 m_tetris::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games_enemy, search_tag::Search> bot_2;
 
 namespace zzz
@@ -333,40 +333,105 @@ int main()
 
 #include <windows.h>
 
-int main()
+template<class AI>
+struct test_ai
 {
-    m_tetris::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games_rubbish, search_tag::Search> ai2;
-    auto &ai = bot_1;
-    int add_point;
-    ai.prepare(10, 21);
-    ai.status()->max_combo = 0;
-    ai.status()->combo = 0;
-    ai.status()->max_attack = 0;
-    ai.status()->attack = 0;
-    ai.status()->up = 0;
-    ai.status()->land_point = 0;
-    ai.status()->value = 0;
-    ai2.prepare(10, 21);
-    ai2.status()->land_point = 0;
-    ai2.status()->up = 0;
-    ai2.status()->combo = 0;
-    ai2.status()->value = 0;
-    bot_2.prepare(10, 21);
-    bot_2.status()->combo = 0;
-    bot_2.status()->point = 0;
-    bot_2.ai_config()->point_ptr = &add_point;
-
-
-    char out[81920] = "";
-    char box_0[3] = "□";
-    char box_1[3] = "■";
-
-    CONSOLE_CURSOR_INFO cursorInfo = {1, FALSE};  // 光标信息
-    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);  // 设置光标隐藏
-
-    ege::mtsrand(1);
-
-    auto under_attack = [](auto &map, auto &ai, int line, int hole)
+    m_tetris::TetrisEngine<rule_tag::TetrisRule, AI, search_tag::Search> ai;
+    m_tetris::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games_enemy, search_tag::Search> t;
+    m_tetris::TetrisMap map;
+    int point = 0, combo = 0;
+    int win = 0, add_point;
+    int attack;
+    ege::mtrandom r1, r2;
+    std::vector<char> next;
+    void init()
+    {
+        r1.reset(0);
+        r2.reset(0);
+        map = m_tetris::TetrisMap(10, 21);
+        ai.prepare(10, 21);
+        ai.status()->max_combo = 0;
+        ai.status()->combo = 0;
+        ai.status()->max_attack = 0;
+        ai.status()->attack = 0;
+        ai.status()->up = 0;
+        ai.status()->land_point = 0;
+        ai.status()->value = 0;
+        t.prepare(10, 21);
+        t.status()->combo = 0;
+        t.status()->point = 0;
+        t.ai_config()->point_ptr = &add_point;
+    }
+    void reset()
+    {
+        r2.reset(r1.rand());
+        map = m_tetris::TetrisMap(10, 21);
+        point = 0, combo = 0;
+    }
+    m_tetris::TetrisNode const *node()
+    {
+        return ai.context()->generate(next.front());
+    }
+    bool prepare()
+    {
+        if(!next.empty())
+        {
+            next.erase(next.begin());
+        }
+        while(next.size() <= 1)
+        {
+            next.push_back(ai.context()->convert(static_cast<size_t>(r1.real() * 7)));
+        }
+        return !ai.context()->generate(next.front())->check(map) || map.roof >= map.height;
+    }
+    void run(int enemy_combo, int enemy_point, int round, m_tetris::TetrisMap const &enemy_map)
+    {
+        char current = next.front();
+        add_point = 0;
+        t.status()->combo = enemy_combo;
+        next.push_back('?');
+        t.run(enemy_map, t.context()->generate(current), next.data() + 1, next.size() - 1, 20);
+        ai.status()->up = (enemy_point % 4 + add_point) / 4 + (round % 20 == 0 ? 1 : 0);
+        ai.status()->combo = combo;
+        auto result = ai.run(map, ai.context()->generate(current), next.data() + 1, next.size() - 1, 10000);
+        next.pop_back();
+        size_t clear;
+        int new_point = 0;
+        if(result.target == nullptr)
+        {
+            clear = 0;
+        }
+        else
+        {
+            clear = result.target->attach(map);
+        }
+        if(clear > 0)
+        {
+            new_point = combo;
+            if(result.target.type == search_tag::Search::TSpin)
+            {
+                new_point += clear * 6;
+            }
+            else
+            {
+                switch(clear)
+                {
+                case 1: new_point += 1; break;
+                case 2: new_point += 3; break;
+                case 3: new_point += 6; break;
+                case 4: new_point += 12; break;
+                }
+            }
+            ++combo;
+        }
+        else
+        {
+            combo = 0;
+        }
+        attack = (point % 4 + new_point) / 4;
+        point += new_point;
+    }
+    void under_attack(int line, int hole)
     {
         if(line == 0)
         {
@@ -383,13 +448,13 @@ int main()
             }
             map.row[y] = map.row[y - line];
         }
-        uint32_t new_line = ai.context()->full();
-        if(hole != -1)
-        {
-            new_line &= ~(1 << hole);
-        }
         for(int y = full; y < line + full; ++y)
         {
+            uint32_t new_line = ai.context()->full();
+            if(hole != -1)
+            {
+                new_line &= ~(1 << static_cast<int>(r2.real() * ai.context()->width()));
+            }
             map.row[y] = new_line;
         }
         map.count = 0;
@@ -404,14 +469,23 @@ int main()
                 }
             }
         }
-    };
+    }
+};
 
-    std::vector<char> next;
-    m_tetris::TetrisMap map(10, 21);
-    m_tetris::TetrisMap map2(10, 21);
-    int point = 0, combo = 0;
-    int point2 = 0, combo2 = 0;
-    int win = 0, win2 = 0;
+int main()
+{
+    test_ai<ai_tag::the_ai_games_1> ai1;
+    test_ai<ai_tag::the_ai_games_2> ai2;
+    ai1.init();
+    ai2.init();
+
+    char out[81920] = "";
+    char box_0[3] = "□";
+    char box_1[3] = "■";
+
+    CONSOLE_CURSOR_INFO cursorInfo = {1, FALSE};  // 光标信息
+    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);  // 设置光标隐藏
+
     int round = 0;
     for(; ; )
     {
@@ -421,45 +495,34 @@ int main()
         cd.Y = 0;
         SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), cd);
 
-        while(next.size() <= 1)
+        if(ai1.prepare())
         {
-            next.push_back(ai.context()->generate()->status.t);
-        }
-        m_tetris::TetrisNode const *node = ai.context()->generate(next.front());
-        m_tetris::TetrisNode const *node2 = ai2.context()->generate(next.front());
-        m_tetris::TetrisNode const *node3 = bot_2.context()->generate(next.front());
-        next.erase(next.begin());
-        if(!node->check(map) || map.roof >= map.height)
-        {
-            ++win2;
+            ++ai2.win;
             round = 0;
         }
-        if(!node2->check(map2) || map2.roof >= map2.height)
+        if(ai2.prepare())
         {
-            ++win;
+            ++ai1.win;
             round = 0;
         }
         if(round == 0)
         {
-            next.clear();
-            map = m_tetris::TetrisMap(10, 21);
-            map2 = m_tetris::TetrisMap(10, 21);
-            point = 0, combo = 0;
-            point2 = 0, combo2 = 0;
+            ai1.reset();
+            ai2.reset();
             continue;
         }
 
         out[0] = '\0';
-        snprintf(out, sizeof out, "%d\t%d\t%d\t%d\t%d\t%d\r\n", win, point, combo, win2, point2, combo2);
-        m_tetris::TetrisMap map_copy = map;
-        m_tetris::TetrisMap map_copy2 = map2;
-        node->attach(map_copy);
-        node->attach(map_copy2);
+        snprintf(out, sizeof out, "%d\t%d\t%d\t%d\t%d\t%d\r\n", ai1.win, ai1.point, ai1.combo, ai2.win, ai2.point, ai2.combo);
+        m_tetris::TetrisMap map_copy1 = ai1.map;
+        m_tetris::TetrisMap map_copy2 = ai2.map;
+        ai1.node()->attach(map_copy1);
+        ai2.node()->attach(map_copy2);
         for(int y = 21; y >= 0; --y)
         {
             for(int x = 0; x < 10; ++x)
             {
-                strcat_s(out, map_copy.full(x, y) ? box_1 : box_0);
+                strcat_s(out, map_copy1.full(x, y) ? box_1 : box_0);
             }
             strcat_s(out, "  ");
             for(int x = 0; x < 10; ++x)
@@ -471,108 +534,21 @@ int main()
         strcat_s(out, "\r\n");
         printf(out);
 
-        ai.status()->combo = combo;
-        next.push_back('?');
-        time_t begin = clock();
-        add_point = 0;
-        bot_2.status()->combo = combo2;
-        bot_2.run(map2, node3, next.data(), next.size(), 20);
-        ai.status()->up = (point % 4 + add_point) / 4 + (round % 20 == 0 ? 1 : 0);
-        ai.status()->combo = combo;
-        auto result = ai.run(map, node, next.data(), next.size(), 10000);
-        add_point = 0;
-        bot_2.status()->combo = combo;
-        bot_2.run(map, node3, next.data(), next.size(), 20);
-        ai2.status()->up = (point2 % 4 + add_point) / 4 + (round % 20 == 0 ? 1 : 0);
-        ai2.status()->combo = combo2;
-        auto result2 = ai2.run(map2, node2, next.data(), next.size(), 10000);
-        time_t end = clock();
-        if(begin + 500 > end)
-        {
-            Sleep(size_t(begin + 500 - end));
-        }
-        next.pop_back();
-        size_t clear;
-        int add_point = 0;
-        if(result.target == nullptr)
-        {
-            clear = 0;
-        }
-        else
-        {
-            clear = result.target->attach(map);
-        }
-        if(clear > 0)
-        {
-            add_point = combo;
-            if(result.target.type == search_tag::Search::TSpin)
-            {
-                add_point += clear * 6;
-            }
-            else
-            {
-                switch(clear)
-                {
-                case 1: add_point += 1; break;
-                case 2: add_point += 3; break;
-                case 3: add_point += 6; break;
-                case 4: add_point += 12; break;
-                }
-            }
-            ++combo;
-        }
-        else
-        {
-            combo = 0;
-        }
-        size_t clear2;
-        int add_point2 = 0;
-        if(result2.target == nullptr)
-        {
-            clear2 = 0;
-        }
-        else
-        {
-            clear2 = result2.target->attach(map2);
-        }
-        if(clear2 > 0)
-        {
-            add_point2 = combo2;
-            if(result2.target.type == search_tag::Search::TSpin)
-            {
-                add_point2 += clear * 6;
-            }
-            else
-            {
-                switch(clear)
-                {
-                case 1: add_point2 += 1; break;
-                case 2: add_point2 += 3; break;
-                case 3: add_point2 += 6; break;
-                case 4: add_point2 += 12; break;
-                }
-            }
-            ++combo2;
-        }
-        else
-        {
-            combo2 = 0;
-        }
-        under_attack(map, ai, (add_point2 + point2 % 4) / 4, static_cast<int>(ege::mtdrand() * ai.context()->width()));
-        under_attack(map2, ai2, (add_point + point % 4) / 4, static_cast<int>(ege::mtdrand() * ai2.context()->width()));
-        point += add_point;
-        point2 += add_point2;
+        int point1 = ai1.point, combo1 = ai1.combo;
+        int point2 = ai2.point, combo2 = ai2.combo;
+        map_copy1 = ai1.map;
+        map_copy2 = ai2.map;
+
+        ai1.run(combo2, point2, round, map_copy2);
+        ai2.run(combo1, point1, round, map_copy2);
+
+        ai1.under_attack(ai2.attack, 0);
+        ai2.under_attack(ai1.attack, 0);
         if(round % 20 == 0)
         {
-            under_attack(map2, ai2, 1, -1);
-            under_attack(map, ai, 1, -1);
+            ai1.under_attack(1, -1);
+            ai2.under_attack(1, -1);
         }
-        //if(round % 3 == 0)
-        //{
-        //    int hold = static_cast<int>(ege::mtdrand() * ai.context()->width());
-        //    under_attack(map2, ai2, 1, hold);
-        //    under_attack(map, ai, 1, hold);
-        //}
     }
 }
 #endif

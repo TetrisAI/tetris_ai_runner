@@ -40,16 +40,15 @@ namespace ai_tag
         size_t map_in_danger_(m_tetris::TetrisMap const &map, size_t up) const;
     };
 
-    class the_ai_games_rubbish
+    class the_ai_games_1
     {
     public:
         typedef search_tag::Search::TSpinType TSpinType;
         typedef search_tag::Search::TetrisNodeWithTSpinType TetrisNodeEx;
         struct Result
         {
-            double land_point, map;
-            int tilt, full, count, clear, low_y, node_top;
-            int t2_clear, t2_value;
+            double land_point, attack, map;
+            int node_top, map_low, clear, tspin, count, full;
             m_tetris::TetrisMap const *save_map;
         };
         struct Status
@@ -72,6 +71,8 @@ namespace ai_tag
 
     private:
         m_tetris::TetrisContext const *context_;
+        uint32_t check_line_1_[32];
+        uint32_t *check_line_1_end_;
         int col_mask_, row_mask_;
         struct MapInDangerData
         {
@@ -81,14 +82,14 @@ namespace ai_tag
         size_t map_in_danger_(m_tetris::TetrisMap const &map, size_t up) const;
     };
 
-    class the_ai_games
+    class the_ai_games_2
     {
     public:
         typedef search_tag::Search::TSpinType TSpinType;
         typedef search_tag::Search::TetrisNodeWithTSpinType TetrisNodeEx;
         struct Result
         {
-            double land_point, attack, map;
+            double attack, map;
             int node_top, map_low, clear, tspin, count, full;
             m_tetris::TetrisMap const *save_map;
         };
