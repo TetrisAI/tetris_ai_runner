@@ -236,9 +236,12 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
                     bot_2.ai_config()->point_ptr = &enemy_point_add;
                     bot_2.run(map2, node2, next_arr, 2, 20);
                 }
+                bot_1.status()->max_combo = combo;
                 bot_1.status()->combo = combo;
-                bot_1.status()->land_point = 0;
+                bot_1.status()->max_attack = 0;
+                bot_1.status()->attack = 0;
                 bot_1.status()->up = (enemy_row_points % 4 + enemy_point_add) / 4 + (game_round % 20 == 0 ? 1 : 0);
+                bot_1.status()->land_point = 0;
                 bot_1.status()->value = 0;
                 target = bot_1.run(map1, node1, next_arr, 2, std::max(50, std::atoi(params[2].c_str()) - 100)).target;
             }
@@ -332,19 +335,23 @@ int main()
 
 int main()
 {
-    m_tetris::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games_old, search_tag::Search> ai2;
+    m_tetris::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games_rubbish, search_tag::Search> ai2;
     auto &ai = bot_1;
     int add_point;
     ai.prepare(10, 21);
-    ai2.prepare(10, 21);
-    ai.status()->land_point = 0;
-    ai.status()->up = 0;
+    ai.status()->max_combo = 0;
     ai.status()->combo = 0;
+    ai.status()->max_attack = 0;
+    ai.status()->attack = 0;
+    ai.status()->up = 0;
+    ai.status()->land_point = 0;
     ai.status()->value = 0;
+    ai2.prepare(10, 21);
     ai2.status()->land_point = 0;
     ai2.status()->up = 0;
     ai2.status()->combo = 0;
     ai2.status()->value = 0;
+    bot_2.prepare(10, 21);
     bot_2.status()->combo = 0;
     bot_2.status()->point = 0;
     bot_2.ai_config()->point_ptr = &add_point;

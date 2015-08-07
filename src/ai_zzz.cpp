@@ -553,18 +553,14 @@ namespace ai_zzz
 
     std::string TOJ::ai_name() const
     {
-        return "ZZZ TOJ v0.5";
+        return "ZZZ TOJ v0.6";
     }
 
     TOJ::Result TOJ::eval(TetrisNodeEx &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
     {
-        double LandHeight = node->status.y + 1;
-        double Middle = std::abs((node->status.x + 1) * 2 - map.width);
-        double EraseCount = clear;
-
         const int width_m1 = map.width - 1;
         int ColTrans = 2 * (map.height - map.roof);
-        int RowTrans = zzz::BitCount(row_mask_ ^ map.row[0]) + zzz::BitCount(map.roof == map.height ? ~row_mask_ & map.row[map.roof - 1] : map.row[map.roof - 1]);
+        int RowTrans = map.roof == map.height ? 0 : map.width;
         for(int y = 0; y < map.roof; ++y)
         {
             if(!map.full(0, y))
@@ -575,12 +571,14 @@ namespace ai_zzz
             {
                 ++ColTrans;
             }
-            ColTrans += zzz::BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+            ColTrans += BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
             if(y != 0)
             {
-                RowTrans += zzz::BitCount(map.row[y - 1] ^ map.row[y]);
+                RowTrans += BitCount(map.row[y - 1] ^ map.row[y]);
             }
         }
+        RowTrans += BitCount(row_mask_ & ~map.row[0]);
+        RowTrans += BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
         struct
         {
             int HoleCount;
@@ -657,19 +655,19 @@ namespace ai_zzz
         }
 
         Result result;
-        result.land_point = (0
-                             - LandHeight * 1750 / map.height
-                             + Middle * 2
-                             + EraseCount * 60
+        result.land_point = (0.
+                             - map.width * node->row * 32
+                             + clear * 60
                              );
         result.value = (0.
-                      - ColTrans * 80
-                      - RowTrans * 80
-                      - v.HoleCount * 60
-                      - v.HoleLine * 380
-                      - v.WellDepth * 100
-                      - v.HoleDepth * 40
-                      - v.ClearWidth * 4
+                        - map.roof * 128
+                        - ColTrans * 80
+                        - RowTrans * 80
+                        - v.HoleCount * 60
+                        - v.HoleLine * 380
+                        - v.WellDepth * 100
+                        - v.HoleDepth * 40
+                        - v.ClearWidth * 4
                       );
         result.count = map.count + v.HoleCount;
         result.clear = clear;

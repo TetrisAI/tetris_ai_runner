@@ -377,12 +377,12 @@ namespace ai_tag
     }
 
 
-    bool the_ai_games::Status::operator < (Status const &other) const
+    bool the_ai_games_rubbish::Status::operator < (Status const &other) const
     {
         return value < other.value;
     }
 
-    void the_ai_games::init(m_tetris::TetrisContext const *context)
+    void the_ai_games_rubbish::init(m_tetris::TetrisContext const *context)
     {
         context_ = context;
         map_danger_data_.resize(context->type_max());
@@ -401,12 +401,12 @@ namespace ai_tag
         row_mask_ = context->full();
     }
 
-    std::string the_ai_games::ai_name() const
+    std::string the_ai_games_rubbish::ai_name() const
     {
         return "The AI Games (SetoSan) v0.1";
     }
 
-    the_ai_games::Result the_ai_games::eval(TetrisNodeEx &node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
+    the_ai_games_rubbish::Result the_ai_games_rubbish::eval(TetrisNodeEx &node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
     {
         const int width_m1 = map.width - 1;
         int ColTrans = 2 * (map.height - map.roof);
@@ -595,7 +595,7 @@ namespace ai_tag
                              + clear * 60
                              );
         result.map = (0.
-                      - map.roof * 256
+                      - map.roof * 128
                       - ColTrans * 80
                       - RowTrans * 80
                       - v.HoleCount * 60
@@ -620,7 +620,7 @@ namespace ai_tag
         return result;
     }
 
-    the_ai_games::Status the_ai_games::get(Result const &eval_result, size_t depth, Status const &status) const
+    the_ai_games_rubbish::Status the_ai_games_rubbish::get(Result const &eval_result, size_t depth, Status const &status) const
     {
         Status result = status;
         double BoardDeadZone = 0;
@@ -639,20 +639,20 @@ namespace ai_tag
         {
             if(eval_result.clear > 0)
             {
-                result.attack += eval_result.clear * (eval_result.clear - 1) * 1000;
+                result.attack += (eval_result.clear - 1) * (eval_result.clear - 2) * 400;
                 result.attack += eval_result.tilt * 32;
                 if(status.combo > 0)
                 {
-                    result.land_point += status.combo * (status.combo + 1) * 1200;
+                    result.attack += status.combo * (status.combo + 1) * 2000;
+                }
+                else
+                {
+                    result.attack -= 2000;
                 }
                 ++result.combo;
             }
             else
             {
-                if(status.combo > 1)
-                {
-                    result.land_point += status.combo * (status.combo + 1) * 1333;
-                }
                 result.combo = 0;
             }
             if(eval_result.t2_clear > 0)
@@ -670,15 +670,11 @@ namespace ai_tag
             {
                 if(safe2)
                 {
-                    result.attack += eval_result.clear * eval_result.clear * 20;
+                    result.attack += eval_result.clear * 20;
                     result.attack += eval_result.tilt * 8;
-                    if(status.combo > 1)
+                    if(status.combo > 0)
                     {
-                        result.land_point += status.combo * (status.combo + 1) * 600;
-                    }
-                    else
-                    {
-                        result.attack -= 500;
+                        result.attack += status.combo * (status.combo + 1) * 800;
                     }
                     if(eval_result.t2_clear > 0)
                     {
@@ -693,10 +689,6 @@ namespace ai_tag
             }
             else
             {
-                if(status.combo > 1)
-                {
-                    result.land_point += status.combo * (status.combo + 1) * 800;
-                }
                 result.combo = 0;
             }
         }
@@ -704,14 +696,323 @@ namespace ai_tag
         {
             result.attack += 80000;
         }
-        result.value = result.land_point / depth + result.attack + eval_result.map;
+        result.max_combo = std::max(status.max_combo, result.combo);
+        result.max_attack = std::max(status.max_attack, result.attack);
+        result.value = (0.
+                        + result.land_point / depth
+                        + result.attack
+                        + eval_result.map
+                        + result.max_combo * 40
+                        + result.max_attack / 100.
+                        );
+        return result;
+    }
+
+    the_ai_games_rubbish::Status the_ai_games_rubbish::iterate(Status const **status, size_t status_length) const
+    {
+        Status result;
+        result.max_combo = 0;
+        result.combo = 0;
+        result.max_attack = 0;
+        result.attack = 0;
+        result.up = 0;
+        result.land_point = 0;
+        result.value = 0;
+        for(size_t i = 0; i < status_length; ++i)
+        {
+            if(status[i] == nullptr)
+            {
+                result.value -= 9999999999;
+            }
+            else
+            {
+                result.value += status[i]->value;
+            }
+        }
+        result.value /= status_length;
+        return result;
+    }
+
+    size_t the_ai_games_rubbish::map_in_danger_(m_tetris::TetrisMap const &map, size_t up) const
+    {
+        size_t danger = 0;
+        for(size_t i = 0; i < context_->type_max(); ++i)
+        {
+            size_t check_up = up;
+            do
+            {
+                size_t height = map.height - check_up;
+                if(map_danger_data_[i].data[0] & map.row[height - 4] || map_danger_data_[i].data[1] & map.row[height - 3] || map_danger_data_[i].data[2] & map.row[height - 2] || map_danger_data_[i].data[3] & map.row[height - 1])
+                {
+                    ++danger;
+                    break;
+                }
+            }
+            while(check_up-- > 0);
+        }
+        return danger;
+    }
+
+    bool the_ai_games::Status::operator < (Status const &other) const
+    {
+        return value < other.value;
+    }
+
+    void the_ai_games::init(m_tetris::TetrisContext const *context)
+    {
+        context_ = context;
+        map_danger_data_.resize(context->type_max());
+        for(size_t i = 0; i < context->type_max(); ++i)
+        {
+            TetrisMap map(context->width(), context->height());
+            TetrisNode const *node = context->generate(i);
+            node->move_down->attach(map);
+            std::memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
+            for(int y = 0; y < 3; ++y)
+            {
+                map_danger_data_[i].data[y + 1] |= map_danger_data_[i].data[y];
+            }
+        }
+        col_mask_ = context->full() & ~1;
+        row_mask_ = context->full();
+        check_line_1_end_ = check_line_1_;
+        const int full = context->full();
+        for(int x = 0; x < context->width(); ++x)
+        {
+            *check_line_1_end_++ = full & ~(1 << x);
+        }
+        std::sort(check_line_1_, check_line_1_end_);
+    }
+
+    std::string the_ai_games::ai_name() const
+    {
+        return "The AI Games (SetoSan) v0.1";
+    }
+
+    the_ai_games::Result the_ai_games::eval(TetrisNodeEx &node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
+    {
+        Result result;
+        const int width_m1 = map.width - 1;
+        int ColTrans = 2 * (map.height - map.roof);
+        int RowTrans = map.roof == map.height ? 0 : map.width;
+        for(int y = 0; y < map.roof; ++y)
+        {
+            if(!map.full(0, y))
+            {
+                ++ColTrans;
+            }
+            if(!map.full(width_m1, y))
+            {
+                ++ColTrans;
+            }
+            ColTrans += BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+            if(y != 0)
+            {
+                RowTrans += BitCount(map.row[y - 1] ^ map.row[y]);
+            }
+        }
+        RowTrans += BitCount(row_mask_ & ~map.row[0]);
+        RowTrans += BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+        struct
+        {
+            int HoleCount;
+            int HoleLine;
+
+            int HoleDepth;
+            int WellDepth;
+
+            int HoleNum[32];
+            int WellNum[32];
+
+            int LineCoverBits;
+            int ClearWidth;
+            int ClearWidthCheck;
+        } v;
+        std::memset(&v, 0, sizeof v);
+
+        for(int y = map.roof - 1; y >= 0; --y)
+        {
+            v.LineCoverBits |= map.row[y];
+            int LineHole = v.LineCoverBits ^ map.row[y];
+            if(LineHole != 0)
+            {
+                v.HoleCount += BitCount(LineHole);
+                v.HoleLine++;
+                if(v.ClearWidthCheck == 0)
+                {
+                    v.ClearWidthCheck = 1;
+                    for(int hy = y + 1; hy < map.roof; ++hy)
+                    {
+                        uint32_t CheckLine = LineHole & map.row[hy];
+                        if(CheckLine == 0)
+                        {
+                            break;
+                        }
+                        v.ClearWidth += (hy + 1) * zzz::BitCount(CheckLine);
+                    }
+                }
+            }
+            for(int x = 1; x < width_m1; ++x)
+            {
+                if((LineHole >> x) & 1)
+                {
+                    v.HoleDepth += ++v.HoleNum[x];
+                }
+                else
+                {
+                    v.HoleNum[x] = 0;
+                }
+                if(((v.LineCoverBits >> (x - 1)) & 7) == 5)
+                {
+                    v.WellDepth += ++v.WellNum[x];
+                }
+            }
+            if(LineHole & 1)
+            {
+                v.HoleDepth += ++v.HoleNum[0];
+            }
+            else
+            {
+                v.HoleNum[0] = 0;
+            }
+            if((v.LineCoverBits & 3) == 2)
+            {
+                v.WellDepth += ++v.WellNum[0];
+            }
+            if((LineHole >> width_m1) & 1)
+            {
+                v.HoleDepth += ++v.HoleNum[width_m1];
+            }
+            else
+            {
+                v.HoleNum[width_m1] = 0;
+            }
+            if(((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
+            {
+                v.WellDepth += ++v.WellNum[width_m1];
+            }
+        }
+        result.land_point = (0.
+                             - map.width * node->row * 32
+                             + clear * 60
+                             );
+        result.map = (0.
+                      - map.roof * 128
+                      - ColTrans * 80
+                      - RowTrans * 80
+                      - v.HoleCount * 60
+                      - v.HoleLine * 380
+                      - v.WellDepth * 100
+                      - v.HoleDepth * 40
+                      - v.ClearWidth * 4
+                      );
+        result.map_low = 0;
+        while(result.map_low < map.height && map.row[result.map_low] == context_->full())
+        {
+            ++result.map_low;
+        }
+        result.attack = 0;
+        int attack_x = 0, depth = 0;
+        for(int x = 1; x < map.width; ++x)
+        {
+            if(map.top[x] < map.top[attack_x])
+            {
+                attack_x = x;
+            }
+        }
+        if(map.top[attack_x] == result.map_low)
+        {
+            for(int y = 3; y >= result.map_low; --y)
+            {
+                if(std::binary_search<uint32_t const *>(check_line_1_, check_line_1_end_, map.row[y]))
+                {
+                    ++depth;
+                }
+                else
+                {
+                    if(depth > 0)
+                    {
+                        depth = 0;
+                        break;
+                    }
+                }
+            }
+        }
+        if(depth > 0)
+        {
+            result.attack = depth * (1 + depth) * 200;
+        }
+        else
+        {
+            result.attack = -200;
+        }
+        result.node_top = node->row + node->height;
+        result.clear = clear;
+        result.tspin = node.is_check && node.is_ready && node.is_last_rotate ? clear : 0;
+        result.count = map.count - result.map_low * context_->width();
+        result.full = std::max(0, map.height - result.map_low - 1) * context_->width();
+        result.save_map = &map;
+        if(result.tspin > 0)
+        {
+            node.type = TSpinType::TSpin;
+        }
+        return result;
+    }
+
+    the_ai_games::Status the_ai_games::get(Result const &eval_result, size_t depth, Status const &status) const
+    {
+        Status result = status;
+        result.land_point += eval_result.land_point;
+        double BoardDeadZone = 0;
+        if(eval_result.save_map->roof + status.up >= context_->height() || eval_result.node_top >= context_->height())
+        {
+            BoardDeadZone = context_->type_max();
+        }
+        else
+        {
+            BoardDeadZone = map_in_danger_(*eval_result.save_map, status.up);
+        }
+        int full = std::max(0, eval_result.full - status.up * eval_result.save_map->width);
+        if(eval_result.count * 3 < full)
+        {
+            result.attack += eval_result.attack;
+            if(eval_result.tspin > 0)
+            {
+                result.attack += eval_result.tspin * 1024;
+            }
+            if(eval_result.clear == 4)
+            {
+                result.attack += 8192;
+            }
+        }
+        else
+        {
+            if(eval_result.tspin > 0)
+            {
+                result.attack += eval_result.tspin * 512;
+            }
+            if(eval_result.clear == 4)
+            {
+                result.attack += 1024;
+            }
+        }
+        result.value = (0.
+                        + result.land_point / depth
+                        + result.attack
+                        + eval_result.map
+                        - BoardDeadZone * 50000000
+                        );
+        result.max_attack = std::max(status.max_attack, result.attack);
         return result;
     }
 
     the_ai_games::Status the_ai_games::iterate(Status const **status, size_t status_length) const
     {
         Status result;
+        result.max_combo = 0;
         result.combo = 0;
+        result.max_attack = 0;
+        result.attack = 0;
         result.up = 0;
         result.land_point = 0;
         result.value = 0;
