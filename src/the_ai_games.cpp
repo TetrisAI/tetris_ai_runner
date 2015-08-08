@@ -554,7 +554,7 @@ double elo_rate(double const &self_score, double const &other_score)
 }
 double elo_get_k()
 {
-    return 8;
+    return 1;
 }
 double elo_calc(double const &self_score, double const &other_score, double const &win)
 {
@@ -651,7 +651,7 @@ struct SBTreeInterface
 
 int wmain(int argc, wchar_t const *argv[])
 {
-    std::atomic_uint32_t count = std::thread::hardware_concurrency();
+    std::atomic_uint32_t count = std::max<uint32_t>(1, std::thread::hardware_concurrency() - 1);
     std::wstring file = L"data.bin";
     if(argc > 1)
     {
@@ -743,8 +743,10 @@ int wmain(int argc, wchar_t const *argv[])
                 auto m12 = rand_match(rank_table.size());
                 auto m1 = rank_table.at(m12.first);
                 auto m2 = rank_table.at(m12.second);
-                double m1s = m1->data.score;
-                double m2s = m2->data.score;
+                double *pm1s = &m1->data.score;
+                double *pm2s = &m2->data.score;
+                double m1s = *pm1s;
+                double m2s = *pm2s;
                 auto view_func = [m1, m2, m1s, m2s, index, &view, &view_index, &rank_table_lock](test_ai const &ai1, test_ai const &ai2)
                 {
                     COORD coordScreen = {0, 0};
@@ -815,8 +817,8 @@ int wmain(int argc, wchar_t const *argv[])
                 rank_table_lock.lock();
                 rank_table.erase(m1);
                 rank_table.erase(m2);
-                m1s = m1->data.score;
-                m2s = m2->data.score;
+                m1s = *pm1s;
+                m2s = *pm2s;
                 if(ai1.win == 1 && ai2.win == 1)
                 {
                     m1->data.score = elo_calc(m1s, m2s, 0.5);
