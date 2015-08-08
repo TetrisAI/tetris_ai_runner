@@ -373,10 +373,10 @@ struct test_ai
     int attack;
     ege::mtrandom r1, r2;
     std::vector<char> next;
-    void init()
+    void init(uint32_t seed)
     {
-        r1.reset(0);
-        r2.reset(0);
+        r1.reset(seed);
+        r2.reset(seed);
         map = m_tetris::TetrisMap(10, 21);
         ai.prepare(10, 21);
         ai.status()->max_combo = 0;
@@ -544,105 +544,6 @@ void match(test_ai &ai1, test_ai &ai2, std::function<void(test_ai const &, test_
     }
 }
 
-int view_match()
-{
-    test_ai ai1;
-    test_ai ai2;
-    ai1.init();
-    ai2.init();
-
-    ai_tag::the_ai_games::Config config1 =
-    {
-        /*double map_low_width;      */96   ,
-        /*double col_trans_width;    */170  ,
-        /*double row_trans_width;    */128  ,
-        /*double hold_count_width;   */64   ,
-        /*double hold_focus_width;   */400  ,
-        /*double well_depth_width;   */100  ,
-        /*double hole_depth_width;   */40   ,
-        /*double dig_block_multi;    */0    ,
-        /*double dig_height_add;     */0    ,
-        /*double dig_clear_width;    */32   ,
-        /*double attack_depth_add;   */200  ,
-        /*double attack_depth_minute;*/200  ,
-        /*double line_clear_width;   */32   ,
-        /*double map_safe_multi;     */3    ,
-        /*double tspin_safe_width;   */1024 ,
-        /*double tspin_unsafe_width; */512  ,
-        /*double tetris_safe_width;  */4096 ,
-        /*double tetris_unsafe_width;*/1024 ,
-        /*double combo_add_width;    */64   ,
-        /*double combo_break_minute; */32   ,
-    };
-    ai_tag::the_ai_games::Config config2 =
-    {
-        /*double map_low_width;      */128  ,
-        /*double col_trans_width;    */170  ,
-        /*double row_trans_width;    */128  ,
-        /*double hold_count_width;   */64   ,
-        /*double hold_focus_width;   */400  ,
-        /*double well_depth_width;   */100  ,
-        /*double hole_depth_width;   */40   ,
-        /*double dig_block_multi;    */0    ,
-        /*double dig_height_add;     */0    ,
-        /*double dig_clear_width;    */32   ,
-        /*double attack_depth_add;   */200  ,
-        /*double attack_depth_minute;*/200  ,
-        /*double line_clear_width;   */32   ,
-        /*double map_safe_multi;     */3    ,
-        /*double tspin_safe_width;   */1024 ,
-        /*double tspin_unsafe_width; */512  ,
-        /*double tetris_safe_width;  */4096 ,
-        /*double tetris_unsafe_width;*/1024 ,
-        /*double combo_add_width;    */64   ,
-        /*double combo_break_minute; */32   ,
-    };
-    *ai1.ai.ai_config() = config1;
-    *ai2.ai.ai_config() = config2;
-
-    CONSOLE_CURSOR_INFO cursorInfo = {1, FALSE};  // 光标信息
-    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);  // 设置光标隐藏
-
-    for(; ; )
-    {
-        match(ai1, ai2, [](auto &ai1, auto &ai2)
-        {
-            COORD cd;
-            cd.X = 0;
-            cd.Y = 0;
-            SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), cd);
-
-            char out[81920] = "";
-            char box_0[3] = "□";
-            char box_1[3] = "■";
-
-            out[0] = '\0';
-            snprintf(out, sizeof out, "%d\t%d\t%d\t%d\t%d\t%d\r\n", ai1.win, ai1.point, ai1.combo, ai2.win, ai2.point, ai2.combo);
-            m_tetris::TetrisMap map_copy1 = ai1.map;
-            m_tetris::TetrisMap map_copy2 = ai2.map;
-            ai1.node()->attach(map_copy1);
-            ai2.node()->attach(map_copy2);
-            for(int y = 21; y >= 0; --y)
-            {
-                for(int x = 0; x < 10; ++x)
-                {
-                    strcat_s(out, map_copy1.full(x, y) ? box_1 : box_0);
-                }
-                strcat_s(out, "  ");
-                for(int x = 0; x < 10; ++x)
-                {
-                    strcat_s(out, map_copy2.full(x, y) ? box_1 : box_0);
-                }
-                strcat_s(out, "\r\n");
-            }
-            strcat_s(out, "\r\n");
-            printf(out);
-        });
-        ai1.reset();
-        ai2.reset();
-    }
-}
-
 double elo_init()
 {
     return 1500;
@@ -653,7 +554,7 @@ double elo_rate(double const &self_score, double const &other_score)
 }
 double elo_get_k()
 {
-    return 16;
+    return 8;
 }
 double elo_calc(double const &self_score, double const &other_score, double const &win)
 {
@@ -750,20 +651,24 @@ struct SBTreeInterface
 
 int wmain(int argc, wchar_t const *argv[])
 {
-    if(argc == 1)
-    {
-        view_match();
-    }
     std::atomic_uint32_t count = std::thread::hardware_concurrency();
+    std::wstring file = L"data.bin";
+    if(argc > 1)
+    {
+        uint32_t arg_count = std::wcstoul(argv[1], nullptr, 10);
+        if(arg_count != 0)
+        {
+            count = arg_count;
+        }
+    }
     std::atomic_bool view = false;
     std::atomic_uint32_t view_index = 0;
-    if(argc == 3)
+    if(argc > 2)
     {
-        count = std::wcstoul(argv[2], nullptr, 10);
+        file = argv[2];
     }
-    std::mutex rank_table_lock;
+    std::recursive_mutex rank_table_lock;
     zzz::sb_tree<SBTreeInterface> rank_table;
-    std::wstring file = argv[1];
     std::ifstream ifs(file, std::ios::in | std::ios::binary);
     if(ifs.good())
     {
@@ -830,8 +735,8 @@ int wmain(int argc, wchar_t const *argv[])
             };
             test_ai ai1;
             test_ai ai2;
-            ai1.init();
-            ai2.init();
+            ai1.init(index);
+            ai2.init(index + 1);
             for(; ; )
             {
                 rank_table_lock.lock();
@@ -938,8 +843,121 @@ int wmain(int argc, wchar_t const *argv[])
             }
         });
     }
-
+    Node *edit = nullptr;
+    auto print_config = [&rank_table, &rank_table_lock](Node *node)
+    {
+        rank_table_lock.lock();
+        printf(
+            "[ 0]name                = %s\n"
+            "[  ]rank                = %d\n"
+            "[  ]score               = %f\n"
+            "[  ]match               = %d\n"
+            "[ 1]map_low_width       = %f\n"
+            "[ 2]col_trans_width     = %f\n"
+            "[ 3]row_trans_width     = %f\n"
+            "[ 4]hold_count_width    = %f\n"
+            "[ 5]hold_focus_width    = %f\n"
+            "[ 6]well_depth_width    = %f\n"
+            "[ 7]hole_depth_width    = %f\n"
+            "[ 8]dig_block_multi     = %f\n"
+            "[ 9]dig_height_add      = %f\n"
+            "[10]dig_clear_width     = %f\n"
+            "[11]attack_depth_add    = %f\n"
+            "[12]attack_depth_minute = %f\n"
+            "[13]line_clear_width    = %f\n"
+            "[14]map_safe_multi      = %f\n"
+            "[15]tspin_safe_width    = %f\n"
+            "[16]tspin_unsafe_width  = %f\n"
+            "[17]tetris_safe_width   = %f\n"
+            "[18]tetris_unsafe_width = %f\n"
+            "[19]combo_add_width     = %f\n"
+            "[20]combo_break_minute  = %f\n"
+            , node->data.name
+            , rank_table.rank(node->data.score)
+            , node->data.score
+            , node->data.match
+            , node->data.config.map_low_width
+            , node->data.config.col_trans_width
+            , node->data.config.row_trans_width
+            , node->data.config.hold_count_width
+            , node->data.config.hold_focus_width
+            , node->data.config.well_depth_width
+            , node->data.config.hole_depth_width
+            , node->data.config.dig_block_multi
+            , node->data.config.dig_height_add
+            , node->data.config.dig_clear_width
+            , node->data.config.attack_depth_add
+            , node->data.config.attack_depth_minute
+            , node->data.config.line_clear_width
+            , node->data.config.map_safe_multi
+            , node->data.config.tspin_safe_width
+            , node->data.config.tspin_unsafe_width
+            , node->data.config.tetris_safe_width
+            , node->data.config.tetris_unsafe_width
+            , node->data.config.combo_add_width
+            , node->data.config.combo_break_minute
+            );
+        rank_table_lock.unlock();
+    };
+ 
     command_map.clear();
+    command_map.insert(std::make_pair("select", [&edit, &print_config, &rank_table, &rank_table_lock](std::vector<std::string> const &token)
+    {
+        if(token.size() == 2)
+        {
+            size_t index = std::atoi(token[1].c_str()) - 1;
+            if(index < rank_table.size())
+            {
+                rank_table_lock.lock();
+                edit = rank_table.at(index);
+                print_config(edit);
+                rank_table_lock.unlock();
+            }
+        }
+        return true;
+    }));
+    command_map.insert(std::make_pair("set", [&edit, &print_config, &rank_table, &rank_table_lock](std::vector<std::string> const &token)
+    {
+        if(token.size() == 3 && edit != nullptr)
+        {
+            size_t index = std::atoi(token[1].c_str());
+            if(index > 20 || (index == 0 && token[2].size() >= 64))
+            {
+                return true;
+            }
+            rank_table_lock.lock();
+            if(index == 0)
+            {
+                memcpy(edit->data.name, token[2].c_str(), token[2].size() + 1);
+            }
+            else
+            {
+                double value = std::atof(token[2].c_str());
+                double *ptr = reinterpret_cast<double *>(&edit->data.config);
+                ptr[index - 1] = value;
+            }
+            print_config(edit);
+            rank_table_lock.unlock();
+        }
+        return true;
+    }));
+    command_map.insert(std::make_pair("copy", [&edit, &print_config, &rank_table, &rank_table_lock](std::vector<std::string> const &token)
+    {
+        if(token.size() == 2 && token[1].size() < 64 && edit != nullptr)
+        {
+            rank_table_lock.lock();
+            NodeData data = edit->data;
+            memcpy(data.name, token[1].c_str(), token[1].size() + 1);
+            data.match = 0;
+            data.score = elo_init();
+            Node *node = new Node(data);
+            rank_table.insert(node);
+            print_config(node);
+            edit = node;
+            rank_table_lock.unlock();
+        }
+        return true;
+    }));
     command_map.insert(std::make_pair("rank", [&rank_table, &rank_table_lock](std::vector<std::string> const &token)
     {
         printf("-------------------------------------------------------------\n");
@@ -969,6 +987,20 @@ int wmain(int argc, wchar_t const *argv[])
         view = true;
         return true;
     }));
+    command_map.insert(std::make_pair("save", [&file, &rank_table, &rank_table_lock](std::vector<std::string> const &token)
+    {
+        rank_table_lock.lock();
+        std::ofstream ofs(file, std::ios::out | std::ios::binary);
+        for(size_t i = 0; i < rank_table.size(); ++i)
+        {
+            ofs.write(reinterpret_cast<char const *>(&rank_table.at(i)->data), sizeof rank_table.at(i)->data);
+        }
+        ofs.flush();
+        ofs.close();
+        printf("%d node(s) saved\n", rank_table.size());
+        rank_table_lock.unlock();
+        return true;
+    }));
     command_map.insert(std::make_pair("exit", [&file, &rank_table, &rank_table_lock](std::vector<std::string> const &token)
     {
         rank_table_lock.lock();
@@ -981,6 +1013,24 @@ int wmain(int argc, wchar_t const *argv[])
         ofs.close();
         rank_table_lock.unlock();
         exit(0);
+        return true;
+    }));
+    command_map.insert(std::make_pair("help", [](std::vector<std::string> const &token)
+    {
+        printf(
+            "-------------------------------------------------------------\n"
+            "help                 - ...\n"
+            "view                 - view a match (press enter to stop)\n"
+            "rank                 - show all nodes\n"
+            "rank [rank]          - show a node on the rank\n"
+            "rank [rank] [length] - show nodes on the rank\n"
+            "select [rank]        - select a node and view info\n"
+            "set [index] [value]  - set node name or config which last selected\n"
+            "copy [name]          - copy a new node which last selected\n"
+            "save                 - ...\n"
+            "exit                 - save & exit\n"
+            "-------------------------------------------------------------\n"
+            );
         return true;
     }));
     while(true)
