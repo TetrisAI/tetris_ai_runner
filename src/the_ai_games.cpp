@@ -10,7 +10,7 @@
 #include "rule_tag.h"
 #include "random.h"
 
-m_tetris::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games_2, search_tag::Search> bot_1;
+m_tetris::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games, search_tag::Search> bot_1;
 m_tetris::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games_enemy, search_tag::Search> bot_2;
 
 namespace zzz
@@ -307,6 +307,30 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
 
 int main()
 {
+    ai_tag::the_ai_games::Config config =
+    {
+        /*double map_low_width;      */96   ,
+        /*double col_trans_width;    */170  ,
+        /*double row_trans_width;    */128  ,
+        /*double hold_count_width;   */64   ,
+        /*double hold_focus_width;   */400  ,
+        /*double well_depth_width;   */100  ,
+        /*double hole_depth_width;   */40   ,
+        /*double dig_block_multi;    */0    ,
+        /*double dig_height_add;     */0    ,
+        /*double dig_clear_width;    */32   ,
+        /*double attack_depth_add;   */200  ,
+        /*double attack_depth_minute;*/200  ,
+        /*double line_clear_width;   */32   ,
+        /*double map_safe_multi;     */3    ,
+        /*double tspin_safe_width;   */1024 ,
+        /*double tspin_unsafe_width; */512  ,
+        /*double tetris_safe_width;  */4096 ,
+        /*double tetris_unsafe_width;*/1024 ,
+        /*double combo_add_width;    */64   ,
+        /*double combo_break_minute; */32   ,
+    };
+    *bot_1.ai_config() = config;
     while(true)
     {
         std::string line;
@@ -331,12 +355,17 @@ int main()
 
 #else
 
+#define NOMINMAX
 #include <windows.h>
+#include <fstream>
+#include <mutex>
+#include <random>
+#include <atomic>
+#include "sb_tree.h"
 
-template<class AI>
 struct test_ai
 {
-    m_tetris::TetrisEngine<rule_tag::TetrisRule, AI, search_tag::Search> ai;
+    m_tetris::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games, search_tag::Search> ai;
     m_tetris::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games_enemy, search_tag::Search> t;
     m_tetris::TetrisMap map;
     int point = 0, combo = 0;
@@ -368,7 +397,7 @@ struct test_ai
         map = m_tetris::TetrisMap(10, 21);
         point = 0, combo = 0;
     }
-    m_tetris::TetrisNode const *node()
+    m_tetris::TetrisNode const *node() const
     {
         return ai.context()->generate(next.front());
     }
@@ -472,29 +501,12 @@ struct test_ai
     }
 };
 
-int main()
+void match(test_ai &ai1, test_ai &ai2, std::function<void(test_ai const &, test_ai const &)> out_put)
 {
-    test_ai<ai_tag::the_ai_games_1> ai1;
-    test_ai<ai_tag::the_ai_games_2> ai2;
-    ai1.init();
-    ai2.init();
-
-    char out[81920] = "";
-    char box_0[3] = "□";
-    char box_1[3] = "■";
-
-    CONSOLE_CURSOR_INFO cursorInfo = {1, FALSE};  // 光标信息
-    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);  // 设置光标隐藏
-
     int round = 0;
     for(; ; )
     {
         ++round;
-        COORD cd;
-        cd.X = 0;
-        cd.Y = 0;
-        SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), cd);
-
         if(ai1.prepare())
         {
             ++ai2.win;
@@ -507,37 +519,17 @@ int main()
         }
         if(round == 0)
         {
-            ai1.reset();
-            ai2.reset();
-            continue;
+            return;
+        }
+        if(out_put)
+        {
+            out_put(ai1, ai2);
         }
 
-        out[0] = '\0';
-        snprintf(out, sizeof out, "%d\t%d\t%d\t%d\t%d\t%d\r\n", ai1.win, ai1.point, ai1.combo, ai2.win, ai2.point, ai2.combo);
         m_tetris::TetrisMap map_copy1 = ai1.map;
         m_tetris::TetrisMap map_copy2 = ai2.map;
-        ai1.node()->attach(map_copy1);
-        ai2.node()->attach(map_copy2);
-        for(int y = 21; y >= 0; --y)
-        {
-            for(int x = 0; x < 10; ++x)
-            {
-                strcat_s(out, map_copy1.full(x, y) ? box_1 : box_0);
-            }
-            strcat_s(out, "  ");
-            for(int x = 0; x < 10; ++x)
-            {
-                strcat_s(out, map_copy2.full(x, y) ? box_1 : box_0);
-            }
-            strcat_s(out, "\r\n");
-        }
-        strcat_s(out, "\r\n");
-        printf(out);
-
         int point1 = ai1.point, combo1 = ai1.combo;
         int point2 = ai2.point, combo2 = ai2.combo;
-        map_copy1 = ai1.map;
-        map_copy2 = ai2.map;
 
         ai1.run(combo2, point2, round, map_copy2);
         ai2.run(combo1, point1, round, map_copy2);
@@ -548,6 +540,473 @@ int main()
         {
             ai1.under_attack(1, -1);
             ai2.under_attack(1, -1);
+        }
+    }
+}
+
+int view_match()
+{
+    test_ai ai1;
+    test_ai ai2;
+    ai1.init();
+    ai2.init();
+
+    ai_tag::the_ai_games::Config config1 =
+    {
+        /*double map_low_width;      */96   ,
+        /*double col_trans_width;    */170  ,
+        /*double row_trans_width;    */128  ,
+        /*double hold_count_width;   */64   ,
+        /*double hold_focus_width;   */400  ,
+        /*double well_depth_width;   */100  ,
+        /*double hole_depth_width;   */40   ,
+        /*double dig_block_multi;    */0    ,
+        /*double dig_height_add;     */0    ,
+        /*double dig_clear_width;    */32   ,
+        /*double attack_depth_add;   */200  ,
+        /*double attack_depth_minute;*/200  ,
+        /*double line_clear_width;   */32   ,
+        /*double map_safe_multi;     */3    ,
+        /*double tspin_safe_width;   */1024 ,
+        /*double tspin_unsafe_width; */512  ,
+        /*double tetris_safe_width;  */4096 ,
+        /*double tetris_unsafe_width;*/1024 ,
+        /*double combo_add_width;    */64   ,
+        /*double combo_break_minute; */32   ,
+    };
+    ai_tag::the_ai_games::Config config2 =
+    {
+        /*double map_low_width;      */128  ,
+        /*double col_trans_width;    */170  ,
+        /*double row_trans_width;    */128  ,
+        /*double hold_count_width;   */64   ,
+        /*double hold_focus_width;   */400  ,
+        /*double well_depth_width;   */100  ,
+        /*double hole_depth_width;   */40   ,
+        /*double dig_block_multi;    */0    ,
+        /*double dig_height_add;     */0    ,
+        /*double dig_clear_width;    */32   ,
+        /*double attack_depth_add;   */200  ,
+        /*double attack_depth_minute;*/200  ,
+        /*double line_clear_width;   */32   ,
+        /*double map_safe_multi;     */3    ,
+        /*double tspin_safe_width;   */1024 ,
+        /*double tspin_unsafe_width; */512  ,
+        /*double tetris_safe_width;  */4096 ,
+        /*double tetris_unsafe_width;*/1024 ,
+        /*double combo_add_width;    */64   ,
+        /*double combo_break_minute; */32   ,
+    };
+    *ai1.ai.ai_config() = config1;
+    *ai2.ai.ai_config() = config2;
+
+    CONSOLE_CURSOR_INFO cursorInfo = {1, FALSE};  // 光标信息
+    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);  // 设置光标隐藏
+
+    for(; ; )
+    {
+        match(ai1, ai2, [](auto &ai1, auto &ai2)
+        {
+            COORD cd;
+            cd.X = 0;
+            cd.Y = 0;
+            SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), cd);
+
+            char out[81920] = "";
+            char box_0[3] = "□";
+            char box_1[3] = "■";
+
+            out[0] = '\0';
+            snprintf(out, sizeof out, "%d\t%d\t%d\t%d\t%d\t%d\r\n", ai1.win, ai1.point, ai1.combo, ai2.win, ai2.point, ai2.combo);
+            m_tetris::TetrisMap map_copy1 = ai1.map;
+            m_tetris::TetrisMap map_copy2 = ai2.map;
+            ai1.node()->attach(map_copy1);
+            ai2.node()->attach(map_copy2);
+            for(int y = 21; y >= 0; --y)
+            {
+                for(int x = 0; x < 10; ++x)
+                {
+                    strcat_s(out, map_copy1.full(x, y) ? box_1 : box_0);
+                }
+                strcat_s(out, "  ");
+                for(int x = 0; x < 10; ++x)
+                {
+                    strcat_s(out, map_copy2.full(x, y) ? box_1 : box_0);
+                }
+                strcat_s(out, "\r\n");
+            }
+            strcat_s(out, "\r\n");
+            printf(out);
+        });
+        ai1.reset();
+        ai2.reset();
+    }
+}
+
+double elo_init()
+{
+    return 1500;
+}
+double elo_rate(double const &self_score, double const &other_score)
+{
+    return 1 / (1 + std::pow(10, -(self_score - other_score) / 400));
+}
+double elo_get_k()
+{
+    return 16;
+}
+double elo_calc(double const &self_score, double const &other_score, double const &win)
+{
+    return self_score + elo_get_k() * (win - elo_rate(self_score, other_score));
+}
+double elo_calc(double const &self_score, double const *other_score_array, size_t length, double const &win)
+{
+    double rate = 0;
+    for(size_t i = 0; i < length; ++i)
+    {
+        rate += elo_rate(self_score, other_score_array[i]);
+    }
+    return self_score + elo_get_k() * (win - rate) / length;
+}
+
+
+struct BaseNode
+{
+    BaseNode *parent, *left, *right;
+    size_t size : sizeof(size_t) * 8 - 1;
+    size_t is_nil : 1;
+};
+
+struct NodeData
+{
+    char name[64];
+    double score;
+    size_t match;
+    ai_tag::the_ai_games::Config config;
+};
+
+struct Node : public BaseNode
+{
+    Node(NodeData const &d) : data(d)
+    {
+    }
+    NodeData data;
+};
+
+struct SBTreeInterface
+{
+    typedef double key_t;
+    typedef BaseNode node_t;
+    typedef Node value_node_t;
+    static key_t const &get_key(Node *node)
+    {
+        return node->data.score;
+    }
+    static bool is_nil(BaseNode *node)
+    {
+        return node->is_nil;
+    }
+    static void set_nil(BaseNode *node, bool nil)
+    {
+        node->is_nil = nil;
+    }
+    static BaseNode *get_parent(BaseNode *node)
+    {
+        return node->parent;
+    }
+    static void set_parent(BaseNode *node, BaseNode *parent)
+    {
+        node->parent = parent;
+    }
+    static BaseNode *get_left(BaseNode *node)
+    {
+        return node->left;
+    }
+    static void set_left(BaseNode *node, BaseNode *left)
+    {
+        node->left = left;
+    }
+    static BaseNode *get_right(BaseNode *node)
+    {
+        return node->right;
+    }
+    static void set_right(BaseNode *node, BaseNode *right)
+    {
+        node->right = right;
+    }
+    static size_t get_size(BaseNode *node)
+    {
+        return node->size;
+    }
+    static void set_size(BaseNode *node, size_t size)
+    {
+        node->size = size;
+    }
+    static bool predicate(key_t const &left, key_t const &right)
+    {
+        return left > right;
+    }
+};
+
+int wmain(int argc, wchar_t const *argv[])
+{
+    if(argc == 1)
+    {
+        view_match();
+    }
+    std::atomic_uint32_t count = std::thread::hardware_concurrency();
+    std::atomic_bool view = false;
+    std::atomic_uint32_t view_index = 0;
+    if(argc == 3)
+    {
+        count = std::wcstoul(argv[2], nullptr, 10);
+    }
+    std::mutex rank_table_lock;
+    zzz::sb_tree<SBTreeInterface> rank_table;
+    std::wstring file = argv[1];
+    std::ifstream ifs(file, std::ios::in | std::ios::binary);
+    if(ifs.good())
+    {
+        NodeData data;
+        while(ifs.read(reinterpret_cast<char *>(&data), sizeof data).gcount() == sizeof data)
+        {
+            rank_table.insert(new Node(data));
+        }
+        ifs.close();
+    }
+    if(rank_table.empty())
+    {
+        NodeData default_node =
+        {
+            "default", elo_init(), 0,
+            {
+                /*double map_low_width;      */128  ,
+                /*double col_trans_width;    */170  ,
+                /*double row_trans_width;    */128  ,
+                /*double hold_count_width;   */64   ,
+                /*double hold_focus_width;   */400  ,
+                /*double well_depth_width;   */100  ,
+                /*double hole_depth_width;   */40   ,
+                /*double dig_block_multi;    */0    ,
+                /*double dig_height_add;     */0    ,
+                /*double dig_clear_width;    */32   ,
+                /*double attack_depth_add;   */200  ,
+                /*double attack_depth_minute;*/200  ,
+                /*double line_clear_width;   */32   ,
+                /*double map_safe_multi;     */3    ,
+                /*double tspin_safe_width;   */1024 ,
+                /*double tspin_unsafe_width; */512  ,
+                /*double tetris_safe_width;  */4096 ,
+                /*double tetris_unsafe_width;*/1024 ,
+                /*double combo_add_width;    */64   ,
+                /*double combo_break_minute; */32   ,
+            }
+        };
+        NodeData bad_node =
+        {
+            "bad", elo_init(), 0,{}
+        };
+        rank_table.insert(new Node(default_node));
+        rank_table.insert(new Node(bad_node));
+    }
+
+    std::vector<std::thread *> threads;
+    for(size_t i = 0; i < count; ++i)
+    {
+        std::thread *t = new std::thread([&rank_table, &rank_table_lock, &view, &view_index, i]()
+        {
+            std::mt19937 mt;
+            uint32_t index = i + 1;
+            auto rand_match = [&](size_t max)
+            {
+                std::pair<size_t, size_t> ret;
+                ret.first = std::uniform_int_distribution<size_t>(0, max - 1)(mt);
+                do
+                {
+                    ret.second = std::uniform_int_distribution<size_t>(0, max - 1)(mt);
+                }
+                while(ret.second == ret.first);
+                return ret;
+            };
+            test_ai ai1;
+            test_ai ai2;
+            ai1.init();
+            ai2.init();
+            for(; ; )
+            {
+                rank_table_lock.lock();
+                auto m12 = rand_match(rank_table.size());
+                auto m1 = rank_table.at(m12.first);
+                auto m2 = rank_table.at(m12.second);
+                double m1s = m1->data.score;
+                double m2s = m2->data.score;
+                auto view_func = [m1, m2, m1s, m2s, index, &view, &view_index, &rank_table_lock](test_ai const &ai1, test_ai const &ai2)
+                {
+                    COORD coordScreen = {0, 0};
+                    DWORD cCharsWritten;
+                    CONSOLE_SCREEN_BUFFER_INFO csbi;
+                    DWORD dwConSize;
+                    HANDLE hConsole;
+                    if(view && view_index == 0)
+                    {
+                        rank_table_lock.lock();
+                        if(view && view_index == 0)
+                        {
+                            view_index = index;
+                            hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+                            GetConsoleScreenBufferInfo(hConsole, &csbi);
+                            dwConSize = csbi.dwSize.X * csbi.dwSize.Y;
+                            FillConsoleOutputCharacterA(hConsole, ' ', dwConSize, coordScreen, &dwConSize);
+                        }
+                        rank_table_lock.unlock();
+                    }
+                    if(index != view_index)
+                    {
+                        return;
+                    }
+
+                    hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+
+                    GetConsoleScreenBufferInfo(hConsole, &csbi);
+                    dwConSize = csbi.dwSize.X * 2;
+                    FillConsoleOutputCharacterA(hConsole, ' ', dwConSize, coordScreen, &dwConSize);
+                    GetConsoleScreenBufferInfo(hConsole, &csbi);
+                    FillConsoleOutputAttribute(hConsole, csbi.wAttributes, dwConSize, coordScreen, &cCharsWritten);
+                    SetConsoleCursorPosition(hConsole, coordScreen);
+
+                    char out[81920] = "";
+                    char box_0[3] = "□";
+                    char box_1[3] = "■";
+
+                    out[0] = '\0';
+                    snprintf(out, sizeof out, "score = %f point = %d combo = %d [%s]\nscore = %f point = %d combo = %d [%s]\n", m1s, ai1.point, ai1.combo, m1->data.name, m2s, ai2.point, ai2.combo, m2->data.name);
+                    m_tetris::TetrisMap map_copy1 = ai1.map;
+                    m_tetris::TetrisMap map_copy2 = ai2.map;
+                    ai1.node()->attach(map_copy1);
+                    ai2.node()->attach(map_copy2);
+                    for(int y = 21; y >= 0; --y)
+                    {
+                        for(int x = 0; x < 10; ++x)
+                        {
+                            strcat_s(out, map_copy1.full(x, y) ? box_1 : box_0);
+                        }
+                        strcat_s(out, "  ");
+                        for(int x = 0; x < 10; ++x)
+                        {
+                            strcat_s(out, map_copy2.full(x, y) ? box_1 : box_0);
+                        }
+                        strcat_s(out, "\r\n");
+                    }
+                    WriteConsoleA(hConsole, out, strlen(out), nullptr, nullptr);
+                };
+                rank_table_lock.unlock();
+                *ai1.ai.ai_config() = m1->data.config;
+                *ai2.ai.ai_config() = m2->data.config;
+                ai1.win = 0;
+                ai2.win = 0;
+                match(ai1, ai2, view_func);
+                ai1.reset();
+                ai2.reset();
+                rank_table_lock.lock();
+                rank_table.erase(m1);
+                rank_table.erase(m2);
+                m1s = m1->data.score;
+                m2s = m2->data.score;
+                if(ai1.win == 1 && ai2.win == 1)
+                {
+                    m1->data.score = elo_calc(m1s, m2s, 0.5);
+                    m2->data.score = elo_calc(m2s, m1s, 0.5);
+                }
+                else
+                {
+                    if(ai1.win == 1)
+                    {
+                        m1->data.score = elo_calc(m1s, m2s, 1);
+                        m2->data.score = elo_calc(m2s, m1s, 0);
+                    }
+                    else
+                    {
+                        m1->data.score = elo_calc(m1s, m2s, 0);
+                        m2->data.score = elo_calc(m2s, m1s, 1);
+                    }
+                }
+                ++m1->data.match;
+                ++m2->data.match;
+                rank_table.insert(m1);
+                rank_table.insert(m2);
+                rank_table_lock.unlock();
+            }
+        });
+    }
+
+    command_map.clear();
+    command_map.insert(std::make_pair("rank", [&rank_table, &rank_table_lock](std::vector<std::string> const &token)
+    {
+        printf("-------------------------------------------------------------\n");
+        rank_table_lock.lock();
+        size_t begin = 0, end = rank_table.size();
+        if(token.size() == 2)
+        {
+            begin = std::atoi(token[1].c_str()) - 1;
+            end = begin + 1;
+        }
+        if(token.size() == 3)
+        {
+            begin = std::atoi(token[1].c_str()) - 1;
+            end = begin + std::atoi(token[2].c_str());
+        }
+        for(size_t i = begin; i < end && i < rank_table.size(); ++i)
+        {
+            auto node = rank_table.at(i);
+            printf("[%s]\nr=%d\ts=%f\tm=%d\n", node->data.name, i + 1, node->data.score, node->data.match);
+        }
+        rank_table_lock.unlock();
+        printf("-------------------------------------------------------------\n");
+        return true;
+    }));
+    command_map.insert(std::make_pair("view", [&view](std::vector<std::string> const &token)
+    {
+        view = true;
+        return true;
+    }));
+    command_map.insert(std::make_pair("exit", [&file, &rank_table, &rank_table_lock](std::vector<std::string> const &token)
+    {
+        rank_table_lock.lock();
+        std::ofstream ofs(file, std::ios::out | std::ios::binary);
+        for(size_t i = 0; i < rank_table.size(); ++i)
+        {
+            ofs.write(reinterpret_cast<char const *>(&rank_table.at(i)->data), sizeof rank_table.at(i)->data);
+        }
+        ofs.flush();
+        ofs.close();
+        rank_table_lock.unlock();
+        exit(0);
+        return true;
+    }));
+    while(true)
+    {
+        std::string line;
+        std::getline(std::cin, line);
+        if(view)
+        {
+            view = false;
+            view_index = 0;
+            continue;
+        }
+        std::vector<std::string> token;
+        zzz::split(token, line, " ");
+        if(token.empty())
+        {
+            continue;
+        }
+        auto find = command_map.find(token.front());
+        if(find == command_map.end())
+        {
+            continue;
+        }
+        if(find->second(token))
+        {
+            std::cout.flush();
         }
     }
 }

@@ -233,7 +233,7 @@ namespace zzz
         }
         value_node_t *at(size_t index)
         {
-            return sbt_at_(get_root_(), index);
+            return static_cast<value_node_t *>(sbt_at_(get_root_(), index));
         }
         size_t rank(key_t const &key)
         {
