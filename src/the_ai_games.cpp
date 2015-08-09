@@ -198,7 +198,7 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
             }
             m_tetris::TetrisMap map1(field_width, field_height + 1), map2(field_width, field_height + 1);
             m_tetris::TetrisBlockStatus status(this_piece, this_piece_pos_x, this_piece_pos_y + map1.height, 0);
-            m_tetris::TetrisNode const *node1 = bot_1.get(status), *target = nullptr;
+            m_tetris::TetrisNode const *node1 = bot_1.get(status);
             m_tetris::TetrisNode const *node2 = bot_2.get(status);
             if(node1 == nullptr)
             {
@@ -226,6 +226,7 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
             }
             char next_arr[] = {next_piece, '?'};
             std::vector<char> ai_path;
+            ai_tag::the_ai_games::TetrisNodeEx target;
             if(node1 != nullptr)
             {
                 int enemy_point_add = 0;
@@ -296,7 +297,14 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
                     break;
                 }
             }
-            output += "drop\n";
+            if(target.type == ai_tag::the_ai_games::TSpinType::None)
+            {
+                output += "drop\n";
+            }
+            else
+            {
+                output.back() = '\n';
+            }
             std::cout << output;
             return true;
         }
@@ -309,26 +317,20 @@ int main()
 {
     ai_tag::the_ai_games::Config config =
     {
-        /*double map_low_width;      */96   ,
-        /*double col_trans_width;    */170  ,
-        /*double row_trans_width;    */128  ,
-        /*double hold_count_width;   */64   ,
-        /*double hold_focus_width;   */400  ,
-        /*double well_depth_width;   */100  ,
-        /*double hole_depth_width;   */40   ,
-        /*double dig_block_multi;    */0    ,
-        /*double dig_height_add;     */0    ,
-        /*double dig_clear_width;    */32   ,
-        /*double attack_depth_add;   */200  ,
-        /*double attack_depth_minute;*/200  ,
-        /*double line_clear_width;   */32   ,
-        /*double map_safe_multi;     */3    ,
-        /*double tspin_safe_width;   */1024 ,
-        /*double tspin_unsafe_width; */512  ,
-        /*double tetris_safe_width;  */4096 ,
-        /*double tetris_unsafe_width;*/1024 ,
-        /*double combo_add_width;    */64   ,
-        /*double combo_break_minute; */32   ,
+        /*map_low_width       = */128.000000 ,
+        /*col_trans_width     = */170.000000 ,
+        /*row_trans_width     = */128.000000 ,
+        /*hold_count_width    = */80.000000  ,
+        /*hold_focus_width    = */400.000000 ,
+        /*well_depth_width    = */100.000000 ,
+        /*hole_depth_width    = */40.000000  ,
+        /*dig_clear_width     = */34.000000  ,
+        /*line_clear_width    = */40.000000  ,
+        /*tspin_clear_width   = */4096.000000,
+        /*tetris_clear_width  = */4096.000000,
+        /*tspin_build_width   = */32.000000  ,
+        /*combo_add_width     = */56.000000  ,
+        /*combo_break_minute  = */64.000000  ,
     };
     *bot_1.ai_config() = config;
     while(true)
@@ -554,7 +556,7 @@ double elo_rate(double const &self_score, double const &other_score)
 }
 double elo_get_k()
 {
-    return 1;
+    return 4;
 }
 double elo_calc(double const &self_score, double const &other_score, double const &win)
 {
@@ -651,6 +653,13 @@ struct SBTreeInterface
 
 int wmain(int argc, wchar_t const *argv[])
 {
+    //ai_tag::the_ai_games a;
+    //m_tetris::TetrisMap map(10, 21);
+    //map.roof = 3;
+    //map.row[0] = 0B1111111101;
+    //map.row[1] = 0B1111111000;
+    //map.row[2] = 0B0000000101;
+    //a.map_for_tspin_(map, 1, 0);
     std::atomic_uint32_t count = std::max<uint32_t>(1, std::thread::hardware_concurrency() - 1);
     std::wstring file = L"data.bin";
     if(argc > 1)
@@ -685,34 +694,24 @@ int wmain(int argc, wchar_t const *argv[])
         {
             "default", elo_init(), 0,
             {
-                /*double map_low_width;      */128  ,
-                /*double col_trans_width;    */170  ,
-                /*double row_trans_width;    */128  ,
-                /*double hold_count_width;   */64   ,
-                /*double hold_focus_width;   */400  ,
-                /*double well_depth_width;   */100  ,
-                /*double hole_depth_width;   */40   ,
-                /*double dig_block_multi;    */0    ,
-                /*double dig_height_add;     */0    ,
-                /*double dig_clear_width;    */32   ,
-                /*double attack_depth_add;   */200  ,
-                /*double attack_depth_minute;*/200  ,
-                /*double line_clear_width;   */32   ,
-                /*double map_safe_multi;     */3    ,
-                /*double tspin_safe_width;   */1024 ,
-                /*double tspin_unsafe_width; */512  ,
-                /*double tetris_safe_width;  */4096 ,
-                /*double tetris_unsafe_width;*/1024 ,
-                /*double combo_add_width;    */64   ,
-                /*double combo_break_minute; */32   ,
+                /*double map_low_width      */128  ,
+                /*double col_trans_width    */170  ,
+                /*double row_trans_width    */128  ,
+                /*double hold_count_width   */64   ,
+                /*double hold_focus_width   */400  ,
+                /*double well_depth_width   */100  ,
+                /*double hole_depth_width   */40   ,
+                /*double dig_clear_width    */32   ,
+                /*double line_clear_width   */32   ,
+                /*double tspin_clear_width  */4096 ,
+                /*double tetris_clear_width */4096 ,
+                /*double tspin_build_width  */512  ,
+                /*double combo_add_width    */56   ,
+                /*double combo_break_minute */64   ,
             }
         };
-        NodeData bad_node =
-        {
-            "bad", elo_init(), 0,{}
-        };
         rank_table.insert(new Node(default_node));
-        rank_table.insert(new Node(bad_node));
+        rank_table.insert(new Node(default_node));
     }
 
     std::vector<std::thread *> threads;
@@ -771,6 +770,7 @@ int wmain(int argc, wchar_t const *argv[])
                     {
                         return;
                     }
+                    Sleep(333);
 
                     hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
@@ -861,19 +861,13 @@ int wmain(int argc, wchar_t const *argv[])
             "[ 5]hold_focus_width    = %f\n"
             "[ 6]well_depth_width    = %f\n"
             "[ 7]hole_depth_width    = %f\n"
-            "[ 8]dig_block_multi     = %f\n"
-            "[ 9]dig_height_add      = %f\n"
-            "[10]dig_clear_width     = %f\n"
-            "[11]attack_depth_add    = %f\n"
-            "[12]attack_depth_minute = %f\n"
-            "[13]line_clear_width    = %f\n"
-            "[14]map_safe_multi      = %f\n"
-            "[15]tspin_safe_width    = %f\n"
-            "[16]tspin_unsafe_width  = %f\n"
-            "[17]tetris_safe_width   = %f\n"
-            "[18]tetris_unsafe_width = %f\n"
-            "[19]combo_add_width     = %f\n"
-            "[20]combo_break_minute  = %f\n"
+            "[ 8]dig_clear_width     = %f\n"
+            "[ 9]line_clear_width    = %f\n"
+            "[10]tspin_clear_width   = %f\n"
+            "[11]tetris_clear_width  = %f\n"
+            "[12]tspin_build_width   = %f\n"
+            "[13]combo_add_width     = %f\n"
+            "[14]combo_break_minute  = %f\n"
             , node->data.name
             , rank_table.rank(node->data.score)
             , node->data.score
@@ -885,17 +879,11 @@ int wmain(int argc, wchar_t const *argv[])
             , node->data.config.hold_focus_width
             , node->data.config.well_depth_width
             , node->data.config.hole_depth_width
-            , node->data.config.dig_block_multi
-            , node->data.config.dig_height_add
             , node->data.config.dig_clear_width
-            , node->data.config.attack_depth_add
-            , node->data.config.attack_depth_minute
             , node->data.config.line_clear_width
-            , node->data.config.map_safe_multi
-            , node->data.config.tspin_safe_width
-            , node->data.config.tspin_unsafe_width
-            , node->data.config.tetris_safe_width
-            , node->data.config.tetris_unsafe_width
+            , node->data.config.tspin_clear_width
+            , node->data.config.tetris_clear_width
+            , node->data.config.tspin_build_width
             , node->data.config.combo_add_width
             , node->data.config.combo_break_minute
             );
@@ -923,7 +911,7 @@ int wmain(int argc, wchar_t const *argv[])
         if(token.size() == 3 && edit != nullptr)
         {
             size_t index = std::atoi(token[1].c_str());
-            if(index > 20 || (index == 0 && token[2].size() >= 64))
+            if(index > 14 || (index == 0 && token[2].size() >= 64))
             {
                 return true;
             }

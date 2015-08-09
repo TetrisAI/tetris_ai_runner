@@ -399,13 +399,7 @@ namespace ai_tag
         }
         col_mask_ = context->full() & ~1;
         row_mask_ = context->full();
-        check_line_1_end_ = check_line_1_;
         const int full = context->full();
-        for(int x = 0; x < context->width(); ++x)
-        {
-            *check_line_1_end_++ = full & ~(1 << x);
-        }
-        std::sort(check_line_1_, check_line_1_end_);
     }
 
     std::string the_ai_games::ai_name() const
@@ -468,7 +462,7 @@ namespace ai_tag
                     {
                         break;
                     }
-                    v.ClearWidth += (1 + (hy + config_->dig_height_add) * config_->dig_block_multi) * zzz::BitCount(CheckLine);
+                    v.ClearWidth += zzz::BitCount(CheckLine);
                 }
             }
             for(int x = 1; x < width_m1; ++x)
@@ -526,54 +520,22 @@ namespace ai_tag
         {
             ++result.map_low;
         }
-        result.attack = 0;
-        int attack_x = 0, depth = 0;
-        for(int x = 1; x < map.width; ++x)
+        int attack_x = 1, depth = 0;
+        for(int x = 2; x < width_m1; ++x)
         {
             if(map.top[x] < map.top[attack_x])
             {
                 attack_x = x;
             }
         }
-        if(map.top[attack_x] == result.map_low)
-        {
-            for(int y = 3; y >= result.map_low; --y)
-            {
-                if(std::binary_search<uint32_t const *>(check_line_1_, check_line_1_end_, map.row[y]))
-                {
-                    ++depth;
-                }
-                else
-                {
-                    if(depth > 0)
-                    {
-                        depth = 0;
-                        break;
-                    }
-                }
-            }
-            for(int y = 2; y >= result.map_low; --y)
-            {
-                if((~map.row[y] & map.row[y + 1]) != 0)
-                {
-                    depth = 0;
-                    break;
-                }
-            }
-        }
-        if(depth > 0)
-        {
-            result.attack = depth * (1 + depth) * config_->attack_depth_add;
-        }
-        else
-        {
-            result.attack = -config_->attack_depth_minute;
-        }
         result.node_top = node->row + node->height;
         result.clear = clear;
         result.tspin = node.is_check && node.is_ready && node.is_last_rotate ? clear : 0;
-        result.count = map.count - result.map_low * context_->width();
-        result.full = std::max(0, map.height - result.map_low - 1) * context_->width();
+        result.tbuild = map_for_tspin_(map, attack_x, map.top[attack_x]);
+        if(result.map_low == map.top[attack_x])
+        {
+            result.tbuild *= 2;
+        }
         result.save_map = &map;
         if(result.tspin > 0)
         {
@@ -595,31 +557,16 @@ namespace ai_tag
             BoardDeadZone = map_in_danger_(*eval_result.save_map, status.up);
         }
         result.attack -= BoardDeadZone * 50000000;
-        int full = std::max(0, eval_result.full - status.up * eval_result.save_map->width);
         result.attack += eval_result.clear * (eval_result.clear + 1) * config_->line_clear_width;
-        if(eval_result.count * config_->map_safe_multi < full)
+        if(eval_result.tspin > 0)
         {
-            result.attack += eval_result.attack;
-            if(eval_result.tspin > 0)
-            {
-                result.attack += eval_result.tspin * config_->tspin_safe_width;
-            }
-            if(eval_result.clear == 4)
-            {
-                result.attack += config_->tetris_safe_width;
-            }
+            result.attack += eval_result.tspin * config_->tspin_clear_width;
         }
-        else
+        if(eval_result.clear == 4)
         {
-            if(eval_result.tspin > 0)
-            {
-                result.attack += eval_result.tspin * config_->tspin_unsafe_width;;
-            }
-            if(eval_result.clear == 4)
-            {
-                result.attack += config_->tetris_unsafe_width;
-            }
+            result.attack += config_->tetris_clear_width;
         }
+        result.attack += eval_result.tbuild * config_->tspin_build_width;
         if(eval_result.clear > 0)
         {
             if(result.combo > 0)
@@ -667,6 +614,50 @@ namespace ai_tag
         }
         result.value /= status_length;
         return result;
+    }
+
+    int the_ai_games::map_for_tspin_(m_tetris::TetrisMap const &map, int x, int y) const
+    {
+        --x;
+        int row0 = map.row[y];
+        int row1 = map.row[y + 1];
+        if(((~row0) & row1) != 0)
+        {
+            return 0;
+        }
+        int value = 1;
+        int row2 = y + 2 < map.height ? map.row[y + 2] : 0;
+        if(((row0 >> x) & 7) == 5)
+        {
+            value += 3;
+            if(BitCount(row0) == map.width - 1)
+            {
+                value += 3;
+            }
+            if(((((~row1) & row2) >> x) & ~7) == 0 && ((row1 >> x) & 7) == 0)
+            {
+                value += 4;
+                if(BitCount(row1) == map.width - 3)
+                {
+                    value += 4;
+                }
+                int row2_check = (row2 >> x) & 7;
+                if(row2_check == 1 || row2_check == 4)
+                {
+                    value += 2;
+                }
+            }
+        }
+        int mask = ((row1 >> x) & 7);
+        for(y += 2; y < map.roof; ++y)
+        {
+            mask |= ((map.row[y] >> x) & 7);
+            if(BitCount(mask) > 1)
+            {
+                return 0;
+            }
+        }
+        return value;
     }
 
     size_t the_ai_games::map_in_danger_(m_tetris::TetrisMap const &map, size_t up) const

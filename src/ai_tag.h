@@ -54,24 +54,18 @@ namespace ai_tag
             double hold_focus_width;
             double well_depth_width;
             double hole_depth_width;
-            double dig_block_multi;
-            double dig_height_add;
             double dig_clear_width;
-            double attack_depth_add;
-            double attack_depth_minute;
             double line_clear_width;
-            double map_safe_multi;
-            double tspin_safe_width;
-            double tspin_unsafe_width;
-            double tetris_safe_width;
-            double tetris_unsafe_width;
+            double tspin_clear_width;
+            double tetris_clear_width;
+            double tspin_build_width;
             double combo_add_width;
             double combo_break_minute;
         };
         struct Result
         {
-            double attack, map;
-            int node_top, map_low, clear, tspin, count, full;
+            double map;
+            int node_top, map_low, clear, tspin, tbuild;
             m_tetris::TetrisMap const *save_map;
         };
         struct Status
@@ -95,14 +89,14 @@ namespace ai_tag
     private:
         m_tetris::TetrisContext const *context_;
         Config const *config_;
-        uint32_t check_line_1_[32];
-        uint32_t *check_line_1_end_;
         int col_mask_, row_mask_;
         struct MapInDangerData
         {
             int data[4];
         };
         std::vector<MapInDangerData> map_danger_data_;
+    public:
+        int map_for_tspin_(m_tetris::TetrisMap const &map, int x, int y) const;
         size_t map_in_danger_(m_tetris::TetrisMap const &map, size_t up) const;
     };
 
