@@ -38,14 +38,14 @@ namespace search_tag
 
     std::vector<char> Search::make_path(TetrisNode const *node, TetrisNodeWithTSpinType const &land_point, TetrisMap const &map)
     {
-        if(node->index_filtered == land_point->index_filtered)
+        if(land_point.type == None && node->index_filtered == land_point->index_filtered)
         {
             return std::vector<char>();
         }
         node_mark_.clear();
         node_search_.clear();
         const int index = land_point->index_filtered;
-        auto build_path = [](TetrisNode const *node, decltype(node_mark_) &node_mark)->std::vector < char >
+        auto build_path = [raw_node = node, &land_point, &map, this](TetrisNode const *node, decltype(node_mark_) &node_mark)->std::vector<char>
         {
             std::vector<char> path;
             while(true)
@@ -59,6 +59,24 @@ namespace search_tag
                 path.push_back(result.second);
             }
             std::reverse(path.begin(), path.end());
+            if(land_point.type != None && (path.empty() || (path.back() != 'c' && path.back() != 'z')))
+            {
+                path = make_path(raw_node, land_point.last, map);
+                TetrisNode const *last = land_point.last;
+                node = land_point.node;
+                //z
+                if(last->rotate_counterclockwise == node)
+                {
+                    path.push_back('z');
+                    return path;
+                }
+                //c
+                if(last->rotate_clockwise == node)
+                {
+                    path.push_back('c');
+                    return path;
+                }
+            }
             return path;
         };
         node_search_.push_back(node);

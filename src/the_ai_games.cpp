@@ -311,7 +311,7 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
     },
 };
 
-#if 0
+#if !defined(RANK_MODE)
 
 int main()
 {
@@ -324,11 +324,11 @@ int main()
         /*hold_focus_width    = */400.000000 ,
         /*well_depth_width    = */100.000000 ,
         /*hole_depth_width    = */40.000000  ,
-        /*dig_clear_width     = */34.000000  ,
+        /*dig_clear_width     = */33.000000  ,
         /*line_clear_width    = */40.000000  ,
         /*tspin_clear_width   = */4096.000000,
         /*tetris_clear_width  = */4096.000000,
-        /*tspin_build_width   = */32.000000  ,
+        /*tspin_build_width   = */4.000000   ,
         /*combo_add_width     = */56.000000  ,
         /*combo_break_minute  = */64.000000  ,
     };
@@ -694,20 +694,20 @@ int wmain(int argc, wchar_t const *argv[])
         {
             "default", elo_init(), 0,
             {
-                /*double map_low_width      */128  ,
-                /*double col_trans_width    */170  ,
-                /*double row_trans_width    */128  ,
-                /*double hold_count_width   */64   ,
-                /*double hold_focus_width   */400  ,
-                /*double well_depth_width   */100  ,
-                /*double hole_depth_width   */40   ,
-                /*double dig_clear_width    */32   ,
-                /*double line_clear_width   */32   ,
-                /*double tspin_clear_width  */4096 ,
-                /*double tetris_clear_width */4096 ,
-                /*double tspin_build_width  */512  ,
-                /*double combo_add_width    */56   ,
-                /*double combo_break_minute */64   ,
+                /*map_low_width       = */128.000000 ,
+                /*col_trans_width     = */170.000000 ,
+                /*row_trans_width     = */128.000000 ,
+                /*hold_count_width    = */80.000000  ,
+                /*hold_focus_width    = */400.000000 ,
+                /*well_depth_width    = */100.000000 ,
+                /*hole_depth_width    = */40.000000  ,
+                /*dig_clear_width     = */33.000000  ,
+                /*line_clear_width    = */40.000000  ,
+                /*tspin_clear_width   = */4096.000000,
+                /*tetris_clear_width  = */4096.000000,
+                /*tspin_build_width   = */4.000000   ,
+                /*combo_add_width     = */56.000000  ,
+                /*combo_break_minute  = */64.000000  ,
             }
         };
         rank_table.insert(new Node(default_node));

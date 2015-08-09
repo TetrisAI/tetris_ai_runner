@@ -534,7 +534,7 @@ namespace ai_tag
         result.tbuild = map_for_tspin_(map, attack_x, map.top[attack_x]);
         if(result.map_low == map.top[attack_x])
         {
-            result.tbuild *= 2;
+            result.tbuild *= 8;
         }
         result.save_map = &map;
         if(result.tspin > 0)
