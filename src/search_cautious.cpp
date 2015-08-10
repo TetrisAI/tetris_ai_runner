@@ -225,132 +225,81 @@ namespace search_cautious
                     }
                 }
                 //x
-                if(node->rotate_opposite && node->rotate_opposite->check(map))
+                for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
                 {
-                    if(node_mark_.set(node->rotate_opposite, node, 'x'))
+                    if(wall_kick_node)
                     {
-                        if(node->rotate_opposite->index_filtered == index)
+                        if(wall_kick_node->check(map))
                         {
-                            return build_path(node->rotate_opposite, node_mark_);
-                        }
-                        else
-                        {
-                            node_search_.push_back(node->rotate_opposite);
-                        }
-                    }
-                }
-                else
-                {
-                    for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
-                    {
-                        if(wall_kick_node)
-                        {
-                            if(wall_kick_node->check(map))
+                            if(node_mark_.set(wall_kick_node, node, 'x'))
                             {
-                                if(node_mark_.set(wall_kick_node, node, 'x'))
+                                if(wall_kick_node->index_filtered == index)
                                 {
-                                    if(wall_kick_node->index_filtered == index)
-                                    {
-                                        return build_path(wall_kick_node, node_mark_);
-                                    }
-                                    else
-                                    {
-                                        node_search_.push_back(wall_kick_node);
-                                    }
+                                    return build_path(wall_kick_node, node_mark_);
                                 }
-                                break;
+                                else
+                                {
+                                    node_search_.push_back(wall_kick_node);
+                                }
                             }
-                        }
-                        else
-                        {
                             break;
                         }
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
                 //z
-                if(node->rotate_counterclockwise && node->rotate_counterclockwise->check(map))
+                for(TetrisNode const *wall_kick_node : node->wall_kick_counterclockwise)
                 {
-                    if(node_mark_.set(node->rotate_counterclockwise, node, 'z'))
+                    if(wall_kick_node)
                     {
-                        if(node->rotate_counterclockwise->index_filtered == index)
+                        if(wall_kick_node->check(map))
                         {
-                            return build_path(node->rotate_counterclockwise, node_mark_);
-                        }
-                        else
-                        {
-                            node_search_.push_back(node->rotate_counterclockwise);
-                        }
-                    }
-                }
-                else
-                {
-                    for(TetrisNode const *wall_kick_node : node->wall_kick_counterclockwise)
-                    {
-                        if(wall_kick_node)
-                        {
-                            if(wall_kick_node->check(map))
+                            if(node_mark_.set(wall_kick_node, node, 'z'))
                             {
-                                if(node_mark_.set(wall_kick_node, node, 'z'))
+                                if(wall_kick_node->index_filtered == index)
                                 {
-                                    if(wall_kick_node->index_filtered == index)
-                                    {
-                                        return build_path(wall_kick_node, node_mark_);
-                                    }
-                                    else
-                                    {
-                                        node_search_.push_back(wall_kick_node);
-                                    }
+                                    return build_path(wall_kick_node, node_mark_);
                                 }
-                                break;
+                                else
+                                {
+                                    node_search_.push_back(wall_kick_node);
+                                }
                             }
-                        }
-                        else
-                        {
                             break;
                         }
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
                 //c
-                if(node->rotate_clockwise && node->rotate_clockwise->check(map))
+                for(TetrisNode const *wall_kick_node : node->wall_kick_clockwise)
                 {
-                    if(node_mark_.set(node->rotate_clockwise, node, 'c'))
+                    if(wall_kick_node)
                     {
-                        if(node->rotate_clockwise->index_filtered == index)
+                        if(wall_kick_node->check(map))
                         {
-                            return build_path(node->rotate_clockwise, node_mark_);
-                        }
-                        else
-                        {
-                            node_search_.push_back(node->rotate_clockwise);
-                        }
-                    }
-                }
-                else
-                {
-                    for(TetrisNode const *wall_kick_node : node->wall_kick_clockwise)
-                    {
-                        if(wall_kick_node)
-                        {
-                            if(wall_kick_node->check(map))
+                            if(node_mark_.set(wall_kick_node, node, 'c'))
                             {
-                                if(node_mark_.set(wall_kick_node, node, 'c'))
+                                if(wall_kick_node->index_filtered == index)
                                 {
-                                    if(wall_kick_node->index_filtered == index)
-                                    {
-                                        return build_path(wall_kick_node, node_mark_);
-                                    }
-                                    else
-                                    {
-                                        node_search_.push_back(wall_kick_node);
-                                    }
+                                    return build_path(wall_kick_node, node_mark_);
                                 }
-                                break;
+                                else
+                                {
+                                    node_search_.push_back(wall_kick_node);
+                                }
                             }
-                        }
-                        else
-                        {
                             break;
                         }
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
                 if(config_->fast_move_down)
@@ -429,90 +378,60 @@ namespace search_cautious
                     }
                 }
                 //x
-                if(node->rotate_opposite && node->rotate_opposite->check(map))
+                for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
                 {
-                    if(node_mark_.mark(node->rotate_opposite))
+                    if(wall_kick_node)
                     {
-                        node_search_.push_back(node->rotate_opposite);
-                    }
-                }
-                else
-                {
-                    for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
-                    {
-                        if(wall_kick_node)
+                        if(wall_kick_node->check(map))
                         {
-                            if(wall_kick_node->check(map))
+                            if(node_mark_.mark(wall_kick_node))
                             {
-                                if(node_mark_.mark(wall_kick_node))
-                                {
-                                    node_search_.push_back(wall_kick_node);
-                                }
-                                break;
+                                node_search_.push_back(wall_kick_node);
                             }
-                        }
-                        else
-                        {
                             break;
                         }
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
                 //z
-                if(node->rotate_counterclockwise && node->rotate_counterclockwise->check(map))
+                for(TetrisNode const *wall_kick_node : node->wall_kick_counterclockwise)
                 {
-                    if(node_mark_.mark(node->rotate_counterclockwise))
+                    if(wall_kick_node)
                     {
-                        node_search_.push_back(node->rotate_counterclockwise);
-                    }
-                }
-                else
-                {
-                    for(TetrisNode const *wall_kick_node : node->wall_kick_counterclockwise)
-                    {
-                        if(wall_kick_node)
+                        if(wall_kick_node->check(map))
                         {
-                            if(wall_kick_node->check(map))
+                            if(node_mark_.mark(wall_kick_node))
                             {
-                                if(node_mark_.mark(wall_kick_node))
-                                {
-                                    node_search_.push_back(wall_kick_node);
-                                }
-                                break;
+                                node_search_.push_back(wall_kick_node);
                             }
-                        }
-                        else
-                        {
                             break;
                         }
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
                 //c
-                if(node->rotate_clockwise && node->rotate_clockwise->check(map))
+                for(TetrisNode const *wall_kick_node : node->wall_kick_clockwise)
                 {
-                    if(node_mark_.mark(node->rotate_clockwise))
+                    if(wall_kick_node)
                     {
-                        node_search_.push_back(node->rotate_clockwise);
-                    }
-                }
-                else
-                {
-                    for(TetrisNode const *wall_kick_node : node->wall_kick_clockwise)
-                    {
-                        if(wall_kick_node)
+                        if(wall_kick_node->check(map))
                         {
-                            if(wall_kick_node->check(map))
+                            if(node_mark_.mark(wall_kick_node))
                             {
-                                if(node_mark_.mark(wall_kick_node))
-                                {
-                                    node_search_.push_back(wall_kick_node);
-                                }
-                                break;
+                                node_search_.push_back(wall_kick_node);
                             }
-                        }
-                        else
-                        {
                             break;
                         }
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
                 //l

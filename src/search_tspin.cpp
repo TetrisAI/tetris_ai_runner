@@ -41,19 +41,15 @@ namespace search_tspin
 
     std::vector<char> Search::make_path(TetrisNode const *node, TetrisNodeWithTSpinType const &land_point, TetrisMap const &map)
     {
-        if(node->index_filtered == land_point->index_filtered)
+        if(land_point.type == None && node->index_filtered == land_point->index_filtered)
         {
             return std::vector<char>();
-        }
-        if(land_point.type == TSpinMini)
-        {
-            return make_path_t(node, land_point, map);
         }
         bool allow_180 = config_->allow_180;
         node_mark_.clear();
         node_search_.clear();
         const int index = land_point->index_filtered;
-        auto build_path = [](TetrisNode const *node, decltype(node_mark_) &node_mark)->std::vector < char >
+        auto build_path = [raw_node = node, &land_point, &map, allow_180, this](TetrisNode const *node, decltype(node_mark_) &node_mark)->std::vector < char >
         {
             std::vector<char> path;
             while(true)
@@ -67,6 +63,72 @@ namespace search_tspin
                 path.push_back(result.second);
             }
             std::reverse(path.begin(), path.end());
+            if(land_point.type != None && (path.empty() || (path.back() != 'x' && path.back() != 'c' && path.back() != 'z')))
+            {
+                path = make_path(raw_node, land_point.last, map);
+                TetrisNode const *last = land_point.last;
+                node = land_point.node;
+                if(allow_180)
+                {
+                    //x
+                    for(TetrisNode const *wall_kick_node : last->wall_kick_opposite)
+                    {
+                        if(wall_kick_node)
+                        {
+                            if(wall_kick_node->check(map))
+                            {
+                                if(wall_kick_node == node)
+                                {
+                                    path.push_back('x');
+                                    return path;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+                //z
+                for(TetrisNode const *wall_kick_node : last->wall_kick_counterclockwise)
+                {
+                    if(wall_kick_node)
+                    {
+                        if(wall_kick_node->check(map))
+                        {
+                            if(wall_kick_node == node)
+                            {
+                                path.push_back('z');
+                                return path;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                //c
+                for(TetrisNode const *wall_kick_node : last->wall_kick_clockwise)
+                {
+                    if(wall_kick_node)
+                    {
+                        if(wall_kick_node->check(map))
+                        {
+                            if(wall_kick_node == node)
+                            {
+                                path.push_back('c');
+                                return path;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
             return path;
         };
         node_search_.push_back(node);
@@ -80,133 +142,82 @@ namespace search_tspin
                 //x
                 if(allow_180)
                 {
-                    if(node->rotate_opposite && node->rotate_opposite->check(map))
+                    for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
                     {
-                        if(node_mark_.set(node->rotate_opposite, node, 'x'))
+                        if(wall_kick_node)
                         {
-                            if(node->rotate_opposite->index_filtered == index)
+                            if(wall_kick_node->check(map))
                             {
-                                return build_path(node->rotate_opposite, node_mark_);
-                            }
-                            else
-                            {
-                                node_search_.push_back(node->rotate_opposite);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
-                        {
-                            if(wall_kick_node)
-                            {
-                                if(wall_kick_node->check(map))
+                                if(node_mark_.set(wall_kick_node, node, 'x'))
                                 {
-                                    if(node_mark_.set(wall_kick_node, node, 'x'))
+                                    if(wall_kick_node->index_filtered == index)
                                     {
-                                        if(wall_kick_node->index_filtered == index)
-                                        {
-                                            return build_path(wall_kick_node, node_mark_);
-                                        }
-                                        else
-                                        {
-                                            node_search_.push_back(wall_kick_node);
-                                        }
+                                        return build_path(wall_kick_node, node_mark_);
                                     }
-                                    break;
+                                    else
+                                    {
+                                        node_search_.push_back(wall_kick_node);
+                                    }
                                 }
-                            }
-                            else
-                            {
                                 break;
                             }
+                        }
+                        else
+                        {
+                            break;
                         }
                     }
                 }
                 //z
-                if(node->rotate_counterclockwise && node->rotate_counterclockwise->check(map))
+                for(TetrisNode const *wall_kick_node : node->wall_kick_counterclockwise)
                 {
-                    if(node_mark_.set(node->rotate_counterclockwise, node, 'z'))
+                    if(wall_kick_node)
                     {
-                        if(node->rotate_counterclockwise->index_filtered == index)
+                        if(wall_kick_node->check(map))
                         {
-                            return build_path(node->rotate_counterclockwise, node_mark_);
-                        }
-                        else
-                        {
-                            node_search_.push_back(node->rotate_counterclockwise);
-                        }
-                    }
-                }
-                else
-                {
-                    for(TetrisNode const *wall_kick_node : node->wall_kick_counterclockwise)
-                    {
-                        if(wall_kick_node)
-                        {
-                            if(wall_kick_node->check(map))
+                            if(node_mark_.set(wall_kick_node, node, 'z'))
                             {
-                                if(node_mark_.set(wall_kick_node, node, 'z'))
+                                if(wall_kick_node->index_filtered == index)
                                 {
-                                    if(wall_kick_node->index_filtered == index)
-                                    {
-                                        return build_path(wall_kick_node, node_mark_);
-                                    }
-                                    else
-                                    {
-                                        node_search_.push_back(wall_kick_node);
-                                    }
+                                    return build_path(wall_kick_node, node_mark_);
                                 }
-                                break;
+                                else
+                                {
+                                    node_search_.push_back(wall_kick_node);
+                                }
                             }
-                        }
-                        else
-                        {
                             break;
                         }
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
                 //c
-                if(node->rotate_clockwise && node->rotate_clockwise->check(map))
+                for(TetrisNode const *wall_kick_node : node->wall_kick_clockwise)
                 {
-                    if(node_mark_.set(node->rotate_clockwise, node, 'c'))
+                    if(wall_kick_node)
                     {
-                        if(node->rotate_clockwise->index_filtered == index)
+                        if(wall_kick_node->check(map))
                         {
-                            return build_path(node->rotate_clockwise, node_mark_);
-                        }
-                        else
-                        {
-                            node_search_.push_back(node->rotate_clockwise);
-                        }
-                    }
-                }
-                else
-                {
-                    for(TetrisNode const *wall_kick_node : node->wall_kick_clockwise)
-                    {
-                        if(wall_kick_node)
-                        {
-                            if(wall_kick_node->check(map))
+                            if(node_mark_.set(wall_kick_node, node, 'c'))
                             {
-                                if(node_mark_.set(wall_kick_node, node, 'c'))
+                                if(wall_kick_node->index_filtered == index)
                                 {
-                                    if(wall_kick_node->index_filtered == index)
-                                    {
-                                        return build_path(wall_kick_node, node_mark_);
-                                    }
-                                    else
-                                    {
-                                        node_search_.push_back(wall_kick_node);
-                                    }
+                                    return build_path(wall_kick_node, node_mark_);
                                 }
-                                break;
+                                else
+                                {
+                                    node_search_.push_back(wall_kick_node);
+                                }
                             }
-                        }
-                        else
-                        {
                             break;
                         }
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
                 //l
@@ -374,91 +385,61 @@ namespace search_tspin
                     if(allow_180)
                     {
                         //x
-                        if(node->rotate_opposite && node->rotate_opposite->check(map))
+                        for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
                         {
-                            if(node_mark_.mark(node->rotate_opposite))
+                            if(wall_kick_node)
                             {
-                                node_search_.push_back(node->rotate_opposite);
-                            }
-                        }
-                        else
-                        {
-                            for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
-                            {
-                                if(wall_kick_node)
+                                if(wall_kick_node->check(map))
                                 {
-                                    if(wall_kick_node->check(map))
+                                    if(node_mark_.mark(wall_kick_node) && !wall_kick_node->open(map))
                                     {
-                                        if(node_mark_.mark(wall_kick_node) && !wall_kick_node->open(map))
-                                        {
-                                            node_search_.push_back(wall_kick_node);
-                                        }
-                                        break;
+                                        node_search_.push_back(wall_kick_node);
                                     }
-                                }
-                                else
-                                {
                                     break;
                                 }
+                            }
+                            else
+                            {
+                                break;
                             }
                         }
                     }
                     //z
-                    if(node->rotate_counterclockwise && node->rotate_counterclockwise->check(map))
+                    for(TetrisNode const *wall_kick_node : node->wall_kick_counterclockwise)
                     {
-                        if(node_mark_.mark(node->rotate_counterclockwise))
+                        if(wall_kick_node)
                         {
-                            node_search_.push_back(node->rotate_counterclockwise);
-                        }
-                    }
-                    else
-                    {
-                        for(TetrisNode const *wall_kick_node : node->wall_kick_counterclockwise)
-                        {
-                            if(wall_kick_node)
+                            if(wall_kick_node->check(map))
                             {
-                                if(wall_kick_node->check(map))
+                                if(node_mark_.mark(wall_kick_node) && !wall_kick_node->open(map))
                                 {
-                                    if(node_mark_.mark(wall_kick_node) && !wall_kick_node->open(map))
-                                    {
-                                        node_search_.push_back(wall_kick_node);
-                                    }
-                                    break;
+                                    node_search_.push_back(wall_kick_node);
                                 }
-                            }
-                            else
-                            {
                                 break;
                             }
+                        }
+                        else
+                        {
+                            break;
                         }
                     }
                     //c
-                    if(node->rotate_clockwise && node->rotate_clockwise->check(map))
+                    for(TetrisNode const *wall_kick_node : node->wall_kick_clockwise)
                     {
-                        if(node_mark_.mark(node->rotate_clockwise))
+                        if(wall_kick_node)
                         {
-                            node_search_.push_back(node->rotate_clockwise);
-                        }
-                    }
-                    else
-                    {
-                        for(TetrisNode const *wall_kick_node : node->wall_kick_clockwise)
-                        {
-                            if(wall_kick_node)
+                            if(wall_kick_node->check(map))
                             {
-                                if(wall_kick_node->check(map))
+                                if(node_mark_.mark(wall_kick_node) && !wall_kick_node->open(map))
                                 {
-                                    if(node_mark_.mark(wall_kick_node) && !wall_kick_node->open(map))
-                                    {
-                                        node_search_.push_back(wall_kick_node);
-                                    }
-                                    break;
+                                    node_search_.push_back(wall_kick_node);
                                 }
-                            }
-                            else
-                            {
                                 break;
                             }
+                        }
+                        else
+                        {
+                            break;
                         }
                     }
                     //l
@@ -500,91 +481,61 @@ namespace search_tspin
                     if(allow_180)
                     {
                         //x
-                        if(node->rotate_opposite && node->rotate_opposite->check(map))
+                        for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
                         {
-                            if(node_mark_.mark(node->rotate_opposite))
+                            if(wall_kick_node)
                             {
-                                node_search_.push_back(node->rotate_opposite);
-                            }
-                        }
-                        else
-                        {
-                            for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
-                            {
-                                if(wall_kick_node)
+                                if(wall_kick_node->check(map))
                                 {
-                                    if(wall_kick_node->check(map))
+                                    if(node_mark_.mark(wall_kick_node))
                                     {
-                                        if(node_mark_.mark(wall_kick_node))
-                                        {
-                                            node_search_.push_back(wall_kick_node);
-                                        }
-                                        break;
+                                        node_search_.push_back(wall_kick_node);
                                     }
-                                }
-                                else
-                                {
                                     break;
                                 }
+                            }
+                            else
+                            {
+                                break;
                             }
                         }
                     }
                     //z
-                    if(node->rotate_counterclockwise && node->rotate_counterclockwise->check(map))
+                    for(TetrisNode const *wall_kick_node : node->wall_kick_counterclockwise)
                     {
-                        if(node_mark_.mark(node->rotate_counterclockwise))
+                        if(wall_kick_node)
                         {
-                            node_search_.push_back(node->rotate_counterclockwise);
-                        }
-                    }
-                    else
-                    {
-                        for(TetrisNode const *wall_kick_node : node->wall_kick_counterclockwise)
-                        {
-                            if(wall_kick_node)
+                            if(wall_kick_node->check(map))
                             {
-                                if(wall_kick_node->check(map))
+                                if(node_mark_.mark(wall_kick_node))
                                 {
-                                    if(node_mark_.mark(wall_kick_node))
-                                    {
-                                        node_search_.push_back(wall_kick_node);
-                                    }
-                                    break;
+                                    node_search_.push_back(wall_kick_node);
                                 }
-                            }
-                            else
-                            {
                                 break;
                             }
+                        }
+                        else
+                        {
+                            break;
                         }
                     }
                     //c
-                    if(node->rotate_clockwise && node->rotate_clockwise->check(map))
+                    for(TetrisNode const *wall_kick_node : node->wall_kick_clockwise)
                     {
-                        if(node_mark_.mark(node->rotate_clockwise))
+                        if(wall_kick_node)
                         {
-                            node_search_.push_back(node->rotate_clockwise);
-                        }
-                    }
-                    else
-                    {
-                        for(TetrisNode const *wall_kick_node : node->wall_kick_clockwise)
-                        {
-                            if(wall_kick_node)
+                            if(wall_kick_node->check(map))
                             {
-                                if(wall_kick_node->check(map))
+                                if(node_mark_.mark(wall_kick_node))
                                 {
-                                    if(node_mark_.mark(wall_kick_node))
-                                    {
-                                        node_search_.push_back(wall_kick_node);
-                                    }
-                                    break;
+                                    node_search_.push_back(wall_kick_node);
                                 }
-                            }
-                            else
-                            {
                                 break;
                             }
+                        }
+                        else
+                        {
+                            break;
                         }
                     }
                     //l
@@ -607,325 +558,6 @@ namespace search_tspin
             while(node_search_.size() > cache_index);
         }
         return &land_point_cache_;
-    }
-
-    std::vector<char> Search::make_path_t(TetrisNode const *node, TetrisNodeWithTSpinType const &land_point, TetrisMap const &map)
-    {
-        bool allow_180 = config_->allow_180;
-        node_mark_.clear();
-        node_search_.clear();
-        const int index = land_point.last->index;
-        auto build_path = [&land_point, &map, allow_180](TetrisNode const *node, decltype(node_mark_) &node_mark)->std::vector<char>
-        {
-            std::vector<char> path;
-            while(true)
-            {
-                auto result = node_mark.get(node);
-                node = result.first;
-                if(node == nullptr)
-                {
-                    break;
-                }
-                path.push_back(result.second);
-            }
-            std::reverse(path.begin(), path.end());
-            TetrisNode const *last = land_point.last;
-            node = land_point.node;
-            if(allow_180)
-            {
-                //x
-                for(TetrisNode const *wall_kick_node : last->wall_kick_opposite)
-                {
-                    if(wall_kick_node)
-                    {
-                        if(wall_kick_node->check(map))
-                        {
-                            if(wall_kick_node == node)
-                            {
-                                path.push_back('x');
-                                return path;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-            }
-            //z
-            for(TetrisNode const *wall_kick_node : last->wall_kick_counterclockwise)
-            {
-                if(wall_kick_node)
-                {
-                    if(wall_kick_node->check(map))
-                    {
-                        if(wall_kick_node == node)
-                        {
-                            path.push_back('z');
-                            return path;
-                        }
-                    }
-                }
-                else
-                {
-                    break;
-                }
-            }
-            //c
-            for(TetrisNode const *wall_kick_node : last->wall_kick_clockwise)
-            {
-                if(wall_kick_node)
-                {
-                    if(wall_kick_node->check(map))
-                    {
-                        if(wall_kick_node == node)
-                        {
-                            path.push_back('c');
-                            return path;
-                        }
-                    }
-                }
-                else
-                {
-                    break;
-                }
-            }
-            return path;
-        };
-        node_search_.push_back(node);
-        node_mark_.set(node, nullptr, '\0');
-        size_t cache_index = 0;
-        do
-        {
-            for(size_t max_index = node_search_.size(); cache_index < max_index; ++cache_index)
-            {
-                TetrisNode const *node = node_search_[cache_index];
-                if(allow_180)
-                {
-                    //x
-                    if(node->rotate_opposite && node->rotate_opposite->check(map))
-                    {
-                        if(node_mark_.set(node->rotate_opposite, node, 'x'))
-                        {
-                            if(node->rotate_opposite->index == index)
-                            {
-                                return build_path(node->rotate_opposite, node_mark_);
-                            }
-                            else
-                            {
-                                node_search_.push_back(node->rotate_opposite);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
-                        {
-                            if(wall_kick_node)
-                            {
-                                if(wall_kick_node->check(map))
-                                {
-                                    if(node_mark_.set(wall_kick_node, node, 'x'))
-                                    {
-                                        if(wall_kick_node->index == index)
-                                        {
-                                            return build_path(wall_kick_node, node_mark_);
-                                        }
-                                        else
-                                        {
-                                            node_search_.push_back(wall_kick_node);
-                                        }
-                                    }
-                                    break;
-                                }
-                            }
-                            else
-                            {
-                                break;
-                            }
-                        }
-                    }
-                }
-                //z
-                if(node->rotate_counterclockwise && node->rotate_counterclockwise->check(map))
-                {
-                    if(node_mark_.set(node->rotate_counterclockwise, node, 'z'))
-                    {
-                        if(node->rotate_counterclockwise->index == index)
-                        {
-                            return build_path(node->rotate_counterclockwise, node_mark_);
-                        }
-                        else
-                        {
-                            node_search_.push_back(node->rotate_counterclockwise);
-                        }
-                    }
-                }
-                else
-                {
-                    for(TetrisNode const *wall_kick_node : node->wall_kick_counterclockwise)
-                    {
-                        if(wall_kick_node)
-                        {
-                            if(wall_kick_node->check(map))
-                            {
-                                if(node_mark_.set(wall_kick_node, node, 'z'))
-                                {
-                                    if(wall_kick_node->index == index)
-                                    {
-                                        return build_path(wall_kick_node, node_mark_);
-                                    }
-                                    else
-                                    {
-                                        node_search_.push_back(wall_kick_node);
-                                    }
-                                }
-                                break;
-                            }
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-                }
-                //c
-                if(node->rotate_clockwise && node->rotate_clockwise->check(map))
-                {
-                    if(node_mark_.set(node->rotate_clockwise, node, 'c'))
-                    {
-                        if(node->rotate_clockwise->index == index)
-                        {
-                            return build_path(node->rotate_clockwise, node_mark_);
-                        }
-                        else
-                        {
-                            node_search_.push_back(node->rotate_clockwise);
-                        }
-                    }
-                }
-                else
-                {
-                    for(TetrisNode const *wall_kick_node : node->wall_kick_clockwise)
-                    {
-                        if(wall_kick_node)
-                        {
-                            if(wall_kick_node->check(map))
-                            {
-                                if(node_mark_.set(wall_kick_node, node, 'c'))
-                                {
-                                    if(wall_kick_node->index == index)
-                                    {
-                                        return build_path(wall_kick_node, node_mark_);
-                                    }
-                                    else
-                                    {
-                                        node_search_.push_back(wall_kick_node);
-                                    }
-                                }
-                                break;
-                            }
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-                }
-                //l
-                if(node->move_left && node_mark_.set(node->move_left, node, 'l') && node->move_left->check(map))
-                {
-                    if(node->move_left->index == index)
-                    {
-                        return build_path(node->move_left, node_mark_);
-                    }
-                    else
-                    {
-                        node_search_.push_back(node->move_left);
-                    }
-                }
-                //r
-                if(node->move_right && node_mark_.set(node->move_right, node, 'r') && node->move_right->check(map))
-                {
-                    if(node->move_right->index == index)
-                    {
-                        return build_path(node->move_right, node_mark_);
-                    }
-                    else
-                    {
-                        node_search_.push_back(node->move_right);
-                    }
-                }
-                //L
-                if(node->move_left && node->move_left->check(map))
-                {
-                    TetrisNode const *node_L = node->move_left;
-                    while(node_L->move_left && node_L->move_left->check(map))
-                    {
-                        node_L = node_L->move_left;
-                    }
-                    if(node_mark_.set(node_L, node, 'L'))
-                    {
-                        if(node_L->index == index)
-                        {
-                            return build_path(node_L, node_mark_);
-                        }
-                        else
-                        {
-                            node_search_.push_back(node_L);
-                        }
-                    }
-                }
-                //R
-                if(node->move_right && node->move_right->check(map))
-                {
-                    TetrisNode const *node_R = node->move_right;
-                    while(node_R->move_right && node_R->move_right->check(map))
-                    {
-                        node_R = node_R->move_right;
-                    }
-                    if(node_mark_.set(node_R, node, 'R'))
-                    {
-                        if(node_R->index == index)
-                        {
-                            return build_path(node_R, node_mark_);
-                        }
-                        else
-                        {
-                            node_search_.push_back(node_R);
-                        }
-                    }
-                }
-                //d
-                if(node->move_down && node_mark_.set(node->move_down, node, 'd') && node->move_down->check(map))
-                {
-                    if(node->move_down->index == index)
-                    {
-                        return build_path(node->move_down, node_mark_);
-                    }
-                    else
-                    {
-                        node_search_.push_back(node->move_down);
-                    }
-                    //D
-                    TetrisNode const *node_D = node->drop(map);
-                    if(node_mark_.set(node_D, node, 'D'))
-                    {
-                        if(node_D->index == index)
-                        {
-                            return build_path(node_D, node_mark_);
-                        }
-                        else
-                        {
-                            node_search_.push_back(node_D);
-                        }
-                    }
-                }
-            }
-        }
-        while(node_search_.size() > cache_index);
-        return std::vector<char>();
     }
 
     std::vector<Search::TetrisNodeWithTSpinType> const *Search::search_t(TetrisMap const &map, TetrisNode const *node)
@@ -967,91 +599,61 @@ namespace search_tspin
                 if(allow_180)
                 {
                     //x
-                    if(node->rotate_opposite && node->rotate_opposite->check(snap))
+                    for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
                     {
-                        if(node_mark_.cover(node->rotate_opposite, node, 'x'))
+                        if(wall_kick_node)
                         {
-                            node_search_.push_back(node->rotate_opposite);
-                        }
-                    }
-                    else
-                    {
-                        for(TetrisNode const *wall_kick_node : node->wall_kick_opposite)
-                        {
-                            if(wall_kick_node)
+                            if(wall_kick_node->check(snap))
                             {
-                                if(wall_kick_node->check(snap))
+                                if(node_mark_.cover(wall_kick_node, node, 'x'))
                                 {
-                                    if(node_mark_.cover(wall_kick_node, node, 'x'))
-                                    {
-                                        node_search_.push_back(wall_kick_node);
-                                    }
-                                    break;
+                                    node_search_.push_back(wall_kick_node);
                                 }
-                            }
-                            else
-                            {
                                 break;
                             }
+                        }
+                        else
+                        {
+                            break;
                         }
                     }
                 }
                 //z
-                if(node->rotate_counterclockwise && node->rotate_counterclockwise->check(snap))
+                for(TetrisNode const *wall_kick_node : node->wall_kick_counterclockwise)
                 {
-                    if(node_mark_.cover(node->rotate_counterclockwise, node, 'z'))
+                    if(wall_kick_node)
                     {
-                        node_search_.push_back(node->rotate_counterclockwise);
-                    }
-                }
-                else
-                {
-                    for(TetrisNode const *wall_kick_node : node->wall_kick_counterclockwise)
-                    {
-                        if(wall_kick_node)
+                        if(wall_kick_node->check(snap))
                         {
-                            if(wall_kick_node->check(snap))
+                            if(node_mark_.cover(wall_kick_node, node, 'z'))
                             {
-                                if(node_mark_.cover(wall_kick_node, node, 'z'))
-                                {
-                                    node_search_.push_back(wall_kick_node);
-                                }
-                                break;
+                                node_search_.push_back(wall_kick_node);
                             }
-                        }
-                        else
-                        {
                             break;
                         }
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
                 //c
-                if(node->rotate_clockwise && node->rotate_clockwise->check(snap))
+                for(TetrisNode const *wall_kick_node : node->wall_kick_clockwise)
                 {
-                    if(node_mark_.cover(node->rotate_clockwise, node, 'c'))
+                    if(wall_kick_node)
                     {
-                        node_search_.push_back(node->rotate_clockwise);
-                    }
-                }
-                else
-                {
-                    for(TetrisNode const *wall_kick_node : node->wall_kick_clockwise)
-                    {
-                        if(wall_kick_node)
+                        if(wall_kick_node->check(snap))
                         {
-                            if(wall_kick_node->check(snap))
+                            if(node_mark_.cover(wall_kick_node, node, 'c'))
                             {
-                                if(node_mark_.cover(wall_kick_node, node, 'c'))
-                                {
-                                    node_search_.push_back(wall_kick_node);
-                                }
-                                break;
+                                node_search_.push_back(wall_kick_node);
                             }
-                        }
-                        else
-                        {
                             break;
                         }
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
             }

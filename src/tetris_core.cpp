@@ -593,12 +593,16 @@ namespace m_tetris
 #define WALL_KICK(func)\
 /**//**//**/do\
 /**//**//**/{\
+/**//**//**//**/size_t wall_kick_index = 0;\
 /**//**//**//**/if(node.op.rotate_##func != nullptr)\
 /**//**//**//**/{\
+/**//**//**//**//**/if(node.rotate_##func != nullptr)\
+/**//**//**//**//**/{\
+/**//**//**//**//**//**/node.wall_kick_##func[wall_kick_index++] = node.rotate_##func;\
+/**//**//**//**//**/}\
 /**//**//**//**//**/TetrisNode copy = *generate(node.status.t);\
 /**//**//**//**//**/node.op.rotate_##func(copy, this);\
 /**//**//**//**//**/TetrisBlockStatus status = copy.status;\
-/**//**//**//**//**/size_t wall_kick_index = 0;\
 /**//**//**//**//**/for(size_t i = 0; i < node.op.wall_kick_##func.length; ++i)\
 /**//**//**//**//**/{\
 /**//**//**//**//**//**/TetrisWallKickOpertion::WallKickNode &n = node.op.wall_kick_##func.data[i];\
@@ -609,6 +613,7 @@ namespace m_tetris
 /**//**//**//**//**//**/}\
 /**//**//**//**//**/}\
 /**//**//**//**/}\
+/**//**//**//**/node.wall_kick_##func[wall_kick_index++] = nullptr;\
 /**//**//**/} while(false)\
 /**//**//**/
             WALL_KICK(clockwise);
