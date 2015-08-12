@@ -957,9 +957,6 @@ namespace ai_zzz
 
     C2::Result C2::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
     {
-        double LandHeight = node->row + node->height;
-        double Middle = std::abs((node->status.x + 1) * 2 - map.width);
-        double EraseCount = clear;
         double BoardDeadZone = map_in_danger_(map);
         if(map.roof == map.height)
         {
@@ -1095,13 +1092,8 @@ namespace ai_zzz
         int low_y = map.top[low_x];
 
         Result result;
-        result.land_point = (0.
-                             - LandHeight * 1750 / map.height
-                             + Middle * 2
-                             + EraseCount * 60
-                             - BoardDeadZone * 50000000
-                             );
         result.map = (0.
+                      - map.roof * 128
                       - ColTrans * 80
                       - RowTrans * 80
                       - v.HoleCount * 80
@@ -1119,11 +1111,12 @@ namespace ai_zzz
                              + v.WideWellDepth[2] * 48
                              + v.WideWellDepth[1] * -8
                              + attack_well * attack_well * 128
+                             - BoardDeadZone * 50000000
                              );
         }
         else
         {
-            result.attack = 0;
+            result.attack = BoardDeadZone * 50000000;
         }
         result.clear = clear;
         result.low_y = low_y;
@@ -1135,12 +1128,11 @@ namespace ai_zzz
     C2::Status C2::get(Result const &eval_result, size_t depth, Status const &status) const
     {
         Status result = status;
-        result.land_point += eval_result.land_point;
         if(config_->mode == 1)
         {
-            if(status.combo == 0)
+            if(status.combo == 0 && eval_result.low_y < 10)
             {
-                result.land_point += eval_result.attack;
+                result.attack += eval_result.attack;
             }
             if(eval_result.clear > 0)
             {
@@ -1148,27 +1140,27 @@ namespace ai_zzz
                 {
                     if(eval_result.clear == 4 && eval_result.count >= 84 - config_->safe * context_->width())
                     {
-                        result.land_point += 8000;
+                        result.attack += 8000;
                     }
                     else if(eval_result.clear == 3 && eval_result.count >= 92 - config_->safe * context_->width())
                     {
-                        result.land_point += 4000;
+                        result.attack += 4000;
                     }
                     else if(eval_result.low_y <= 5)
                     {
                         if(eval_result.count < 92 - config_->safe * context_->width())
                         {
-                            result.land_point -= 4000;
+                            result.attack -= 4000;
                         }
                         else if(eval_result.clear < 3)
                         {
                             if(eval_result.count <= 100 - config_->safe * context_->width())
                             {
-                                result.land_point -= 4000;
+                                result.attack -= 4000;
                             }
                             else if(eval_result.count <= 120 - config_->safe * context_->width())
                             {
-                                result.land_point -= 2000;
+                                result.attack -= 2000;
                             }
                         }
                     }
@@ -1177,32 +1169,32 @@ namespace ai_zzz
                 {
                     if(eval_result.clear == 4)
                     {
-                        result.land_point += 2500;
+                        result.attack += 2500;
                     }
                     else if(eval_result.clear == 3)
                     {
-                        result.land_point += 1000;
+                        result.attack += 1000;
                     }
                 }
                 else
                 {
                     if(status.combo > 3 && eval_result.clear > 1 && eval_result.count <= 72 - config_->safe * context_->width())
                     {
-                        result.land_point -= 1000;
+                        result.attack -= 1000;
                     }
                     if(status.combo < 6)
                     {
-                        result.land_point += 2000;
+                        result.attack += 2000;
                     }
                     else
                     {
-                        result.land_point += status.combo * 10000;
+                        result.attack += status.combo * 10000;
                     }
                 }
             }
             else if(status.combo > 0 && eval_result.count <= 64 - config_->safe * context_->width())
             {
-                result.land_point -= 2000;
+                result.attack -= 2000;
             }
             if(eval_result.clear > 0)
             {
@@ -1211,16 +1203,15 @@ namespace ai_zzz
         }
         if(eval_result.soft_drop)
         {
-            result.land_point -= 800;
+            result.attack -= 800;
         }
-        result.value = result.land_point / depth + eval_result.map;
+        result.value = result.attack / depth + eval_result.map;
         return result;
     }
 
     C2::Status C2::iterate(Status const **status, size_t status_length) const
     {
         Status result;
-        result.land_point = 0;
         result.combo = 0;
         result.value = 0;
         for(size_t i = 0; i < status_length; ++i)
