@@ -354,7 +354,6 @@ extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], c
     c2_ai.search_config()->fast_move_down = true;
     c2_ai.ai_config()->safe = safe;
     c2_ai.ai_config()->mode = mode;
-    c2_ai.status()->land_point = 0;
     c2_ai.status()->combo = combo;
     c2_ai.status()->value = 0;
     m_tetris::TetrisBlockStatus status(nextPiece[0], curX, curY, curR);

@@ -130,14 +130,14 @@ namespace ai_zzz
         };
         struct Status
         {
-            double land_point;
+            double attack;
             size_t combo;
             double value;
             bool operator < (Status const &) const;
         };
         struct Result
         {
-            double land_point, attack, map;
+            double attack, map;
             size_t clear;
             int low_y;
             int count;
