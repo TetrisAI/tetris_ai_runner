@@ -229,19 +229,23 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
             ai_tag::the_ai_games::TetrisNodeEx target;
             if(node1 != nullptr)
             {
-                int enemy_point_add = 0;
+                int enemy_point_calc = 0;
+                int up[4];
                 if(node2 != nullptr)
                 {
                     bot_2.status()->combo = enemy_combo;
                     bot_2.status()->point = 0;
-                    bot_2.ai_config()->point_ptr = &enemy_point_add;
+                    bot_2.ai_config()->point_ptr = &enemy_point_calc;
+                    bot_2.ai_config()->up_ptr = up;
                     bot_2.run(map2, node2, next_arr, 2, 20);
                 }
                 bot_1.status()->max_combo = combo;
                 bot_1.status()->combo = combo;
                 bot_1.status()->max_attack = 0;
                 bot_1.status()->attack = 0;
-                bot_1.status()->up = (enemy_row_points % 4 + enemy_point_add) / 4 + (game_round % 20 == 0 ? 1 : 0);
+                bot_1.status()->up[0] = (enemy_row_points % 4 + up[0]) / 4 + ((game_round + 0) % 20 == 0 ? 1 : 0);
+                bot_1.status()->up[1] = (enemy_row_points % 4 + up[1]) / 4 + ((game_round + 1) % 20 == 0 ? 1 : 0);
+                bot_1.status()->up[2] = (enemy_row_points % 4 + up[2]) / 4 + ((game_round + 2) % 20 == 0 ? 1 : 0);
                 bot_1.status()->land_point = 0;
                 bot_1.status()->value = 0;
                 target = bot_1.run(map1, node1, next_arr, 2, std::max(50, std::atoi(params[2].c_str()) - 100)).target;
@@ -324,11 +328,11 @@ int main()
         /*hold_focus_width    = */400.000000 ,
         /*well_depth_width    = */100.000000 ,
         /*hole_depth_width    = */40.000000  ,
-        /*dig_clear_width     = */33.000000  ,
-        /*line_clear_width    = */40.000000  ,
-        /*tspin_clear_width   = */4096.000000,
+        /*dig_clear_width     = */36.000000  ,
+        /*line_clear_width    = */80.000000  ,
+        /*tspin_clear_width   = */800.000000 ,
         /*tetris_clear_width  = */4096.000000,
-        /*tspin_build_width   = */4.000000   ,
+        /*tspin_build_width   = */2.400000   ,
         /*combo_add_width     = */56.000000  ,
         /*combo_break_minute  = */64.000000  ,
     };
@@ -385,7 +389,10 @@ struct test_ai
         ai.status()->combo = 0;
         ai.status()->max_attack = 0;
         ai.status()->attack = 0;
-        ai.status()->up = 0;
+        ai.status()->up[0] = 0;
+        ai.status()->up[1] = 0;
+        ai.status()->up[2] = 0;
+        ai.status()->up[3] = 0;
         ai.status()->land_point = 0;
         ai.status()->value = 0;
         t.prepare(10, 21);
@@ -417,12 +424,17 @@ struct test_ai
     }
     void run(int enemy_combo, int enemy_point, int round, m_tetris::TetrisMap const &enemy_map)
     {
+        int up[4];
         char current = next.front();
         add_point = 0;
         t.status()->combo = enemy_combo;
+        t.ai_config()->up_ptr = up;
         next.push_back('?');
         t.run(enemy_map, t.context()->generate(current), next.data() + 1, next.size() - 1, 20);
-        ai.status()->up = (enemy_point % 4 + add_point) / 4 + (round % 20 == 0 ? 1 : 0);
+        ai.status()->up[0] = (enemy_point % 4 + up[0]) / 4 + ((round + 0) % 20 == 0 ? 1 : 0);
+        ai.status()->up[1] = (enemy_point % 4 + up[1]) / 4 + ((round + 1) % 20 == 0 ? 1 : 0);
+        ai.status()->up[2] = (enemy_point % 4 + up[2]) / 4 + ((round + 2) % 20 == 0 ? 1 : 0);
+        ai.status()->up[3] = (enemy_point % 4 + up[3]) / 4 + ((round + 3) % 20 == 0 ? 1 : 0);
         ai.status()->combo = combo;
         auto result = ai.run(map, ai.context()->generate(current), next.data() + 1, next.size() - 1, 10000);
         next.pop_back();
@@ -583,7 +595,7 @@ struct BaseNode
 struct NodeData
 {
     char name[64];
-    double score;
+    volatile double score;
     size_t match;
     ai_tag::the_ai_games::Config config;
 };
@@ -598,7 +610,7 @@ struct Node : public BaseNode
 
 struct SBTreeInterface
 {
-    typedef double key_t;
+    typedef volatile double key_t;
     typedef BaseNode node_t;
     typedef Node value_node_t;
     static key_t const &get_key(Node *node)
@@ -688,7 +700,7 @@ int wmain(int argc, wchar_t const *argv[])
         }
         ifs.close();
     }
-    if(rank_table.empty())
+    if(rank_table.size() < 2)
     {
         NodeData default_node =
         {
@@ -701,27 +713,27 @@ int wmain(int argc, wchar_t const *argv[])
                 /*hold_focus_width    = */400.000000 ,
                 /*well_depth_width    = */100.000000 ,
                 /*hole_depth_width    = */40.000000  ,
-                /*dig_clear_width     = */33.000000  ,
-                /*line_clear_width    = */40.000000  ,
+                /*dig_clear_width     = */34.000000  ,
+                /*line_clear_width    = */48.000000  ,
                 /*tspin_clear_width   = */4096.000000,
                 /*tetris_clear_width  = */4096.000000,
-                /*tspin_build_width   = */4.000000   ,
+                /*tspin_build_width   = */6.000000   ,
                 /*combo_add_width     = */56.000000  ,
                 /*combo_break_minute  = */64.000000  ,
-            }
+        }
         };
         rank_table.insert(new Node(default_node));
         rank_table.insert(new Node(default_node));
     }
 
+    std::mt19937 mt;
     std::vector<std::thread *> threads;
     for(size_t i = 0; i < count; ++i)
     {
-        std::thread *t = new std::thread([&rank_table, &rank_table_lock, &view, &view_index, i]()
+        std::thread *t = new std::thread([&rank_table, &rank_table_lock, &view, &view_index, &mt, i]()
         {
-            std::mt19937 mt;
             uint32_t index = i + 1;
-            auto rand_match = [&](size_t max)
+            auto rand_match = [&](auto &mt, size_t max)
             {
                 std::pair<size_t, size_t> ret;
                 ret.first = std::uniform_int_distribution<size_t>(0, max - 1)(mt);
@@ -734,16 +746,18 @@ int wmain(int argc, wchar_t const *argv[])
             };
             test_ai ai1;
             test_ai ai2;
-            ai1.init(index);
-            ai2.init(index + 1);
+            rank_table_lock.lock();
+            ai1.init(mt());
+            ai2.init(mt());
+            rank_table_lock.unlock();
             for(; ; )
             {
                 rank_table_lock.lock();
-                auto m12 = rand_match(rank_table.size());
+                auto m12 = rand_match(mt, rank_table.size());
                 auto m1 = rank_table.at(m12.first);
                 auto m2 = rank_table.at(m12.second);
-                double *pm1s = &m1->data.score;
-                double *pm2s = &m2->data.score;
+                volatile double *pm1s = &m1->data.score;
+                volatile double *pm2s = &m2->data.score;
                 double m1s = *pm1s;
                 double m2s = *pm2s;
                 auto view_func = [m1, m2, m1s, m2s, index, &view, &view_index, &rank_table_lock](test_ai const &ai1, test_ai const &ai2)
@@ -889,7 +903,7 @@ int wmain(int argc, wchar_t const *argv[])
             );
         rank_table_lock.unlock();
     };
- 
+
     command_map.clear();
     command_map.insert(std::make_pair("select", [&edit, &print_config, &rank_table, &rank_table_lock](std::vector<std::string> const &token)
     {
@@ -972,6 +986,21 @@ int wmain(int argc, wchar_t const *argv[])
         printf("-------------------------------------------------------------\n");
         return true;
     }));
+    command_map.insert(std::make_pair("reset", [&rank_table, &rank_table_lock](std::vector<std::string> const &token)
+    {
+        printf("-------------------------------------------------------------\n");
+        rank_table_lock.lock();
+        for(size_t i = 0; i < rank_table.size(); ++i)
+        {
+            auto node = rank_table.at(i);
+            node->data.score = elo_init();
+            node->data.match = 0;
+            printf("[%s]\nr=%d\ts=%f\tm=%d\n", node->data.name, i + 1, node->data.score, node->data.match);
+        }
+        rank_table_lock.unlock();
+        printf("-------------------------------------------------------------\n");
+        return true;
+    }));
     command_map.insert(std::make_pair("view", [&view](std::vector<std::string> const &token)
     {
         view = true;
@@ -1017,6 +1046,7 @@ int wmain(int argc, wchar_t const *argv[])
             "select [rank]        - select a node and view info\n"
             "set [index] [value]  - set node name or config which last selected\n"
             "copy [name]          - copy a new node which last selected\n"
+            "reset                - reset match and socre\n"
             "save                 - ...\n"
             "exit                 - save & exit\n"
             "-------------------------------------------------------------\n"

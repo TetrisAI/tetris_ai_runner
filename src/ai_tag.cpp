@@ -548,13 +548,13 @@ namespace ai_tag
     {
         Status result = status;
         double BoardDeadZone = 0;
-        if(eval_result.save_map->roof + status.up >= context_->height() || eval_result.node_top >= context_->height())
+        if(eval_result.save_map->roof + status.up[depth] >= context_->height() || eval_result.node_top >= context_->height())
         {
             BoardDeadZone = context_->type_max();
         }
         else
         {
-            BoardDeadZone = map_in_danger_(*eval_result.save_map, status.up);
+            BoardDeadZone = map_in_danger_(*eval_result.save_map, status.up[depth]);
         }
         result.attack -= BoardDeadZone * 50000000;
         result.attack += eval_result.clear * (eval_result.clear + 1) * config_->line_clear_width;
@@ -598,7 +598,7 @@ namespace ai_tag
         result.combo = 0;
         result.max_attack = 0;
         result.attack = 0;
-        result.up = 0;
+        std::memset(result.up, 0, sizeof result.up);
         result.land_point = 0;
         result.value = 0;
         for(size_t i = 0; i < status_length; ++i)
@@ -706,8 +706,7 @@ namespace ai_tag
 
     the_ai_games_enemy::Status the_ai_games_enemy::get(Result const &eval_result, size_t depth, Status const &status) const
     {
-        Status result;
-        result.point = status.point;
+        Status result = status;
         if(eval_result.clear > 0)
         {
             if(eval_result.tspin > 0)
@@ -731,9 +730,11 @@ namespace ai_tag
         {
             result.combo = 0;
         }
-        if(result.point > *config_->point_ptr)
+        result.up[depth] = result.point;
+        if(result.point >= *config_->point_ptr)
         {
             *config_->point_ptr = result.point;
+            std::copy(result.up, result.up + 4, config_->up_ptr);
         }
         return result;
     }
@@ -747,7 +748,7 @@ namespace ai_tag
         {
             if(status[i] != nullptr && status[i]->point > result.point)
             {
-                result.point += status[i]->point;
+                result.point = status[i]->point;
             }
         }
         return result;

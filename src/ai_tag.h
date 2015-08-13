@@ -74,7 +74,7 @@ namespace ai_tag
             size_t combo;
             double max_attack;
             double attack;
-            int up;
+            int up[4];
             double land_point;
             double value;
             bool operator < (Status const &) const;
@@ -107,6 +107,7 @@ namespace ai_tag
         typedef search_tag::Search::TetrisNodeWithTSpinType TetrisNodeEx;
         struct Config
         {
+            int *up_ptr;
             int *point_ptr;
         };
         struct Result
@@ -115,6 +116,7 @@ namespace ai_tag
         };
         struct Status
         {
+            int up[4];
             int point, combo;
             bool operator < (Status const &) const;
         };
