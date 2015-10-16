@@ -1138,7 +1138,18 @@ namespace ai_zzz
             {
                 if(status.combo == 0)
                 {
-                    if(eval_result.clear == 4 && eval_result.count >= 84 - config_->safe * context_->width())
+                    if(config_->danger)
+                    {
+                        if(eval_result.clear == 1)
+                        {
+                            result.attack -= (180 - config_->safe * context_->width() - eval_result.count) * 10;
+                        }
+                        else
+                        {
+                            result.attack += eval_result.clear * 4000;
+                        }
+                    }
+                    else if(eval_result.clear == 4 && eval_result.count >= 84 - config_->safe * context_->width())
                     {
                         result.attack += 8000;
                     }
@@ -1180,11 +1191,11 @@ namespace ai_zzz
                 {
                     if(status.combo > 3 && eval_result.clear > 1 && eval_result.count <= 72 - config_->safe * context_->width())
                     {
-                        result.attack -= 1000;
+                        result.attack -= 1280;
                     }
                     if(status.combo < 6)
                     {
-                        result.attack += 2000;
+                        result.attack += 4000;
                     }
                     else
                     {
@@ -1214,18 +1225,27 @@ namespace ai_zzz
         Status result;
         result.combo = 0;
         result.value = 0;
+        double
+            low1 = std::numeric_limits<double>::max(),
+            low2 = std::numeric_limits<double>::max();
         for(size_t i = 0; i < status_length; ++i)
         {
-            if(status[i] == nullptr)
+            double v = status[i] == nullptr ? -9999999999 : status[i]->value;
+            result.value += v;
+            if(v < low1)
             {
-                result.value += -9999999999;
+                if(low1 < low2)
+                {
+                    low2 = low1;
+                }
+                low1 = v;
             }
-            else
+            else if(v < low2)
             {
-                result.value += status[i]->value;
+                low2 = v;
             }
         }
-        result.value /= status_length;
+        result.value = (result.value - low1 - low2) / (status_length - 2);
         return result;
     }
 

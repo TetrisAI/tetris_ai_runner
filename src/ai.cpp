@@ -330,7 +330,7 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
 
 m_tetris::TetrisEngine<rule_c2::TetrisRule, ai_zzz::C2, search_cautious::Search> c2_ai;
 
-extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int mode, int safe, int combo, char path[], size_t limit)
+extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int mode, int safe, int combo, int danger, char path[], size_t limit)
 {
     if(!c2_ai.prepare(boardW, boardH))
     {
@@ -354,6 +354,7 @@ extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], c
     c2_ai.search_config()->fast_move_down = true;
     c2_ai.ai_config()->safe = safe;
     c2_ai.ai_config()->mode = mode;
+    c2_ai.ai_config()->danger = danger;
     c2_ai.status()->combo = combo;
     c2_ai.status()->value = 0;
     m_tetris::TetrisBlockStatus status(nextPiece[0], curX, curY, curR);

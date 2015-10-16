@@ -127,6 +127,7 @@ namespace ai_zzz
         {
             int safe;
             int mode;
+            int danger;
         };
         struct Status
         {
