@@ -1111,23 +1111,22 @@ namespace ai_zzz
                              + v.WideWellDepth[2] * 48
                              + v.WideWellDepth[1] * -8
                              + attack_well * attack_well * 128
-                             - BoardDeadZone * 50000000
                              );
         }
-        else
-        {
-            result.attack = BoardDeadZone * 50000000;
-        }
+        result.danger = -BoardDeadZone * 50000000;
         result.clear = clear;
         result.low_y = low_y;
-        result.count = map.count + v.HoleCount;
+        result.count = map.count;
         result.soft_drop = !node->open(map);
         return result;
     }
 
     C2::Status C2::get(Result const &eval_result, size_t depth, Status const &status) const
     {
-        Status result = status;
+        Status result;
+        result.attack = 0;
+        result.combo = status.combo;
+        result.value = eval_result.danger;
         if(config_->mode == 1)
         {
             if(status.combo == 0 && eval_result.low_y < 10)
@@ -1136,20 +1135,27 @@ namespace ai_zzz
             }
             if(eval_result.clear > 0)
             {
-                if(status.combo == 0)
+                if(config_->danger)
                 {
-                    if(config_->danger)
+                    if(status.combo == 0)
                     {
-                        if(eval_result.clear == 1)
+                        if(eval_result.clear == 1 && eval_result.low_y <= 12)
                         {
                             result.attack -= (180 - config_->safe * context_->width() - eval_result.count) * 10;
                         }
                         else
                         {
-                            result.attack += eval_result.clear * 4000;
+                            result.attack += eval_result.clear * 2000;
                         }
                     }
-                    else if(eval_result.clear == 4 && eval_result.count >= 84 - config_->safe * context_->width())
+                    else
+                    {
+                        result.attack += 400;
+                    }
+                }
+                if(status.combo == 0)
+                {
+                    if(eval_result.clear == 4 && eval_result.count >= 84 - config_->safe * context_->width())
                     {
                         result.attack += 8000;
                     }
@@ -1199,7 +1205,7 @@ namespace ai_zzz
                     }
                     else
                     {
-                        result.attack += status.combo * 10000;
+                        result.attack += 1000000;
                     }
                 }
             }
@@ -1216,7 +1222,8 @@ namespace ai_zzz
         {
             result.attack -= 800;
         }
-        result.value = result.attack / depth + eval_result.map;
+        double rate = (1. / (depth + 1)) * 2;
+        result.value += status.value + result.attack * rate + eval_result.map;
         return result;
     }
 
@@ -1227,7 +1234,8 @@ namespace ai_zzz
         result.value = 0;
         double
             low1 = std::numeric_limits<double>::max(),
-            low2 = std::numeric_limits<double>::max();
+            low2 = std::numeric_limits<double>::max(),
+            low3 = std::numeric_limits<double>::max();
         for(size_t i = 0; i < status_length; ++i)
         {
             double v = status[i] == nullptr ? -9999999999 : status[i]->value;
@@ -1236,16 +1244,28 @@ namespace ai_zzz
             {
                 if(low1 < low2)
                 {
+                    if(low2 < low3)
+                    {
+                        low3 = low2;
+                    }
                     low2 = low1;
                 }
                 low1 = v;
             }
             else if(v < low2)
             {
+                if(low2 < low3)
+                {
+                    low3 = low2;
+                }
                 low2 = v;
             }
+            else if(v < low3)
+            {
+                low3 = v;
+            }
         }
-        result.value = (result.value - low1 - low2) / (status_length - 2);
+        result.value = (result.value - low1 - low2 - low3) / (status_length - 3);
         return result;
     }
 

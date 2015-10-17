@@ -138,7 +138,9 @@ namespace ai_zzz
         };
         struct Result
         {
-            double attack, map;
+            double attack;
+            double map;
+            double danger;
             size_t clear;
             int low_y;
             int count;
