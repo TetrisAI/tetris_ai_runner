@@ -1234,8 +1234,7 @@ namespace ai_zzz
         result.value = 0;
         double
             low1 = std::numeric_limits<double>::max(),
-            low2 = std::numeric_limits<double>::max(),
-            low3 = std::numeric_limits<double>::max();
+            low2 = std::numeric_limits<double>::max();
         for(size_t i = 0; i < status_length; ++i)
         {
             double v = status[i] == nullptr ? -9999999999 : status[i]->value;
@@ -1244,28 +1243,16 @@ namespace ai_zzz
             {
                 if(low1 < low2)
                 {
-                    if(low2 < low3)
-                    {
-                        low3 = low2;
-                    }
                     low2 = low1;
                 }
                 low1 = v;
             }
             else if(v < low2)
             {
-                if(low2 < low3)
-                {
-                    low3 = low2;
-                }
                 low2 = v;
             }
-            else if(v < low3)
-            {
-                low3 = v;
-            }
         }
-        result.value = (result.value - low1 - low2 - low3) / (status_length - 3);
+        result.value = (result.value - low1 - low2) / (status_length - 2);
         return result;
     }
 

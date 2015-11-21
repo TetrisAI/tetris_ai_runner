@@ -330,11 +330,19 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
 
 m_tetris::TetrisEngine<rule_c2::TetrisRule, ai_zzz::C2, search_cautious::Search> c2_ai;
 
-extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int mode, int safe, int combo, int danger, char path[], size_t limit)
+struct c2_out_put
+{
+    char move;
+    int8_t x;
+    int8_t y;
+    uint8_t r;
+};
+
+extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int mode, int safe, int combo, int danger, c2_out_put path[], size_t limit)
 {
     if(!c2_ai.prepare(boardW, boardH))
     {
-        *path = '\0';
+        path[0] = {'\0'};
         return 0;
     }
     m_tetris::TetrisMap map(boardW, boardH);
@@ -360,16 +368,73 @@ extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], c
     m_tetris::TetrisBlockStatus status(nextPiece[0], curX, curY, curR);
     size_t next_length = nextPiece[1] == ' ' ? 0 : 1;
     std::string next(nextPiece + 1, nextPiece + 1 + next_length);
-    next += '?';
+    if(limit > 20)
+    {
+        next += '?';
+    }
     m_tetris::TetrisNode const *node = c2_ai.get(status);
     auto target = c2_ai.run(map, node, next.data(), next.size(), limit).target;
     std::vector<char> ai_path;
+    size_t size = 0;
     if(target != nullptr)
     {
         ai_path = c2_ai.make_path(node, target, map);
-        std::memcpy(path, ai_path.data(), ai_path.size());
+        for(char c : ai_path)
+        {
+            switch(c)
+            {
+            case 'L':
+                while(node->move_left != nullptr && node->move_left->check(map))
+                {
+                    node = node->move_left;
+                }
+                break;
+            case 'R':
+                while(node->move_right != nullptr && node->move_right->check(map))
+                {
+                    node = node->move_right;
+                }
+                break;
+            case 'D':
+                node = node->drop(map);
+                break;
+            case 'l':
+                if(node->move_left != nullptr && node->move_left->check(map))
+                {
+                    node = node->move_left;
+                }
+                break;
+            case 'r':
+                if(node->move_right != nullptr && node->move_right->check(map))
+                {
+                    node = node->move_right;
+                }
+                break;
+            case 'z':
+                if(node->rotate_counterclockwise != nullptr && node->rotate_counterclockwise->check(map))
+                {
+                    node = node->rotate_counterclockwise;
+                }
+                break;
+            case 'x':
+                if(node->rotate_opposite != nullptr && node->rotate_opposite->check(map))
+                {
+                    node = node->rotate_opposite;
+                }
+                break;
+            case 'c':
+                if(node->rotate_clockwise != nullptr && node->rotate_clockwise->check(map))
+                {
+                    node = node->rotate_clockwise;
+                }
+                break;
+            default:
+                break;
+            }
+            path[size++] = {c, node->status.x, node->status.y, node->status.r};
+        }
     }
-    path[ai_path.size()] = 'V';
-    path[ai_path.size() + 1] = '\0';
+    path[size++] = {'V'};
+    path[size++] = {'\0'};
     return target == nullptr ? 0 : target->attach(map);
 }

@@ -47,6 +47,10 @@ namespace search_cautious
             for(size_t max_index = node_search_.size(); cache_index < max_index; ++cache_index)
             {
                 TetrisNode const *node = node_search_[cache_index];
+                if(node->drop(map)->index_filtered == index)
+                {
+                    return build_path(node, node_mark_);
+                }
                 //l
                 if(node->move_left && node_mark_.set(node->move_left, node, 'l') && node->move_left->check(map))
                 {
