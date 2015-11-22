@@ -1142,7 +1142,6 @@ namespace m_tetris
                 new_root->map = _map;
             }
             context->dealloc(this);
-            context->is_complete = false;
             new_root->parent = nullptr;
             return new_root;
         }
@@ -1182,6 +1181,7 @@ namespace m_tetris
             std::vector<next_t> next = process_next(_next, _next_length, _node);
             if(root != this || (context->current == nullptr || _node->status.t != root->node) || context->is_open_hold || next != context->next)
             {
+                context->is_complete = false;
                 context->max_length = next.size() - 1;
                 update_version();
                 context->is_open_hold = false;
@@ -1197,6 +1197,7 @@ namespace m_tetris
             }
             else if(context->current != _node)
             {
+                context->is_complete = false;
                 ++context->version;
                 context->current = _node;
             }
@@ -1208,6 +1209,7 @@ namespace m_tetris
             std::vector<next_t> next = process_next(_next, _next_length, _node);
             if(root != this || (context->current == nullptr || _node->status.t != root->node) || !context->is_open_hold || next != context->next || _hold != root->hold || !!_hold_lock != root->is_hold_lock)
             {
+                context->is_complete = false;
                 context->max_length = next.size() - 1;
                 if(_hold != ' ' && (_next_length > 1 || !_hold_lock))
                 {
@@ -1230,6 +1232,7 @@ namespace m_tetris
             }
             else if(context->current != _node)
             {
+                context->is_complete = false;
                 ++context->version;
                 context->current = _node;
             }

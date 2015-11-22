@@ -468,7 +468,15 @@ extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], c
             path[size++] = {c, node->status.x, node->status.y, node->status.r};
         }
     }
-    path[size++] = {'V'};
+    if(size == 0)
+    {
+        path[size++] = {'V', int8_t(curX), int8_t(curY), uint8_t(curR)};
+    }
+    else
+    {
+        path[size] = path[size - 1];
+        path[size++].move = 'V';
+    }
     path[size++] = {'\0'};
     return target == nullptr ? 0 : target->attach(map);
 }
