@@ -410,22 +410,56 @@ extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], c
                     node = node->move_right;
                 }
                 break;
+
             case 'z':
-                if(node->rotate_counterclockwise != nullptr && node->rotate_counterclockwise->check(map))
+                for(auto wall_kick_node : node->wall_kick_counterclockwise)
                 {
-                    node = node->rotate_counterclockwise;
+                    if(wall_kick_node)
+                    {
+                        if(wall_kick_node->check(map))
+                        {
+                            node = wall_kick_node;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
                 break;
             case 'x':
-                if(node->rotate_opposite != nullptr && node->rotate_opposite->check(map))
+                for(auto wall_kick_node : node->wall_kick_opposite)
                 {
-                    node = node->rotate_opposite;
+                    if(wall_kick_node)
+                    {
+                        if(wall_kick_node->check(map))
+                        {
+                            node = wall_kick_node;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
                 break;
             case 'c':
-                if(node->rotate_clockwise != nullptr && node->rotate_clockwise->check(map))
+                for(auto wall_kick_node : node->wall_kick_clockwise)
                 {
-                    node = node->rotate_clockwise;
+                    if(wall_kick_node)
+                    {
+                        if(wall_kick_node->check(map))
+                        {
+                            node = wall_kick_node;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
                 break;
             default:
