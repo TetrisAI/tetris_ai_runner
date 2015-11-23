@@ -1135,79 +1135,85 @@ namespace ai_zzz
             }
             if(eval_result.clear > 0)
             {
-                if(config_->danger)
+                do
                 {
-                    if(status.combo == 0)
+                    if(config_->danger)
                     {
-                        if(eval_result.clear == 1 && eval_result.low_y <= 12)
+                        if(status.combo == 0)
                         {
-                            result.attack -= (180 - config_->safe * context_->width() - eval_result.count) * 10;
+                            if(eval_result.clear == 1 && eval_result.low_y <= 6)
+                            {
+                                result.attack -= (180 - config_->safe * context_->width() - eval_result.count) * 10;
+                            }
+                            else
+                            {
+                                result.attack += eval_result.clear * 1000;
+                                break;
+                            }
                         }
                         else
                         {
-                            result.attack += eval_result.clear * 2000;
+                            result.attack += 400;
+                            break;
                         }
                     }
-                    else
+                    if(status.combo == 0)
                     {
-                        result.attack += 400;
-                    }
-                }
-                if(status.combo == 0)
-                {
-                    if(eval_result.clear == 4 && eval_result.count >= 84 - config_->safe * context_->width())
-                    {
-                        result.attack += 8000;
-                    }
-                    else if(eval_result.clear == 3 && eval_result.count >= 92 - config_->safe * context_->width())
-                    {
-                        result.attack += 4000;
-                    }
-                    else if(eval_result.low_y <= 5)
-                    {
-                        if(eval_result.count < 92 - config_->safe * context_->width())
+                        if(eval_result.clear == 4 && eval_result.count >= 84 - config_->safe * context_->width())
                         {
-                            result.attack -= 4000;
+                            result.attack += 8000;
                         }
-                        else if(eval_result.clear < 3)
+                        else if(eval_result.clear == 3 && eval_result.count >= 92 - config_->safe * context_->width())
                         {
-                            if(eval_result.count <= 100 - config_->safe * context_->width())
+                            result.attack += 4000;
+                        }
+                        else if(eval_result.low_y <= 5)
+                        {
+                            if(eval_result.count < 92 - config_->safe * context_->width())
                             {
                                 result.attack -= 4000;
                             }
-                            else if(eval_result.count <= 120 - config_->safe * context_->width())
+                            else if(eval_result.clear < 3)
                             {
-                                result.attack -= 2000;
+                                if(eval_result.count <= 100 - config_->safe * context_->width())
+                                {
+                                    result.attack -= 4000;
+                                }
+                                else if(eval_result.count <= 120 - config_->safe * context_->width())
+                                {
+                                    result.attack -= 2000;
+                                }
                             }
                         }
                     }
-                }
-                else if(status.combo == 1)
-                {
-                    if(eval_result.clear == 4)
+                    else if(status.combo == 1)
                     {
-                        result.attack += 2500;
-                    }
-                    else if(eval_result.clear == 3)
-                    {
-                        result.attack += 1000;
-                    }
-                }
-                else
-                {
-                    if(status.combo > 3 && eval_result.clear > 1 && eval_result.count <= 72 - config_->safe * context_->width())
-                    {
-                        result.attack -= 1280;
-                    }
-                    if(status.combo < 6)
-                    {
-                        result.attack += 4000;
+                        if(eval_result.clear == 4)
+                        {
+                            result.attack += 2500;
+                        }
+                        else if(eval_result.clear == 3)
+                        {
+                            result.attack += 1000;
+                        }
                     }
                     else
                     {
-                        result.attack += 1000000;
+                        if(status.combo > 3 && eval_result.clear > 1 && eval_result.count <= 72 - config_->safe * context_->width())
+                        {
+                            result.attack -= 1280;
+                        }
+                        if(status.combo < 6)
+                        {
+                            result.attack += 4000;
+                        }
+                        else
+                        {
+                            result.attack += 1000000;
+                        }
                     }
                 }
+                while(false);
             }
             else if(status.combo > 0 && eval_result.count <= 64 - config_->safe * context_->width())
             {
