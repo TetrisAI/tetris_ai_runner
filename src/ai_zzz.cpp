@@ -1100,6 +1100,9 @@ namespace ai_zzz
                       - v.HoleLine * 380
                       - v.ClearWidth * 8
                       - v.WellDepthTotle * 100
+                      + (map.width - (node->col + node->col + node->width)) / 20.0
+                      - node->low / 10.0
+                      - node->status.r / 4.0
                       );
         if(config_->mode == 1)
         {
