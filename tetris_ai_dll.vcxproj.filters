@@ -147,29 +147,17 @@
     <Filter Include="rules\st">
       <UniqueIdentifier>{677e0567-341f-404a-83af-d9615b4522fb}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ai">
-      <UniqueIdentifier>{824db86c-fbb6-4f7b-9b4d-24bde6f0501b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ai\ax">
-      <UniqueIdentifier>{6813cfa7-88df-4217-a710-edeb76ffb8de}</UniqueIdentifier>
-    </Filter>
     <Filter Include="rules\qq">
       <UniqueIdentifier>{28b595c2-95a3-4b60-840c-3d0620ee04e0}</UniqueIdentifier>
     </Filter>
     <Filter Include="rules\srs">
       <UniqueIdentifier>{b1ce4a2e-25d6-4aa1-a0b0-66d9f14af61a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ai\zzz">
-      <UniqueIdentifier>{c29372d2-b3b3-460a-9960-6b2952e42a27}</UniqueIdentifier>
-    </Filter>
     <Filter Include="util">
       <UniqueIdentifier>{7865d0a5-7d01-4619-8b16-7d1d1127f51b}</UniqueIdentifier>
     </Filter>
     <Filter Include="rules\srsx">
       <UniqueIdentifier>{9f30a009-ae8f-428a-9ae9-7cb8ccb3e808}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ai\easy">
-      <UniqueIdentifier>{2bd18710-beb1-4ec9-9ccc-3e4f4aea96dd}</UniqueIdentifier>
     </Filter>
     <Filter Include="rules\toj">
       <UniqueIdentifier>{5f2f8ab9-e9b0-4e66-947a-1205412c5e21}</UniqueIdentifier>
@@ -200,6 +188,18 @@
     </Filter>
     <Filter Include="search\tag">
       <UniqueIdentifier>{51c74e1c-3b17-49ba-a5a3-fe8d4b60a954}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ai">
+      <UniqueIdentifier>{824db86c-fbb6-4f7b-9b4d-24bde6f0501b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ai\ax">
+      <UniqueIdentifier>{6813cfa7-88df-4217-a710-edeb76ffb8de}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ai\zzz">
+      <UniqueIdentifier>{c29372d2-b3b3-460a-9960-6b2952e42a27}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ai\easy">
+      <UniqueIdentifier>{2bd18710-beb1-4ec9-9ccc-3e4f4aea96dd}</UniqueIdentifier>
     </Filter>
     <Filter Include="ai\misaka">
       <UniqueIdentifier>{6757bd40-2045-4bfe-8f3d-3e3f566e6706}</UniqueIdentifier>

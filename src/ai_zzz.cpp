@@ -807,7 +807,7 @@ namespace ai_zzz
                 result.map_rise += std::max(0, int(status.under_attack) - status.attack);
                 if(result.map_rise >= eval_result.safe)
                 {
-                    result.value -= 99999;
+                    result.value -= 999999999;
                 }
                 result.under_attack = 0;
             }
@@ -892,8 +892,8 @@ namespace ai_zzz
             break;
         }
         double rate = (1. / depth) + 3;
-        result.combo = std::max(result.combo, result.max_combo);
-        result.attack = std::max(result.attack, result.max_attack);
+        result.max_combo = std::max(result.combo, result.max_combo);
+        result.max_attack = std::max(result.attack, result.max_attack);
         result.value += (0.
                          + result.max_attack * 40
                          + result.max_combo * (result.max_combo - 1) * 40
@@ -902,7 +902,8 @@ namespace ai_zzz
                          + (eval_result.safe >= 12 ? eval_result.t3_value * (t_expect < 4 ? 2 : 1.5) * (result.b2b ? 280 : 200) / (1 + result.under_attack) : 0)
                          + (result.b2b ? 320 : 0)
                          + result.like * 40
-                         ) * rate * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_));
+                         - result.map_rise * 200
+                         ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_));
         return result;
     }
 

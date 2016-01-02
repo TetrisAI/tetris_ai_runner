@@ -17,17 +17,7 @@ namespace rule_c2
     template<char T>
     TetrisBlockStatus game_generate_template(TetrisContext const *context)
     {
-        TetrisBlockStatus status(T, 3, 20, 0);
-        return status;
-    }
-
-    template<>
-    TetrisBlockStatus game_generate_template<'I'>(TetrisContext const *context)
-    {
-        TetrisBlockStatus status =
-        {
-            'I', 3, 21, 0
-        };
+        TetrisBlockStatus status(T, 3, 21, 0);
         return status;
     }
 
@@ -38,9 +28,9 @@ namespace rule_c2
         TetrisOpertion op_O1 =
         {
             create_node<'O', 0, 0, 0,
-            T(0, 1, 1, 0),
-            T(0, 1, 1, 0),
             T(0, 0, 0, 0),
+            T(0, 1, 1, 0),
+            T(0, 1, 1, 0),
             T(0, 0, 0, 0)>,
             nullptr,
             nullptr,
@@ -105,9 +95,9 @@ namespace rule_c2
         TetrisOpertion op_S1 =
         {
             create_node<'S', 0, 0, 0,
+            T(0, 0, 0, 0),
             T(0, 1, 1, 0),
             T(1, 1, 0, 0),
-            T(0, 0, 0, 0),
             T(0, 0, 0, 0)>,
             rotate_template<1>,
             rotate_template<3>,
@@ -119,10 +109,10 @@ namespace rule_c2
         TetrisOpertion op_S2 =
         {
             create_node<'S', 0, 0, 1,
+            T(0, 0, 0, 0),
             T(0, 1, 0, 0),
             T(0, 1, 1, 0),
-            T(0, 0, 1, 0),
-            T(0, 0, 0, 0)>,
+            T(0, 0, 1, 0)>,
             rotate_template<2>,
             rotate_template<0>,
             rotate_template<3>,
@@ -134,9 +124,9 @@ namespace rule_c2
         {
             create_node<'S', 0, 0, 2,
             T(0, 0, 0, 0),
+            T(0, 0, 0, 0),
             T(0, 1, 1, 0),
-            T(1, 1, 0, 0),
-            T(0, 0, 0, 0)>,
+            T(1, 1, 0, 0)>,
             rotate_template<3>,
             rotate_template<1>,
             rotate_template<0>,
@@ -147,10 +137,10 @@ namespace rule_c2
         TetrisOpertion op_S4 =
         {
             create_node<'S', 0, 0, 3,
+            T(0, 0, 0, 0),
             T(1, 0, 0, 0),
             T(1, 1, 0, 0),
-            T(0, 1, 0, 0),
-            T(0, 0, 0, 0)>,
+            T(0, 1, 0, 0)>,
             rotate_template<0>,
             rotate_template<2>,
             rotate_template<1>,
@@ -161,9 +151,9 @@ namespace rule_c2
         TetrisOpertion op_Z1 =
         {
             create_node<'Z', 0, 0, 0,
+            T(0, 0, 0, 0),
             T(1, 1, 0, 0),
             T(0, 1, 1, 0),
-            T(0, 0, 0, 0),
             T(0, 0, 0, 0)>,
             rotate_template<1>,
             rotate_template<3>,
@@ -175,10 +165,10 @@ namespace rule_c2
         TetrisOpertion op_Z2 =
         {
             create_node<'Z', 0, 0, 1,
+            T(0, 0, 0, 0),
             T(0, 0, 1, 0),
             T(0, 1, 1, 0),
-            T(0, 1, 0, 0),
-            T(0, 0, 0, 0)>,
+            T(0, 1, 0, 0)>,
             rotate_template<2>,
             rotate_template<0>,
             rotate_template<3>,
@@ -190,9 +180,9 @@ namespace rule_c2
         {
             create_node<'Z', 0, 0, 2,
             T(0, 0, 0, 0),
+            T(0, 0, 0, 0),
             T(1, 1, 0, 0),
-            T(0, 1, 1, 0),
-            T(0, 0, 0, 0)>,
+            T(0, 1, 1, 0)>,
             rotate_template<3>,
             rotate_template<1>,
             rotate_template<0>,
@@ -203,10 +193,10 @@ namespace rule_c2
         TetrisOpertion op_Z4 =
         {
             create_node<'Z', 0, 0, 3,
+            T(0, 0, 0, 0),
             T(0, 1, 0, 0),
             T(1, 1, 0, 0),
-            T(1, 0, 0, 0),
-            T(0, 0, 0, 0)>,
+            T(1, 0, 0, 0)>,
             rotate_template<0>,
             rotate_template<2>,
             rotate_template<1>,
@@ -217,9 +207,9 @@ namespace rule_c2
         TetrisOpertion op_L1 =
         {
             create_node<'L', 0, 0, 0,
+            T(0, 0, 0, 0),
             T(0, 0, 1, 0),
             T(1, 1, 1, 0),
-            T(0, 0, 0, 0),
             T(0, 0, 0, 0)>,
             rotate_template<1>,
             rotate_template<3>,
@@ -231,10 +221,10 @@ namespace rule_c2
         TetrisOpertion op_L2 =
         {
             create_node<'L', 0, 0, 1,
+            T(0, 0, 0, 0),
             T(0, 1, 0, 0),
             T(0, 1, 0, 0),
-            T(0, 1, 1, 0),
-            T(0, 0, 0, 0)>,
+            T(0, 1, 1, 0)>,
             rotate_template<2>,
             rotate_template<0>,
             rotate_template<3>,
@@ -246,9 +236,9 @@ namespace rule_c2
         {
             create_node<'L', 0, 0, 2,
             T(0, 0, 0, 0),
+            T(0, 0, 0, 0),
             T(1, 1, 1, 0),
-            T(1, 0, 0, 0),
-            T(0, 0, 0, 0)>,
+            T(1, 0, 0, 0)>,
             rotate_template<3>,
             rotate_template<1>,
             rotate_template<0>,
@@ -259,10 +249,10 @@ namespace rule_c2
         TetrisOpertion op_L4 =
         {
             create_node<'L', 0, 0, 3,
+            T(0, 0, 0, 0),
             T(1, 1, 0, 0),
             T(0, 1, 0, 0),
-            T(0, 1, 0, 0),
-            T(0, 0, 0, 0)>,
+            T(0, 1, 0, 0)>,
             rotate_template<0>,
             rotate_template<2>,
             rotate_template<1>,
@@ -273,9 +263,9 @@ namespace rule_c2
         TetrisOpertion op_J1 =
         {
             create_node<'J', 0, 0, 0,
+            T(0, 0, 0, 0),
             T(1, 0, 0, 0),
             T(1, 1, 1, 0),
-            T(0, 0, 0, 0),
             T(0, 0, 0, 0)>,
             rotate_template<1>,
             rotate_template<3>,
@@ -287,10 +277,10 @@ namespace rule_c2
         TetrisOpertion op_J2 =
         {
             create_node<'J', 0, 0, 1,
+            T(0, 0, 0, 0),
             T(0, 1, 1, 0),
             T(0, 1, 0, 0),
-            T(0, 1, 0, 0),
-            T(0, 0, 0, 0)>,
+            T(0, 1, 0, 0)>,
             rotate_template<2>,
             rotate_template<0>,
             rotate_template<3>,
@@ -302,9 +292,9 @@ namespace rule_c2
         {
             create_node<'J', 0, 0, 2,
             T(0, 0, 0, 0),
+            T(0, 0, 0, 0),
             T(1, 1, 1, 0),
-            T(0, 0, 1, 0),
-            T(0, 0, 0, 0)>,
+            T(0, 0, 1, 0)>,
             rotate_template<3>,
             rotate_template<1>,
             rotate_template<0>,
@@ -315,10 +305,10 @@ namespace rule_c2
         TetrisOpertion op_J4 =
         {
             create_node<'J', 0, 0, 3,
+            T(0, 0, 0, 0),
             T(0, 1, 0, 0),
             T(0, 1, 0, 0),
-            T(1, 1, 0, 0),
-            T(0, 0, 0, 0)>,
+            T(1, 1, 0, 0)>,
             rotate_template<0>,
             rotate_template<2>,
             rotate_template<1>,
@@ -329,9 +319,9 @@ namespace rule_c2
         TetrisOpertion op_T1 =
         {
             create_node<'T', 0, 0, 0,
+            T(0, 0, 0, 0),
             T(0, 1, 0, 0),
             T(1, 1, 1, 0),
-            T(0, 0, 0, 0),
             T(0, 0, 0, 0)>,
             rotate_template<1>,
             rotate_template<3>,
@@ -343,10 +333,10 @@ namespace rule_c2
         TetrisOpertion op_T2 =
         {
             create_node<'T', 0, 0, 1,
+            T(0, 0, 0, 0),
             T(0, 1, 0, 0),
             T(0, 1, 1, 0),
-            T(0, 1, 0, 0),
-            T(0, 0, 0, 0)>,
+            T(0, 1, 0, 0)>,
             rotate_template<2>,
             rotate_template<0>,
             rotate_template<3>,
@@ -358,9 +348,9 @@ namespace rule_c2
         {
             create_node<'T', 0, 0, 2,
             T(0, 0, 0, 0),
+            T(0, 0, 0, 0),
             T(1, 1, 1, 0),
-            T(0, 1, 0, 0),
-            T(0, 0, 0, 0)>,
+            T(0, 1, 0, 0)>,
             rotate_template<3>,
             rotate_template<1>,
             rotate_template<0>,
@@ -371,10 +361,10 @@ namespace rule_c2
         TetrisOpertion op_T4 =
         {
             create_node<'T', 0, 0, 3,
+            T(0, 0, 0, 0),
             T(0, 1, 0, 0),
             T(1, 1, 0, 0),
-            T(0, 1, 0, 0),
-            T(0, 0, 0, 0)>,
+            T(0, 1, 0, 0)>,
             rotate_template<0>,
             rotate_template<2>,
             rotate_template<1>,

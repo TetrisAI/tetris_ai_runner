@@ -202,7 +202,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
     }
     else
     {
-        auto target = srs_ai.run(map, node, next, maxDepth).target;
+        auto target = srs_ai.run(map, node, next, maxDepth, level * 5 + 1).target;
         if(target != nullptr)
         {
             std::vector<char> ai_path = srs_ai.make_path(node, target, map);
