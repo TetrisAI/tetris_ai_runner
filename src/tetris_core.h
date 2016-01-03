@@ -1192,7 +1192,6 @@ namespace m_tetris
                     context->next_c.assign(next.begin(), next.end());
                 }
                 root->node = _node->status.t;
-                root->status.set(status);
                 root->next = std::next(context->next.begin());
             }
             else if(context->current != _node)
@@ -1201,6 +1200,7 @@ namespace m_tetris
                 ++context->version;
                 context->current = _node;
             }
+            root->status.set(status);
             return root;
         }
         TetrisTreeNode *update(TetrisMap const &_map, Status const &status, TetrisNode const *_node, char _hold, bool _hold_lock, char const *_next, size_t _next_length)
@@ -1223,7 +1223,6 @@ namespace m_tetris
                 {
                     context->next_c.assign(next.begin(), next.end());
                 }
-                root->status.set(status);
                 root->node = _node->status.t;
                 root->hold = _hold;
                 root->is_hold = false;
@@ -1236,6 +1235,7 @@ namespace m_tetris
                 ++context->version;
                 context->current = _node;
             }
+            root->status.set(status);
             return root;
         }
         void search(TetrisNode const *search_node, bool is_hold)

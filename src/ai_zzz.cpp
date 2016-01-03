@@ -518,7 +518,7 @@ namespace ai_zzz
         config_ = config;
         col_mask_ = context->full() & ~1;
         row_mask_ = context->full();
-        full_count_ = context->width() * 20;
+        full_count_ = context->width() * 22;
         map_danger_data_.resize(context->type_max());
         for(size_t i = 0; i < context->type_max(); ++i)
         {
@@ -535,7 +535,7 @@ namespace ai_zzz
 
     std::string TOJ::ai_name() const
     {
-        return "ZZZ TOJ v0.6";
+        return "ZZZ TOJ v0.7";
     }
 
     TOJ::Result TOJ::eval(TetrisNodeEx &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
@@ -807,7 +807,7 @@ namespace ai_zzz
                 result.map_rise += std::max(0, int(status.under_attack) - status.attack);
                 if(result.map_rise >= eval_result.safe)
                 {
-                    result.value -= 999999999;
+                    result.value -= 999999999 * result.map_rise;
                 }
                 result.under_attack = 0;
             }
@@ -902,7 +902,6 @@ namespace ai_zzz
                          + (eval_result.safe >= 12 ? eval_result.t3_value * (t_expect < 4 ? 2 : 1.5) * (result.b2b ? 280 : 200) / (1 + result.under_attack) : 0)
                          + (result.b2b ? 320 : 0)
                          + result.like * 40
-                         - result.map_rise * 200
                          ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_));
         return result;
     }
