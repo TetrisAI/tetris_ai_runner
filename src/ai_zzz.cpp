@@ -518,7 +518,7 @@ namespace ai_zzz
         config_ = config;
         col_mask_ = context->full() & ~1;
         row_mask_ = context->full();
-        full_count_ = context->width() * 22;
+        full_count_ = context->width() * 24;
         map_danger_data_.resize(context->type_max());
         for(size_t i = 0; i < context->type_max(); ++i)
         {
@@ -711,19 +711,19 @@ namespace ai_zzz
                         t3_value += 1;
                         if(BitCount(row1) == map.width - 2)
                         {
-                            t3_value += 2;
+                            t3_value += 1;
                             if(((row2 >> x) & 15) == 11)
                             {
-                                t3_value += 1;
+                                t3_value += 2;
                                 if(BitCount(row2) == map.width - 1)
                                 {
-                                    t3_value += 1;
+                                    t3_value += 2;
                                 }
                             }
                             int row3_check = ((row3 >> x) & 15);
                             if(row3_check == 8 || row3_check == 0)
                             {
-                                t3_value += 1;
+                                t3_value += !!row3_check;
                                 int row4_check = ((row4 >> x) & 15);
                                 if(row4_check == 4 || row4_check == 12)
                                 {
@@ -750,19 +750,19 @@ namespace ai_zzz
                         t3_value += 1;
                         if(BitCount(row1) == map.width - 2)
                         {
-                            t3_value += 2;
+                            t3_value += 1;
                             if(((row2 >> x) & 15) == 13)
                             {
-                                t3_value += 1;
+                                t3_value += 2;
                                 if(BitCount(row2) == map.width - 1)
                                 {
-                                    t3_value += 1;
+                                    t3_value += 2;
                                 }
                             }
                             int row3_check = ((row3 >> x) & 15);
                             if(row3_check == 1 || row3_check == 0)
                             {
-                                t3_value += 1;
+                                t3_value += !!row3_check;
                                 int row4_check = ((row4 >> x) & 15);
                                 if(row4_check == 3 || row4_check == 1)
                                 {
@@ -894,15 +894,16 @@ namespace ai_zzz
         double rate = (1. / depth) + 3;
         result.max_combo = std::max(result.combo, result.max_combo);
         result.max_attack = std::max(result.attack, result.max_attack);
-        result.value += (0.
-                         + result.max_attack * 40
+        result.value += ((0.
+                          + result.max_attack * 40
+                          + result.attack * 256 * rate
+                          + eval_result.t2_value * (t_expect < 8 ? 512 : 320) * 1.5
+                          + (eval_result.safe >= 12 ? eval_result.t3_value * (t_expect < 4 ? 10 : 8) * (result.b2b ? 512 : 256) / (6 + result.under_attack) : 0)
+                          + (result.b2b ? 512 : 0)
+                          + result.like * 64
+                          ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_))
                          + result.max_combo * (result.max_combo - 1) * 40
-                         + result.attack * 256 * rate
-                         + eval_result.t2_value * (t_expect < 8 ? 512 : 320)
-                         + (eval_result.safe >= 12 ? eval_result.t3_value * (t_expect < 4 ? 2 : 1.5) * (result.b2b ? 280 : 200) / (1 + result.under_attack) : 0)
-                         + (result.b2b ? 320 : 0)
-                         + result.like * 40
-                         ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_));
+                         );
         return result;
     }
 
