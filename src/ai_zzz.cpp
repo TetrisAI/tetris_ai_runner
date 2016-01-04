@@ -807,7 +807,7 @@ namespace ai_zzz
                 result.map_rise += std::max(0, int(status.under_attack) - status.attack);
                 if(result.map_rise >= eval_result.safe)
                 {
-                    result.value -= 999999999 * result.map_rise;
+                    result.death += result.map_rise - eval_result.safe;
                 }
                 result.under_attack = 0;
             }
@@ -903,6 +903,7 @@ namespace ai_zzz
                           + result.like * 64
                           ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_))
                          + result.max_combo * (result.max_combo - 1) * 40
+                         - result.death * 999999999.0
                          );
         return result;
     }

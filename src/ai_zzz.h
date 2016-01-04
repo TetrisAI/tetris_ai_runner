@@ -93,6 +93,7 @@ namespace ai_zzz
         {
             int max_combo;
             int max_attack;
+            int death;
             int combo;
             int attack;
             int under_attack;
