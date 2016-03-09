@@ -134,6 +134,7 @@ namespace ai_zzz
         {
             double attack;
             size_t combo;
+            size_t combo_limit;
             double value;
             bool operator < (Status const &) const;
         };

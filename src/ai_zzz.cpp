@@ -1131,6 +1131,11 @@ namespace ai_zzz
         Status result;
         result.attack = 0;
         result.combo = status.combo;
+        result.combo_limit = status.combo_limit > 0 ? status.combo_limit - 1 : 0;
+        if(result.combo_limit == 0)
+        {
+            result.combo = 0;
+        }
         result.value = eval_result.danger;
         if(config_->mode == 1)
         {
@@ -1152,13 +1157,20 @@ namespace ai_zzz
                             }
                             else
                             {
-                                result.attack += eval_result.clear * 1000;
+                                result.attack += 1000  + eval_result.clear * 500;
                                 break;
                             }
                         }
                         else
                         {
-                            result.attack += 400;
+                            if(eval_result.clear == 1)
+                            {
+                                result.attack += 600;
+                            }
+                            else if(eval_result.clear > 0)
+                            {
+                                result.attack += eval_result.clear * 200;
+                            }
                             break;
                         }
                     }
@@ -1204,9 +1216,16 @@ namespace ai_zzz
                     }
                     else
                     {
-                        if(status.combo > 3 && eval_result.clear > 1 && eval_result.count <= 72 - config_->safe * context_->width())
+                        if(status.combo > 3 && eval_result.count <= 72 - config_->safe * context_->width())
                         {
-                            result.attack -= 1280;
+                            if(eval_result.clear == 1)
+                            {
+                                result.attack += 2000;
+                            }
+                            else
+                            {
+                                result.attack += eval_result.clear * 500;
+                            }
                         }
                         if(status.combo < 6)
                         {

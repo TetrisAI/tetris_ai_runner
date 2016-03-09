@@ -339,7 +339,7 @@ struct c2_out_put
     uint8_t r;
 };
 
-extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int mode, int safe, int combo, int danger, c2_out_put path[], size_t limit)
+extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int mode, int safe, int combo, int combo_limit, int danger, c2_out_put path[], size_t limit)
 {
     if(!c2_ai.prepare(boardW, boardH))
     {
@@ -365,6 +365,7 @@ extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], c
     c2_ai.ai_config()->mode = mode;
     c2_ai.ai_config()->danger = danger;
     c2_ai.status()->combo = combo;
+    c2_ai.status()->combo_limit = combo_limit;
     c2_ai.status()->value = 0;
     m_tetris::TetrisBlockStatus status(nextPiece[0], curX, curY, curR);
     size_t next_length = nextPiece[1] == ' ' ? 0 : 1;
