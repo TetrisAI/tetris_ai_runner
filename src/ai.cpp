@@ -367,13 +367,11 @@ extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], c
     c2_ai.status()->combo = combo;
     c2_ai.status()->combo_limit = combo_limit;
     c2_ai.status()->value = 0;
+    c2_ai.status()->hole = 0;
     m_tetris::TetrisBlockStatus status(nextPiece[0], curX, curY, curR);
     size_t next_length = nextPiece[1] == ' ' ? 0 : 1;
     std::string next(nextPiece + 1, nextPiece + 1 + next_length);
-    if(limit > 20)
-    {
-        next += '?';
-    }
+    next += '?';
     m_tetris::TetrisNode const *node = c2_ai.get(status);
     auto target = c2_ai.run(map, node, next.data(), next.size(), limit).target;
     std::vector<char> ai_path;

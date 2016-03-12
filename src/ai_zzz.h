@@ -136,6 +136,7 @@ namespace ai_zzz
             size_t combo;
             size_t combo_limit;
             double value;
+            double hole;
             bool operator < (Status const &) const;
         };
         struct Result
@@ -144,8 +145,8 @@ namespace ai_zzz
             double map;
             double danger;
             size_t clear;
-            int low_y;
-            int count;
+            double fill;
+            double hole;
             bool soft_drop;
         };
     public:

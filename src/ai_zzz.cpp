@@ -473,7 +473,7 @@ namespace ai_zzz
             }
         }
 
-        //ËÀÍö¾¯½ä
+        //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         int BoardDeadZone = map_in_danger_(map);
 
         return (0.
@@ -1075,23 +1075,6 @@ namespace ai_zzz
                 }
             }
         }
-        int low_x = 1;
-        for(int x = 2; x < width_m1; ++x)
-        {
-            if(map.top[x] < map.top[low_x])
-            {
-                low_x = x;
-            }
-        }
-        if(map.top[0] <= map.top[low_x])
-        {
-            low_x = 0;
-        }
-        if(map.top[width_m1] <= map.top[low_x])
-        {
-            low_x = width_m1;
-        }
-        int low_y = map.top[low_x];
 
         Result result;
         result.map = (0.
@@ -1110,18 +1093,18 @@ namespace ai_zzz
         {
             int attack_well = std::min(4, v.WideWellDepth[0]);
             result.attack = (0.
-                             + v.WideWellDepth[5] * 16
-                             + v.WideWellDepth[4] * 24
-                             + v.WideWellDepth[3] * 32
-                             + v.WideWellDepth[2] * 48
+                             + v.WideWellDepth[5] * 2.8
+                             + v.WideWellDepth[4] * 3.0
+                             + v.WideWellDepth[3] * 3.2
+                             + v.WideWellDepth[2] * 4.8
                              + v.WideWellDepth[1] * -8
                              + attack_well * attack_well * 128
                              );
         }
         result.danger = -BoardDeadZone * 50000000;
         result.clear = clear;
-        result.low_y = low_y;
-        result.count = map.count;
+        result.fill = float(map.count) / (map.width * map.height);
+        result.hole = float(v.HoleCount) / map.height;
         result.soft_drop = !node->open(map);
         return result;
     }
@@ -1132,120 +1115,79 @@ namespace ai_zzz
         result.attack = 0;
         result.combo = status.combo;
         result.combo_limit = status.combo_limit > 0 ? status.combo_limit - 1 : 0;
+        result.hole = eval_result.hole;
         if(result.combo_limit == 0)
+        {
+            result.combo = 0;
+        }
+        if(result.combo_limit < 6 && result.combo < 4)
         {
             result.combo = 0;
         }
         result.value = eval_result.danger;
         if(config_->mode == 1)
         {
-            if(status.combo == 0 && eval_result.low_y < 10)
+            static const float table[][4] =
             {
-                result.attack += eval_result.attack;
+                { 4000,  3000,  4000,  8000},
+                {    0,     0,  1000,  2500},
+                {    0,     0,   100,   100},
+                { 2500,   500,  1500,  2000},
+                { 3500,  1500,  2500,  3000},
+                { 4500,  2500,  3500,  4000},
+                { 5500,  3500,  4500,  5000},
+                { 6500,  4500,  5500,  6000},
+                {92500, 90500, 91500, 92000},
+                {93500, 91500, 92500, 93000},
+                {94500, 92500, 93500, 94000},
+                {95500, 93500, 94500, 95000},
+                {96500, 94500, 95500, 96000},
+                {97500, 95500, 96500, 96000},
+                {98500, 96500, 97500, 97000},
+                {99500, 97500, 98500, 98000},
+            };
+            static const size_t change = 3;
+            double hole = std::min<double>(1, eval_result.hole * 1.2);
+            double new_hole = (eval_result.hole > status.hole ? eval_result.hole - status.hole : 0) * (status.combo == 0 ? 1.2 : 0.1);
+            double rate = std::min<double>(1, (config_->danger ? 1 : 0) * 0.6 + eval_result.fill * 1.2 + hole * 0.3 + new_hole);
+            if(status.combo == 0)
+            {
+                result.attack += eval_result.attack * (1 - rate);
             }
             if(eval_result.clear > 0)
             {
-                do
+                if(status.combo == 0)
                 {
-                    if(config_->danger)
+                    result.attack -= 8000 * (1 - rate) * (1 - hole);
+                    if(eval_result.clear <= 2)
                     {
-                        if(status.combo == 0)
-                        {
-                            if(eval_result.clear == 1 && eval_result.low_y <= 6)
-                            {
-                                result.attack -= (180 - config_->safe * context_->width() - eval_result.count) * 10;
-                            }
-                            else
-                            {
-                                result.attack += 1000  + eval_result.clear * 500;
-                                break;
-                            }
-                        }
-                        else
-                        {
-                            if(eval_result.clear == 1)
-                            {
-                                result.attack += 600;
-                            }
-                            else if(eval_result.clear > 0)
-                            {
-                                result.attack += eval_result.clear * 200;
-                            }
-                            break;
-                        }
-                    }
-                    if(status.combo == 0)
-                    {
-                        if(eval_result.clear == 4 && eval_result.count >= 84 - config_->safe * context_->width())
-                        {
-                            result.attack += 8000;
-                        }
-                        else if(eval_result.clear == 3 && eval_result.count >= 92 - config_->safe * context_->width())
-                        {
-                            result.attack += 4000;
-                        }
-                        else if(eval_result.low_y <= 5)
-                        {
-                            if(eval_result.count < 92 - config_->safe * context_->width())
-                            {
-                                result.attack -= 4000;
-                            }
-                            else if(eval_result.clear < 3)
-                            {
-                                if(eval_result.count <= 100 - config_->safe * context_->width())
-                                {
-                                    result.attack -= 4000;
-                                }
-                                else if(eval_result.count <= 120 - config_->safe * context_->width())
-                                {
-                                    result.attack -= 2000;
-                                }
-                            }
-                        }
-                    }
-                    else if(status.combo == 1)
-                    {
-                        if(eval_result.clear == 4)
-                        {
-                            result.attack += 2500;
-                        }
-                        else if(eval_result.clear == 3)
-                        {
-                            result.attack += 1000;
-                        }
+                        result.attack -= table[status.combo][eval_result.clear - 1] * (1 - rate);
                     }
                     else
                     {
-                        if(status.combo > 3 && eval_result.count <= 72 - config_->safe * context_->width())
-                        {
-                            if(eval_result.clear == 1)
-                            {
-                                result.attack += 2000;
-                            }
-                            else
-                            {
-                                result.attack += eval_result.clear * 500;
-                            }
-                        }
-                        if(status.combo < 6)
-                        {
-                            result.attack += 4000;
-                        }
-                        else
-                        {
-                            result.attack += 1000000;
-                        }
+                        result.attack += table[status.combo][eval_result.clear - 1] * rate * (1 - hole);
                     }
                 }
-                while(false);
-            }
-            else if(status.combo > 0 && eval_result.count <= 64 - config_->safe * context_->width())
-            {
-                result.attack -= 2000;
-            }
-            if(eval_result.clear > 0)
-            {
+                else if(status.combo < change)
+                {
+                    result.attack += table[status.combo][eval_result.clear - 1] * rate * (1 - hole);
+                }
+                else
+                {
+                    if(config_->danger && eval_result.clear == 1)
+                    {
+                        result.attack += table[status.combo][1] * rate * (1 - hole);
+                    }
+                    else
+                    {
+                        result.attack += table[status.combo][eval_result.clear - 1] * rate * (1 - hole);
+                    }
+                }
                 ++result.combo;
+            }
+            else if(status.combo > 0)
+            {
+                result.attack -= (800 + status.combo * 100) * (1 - rate) * (1 - hole);
             }
         }
         if(eval_result.soft_drop)
@@ -1253,7 +1195,7 @@ namespace ai_zzz
             result.attack -= 800;
         }
         double rate = (1. / (depth + 1)) * 2;
-        result.value += status.value + result.attack * rate + eval_result.map;
+        result.value += status.value * 1.1 + result.attack * rate + eval_result.map;
         return result;
     }
 
@@ -1262,9 +1204,12 @@ namespace ai_zzz
         Status result;
         result.combo = 0;
         result.value = 0;
+        result.combo_limit = 0;
+        result.hole = 0;
         double
             low1 = std::numeric_limits<double>::max(),
-            low2 = std::numeric_limits<double>::max();
+            low2 = std::numeric_limits<double>::max(),
+            high = std::numeric_limits<double>::min();
         for(size_t i = 0; i < status_length; ++i)
         {
             double v = status[i] == nullptr ? -9999999999 : status[i]->value;
@@ -1281,8 +1226,12 @@ namespace ai_zzz
             {
                 low2 = v;
             }
+            if(v > high)
+            {
+                high = v;
+            }
         }
-        result.value = (result.value - low1 - low2) / (status_length - 2);
+        result.value = (result.value - low1 - low2 - high) / (status_length - 3);
         return result;
     }
 
