@@ -996,12 +996,13 @@ namespace ai_zzz
             int WellDepthTotle;
 
             int LineCoverBits;
-            int ClearWidth;
+            int HolePosyIndex;
         } v;
         std::memset(&v, 0, sizeof v);
-        int HolePosy0 = -1;
-        int HolePosy1 = -1;
-        int HolePosy2 = -1;
+        struct
+        {
+            int ClearWidth;
+        } a[40];
 
         for(int y = map.roof - 1; y >= 0; --y)
         {
@@ -1010,7 +1011,8 @@ namespace ai_zzz
             if(LineHole != 0)
             {
                 v.HoleCount += BitCount(LineHole);
-                v.HoleLine++;
+                ++v.HoleLine;
+                a[v.HolePosyIndex].ClearWidth = 0;
                 for(int hy = y + 1; hy < map.roof; ++hy)
                 {
                     uint32_t CheckLine = LineHole & map.row[hy];
@@ -1018,8 +1020,9 @@ namespace ai_zzz
                     {
                         break;
                     }
-                    v.ClearWidth += (hy + 1) * zzz::BitCount(CheckLine);
+                    a[v.HolePosyIndex].ClearWidth += (hy + 1) * zzz::BitCount(CheckLine);
                 }
+                ++v.HolePosyIndex;
             }
             int WellWidth = 0;
             int MaxWellWidth = 0;
@@ -1083,12 +1086,16 @@ namespace ai_zzz
                       - RowTrans * 80
                       - v.HoleCount * 80
                       - v.HoleLine * 380
-                      - v.ClearWidth * 8
                       - v.WellDepthTotle * 100
                       + (map.width - (node->col + node->col + node->width)) / 20.0
                       - node->low / 10.0
                       - node->status.r / 4.0
                       );
+        double rate = 16, mul = 0.4;
+        for(int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
+        {
+            result.map -= a[i].ClearWidth * rate;
+        }
         if(config_->mode == 1)
         {
             int attack_well = std::min(4, v.WideWellDepth[0]);
@@ -1145,54 +1152,76 @@ namespace ai_zzz
                 {97500, 95500, 96500, 96000},
                 {98500, 96500, 97500, 97000},
                 {99500, 97500, 98500, 98000},
+                {99999, 99999, 99999, 99999},
+                {99999, 99999, 99999, 99999},
+                {99999, 99999, 99999, 99999},
+                {99999, 99999, 99999, 99999},
+                {99999, 99999, 99999, 99999},
+                {99999, 99999, 99999, 99999},
+                {99999, 99999, 99999, 99999},
+                {99999, 99999, 99999, 99999},
+                {99999, 99999, 99999, 99999},
             };
             static const size_t change = 3;
-            double hole = std::min<double>(1, eval_result.hole * 1.2);
-            double new_hole = (eval_result.hole > status.hole ? eval_result.hole - status.hole : 0) * (status.combo == 0 ? 1.2 : 0.1);
-            double rate = std::min<double>(1, (config_->danger ? 1 : 0) * 0.6 + eval_result.fill * 1.2 + hole * 0.3 + new_hole);
+            double hole = std::min(eval_result.hole, status.hole);
+            double new_hole = (eval_result.hole > status.hole ? eval_result.hole - status.hole : 0);
+            double upstack   = (config_->danger ? 0.2 : 1) * std::max<double>(0, 1 - hole * 3) * std::max<double>(0, 1 - new_hole *   4) * std::max<double>(0, 1 - eval_result.fill * 1.2);
+            double downstack = (config_->danger ? 0.4 : 1) * std::max<double>(0, 1 - hole * 2) * std::max<double>(0, 1 - new_hole * 0.2) * std::max<double>(0, 1 - eval_result.fill * 1.2);
             if(status.combo == 0)
             {
-                result.attack += eval_result.attack * (1 - rate);
+                result.attack -= 1000 * new_hole * upstack;
+                result.attack += eval_result.attack * upstack;
             }
             if(eval_result.clear > 0)
             {
                 if(status.combo == 0)
                 {
-                    result.attack -= 8000 * (1 - rate) * (1 - hole);
+                    result.attack -= 8000 * upstack;
                     if(eval_result.clear <= 2)
                     {
-                        result.attack -= table[status.combo][eval_result.clear - 1] * (1 - rate);
+                        result.attack -= table[status.combo][eval_result.clear - 1] * upstack;
                     }
                     else
                     {
-                        result.attack += table[status.combo][eval_result.clear - 1] * rate * (1 - hole);
+                        result.attack += table[status.combo][eval_result.clear - 1] * downstack;
                     }
                 }
                 else if(status.combo < change)
                 {
-                    result.attack += table[status.combo][eval_result.clear - 1] * rate * (1 - hole);
+                    result.attack += table[status.combo][eval_result.clear - 1] * downstack;
                 }
                 else
                 {
                     if(config_->danger && eval_result.clear == 1)
                     {
-                        result.attack += table[status.combo][1] * rate * (1 - hole);
+                        result.attack += table[status.combo][1] * downstack;
                     }
                     else
                     {
-                        result.attack += table[status.combo][eval_result.clear - 1] * rate * (1 - hole);
+                        result.attack += table[status.combo][eval_result.clear - 1] * downstack;
                     }
                 }
                 ++result.combo;
             }
             else if(status.combo > 0)
             {
-                result.attack -= (800 + status.combo * 100) * (1 - rate) * (1 - hole);
+                result.attack -= (800 + status.combo * 100) * downstack;
+            }
+            if(eval_result.clear == 0 && config_->danger)
+            {
+                if(status.combo < change)
+                {
+                    result.attack -= 400;
+                }
+                else
+                {
+                    result.attack -= 100;
+                }
             }
         }
         if(eval_result.soft_drop)
         {
-            result.attack -= 800;
+            result.attack -= 100;
         }
         double rate = (1. / (depth + 1)) * 2;
         result.value += status.value * 1.1 + result.attack * rate + eval_result.map;
