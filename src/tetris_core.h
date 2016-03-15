@@ -1731,7 +1731,7 @@ namespace m_tetris
         {
             if(context->is_complete)
             {
-                return false;
+                return true;
             }
             assert(parent == nullptr);
             if(context->width == 0)
@@ -1742,25 +1742,30 @@ namespace m_tetris
                 {
                     wait.insert(it);
                 }
+                context->width = 20;
             }
-            ++context->width;
+            else
+            {
+                context->width += 10;
+            }
             bool complete = true;
             size_t next_length = context->max_length;
-            while(next_length-- > 0)
+            while(next_length > 0)
             {
-                size_t level_prune_hold = next_length * 40 / 3 / context->max_length + 1;
+                double level_prune_hold = double(next_length) / context->max_length * context->width / (40.0 / 3);
+                --next_length;
                 auto wait = &context->wait[next_length + 1];
-                if(level_prune_hold <= wait->size())
-                {
-                    complete = false;
-                }
                 if(wait->empty())
                 {
                     continue;
                 }
+                else
+                {
+                    complete = false;
+                }
                 auto sort = &context->sort[next_length + 1];
                 auto next = &context->wait[next_length];
-                do
+                while(sort->size() < level_prune_hold && !wait->empty())
                 {
                     TetrisTreeNode *child = &*wait->begin();
                     wait->erase(child);
@@ -1773,7 +1778,6 @@ namespace m_tetris
                         }
                     }
                 }
-                while(level_prune_hold-- > 0 && !wait->empty());
             }
             if(complete)
             {

@@ -988,6 +988,7 @@ namespace ai_zzz
         RowTrans += BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
         struct
         {
+            int HoleCountSrc;
             int HoleCount;
             int HoleLine;
 
@@ -1010,7 +1011,6 @@ namespace ai_zzz
             int LineHole = v.LineCoverBits ^ map.row[y];
             if(LineHole != 0)
             {
-                v.HoleCount += BitCount(LineHole);
                 ++v.HoleLine;
                 a[v.HolePosyIndex].ClearWidth = 0;
                 for(int hy = y + 1; hy < map.roof; ++hy)
@@ -1078,6 +1078,13 @@ namespace ai_zzz
                 }
             }
         }
+        for(int x = 0; x < map.width; ++x)
+        {
+            v.HoleCountSrc += src_map.top[x];
+            v.HoleCount += map.top[x];
+        }
+        v.HoleCountSrc -= src_map.count;
+        v.HoleCount -= map.count;
 
         Result result;
         result.map = (0.
@@ -1091,12 +1098,12 @@ namespace ai_zzz
                       - node->low / 10.0
                       - node->status.r / 4.0
                       );
-        double rate = 16, mul = 0.4;
+        double rate = 16, mul = 1.0 / 3;
         for(int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
         {
             result.map -= a[i].ClearWidth * rate;
         }
-        if(config_->mode == 1)
+        if(config_->mode == 0)
         {
             int attack_well = std::min(4, v.WideWellDepth[0]);
             result.attack = (0.
@@ -1110,8 +1117,9 @@ namespace ai_zzz
         }
         result.danger = -BoardDeadZone * 50000000;
         result.clear = clear;
-        result.fill = float(map.count) / (map.width * map.height);
-        result.hole = float(v.HoleCount) / map.height;
+        result.fill = float(map.count) / (map.width * (map.height - config_->safe));
+        result.hole = float(v.HoleCountSrc) / (map.height - config_->safe);
+        result.new_hole = v.HoleCount > v.HoleCountSrc ? float(v.HoleCount - v.HoleCountSrc) / map.height : 0;
         result.soft_drop = !node->open(map);
         return result;
     }
@@ -1122,23 +1130,22 @@ namespace ai_zzz
         result.attack = 0;
         result.combo = status.combo;
         result.combo_limit = status.combo_limit > 0 ? status.combo_limit - 1 : 0;
-        result.hole = eval_result.hole;
-        if(result.combo_limit == 0)
-        {
-            result.combo = 0;
-        }
-        if(result.combo_limit < 6 && result.combo < 4)
-        {
-            result.combo = 0;
-        }
         result.value = eval_result.danger;
-        if(config_->mode == 1)
+        if(config_->mode == 0)
         {
+            if(result.combo_limit == 0)
+            {
+                result.combo = 0;
+            }
+            if(result.combo_limit < 6 && result.combo < 4)
+            {
+                result.combo = 0;
+            }
             static const float table[][4] =
             {
                 { 4000,  3000,  4000,  8000},
-                {    0,     0,  1000,  2500},
-                {    0,     0,   100,   100},
+                {    0,     0,   400,   800},
+                {    0,     0,   100,   200},
                 { 2500,   500,  1500,  2000},
                 { 3500,  1500,  2500,  3000},
                 { 4500,  2500,  3500,  4000},
@@ -1162,15 +1169,17 @@ namespace ai_zzz
                 {99999, 99999, 99999, 99999},
                 {99999, 99999, 99999, 99999},
             };
-            static const size_t change = 3;
-            double hole = std::min(eval_result.hole, status.hole);
-            double new_hole = (eval_result.hole > status.hole ? eval_result.hole - status.hole : 0);
-            double upstack   = (config_->danger ? 0.2 : 1) * std::max<double>(0, 1 - hole * 3) * std::max<double>(0, 1 - new_hole *   4) * std::max<double>(0, 1 - eval_result.fill * 1.2);
-            double downstack = (config_->danger ? 0.4 : 1) * std::max<double>(0, 1 - hole * 2) * std::max<double>(0, 1 - new_hole * 0.2) * std::max<double>(0, 1 - eval_result.fill * 1.2);
+            double upstack = (config_->danger ? 0.2 : 1) * std::max<double>(0, 1 - eval_result.hole * 3.2) * std::max<double>(0, 1 - (eval_result.fill < 0.4 ? 0 : eval_result.fill - 0.4) * 4);
+            double downstack;
             if(status.combo == 0)
             {
-                result.attack -= 1000 * new_hole * upstack;
+                downstack = (config_->danger ? 0.4 : 1) * std::max<double>(0, 1 - eval_result.hole * 2) * std::max<double>(0, 1 - std::abs(eval_result.fill - 0.48) * 5);
+                result.attack -= 1600 * eval_result.new_hole;
                 result.attack += eval_result.attack * upstack;
+            }
+            else
+            {
+                downstack = (config_->danger ? 0.4 : 1) * std::max<double>(0, 1 - eval_result.hole * 2) * std::max<double>(0, 1 - eval_result.fill * 1.2);
             }
             if(eval_result.clear > 0)
             {
@@ -1185,10 +1194,6 @@ namespace ai_zzz
                     {
                         result.attack += table[status.combo][eval_result.clear - 1] * downstack;
                     }
-                }
-                else if(status.combo < change)
-                {
-                    result.attack += table[status.combo][eval_result.clear - 1] * downstack;
                 }
                 else
                 {
@@ -1209,7 +1214,7 @@ namespace ai_zzz
             }
             if(eval_result.clear == 0 && config_->danger)
             {
-                if(status.combo < change)
+                if(status.combo < 3)
                 {
                     result.attack -= 400;
                 }
@@ -1218,10 +1223,10 @@ namespace ai_zzz
                     result.attack -= 100;
                 }
             }
-        }
-        if(eval_result.soft_drop)
-        {
-            result.attack -= 100;
+            if(eval_result.soft_drop)
+            {
+                result.attack -= 100;
+            }
         }
         double rate = (1. / (depth + 1)) * 2;
         result.value += status.value * 1.1 + result.attack * rate + eval_result.map;
@@ -1234,11 +1239,9 @@ namespace ai_zzz
         result.combo = 0;
         result.value = 0;
         result.combo_limit = 0;
-        result.hole = 0;
         double
             low1 = std::numeric_limits<double>::max(),
-            low2 = std::numeric_limits<double>::max(),
-            high = std::numeric_limits<double>::min();
+            low2 = std::numeric_limits<double>::max();
         for(size_t i = 0; i < status_length; ++i)
         {
             double v = status[i] == nullptr ? -9999999999 : status[i]->value;
@@ -1255,12 +1258,8 @@ namespace ai_zzz
             {
                 low2 = v;
             }
-            if(v > high)
-            {
-                high = v;
-            }
         }
-        result.value = (result.value - low1 - low2 - high) / (status_length - 3);
+        result.value = (result.value - low1 - low2) / (status_length - 2);
         return result;
     }
 
