@@ -930,6 +930,7 @@ namespace m_tetris
             TetrisNode const *current;
             std::vector<next_t> next;
             std::vector<char> next_c;
+            std::vector<double> pow_cache;
             double total;
             double avg;
         public:
@@ -1742,17 +1743,21 @@ namespace m_tetris
                 {
                     wait.insert(it);
                 }
-                context->width = 20;
+                context->width = 2;
             }
             else
             {
-                context->width += 10;
+                context->width += 1;
             }
             bool complete = true;
             size_t next_length = context->max_length;
+            while(context->max_length >= context->pow_cache.size())
+            {
+                context->pow_cache.emplace_back(std::pow(context->pow_cache.size(), 1.5));
+            }
             while(next_length > 0)
             {
-                double level_prune_hold = double(next_length) / context->max_length * context->width / (40.0 / 3);
+                double level_prune_hold = context->pow_cache[next_length] / context->max_length * context->width;
                 --next_length;
                 auto wait = &context->wait[next_length + 1];
                 if(wait->empty())

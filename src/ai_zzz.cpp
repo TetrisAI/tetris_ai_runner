@@ -535,7 +535,7 @@ namespace ai_zzz
 
     std::string TOJ::ai_name() const
     {
-        return "ZZZ TOJ v0.7";
+        return "ZZZ TOJ v0.8";
     }
 
     TOJ::Result TOJ::eval(TetrisNodeEx &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
@@ -573,9 +573,13 @@ namespace ai_zzz
             int WellNum[32];
 
             int LineCoverBits;
-            int ClearWidth;
+            int HolePosyIndex;
         } v;
         std::memset(&v, 0, sizeof v);
+        struct
+        {
+            int ClearWidth;
+        } a[40];
 
         for(int y = map.roof - 1; y >= 0; --y)
         {
@@ -583,8 +587,8 @@ namespace ai_zzz
             int LineHole = v.LineCoverBits ^ map.row[y];
             if(LineHole != 0)
             {
-                v.HoleCount += zzz::BitCount(LineHole);
-                v.HoleLine++;
+                ++v.HoleLine;
+                a[v.HolePosyIndex].ClearWidth = 0;
                 for(int hy = y + 1; hy < map.roof; ++hy)
                 {
                     uint32_t CheckLine = LineHole & map.row[hy];
@@ -592,8 +596,9 @@ namespace ai_zzz
                     {
                         break;
                     }
-                    v.ClearWidth += zzz::BitCount(CheckLine);
+                    a[v.HolePosyIndex].ClearWidth += (hy + 1) * zzz::BitCount(CheckLine);
                 }
+                ++v.HolePosyIndex;
             }
             for(int x = 1; x < width_m1; ++x)
             {
@@ -638,15 +643,19 @@ namespace ai_zzz
 
         Result result;
         result.value = (0.
-                        - map.roof * 96
+                        - map.roof * 128
                         - ColTrans * 160
-                        - RowTrans * 128
-                        - v.HoleCount * 60
+                        - RowTrans * 160
+                        - v.HoleCount * 80
                         - v.HoleLine * 380
                         - v.WellDepth * 100
                         - v.HoleDepth * 40
-                        - v.ClearWidth * 32
                       );
+        double rate = 32, mul = 1.0 / 4;
+        for(int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
+        {
+            result.value -= a[i].ClearWidth * rate;
+        }
         result.count = map.count + v.HoleCount;
         result.clear = clear;
         result.safe = 0;
@@ -729,6 +738,10 @@ namespace ai_zzz
                                 {
                                     t3_value += 1;
                                 }
+                                else
+                                {
+                                    t3_value -= 2;
+                                }
                             }
                             else
                             {
@@ -767,6 +780,10 @@ namespace ai_zzz
                                 if(row4_check == 3 || row4_check == 1)
                                 {
                                     t3_value += 1;
+                                }
+                                else
+                                {
+                                    t3_value -= 2;
                                 }
                             }
                             else
@@ -843,7 +860,6 @@ namespace ai_zzz
             result.b2b = eval_result.t_spin != TSpinType::None;
             break;
         case 4:
-            result.like += 8;
             result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
             result.b2b = true;
             break;
@@ -1089,8 +1105,8 @@ namespace ai_zzz
         Result result;
         result.map = (0.
                       - map.roof * 128
-                      - ColTrans * 80
-                      - RowTrans * 80
+                      - ColTrans * 160
+                      - RowTrans * 160
                       - v.HoleCount * 80
                       - v.HoleLine * 380
                       - v.WellDepthTotle * 100
@@ -1098,7 +1114,7 @@ namespace ai_zzz
                       - node->low / 10.0
                       - node->status.r / 4.0
                       );
-        double rate = 16, mul = 1.0 / 3;
+        double rate = 32, mul = 1.0 / 4;
         for(int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
         {
             result.map -= a[i].ClearWidth * rate;

@@ -178,7 +178,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
     m_tetris::TetrisNode const *node = srs_ai.get(status);
     if(canhold)
     {
-        auto run_result = srs_ai.run_hold(map, node, hold, curCanHold, next, maxDepth, level * 5 + 1);
+        auto run_result = srs_ai.run_hold(map, node, hold, curCanHold, next, maxDepth, level * 8 + 1);
         if(run_result.change_hold)
         {
             result++[0] = 'v';
@@ -203,7 +203,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
     }
     else
     {
-        auto target = srs_ai.run(map, node, next, maxDepth, level * 5 + 1).target;
+        auto target = srs_ai.run(map, node, next, maxDepth, level * 8 + 1).target;
         if(target != nullptr)
         {
             std::vector<char> ai_path = srs_ai.make_path(node, target, map);
@@ -292,7 +292,22 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
         }
     }
     m_tetris::TetrisBlockStatus status(nextPiece[0], curX, curY, (4 - curR) % 4);
-    size_t next_length = (std::strlen(nextPiece) - 1) * std::min(9, level) / 9;
+    size_t next_length = std::strlen(nextPiece) - 1;
+    if(level < 10)
+    {
+        next_length = std::min<size_t>(level, next_length);
+    }
+    std::string next_str(nextPiece + 1, nextPiece + 1 + next_length);
+    if(next_length <= 2)
+    {
+        std::string next_new = "?";
+        for(auto c : next_str)
+        {
+            next_new += c;
+            next_new += '?';
+        }
+        next_str.swap(next_new);
+    }
     if(level == 10)
     {
         *qq_ai.search_config() = QQTetrisSearch::Path;
@@ -317,7 +332,7 @@ extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], c
         --status.y;
         node = qq_ai.get(status);
     }
-    auto target = qq_ai.run(map, node, nextPiece + 1, next_length, 60).target;
+    auto target = qq_ai.run(map, node, next_str.data(), next_str.length(), 60).target;
     std::vector<char> ai_path;
     if(target != nullptr)
     {
