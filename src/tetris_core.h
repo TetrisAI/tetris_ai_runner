@@ -654,14 +654,19 @@ namespace m_tetris
         std::mutex m_task_;
         std::condition_variable cv_task_;
         std::atomic<bool> stop_;
+        std::atomic<size_t> count_;
 
     public:
-        TaskExecutor(size_t size = std::thread::hardware_concurrency()) : stop_{true}
+        TaskExecutor(size_t size = std::thread::hardware_concurrency()) : stop_{true}, count_{0}
         {
         }
         ~TaskExecutor()
         {
             shutdown();
+        }
+        size_t thread_count()
+        {
+            return pool_.size();
         }
         void start(size_t size)
         {
@@ -709,30 +714,54 @@ namespace m_tetris
                     (*task)();
                 });
             }
+            ++count_;
             cv_task_.notify_all();
             std::future<ResType> future = task->get_future();
             return future;
         }
 
     private:
-        Task get_one_task()
-        {
-            std::unique_lock<std::mutex> lock{m_task_};
-            cv_task_.wait(lock, [this]()
-            {
-                return !tasks_.empty();
-            });
-            Task task{std::move(tasks_.front())};
-            tasks_.pop();
-            return task;
-        }
         void schedual()
         {
+            Task task;
+            size_t task_count = 0;
+            auto wait = [&]
+            {
+                ++task_count;
+                if(task_count > 64)
+                {
+                    std::this_thread::yield();
+                    task_count = 0;
+                }
+            };
             while(!stop_)
             {
-                if(Task task = get_one_task())
                 {
+                    std::unique_lock<std::mutex> lock{m_task_};
+                    cv_task_.wait(lock, [this]()
+                    {
+                        return !tasks_.empty();
+                    });
+                }
+                while(count_ > 0)
+                {
+                    {
+                        std::unique_lock<std::mutex> lock{m_task_, std::try_to_lock_t()};
+                        if(!lock)
+                        {
+                            wait();
+                            continue;
+                        }
+                        if(tasks_.empty())
+                        {
+                            break;
+                        }
+                        task = std::move(tasks_.front());
+                        tasks_.pop();
+                        --count_;
+                    }
                     task();
+                    wait();
                 }
             }
         }
@@ -801,18 +830,22 @@ namespace m_tetris
         template<class T>
         struct make_std_future
         {
-            static std::future<T> make(T const &t)
+            static std::future<T> make(TaskExecutor &pool, T const &t)
             {
-                return std::async([t]
+                return pool.commit([t]
                 {
                     return t;
                 });
+            }
+            std::future<T> get_future()
+            {
+                return p.get_future();
             }
         };
         template<class T>
         struct make_fake_future
         {
-            static fake_future<T> make(T const &t)
+            static fake_future<T> make(TaskExecutor &pool, T const &t)
             {
                 return t;
             }
@@ -830,7 +863,7 @@ namespace m_tetris
         {
             static void iterate(TetrisAI &ai, Status const **status, size_t status_length, TreeNode *tree_node)
             {
-                tree_node->status.set_vp(MakeStatusFuture::make(ai.iterate(status, status_length)));
+                tree_node->status.set_vp(MakeStatusFuture::make(tree_node->context->pool, ai.iterate(status, status_length)));
             }
         };
         template<class TreeNode>
@@ -1406,7 +1439,7 @@ namespace m_tetris
                 ++context->version;
                 context->current = _node;
             }
-            root->status.set(typename Core::MakeStatusFuture::make(status));
+            root->status.set(typename Core::MakeStatusFuture::make(context->pool, status));
             return root;
         }
         TetrisTreeNode *update(TetrisMap const &_map, Status const &status, TetrisNode const *_node, char _hold, bool _hold_lock, char const *_next, size_t _next_length)
@@ -1441,7 +1474,7 @@ namespace m_tetris
                 ++context->version;
                 context->current = _node;
             }
-            root->status.set(typename Core::MakeStatusFuture::make(status));
+            root->status.set(typename Core::MakeStatusFuture::make(context->pool, status));
             return root;
         }
         void search(TetrisNode const *search_node, bool is_hold)
@@ -1953,11 +1986,11 @@ namespace m_tetris
                 {
                     wait.insert(it);
                 }
-                context->width = 2;
+                context->width = 2 * (EnableThreads ? context->pool.thread_count() * 4 : 1);
             }
             else
             {
-                context->width += 1;
+                context->width += (EnableThreads ? context->pool.thread_count() * 4 : 1);
             }
             bool complete = true;
             size_t next_length = context->max_length;
@@ -1980,16 +2013,38 @@ namespace m_tetris
                 }
                 auto sort = &context->sort[next_length + 1];
                 auto next = &context->wait[next_length];
-                while(sort->size() < level_prune_hold && !wait->empty())
+                if(EnableThreads)
                 {
-                    TetrisTreeNode *child = &*wait->begin();
-                    wait->erase(child);
-                    sort->insert(child);
-                    if(child->build_children<EnableHold>())
+                    auto wait_it = wait->begin();
+                    for(size_t i = 0; i < level_prune_hold && wait_it != wait->end(); ++i, ++wait_it)
                     {
+                        TetrisTreeNode *child = &*wait_it;
+                        child->build_children<EnableHold>();
+                    }
+                    while(sort->size() < level_prune_hold && !wait->empty())
+                    {
+                        TetrisTreeNode *child = &*wait->begin();
+                        wait->erase(child);
+                        sort->insert(child);
                         for(auto it = child->children; it != nullptr; it = it->children_next)
                         {
                             next->insert(it);
+                        }
+                    }
+                }
+                else
+                {
+                    while(sort->size() < level_prune_hold && !wait->empty())
+                    {
+                        TetrisTreeNode *child = &*wait->begin();
+                        wait->erase(child);
+                        sort->insert(child);
+                        if(child->build_children<EnableHold>())
+                        {
+                            for(auto it = child->children; it != nullptr; it = it->children_next)
+                            {
+                                next->insert(it);
+                            }
                         }
                     }
                 }
@@ -2134,7 +2189,7 @@ namespace m_tetris
             return &status_;
         }
         //准备好上下文
-        bool prepare(int width, int height)
+        bool prepare(int width, int height, size_t thread_count = 0)
         {
             if(!TetrisRuleInit<TetrisRule>::init(width, height))
             {
@@ -2143,7 +2198,7 @@ namespace m_tetris
             TetrisContext::PrepareResult result = context_->prepare(width, height);
             if(result == TetrisContext::rebuild)
             {
-                tree_context_.pool.start(EnableThreads ? std::thread::hardware_concurrency() : 0);
+                tree_context_.pool.start(EnableThreads ? std::max<size_t>(1, thread_count == 0 ? std::thread::hardware_concurrency() - 1 : thread_count): 0);
                 ContextBuilder::init_ai(ai_, context_);
                 ContextBuilder::init_search(search_, context_);
                 return true;
