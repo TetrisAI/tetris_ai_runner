@@ -1,4 +1,4 @@
-
+﻿
 //by ZouZhiZhang
 
 #include "tetris_core.h"
@@ -410,9 +410,13 @@ namespace ai_zzz
             int WellNum[32];
 
             int LineCoverBits;
-            int ClearWidth;
+            int HolePosyIndex;
         } v;
         std::memset(&v, 0, sizeof v);
+        struct
+        {
+            int ClearWidth;
+        } a[40];
 
         for(int y = map.roof - 1; y >= 0; --y)
         {
@@ -420,8 +424,8 @@ namespace ai_zzz
             int LineHole = v.LineCoverBits ^ map.row[y];
             if(LineHole != 0)
             {
-                v.HoleCount += zzz::BitCount(LineHole);
-                v.HoleLine++;
+                ++v.HoleLine;
+                a[v.HolePosyIndex].ClearWidth = 0;
                 for(int hy = y + 1; hy < map.roof; ++hy)
                 {
                     uint32_t CheckLine = LineHole & map.row[hy];
@@ -429,8 +433,9 @@ namespace ai_zzz
                     {
                         break;
                     }
-                    v.ClearWidth += zzz::BitCount(CheckLine);
+                    a[v.HolePosyIndex].ClearWidth += (hy + 1) * zzz::BitCount(CheckLine);
                 }
+                ++v.HolePosyIndex;
             }
             for(int x = 1; x < width_m1; ++x)
             {
@@ -473,20 +478,24 @@ namespace ai_zzz
             }
         }
 
-        //��������
         int BoardDeadZone = map_in_danger_(map);
 
-        return (0.
-                - map.roof * 96
-                - ColTrans * 160
-                - RowTrans * 128
-                - v.HoleCount * 60
-                - v.HoleLine * 380
-                - v.WellDepth * 100
-                - v.HoleDepth * 40
-                - v.ClearWidth * 16
-                - BoardDeadZone * 50000
-                );
+        double value = (0.
+                        - map.roof * 96
+                        - ColTrans * 160
+                        - RowTrans * 128
+                        - v.HoleCount * 60
+                        - v.HoleLine * 380
+                        - v.WellDepth * 100
+                        - v.HoleDepth * 40
+                        - BoardDeadZone * 50000
+                        );
+        double rate = 32, mul = 1.0 / 4;
+        for(int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
+        {
+            value -= a[i].ClearWidth * rate;
+        }
+        return value;
     }
 
     double Dig::get(double const &eval_result) const
@@ -1110,11 +1119,8 @@ namespace ai_zzz
                       - v.HoleCount * 80
                       - v.HoleLine * 380
                       - v.WellDepthTotle * 100
-                      + (map.width - (node->col + node->col + node->width)) / 20.0
-                      - node->low / 10.0
-                      - node->status.r / 4.0
                       );
-        double rate = 32, mul = 1.0 / 4;
+        double rate = 32, mul = 0.25;
         for(int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
         {
             result.map -= a[i].ClearWidth * rate;
@@ -1162,19 +1168,19 @@ namespace ai_zzz
                 { 4000,  3000,  4000,  8000},
                 {    0,     0,   400,   800},
                 {    0,     0,   100,   200},
-                { 2500,   500,  1500,  2000},
-                { 3500,  1500,  2500,  3000},
-                { 4500,  2500,  3500,  4000},
-                { 5500,  3500,  4500,  5000},
-                { 6500,  4500,  5500,  6000},
-                {92500, 90500, 91500, 92000},
-                {93500, 91500, 92500, 93000},
-                {94500, 92500, 93500, 94000},
-                {95500, 93500, 94500, 95000},
-                {96500, 94500, 95500, 96000},
-                {97500, 95500, 96500, 96000},
-                {98500, 96500, 97500, 97000},
-                {99500, 97500, 98500, 98000},
+                { 2000,  2000,  2000,  2000},
+                { 4000,  4000,  4000,  4000},
+                { 6000,  6000,  6000,  6000},
+                { 8000,  8000,  8000,  8000},
+                {10000, 10000, 10000, 10000},
+                {12000, 12000, 12000, 12000},
+                {14000, 14000, 14000, 14000},
+                {16000, 16000, 16000, 16000},
+                {18000, 18000, 18000, 18000},
+                {20000, 20000, 20000, 20000},
+                {22000, 22000, 22000, 22000},
+                {24000, 24000, 24000, 24000},
+                {26000, 26000, 26000, 26000},
                 {99999, 99999, 99999, 99999},
                 {99999, 99999, 99999, 99999},
                 {99999, 99999, 99999, 99999},
@@ -1256,26 +1262,22 @@ namespace ai_zzz
         result.value = 0;
         result.combo_limit = 0;
         double
-            low1 = std::numeric_limits<double>::max(),
-            low2 = std::numeric_limits<double>::max();
+            lower = std::numeric_limits<double>::max(),
+            upper = std::numeric_limits<double>::min();
         for(size_t i = 0; i < status_length; ++i)
         {
             double v = status[i] == nullptr ? -9999999999 : status[i]->value;
             result.value += v;
-            if(v < low1)
+            if(v < lower)
             {
-                if(low1 < low2)
-                {
-                    low2 = low1;
-                }
-                low1 = v;
+                lower = v;
             }
-            else if(v < low2)
+            if(v > upper)
             {
-                low2 = v;
+                upper = v;
             }
         }
-        result.value = (result.value - low1 - low2) / (status_length - 2);
+        result.value = (result.value - lower - upper) / (status_length - 2);
         return result;
     }
 

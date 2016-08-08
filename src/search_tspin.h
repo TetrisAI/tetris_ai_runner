@@ -19,20 +19,28 @@ namespace search_tspin
         };
         struct TetrisNodeWithTSpinType
         {
-            TetrisNodeWithTSpinType() : node(), last(), type(None), is_check(), is_last_rotate(), is_ready(), is_mini_ready()
+            TetrisNodeWithTSpinType()
             {
+                std::memset(this, 0, sizeof(*this));
             }
-            TetrisNodeWithTSpinType(m_tetris::TetrisNode const *_node) : node(_node), last(), type(None), is_check(), is_last_rotate(), is_ready(), is_mini_ready()
+            TetrisNodeWithTSpinType(m_tetris::TetrisNode const *_node) : node(_node), last(), type(None), flags()
             {
 
             }
             m_tetris::TetrisNode const *node;
             m_tetris::TetrisNode const *last;
             TSpinType type;
-            bool is_check;
-            bool is_last_rotate;
-            bool is_ready;
-            bool is_mini_ready;
+            union
+            {
+                struct
+                {
+                    bool is_check;
+                    bool is_last_rotate;
+                    bool is_ready;
+                    bool is_mini_ready;
+                };
+                uint32_t flags;
+            };
             operator m_tetris::TetrisNode const *() const
             {
                 return node;

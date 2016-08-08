@@ -35,7 +35,7 @@ namespace m_tetris
             {
                 return false;
             }
-        default:
+        case 1:
             if(map.row[row] & data[0])
             {
                 return false;
@@ -115,7 +115,7 @@ namespace m_tetris
             {
                 return false;
             }
-        default:
+        case 1:
             if(bottom[0] < map.top[col])
             {
                 return false;
@@ -134,7 +134,7 @@ namespace m_tetris
             map.row[row + 2] |= data[2];
         case 2:
             map.row[row + 1] |= data[1];
-        default:
+        case 1:
             map.row[row] |= data[0];
         }
         int clear = 0;
@@ -167,7 +167,7 @@ namespace m_tetris
                 map.top[col + 1] = top[1];
                 map.roof = std::max(top[1], map.roof);
             }
-        default:
+        case 1:
             if(top[0] > map.top[col])
             {
                 map.top[col] = top[0];
