@@ -354,7 +354,7 @@ struct c2_out_put
     uint8_t r;
 };
 
-extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int mode, int safe, int combo, int combo_limit, int danger, c2_out_put path[], size_t limit)
+extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int mode, int vp, int safe, int combo, int combo_limit, int danger, c2_out_put path[], size_t limit)
 {
     if(!c2_ai.prepare(boardW, boardH))
     {
@@ -376,6 +376,15 @@ extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], c
         }
     }
     c2_ai.search_config()->fast_move_down = true;
+    c2_ai.ai_config()->p =
+    {
+        //-0.386388, 0.241602, -1.10822, 0.465469, 0.10297, 0.617807, 0.31237, 102.649, -0.377377, 144.472, -1.69091, 130.465, 0.430648, 52.6962, -0.278674, 372.157, -0.371747, 89.3903, -0.765743, 43.436, -0.336645, 56379.1, 32.0632, 0.165945,
+        //-1.49234, 0.194204, -1.43921, 0.334867, -1.38877, 0.624287, 1.53609, 102.186, 0.583796, 145.918, -1.95346, 129.961, 0.398329, 54.7758, -0.0166411, 372.462, -0.804703, 93.4535, -0.605844, 36.112, 0.447049, 41668.3, 31.8163, 0.158805,
+        //-0.184721, 0.142187, -1.17734, 0.545641, 0.512126, 0.662053, -0.182696, 101.324, -0.909635, 145.311, -1.82185, 129.38, -0.565261, 48.0936, 1.139, 373.169, -0.800861, 87.9299, 0.576996, 37.9227, -0.129241, 42659.7, 32.1907, 0.165502,
+        //-2.41102, 0.166163, -1.05491, 0.726452, 0.549544, 0.850309, -0.38095, 112.008, 1.09258, 111.481, -1.25704, 120.945, -1.84823, 39.6381, -0.999686, 381.848, -2.46182, 97.2093, -1.59963, 57.4471, 0.788324, 46215.5, 33.1116, 0.196942,
+        1.40044, 0.422027, -0.597924, 0.762662, 1.28441, 0.799014, -0.821158, 110.245, -1.13942, 111.409, -3.91054, 120.97, -1.10519, 36.2403, 0.723563, 388.515, -2.308, 91.1307, -2.28869, 54.5053, 1.98468, 45673.7, 32.4859, 0.185176,
+    };
+    c2_ai.ai_config()->p_rate = 1;
     c2_ai.ai_config()->safe = safe;
     c2_ai.ai_config()->mode = mode;
     c2_ai.ai_config()->danger = danger;
@@ -385,11 +394,17 @@ extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], c
     m_tetris::TetrisBlockStatus status(nextPiece[0], curX, curY, curR);
     size_t next_length = nextPiece[1] == ' ' ? 0 : 1;
     std::string next;
-    next += '?';
+    if(vp)
+    {
+        next += '?';
+    }
     for(char const *n = nextPiece + 1, *const ne = nextPiece + 1 + next_length; n != ne; ++n)
     {
         next += *n;
-        next += '?';
+        if(vp)
+        {
+            next += '?';
+        }
     }
     m_tetris::TetrisNode const *node = c2_ai.get(status);
     auto target = c2_ai.run(map, node, next.data(), next.size(), limit).target;

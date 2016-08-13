@@ -1,6 +1,4 @@
 
-#pragma once
-
 #include "rule_c2.h"
 
 using namespace m_tetris;

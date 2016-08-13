@@ -101,7 +101,7 @@ namespace ai_zzz
         Attack::Result Attack::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
         {
             double LandHeight = node->row + node->height;
-            double Middle = std::abs((node->status.x + 1) * 2 - map.width);
+            double Middle = std::fabs((node->status.x + 1) * 2 - map.width);
             double EraseCount = clear;
             double DeadZone = node->row + node->height == map.height ? 500000. : 0;
             double BoardDeadZone = map_in_danger_(map);
@@ -353,7 +353,7 @@ namespace ai_zzz
         }
     }
     
-    void Dig::init(m_tetris::TetrisContext const *context)
+    void Dig::init(m_tetris::TetrisContext const *context, Config const *config)
     {
         context_ = context;
         map_danger_data_.resize(context->type_max());
@@ -370,6 +370,7 @@ namespace ai_zzz
         }
         col_mask_ = context->full() & ~1;
         row_mask_ = context->full();
+        config_ = config;
     }
 
     std::string Dig::ai_name() const
@@ -380,8 +381,8 @@ namespace ai_zzz
     double Dig::eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
     {
         const int width_m1 = map.width - 1;
-        int ColTrans = 2 * (map.height - map.roof);
-        int RowTrans = zzz::BitCount(row_mask_ ^ map.row[0]) + zzz::BitCount(map.roof == map.height ? ~row_mask_ & map.row[map.roof - 1] : map.row[map.roof - 1]);
+        size_t ColTrans = 2 * (map.height - map.roof);
+        size_t RowTrans = zzz::BitCount(row_mask_ ^ map.row[0]) + zzz::BitCount(map.roof == map.height ? ~row_mask_ & map.row[map.roof - 1] : map.row[map.roof - 1]);
         for(int y = 0; y < map.roof; ++y)
         {
             if(!map.full(0, y))
@@ -403,8 +404,8 @@ namespace ai_zzz
             int HoleCount;
             int HoleLine;
 
-            int HoleDepth;
-            int WellDepth;
+            double HoleDepth;
+            double WellDepth;
 
             int HoleNum[32];
             int WellNum[32];
@@ -415,7 +416,7 @@ namespace ai_zzz
         std::memset(&v, 0, sizeof v);
         struct
         {
-            int ClearWidth;
+            double ClearWidth;
         } a[40];
 
         for(int y = map.roof - 1; y >= 0; --y)
@@ -424,6 +425,7 @@ namespace ai_zzz
             int LineHole = v.LineCoverBits ^ map.row[y];
             if(LineHole != 0)
             {
+                v.HoleCount += BitCount(LineHole);
                 ++v.HoleLine;
                 a[v.HolePosyIndex].ClearWidth = 0;
                 for(int hy = y + 1; hy < map.roof; ++hy)
@@ -433,7 +435,7 @@ namespace ai_zzz
                     {
                         break;
                     }
-                    a[v.HolePosyIndex].ClearWidth += (hy + 1) * zzz::BitCount(CheckLine);
+                    a[v.HolePosyIndex].ClearWidth += (hy + 1 + config_->p[0]) * config_->p[1] * zzz::BitCount(CheckLine);
                 }
                 ++v.HolePosyIndex;
             }
@@ -441,7 +443,7 @@ namespace ai_zzz
             {
                 if((LineHole >> x) & 1)
                 {
-                    v.HoleDepth += ++v.HoleNum[x];
+                    v.HoleDepth += (++v.HoleNum[x] + config_->p[4]) * config_->p[5];
                 }
                 else
                 {
@@ -449,12 +451,12 @@ namespace ai_zzz
                 }
                 if(((v.LineCoverBits >> (x - 1)) & 7) == 5)
                 {
-                    v.WellDepth += ++v.WellNum[x];
+                    v.WellDepth += (++v.WellNum[x] + config_->p[2]) * config_->p[3];
                 }
             }
             if(LineHole & 1)
             {
-                v.HoleDepth += ++v.HoleNum[0];
+                v.HoleDepth += (++v.HoleNum[0] + config_->p[4]) * config_->p[5];
             }
             else
             {
@@ -462,11 +464,11 @@ namespace ai_zzz
             }
             if((v.LineCoverBits & 3) == 2)
             {
-                v.WellDepth += ++v.WellNum[0];
+                v.WellDepth += (++v.WellNum[0] + config_->p[2]) * config_->p[3];
             }
             if((LineHole >> width_m1) & 1)
             {
-                v.HoleDepth += ++v.HoleNum[width_m1];
+                v.HoleDepth += (++v.HoleNum[width_m1] + config_->p[4]) * config_->p[5];
             }
             else
             {
@@ -474,23 +476,23 @@ namespace ai_zzz
             }
             if(((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
             {
-                v.WellDepth += ++v.WellNum[width_m1];
+                v.WellDepth += (++v.WellNum[width_m1] + config_->p[2]) * config_->p[3];
             }
         }
 
-        int BoardDeadZone = map_in_danger_(map);
+        size_t BoardDeadZone = map_in_danger_(map);
 
         double value = (0.
-                        - map.roof * 96
-                        - ColTrans * 160
-                        - RowTrans * 128
-                        - v.HoleCount * 60
-                        - v.HoleLine * 380
-                        - v.WellDepth * 100
-                        - v.HoleDepth * 40
-                        - BoardDeadZone * 50000
+                        - (map.roof      + config_->p[ 6]) * config_->p[ 7]
+                        - (ColTrans      + config_->p[ 8]) * config_->p[ 9]
+                        - (RowTrans      + config_->p[10]) * config_->p[11]
+                        - (v.HoleCount   + config_->p[12]) * config_->p[13]
+                        - (v.HoleLine    + config_->p[14]) * config_->p[15]
+                        - (v.WellDepth   + config_->p[16]) * config_->p[17]
+                        - (v.HoleDepth   + config_->p[18]) * config_->p[19]
+                        - (BoardDeadZone + config_->p[20]) * config_->p[21]
                         );
-        double rate = 32, mul = 1.0 / 4;
+        double rate = config_->p[22], mul = config_->p[23];
         for(int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
         {
             value -= a[i].ClearWidth * rate;
@@ -666,7 +668,7 @@ namespace ai_zzz
             result.value -= a[i].ClearWidth * rate;
         }
         result.count = map.count + v.HoleCount;
-        result.clear = clear;
+        result.clear = int(clear);
         result.safe = 0;
         while(map_in_danger_(map, result.safe + 1) == 0)
         {
@@ -886,7 +888,7 @@ namespace ai_zzz
         {
             result.like -= 2;
         }
-        size_t t_expect = [=]()->int
+        size_t t_expect = [=]()->size_t
         {
             if(env.hold == 'T')
             {
@@ -984,15 +986,9 @@ namespace ai_zzz
 
     C2::Result C2::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
     {
-        double BoardDeadZone = map_in_danger_(map);
-        if(map.roof == map.height)
-        {
-            BoardDeadZone += 70;
-        }
-
         const int width_m1 = map.width - 1;
-        int ColTrans = 2 * (map.height - map.roof);
-        int RowTrans = map.roof == map.height ? 0 : map.width;
+        size_t ColTrans = 2 * (map.height - map.roof);
+        size_t RowTrans = map.roof == map.height ? 0 : map.width;
         for(int y = 0; y < map.roof; ++y)
         {
             if(!map.full(0, y))
@@ -1003,10 +999,10 @@ namespace ai_zzz
             {
                 ++ColTrans;
             }
-            ColTrans += BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+            ColTrans += zzz::BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
             if(y != 0)
             {
-                RowTrans += BitCount(map.row[y - 1] ^ map.row[y]);
+                RowTrans += zzz::BitCount(map.row[y - 1] ^ map.row[y]);
             }
         }
         RowTrans += BitCount(row_mask_ & ~map.row[0]);
@@ -1018,8 +1014,11 @@ namespace ai_zzz
             int HoleLine;
 
             int WideWellDepth[6];
-            int WellDepth[32];
-            int WellDepthTotle;
+            double HoleDepth;
+            double WellDepth;
+
+            int HoleNum[32];
+            int WellNum[32];
 
             int LineCoverBits;
             int HolePosyIndex;
@@ -1027,7 +1026,7 @@ namespace ai_zzz
         std::memset(&v, 0, sizeof v);
         struct
         {
-            int ClearWidth;
+            double ClearWidth;
         } a[40];
 
         for(int y = map.roof - 1; y >= 0; --y)
@@ -1045,9 +1044,48 @@ namespace ai_zzz
                     {
                         break;
                     }
-                    a[v.HolePosyIndex].ClearWidth += (hy + 1) * zzz::BitCount(CheckLine);
+                    a[v.HolePosyIndex].ClearWidth += (hy + 1 + config_->p[0]) * config_->p[1] * zzz::BitCount(CheckLine);
                 }
                 ++v.HolePosyIndex;
+            }
+            for(int x = 1; x < width_m1; ++x)
+            {
+                if((LineHole >> x) & 1)
+                {
+                    v.HoleDepth += (++v.HoleNum[x] + config_->p[4]) * config_->p[5];
+                }
+                else
+                {
+                    v.HoleNum[x] = 0;
+                }
+                if(((v.LineCoverBits >> (x - 1)) & 7) == 5)
+                {
+                    v.WellDepth += (++v.WellNum[x] + config_->p[2]) * config_->p[3];
+                }
+            }
+            if(LineHole & 1)
+            {
+                v.HoleDepth += (++v.HoleNum[0] + config_->p[4]) * config_->p[5];
+            }
+            else
+            {
+                v.HoleNum[0] = 0;
+            }
+            if((v.LineCoverBits & 3) == 2)
+            {
+                v.WellDepth += (++v.WellNum[0] + config_->p[2]) * config_->p[3];
+            }
+            if((LineHole >> width_m1) & 1)
+            {
+                v.HoleDepth += (++v.HoleNum[width_m1] + config_->p[4]) * config_->p[5];
+            }
+            else
+            {
+                v.HoleNum[width_m1] = 0;
+            }
+            if(((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
+            {
+                v.WellDepth += (++v.WellNum[width_m1] + config_->p[2]) * config_->p[3];
             }
             int WellWidth = 0;
             int MaxWellWidth = 0;
@@ -1064,27 +1102,6 @@ namespace ai_zzz
                 else
                 {
                     ++WellWidth;
-                    if(x > 0 && x < width_m1)
-                    {
-                        if(((v.LineCoverBits >> (x - 1)) & 7) == 5)
-                        {
-                            v.WellDepthTotle += ++v.WellDepth[x];
-                        }
-                    }
-                    else if(x == 0)
-                    {
-                        if((v.LineCoverBits & 3) == 2)
-                        {
-                            v.WellDepthTotle += ++v.WellDepth[0];
-                        }
-                    }
-                    else
-                    {
-                        if(((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
-                        {
-                            v.WellDepthTotle += ++v.WellDepth[width_m1];
-                        }
-                    }
                 }
             }
             if(WellWidth > MaxWellWidth)
@@ -1111,20 +1128,29 @@ namespace ai_zzz
         v.HoleCountSrc -= src_map.count;
         v.HoleCount -= map.count;
 
+        double BoardDeadZone = map_in_danger_(map);
+        if(map.roof == map.height)
+        {
+            BoardDeadZone += 70;
+        }
+
         Result result;
         result.map = (0.
-                      - map.roof * 128
-                      - ColTrans * 160
-                      - RowTrans * 160
-                      - v.HoleCount * 80
-                      - v.HoleLine * 380
-                      - v.WellDepthTotle * 100
+                      - (map.roof      + config_->p[ 6]) * config_->p[ 7]
+                      - (ColTrans      + config_->p[ 8]) * config_->p[ 9]
+                      - (RowTrans      + config_->p[10]) * config_->p[11]
+                      - (v.HoleCount   + config_->p[12]) * config_->p[13]
+                      - (v.HoleLine    + config_->p[14]) * config_->p[15]
+                      - (v.WellDepth   + config_->p[16]) * config_->p[17]
+                      - (v.HoleDepth   + config_->p[18]) * config_->p[19]
+                      - (BoardDeadZone + config_->p[20]) * config_->p[21]
                       );
-        double rate = 32, mul = 0.25;
+        double rate = config_->p[22], mul = config_->p[23];
         for(int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
         {
             result.map -= a[i].ClearWidth * rate;
         }
+        result.map *= config_->p_rate;
         if(config_->mode == 0)
         {
             int attack_well = std::min(4, v.WideWellDepth[0]);
@@ -1134,10 +1160,9 @@ namespace ai_zzz
                              + v.WideWellDepth[3] * 3.2
                              + v.WideWellDepth[2] * 4.8
                              + v.WideWellDepth[1] * -8
-                             + attack_well * attack_well * 128
+                             + ((attack_well * attack_well) + config_->p[16]) * config_->p[17] * config_->p_rate
                              );
         }
-        result.danger = -BoardDeadZone * 50000000;
         result.clear = clear;
         result.fill = float(map.count) / (map.width * (map.height - config_->safe));
         result.hole = float(v.HoleCountSrc) / (map.height - config_->safe);
@@ -1152,7 +1177,7 @@ namespace ai_zzz
         result.attack = 0;
         result.combo = status.combo;
         result.combo_limit = status.combo_limit > 0 ? status.combo_limit - 1 : 0;
-        result.value = eval_result.danger;
+        result.value = eval_result.map;
         if(config_->mode == 0)
         {
             if(result.combo_limit == 0)
@@ -1249,9 +1274,10 @@ namespace ai_zzz
             {
                 result.attack -= 100;
             }
+            result.attack += (status.attack + 9999999999) * 1.05 - 9999999999;
         }
-        double rate = (1. / (depth + 1)) * 2;
-        result.value += status.value * 1.1 + result.attack * rate + eval_result.map;
+        result.map = (status.map + 9999999999) * 0.9 - 9999999999 + eval_result.map;
+        result.value = result.attack + result.map;
         return result;
     }
 

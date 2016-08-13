@@ -1,6 +1,7 @@
-
+﻿
 #include "tetris_core.h"
 #include "search_tspin.h"
+#include <array>
 
 namespace ai_zzz
 {
@@ -54,7 +55,25 @@ namespace ai_zzz
     class Dig
     {
     public:
-        void init(m_tetris::TetrisContext const *context);
+        struct Config
+        {
+            std::array<double, 100> p =
+            {
+                0 ,     1,
+                0 ,     1,
+                0 ,     1,
+                0 ,    96,
+                0 ,   160,
+                0 ,   128,
+                0 ,    60,
+                0 ,   380,
+                0 ,   100,
+                0 ,    40,
+                0 , 50000,
+                32,  0.25,
+            };
+        };
+        void init(m_tetris::TetrisContext const *context, Config const *config);
         std::string ai_name() const;
         double eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
         double get(double const &eval_result) const;
@@ -65,6 +84,7 @@ namespace ai_zzz
         };
         std::vector<MapInDangerData> map_danger_data_;
         m_tetris::TetrisContext const *context_;
+        Config const *config_;
         size_t map_in_danger_(m_tetris::TetrisMap const &map) const;
         int col_mask_, row_mask_;
     };
@@ -126,6 +146,8 @@ namespace ai_zzz
     public:
         struct Config
         {
+            std::array<double, 100> p;
+            double p_rate;
             int safe;
             int mode;
             int danger;
@@ -133,6 +155,7 @@ namespace ai_zzz
         struct Status
         {
             double attack;
+            double map;
             size_t combo;
             size_t combo_limit;
             double value;
@@ -142,7 +165,6 @@ namespace ai_zzz
         {
             double attack;
             double map;
-            double danger;
             size_t clear;
             double fill;
             double hole;

@@ -228,7 +228,7 @@ namespace zzz
             while(!base_t::is_nil_(node))
             {
                 where = node;
-                if(is_left = base_t::predicate(key, node))
+                if((is_left = base_t::predicate(key, node)))
                 {
                     node = base_t::get_left_(node);
                 }

@@ -1,6 +1,4 @@
 
-#pragma once
-
 #include "search_cautious.h"
 
 using namespace m_tetris;
@@ -20,7 +18,7 @@ namespace search_cautious
         {
             return std::vector<char>();
         }
-        const int index = land_point->index_filtered;
+        const size_t index = land_point->index_filtered;
         auto build_path = [](TetrisNode const *node, decltype(node_mark_) &node_mark)->std::vector < char >
         {
             std::vector<char> path;

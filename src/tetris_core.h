@@ -10,6 +10,7 @@
 #include <cassert>
 #include <ctime>
 #include <cstring>
+#include <string>
 #include "rb_tree.h"
 
 namespace m_tetris

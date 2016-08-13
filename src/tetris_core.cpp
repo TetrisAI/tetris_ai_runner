@@ -422,7 +422,7 @@ namespace m_tetris
             uint32_t data[5];
             struct Less
             {
-                bool operator()(IndexFilter const &left, IndexFilter const &right)
+                bool operator()(IndexFilter const &left, IndexFilter const &right) const
                 {
                     return std::memcmp(left.data, right.data, sizeof left.data) < 0;
                 }
