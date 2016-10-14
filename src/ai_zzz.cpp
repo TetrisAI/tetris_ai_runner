@@ -546,14 +546,14 @@ namespace ai_zzz
 
     std::string TOJ::ai_name() const
     {
-        return "ZZZ TOJ v0.8";
+        return "ZZZ TOJ v0.9";
     }
 
     TOJ::Result TOJ::eval(TetrisNodeEx &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
     {
         const int width_m1 = map.width - 1;
-        int ColTrans = 2 * (map.height - map.roof);
-        int RowTrans = map.roof == map.height ? 0 : map.width;
+        size_t ColTrans = 2 * (map.height - map.roof);
+        size_t RowTrans = map.roof == map.height ? 0 : map.width;
         for(int y = 0; y < map.roof; ++y)
         {
             if(!map.full(0, y))
@@ -564,10 +564,10 @@ namespace ai_zzz
             {
                 ++ColTrans;
             }
-            ColTrans += BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+            ColTrans += zzz::BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
             if(y != 0)
             {
-                RowTrans += BitCount(map.row[y - 1] ^ map.row[y]);
+                RowTrans += zzz::BitCount(map.row[y - 1] ^ map.row[y]);
             }
         }
         RowTrans += BitCount(row_mask_ & ~map.row[0]);
@@ -577,8 +577,8 @@ namespace ai_zzz
             int HoleCount;
             int HoleLine;
 
-            int HoleDepth;
-            int WellDepth;
+            double HoleDepth;
+            double WellDepth;
 
             int HoleNum[32];
             int WellNum[32];
@@ -589,7 +589,7 @@ namespace ai_zzz
         std::memset(&v, 0, sizeof v);
         struct
         {
-            int ClearWidth;
+            double ClearWidth;
         } a[40];
 
         for(int y = map.roof - 1; y >= 0; --y)
@@ -598,6 +598,7 @@ namespace ai_zzz
             int LineHole = v.LineCoverBits ^ map.row[y];
             if(LineHole != 0)
             {
+                v.HoleCount += BitCount(LineHole);
                 ++v.HoleLine;
                 a[v.HolePosyIndex].ClearWidth = 0;
                 for(int hy = y + 1; hy < map.roof; ++hy)
@@ -607,7 +608,7 @@ namespace ai_zzz
                     {
                         break;
                     }
-                    a[v.HolePosyIndex].ClearWidth += (hy + 1) * zzz::BitCount(CheckLine);
+                    a[v.HolePosyIndex].ClearWidth += (hy + 1 + config_->p[0]) * config_->p[1] * zzz::BitCount(CheckLine);
                 }
                 ++v.HolePosyIndex;
             }
@@ -615,7 +616,7 @@ namespace ai_zzz
             {
                 if((LineHole >> x) & 1)
                 {
-                    v.HoleDepth += ++v.HoleNum[x];
+                    v.HoleDepth += (++v.HoleNum[x] + config_->p[4]) * config_->p[5];
                 }
                 else
                 {
@@ -623,12 +624,12 @@ namespace ai_zzz
                 }
                 if(((v.LineCoverBits >> (x - 1)) & 7) == 5)
                 {
-                    v.WellDepth += ++v.WellNum[x];
+                    v.WellDepth += (++v.WellNum[x] + config_->p[2]) * config_->p[3];
                 }
             }
             if(LineHole & 1)
             {
-                v.HoleDepth += ++v.HoleNum[0];
+                v.HoleDepth += (++v.HoleNum[0] + config_->p[4]) * config_->p[5];
             }
             else
             {
@@ -636,11 +637,11 @@ namespace ai_zzz
             }
             if((v.LineCoverBits & 3) == 2)
             {
-                v.WellDepth += ++v.WellNum[0];
+                v.WellDepth += (++v.WellNum[0] + config_->p[2]) * config_->p[3];
             }
             if((LineHole >> width_m1) & 1)
             {
-                v.HoleDepth += ++v.HoleNum[width_m1];
+                v.HoleDepth += (++v.HoleNum[width_m1] + config_->p[4]) * config_->p[5];
             }
             else
             {
@@ -648,25 +649,28 @@ namespace ai_zzz
             }
             if(((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
             {
-                v.WellDepth += ++v.WellNum[width_m1];
+                v.WellDepth += (++v.WellNum[width_m1] + config_->p[2]) * config_->p[3];
             }
         }
+        double BoardDeadZone = map_in_danger_(map, 0);
 
         Result result;
         result.value = (0.
-                        - map.roof * 128
-                        - ColTrans * 160
-                        - RowTrans * 160
-                        - v.HoleCount * 80
-                        - v.HoleLine * 380
-                        - v.WellDepth * 100
-                        - v.HoleDepth * 40
-                      );
-        double rate = 32, mul = 1.0 / 4;
+                        - (map.roof      + config_->p[ 6]) * config_->p[ 7]
+                        - (ColTrans      + config_->p[ 8]) * config_->p[ 9]
+                        - (RowTrans      + config_->p[10]) * config_->p[11]
+                        - (v.HoleCount   + config_->p[12]) * config_->p[13]
+                        - (v.HoleLine    + config_->p[14]) * config_->p[15]
+                        - (v.WellDepth   + config_->p[16]) * config_->p[17]
+                        - (v.HoleDepth   + config_->p[18]) * config_->p[19]
+                        - (BoardDeadZone + config_->p[20]) * config_->p[21]
+                        );
+        double rate = config_->p[22], mul = config_->p[23];
         for(int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
         {
             result.value -= a[i].ClearWidth * rate;
         }
+        result.value *= config_->p_rate;
         result.count = map.count + v.HoleCount;
         result.clear = int(clear);
         result.safe = 0;
@@ -827,7 +831,7 @@ namespace ai_zzz
         case 0:
             if(status.combo > 0 && status.combo < 3)
             {
-                result.like -= 2;
+                result.like -= 1;
             }
             result.combo = 0;
             if(status.under_attack > 0)
@@ -877,7 +881,7 @@ namespace ai_zzz
         }
         if(result.combo < 5)
         {
-            result.like -= 1.5 * result.combo;
+            result.like -= 1.2 * result.combo;
         }
         if(eval_result.count == 0 && result.map_rise == 0)
         {
@@ -908,7 +912,7 @@ namespace ai_zzz
         case 'T':
             if(eval_result.t_spin == TSpinType::None)
             {
-                result.like += 4;
+                result.like += 3;
             }
             break;
         case 'I':
@@ -923,11 +927,11 @@ namespace ai_zzz
         result.max_attack = std::max(result.attack, result.max_attack);
         result.value += ((0.
                           + result.max_attack * 40
-                          + result.attack * 256 * rate
-                          + eval_result.t2_value * (t_expect < 8 ? 512 : 320) * 1.5
+                          + result.attack * 256
+                          + eval_result.t2_value * (t_expect < 8 ? 512 : 320) * 1.8
                           + (eval_result.safe >= 12 ? eval_result.t3_value * (t_expect < 4 ? 10 : 8) * (result.b2b ? 512 : 256) / (6 + result.under_attack) : 0)
-                          + (result.b2b ? 512 : 0)
-                          + result.like * 64
+                          + (result.b2b ? 640 : 0)
+                          + result.like * 40
                           ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_))
                          + result.max_combo * (result.max_combo - 1) * 40
                          - result.death * 999999999.0
@@ -1190,33 +1194,33 @@ namespace ai_zzz
             }
             static const float table[][4] =
             {
-                { 4000,  3000,  4000,  8000},
-                {    0,     0,   400,   800},
-                {    0,     0,   100,   200},
-                { 2000,  2000,  2000,  2000},
-                { 4000,  4000,  4000,  4000},
-                { 6000,  6000,  6000,  6000},
-                { 8000,  8000,  8000,  8000},
-                {10000, 10000, 10000, 10000},
-                {12000, 12000, 12000, 12000},
-                {14000, 14000, 14000, 14000},
-                {16000, 16000, 16000, 16000},
-                {18000, 18000, 18000, 18000},
-                {20000, 20000, 20000, 20000},
-                {22000, 22000, 22000, 22000},
-                {24000, 24000, 24000, 24000},
-                {26000, 26000, 26000, 26000},
-                {99999, 99999, 99999, 99999},
-                {99999, 99999, 99999, 99999},
-                {99999, 99999, 99999, 99999},
-                {99999, 99999, 99999, 99999},
-                {99999, 99999, 99999, 99999},
-                {99999, 99999, 99999, 99999},
-                {99999, 99999, 99999, 99999},
-                {99999, 99999, 99999, 99999},
-                {99999, 99999, 99999, 99999},
+                { 4000        ,  3000,  4000,  8000},
+                {    0        ,     0,   400,   800},
+                {    0        ,     0,   100,   200},
+                { 4000 +  2000,  2000,  2000,  2000},
+                { 8000 +  4000,  4000,  4000,  4000},
+                { 6000 +  6000,  6000,  6000,  6000},
+                { 8000 +  8000,  8000,  8000,  8000},
+                {10000 + 10000, 10000, 10000, 10000},
+                {12000 + 11000, 12000, 12000, 12000},
+                {14000 + 11000, 14000, 14000, 14000},
+                {16000 + 11000, 16000, 16000, 16000},
+                {18000 + 11000, 18000, 18000, 18000},
+                {20000 + 11000, 20000, 20000, 20000},
+                {22000 + 11000, 22000, 22000, 22000},
+                {24000 + 11000, 24000, 24000, 24000},
+                {26000 + 11000, 26000, 26000, 26000},
+                {99999        , 99999, 99999, 99999},
+                {99999        , 99999, 99999, 99999},
+                {99999        , 99999, 99999, 99999},
+                {99999        , 99999, 99999, 99999},
+                {99999        , 99999, 99999, 99999},
+                {99999        , 99999, 99999, 99999},
+                {99999        , 99999, 99999, 99999},
+                {99999        , 99999, 99999, 99999},
+                {99999        , 99999, 99999, 99999},
             };
-            double upstack = (config_->danger ? 0.2 : 1) * std::max<double>(0, 1 - eval_result.hole * 3.2) * std::max<double>(0, 1 - (eval_result.fill < 0.4 ? 0 : eval_result.fill - 0.4) * 4);
+            double upstack = (config_->danger ? 0.2 : 1) * std::max<double>(0, 1 - eval_result.hole * 4.2) * std::max<double>(0, 1 - (eval_result.fill < 0.4 ? 0 : eval_result.fill - 0.4) * 4);
             double downstack;
             if(status.combo == 0)
             {

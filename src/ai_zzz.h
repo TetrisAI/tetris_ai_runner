@@ -96,6 +96,8 @@ namespace ai_zzz
         typedef search_tspin::Search::TetrisNodeWithTSpinType TetrisNodeEx;
         struct Config
         {
+            std::array<double, 100> p;
+            double p_rate;
             int const *table;
             int table_max;
         };
