@@ -705,6 +705,8 @@ namespace ai_zzz
             int row2 = y + 2 < map.height ? map.row[y + 2] : 0;
             int row3 = y + 3 < map.height ? map.row[y + 3] : 0;
             int row4 = y + 4 < map.height ? map.row[y + 4] : 0;
+            int row5 = y + 5 < map.height ? map.row[y + 5] : 0;
+            int row6 = y + 6 < map.height ? map.row[y + 6] : 0;
             for(int x = 0; finding2 && x < map.width - 2; ++x)
             {
                 if(((row0 >> x) & 7) == 5 && ((row1 >> x) & 7) == 0)
@@ -748,20 +750,28 @@ namespace ai_zzz
                             if(row3_check == 8 || row3_check == 0)
                             {
                                 t3_value += !!row3_check;
-                                int row4_check = ((row4 >> x) & 15);
-                                if(row4_check == 4 || row4_check == 12)
-                                {
-                                    t3_value += 1;
-                                }
-                                else
-                                {
-                                    t3_value -= 2;
-                                }
                             }
                             else
                             {
                                 t3_value = 0;
                             }
+                        }
+                    }
+                    int row4_check = ((row4 >> x) & 15);
+                    if(row4_check == 4 || row4_check == 12)
+                    {
+                        t3_value += 2;
+                    }
+                    else
+                    {
+                        t3_value -= 2;
+                        if((row5 >> x) & 8)
+                        {
+                            t3_value /= 8;
+                        }
+                        if((row6 >> x) & 8)
+                        {
+                            t3_value = 0;
                         }
                     }
                     result.t3_value += t3_value;
@@ -791,20 +801,28 @@ namespace ai_zzz
                             if(row3_check == 1 || row3_check == 0)
                             {
                                 t3_value += !!row3_check;
-                                int row4_check = ((row4 >> x) & 15);
-                                if(row4_check == 3 || row4_check == 1)
-                                {
-                                    t3_value += 1;
-                                }
-                                else
-                                {
-                                    t3_value -= 2;
-                                }
                             }
                             else
                             {
                                 t3_value = 0;
                             }
+                        }
+                    }
+                    int row4_check = ((row4 >> x) & 15);
+                    if(row4_check == 3 || row4_check == 1)
+                    {
+                        t3_value += 2;
+                    }
+                    else
+                    {
+                        t3_value -= 2;
+                        if((row5 >> x) & 1)
+                        {
+                            t3_value /= 8;
+                        }
+                        if((row6 >> x) & 1)
+                        {
+                            t3_value = 0;
                         }
                     }
                     result.t3_value += t3_value;
@@ -821,7 +839,7 @@ namespace ai_zzz
     TOJ::Status TOJ::get(Result const &eval_result, size_t depth, Status const &status, TetrisContext::Env const &env) const
     {
         Status result = status;
-        result.value = eval_result.value;
+        result.value = 0;
         if(eval_result.safe <= 0)
         {
             result.value -= 99999;
@@ -836,7 +854,7 @@ namespace ai_zzz
             result.combo = 0;
             if(status.under_attack > 0)
             {
-                result.map_rise += std::max(0, int(status.under_attack) - status.attack);
+                result.map_rise += std::max(0, status.under_attack - status.attack);
                 if(result.map_rise >= eval_result.safe)
                 {
                     result.death += result.map_rise - eval_result.safe;
@@ -923,18 +941,20 @@ namespace ai_zzz
             break;
         }
         double rate = (1. / depth) + 3;
+        double us_rage = std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_));
         result.max_combo = std::max(result.combo, result.max_combo);
         result.max_attack = std::max(result.attack, result.max_attack);
         result.value += ((0.
                           + result.max_attack * 40
-                          + result.attack * 256
+                          + result.attack * 320
                           + eval_result.t2_value * (t_expect < 8 ? 512 : 320) * 1.8
                           + (eval_result.safe >= 12 ? eval_result.t3_value * (t_expect < 4 ? 10 : 8) * (result.b2b ? 512 : 256) / (6 + result.under_attack) : 0)
                           + (result.b2b ? 640 : 0)
-                          + result.like * 40
-                          ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_))
-                         + result.max_combo * (result.max_combo - 1) * 40
+                          + result.like * 80
+                          ) * us_rage
+                         + result.max_combo * (result.max_combo - 1) * 64
                          - result.death * 999999999.0
+                         + eval_result.value * 0.6
                          );
         return result;
     }
@@ -944,7 +964,7 @@ namespace ai_zzz
         size_t danger = 0;
         for(size_t i = 0; i < context_->type_max(); ++i)
         {
-            if(up >= 20)
+            if(up >= 18)
             {
                 return context_->type_max();
             }
