@@ -529,7 +529,7 @@ namespace ai_zzz
         config_ = config;
         col_mask_ = context->full() & ~1;
         row_mask_ = context->full();
-        full_count_ = context->width() * 24;
+        full_count_ = context->width() * 20;
         map_danger_data_.resize(context->type_max());
         for(size_t i = 0; i < context->type_max(); ++i)
         {
@@ -762,17 +762,9 @@ namespace ai_zzz
                     {
                         t3_value += 2;
                     }
-                    else
+                    if((row5 >> x) & 8 || (row6 >> x) & 8)
                     {
-                        t3_value -= 2;
-                        if((row5 >> x) & 8)
-                        {
-                            t3_value /= 8;
-                        }
-                        if((row6 >> x) & 8)
-                        {
-                            t3_value = 0;
-                        }
+                        t3_value = 0;
                     }
                     result.t3_value += t3_value;
                     if(t3_value > 3)
@@ -813,17 +805,9 @@ namespace ai_zzz
                     {
                         t3_value += 2;
                     }
-                    else
+                    if((row5 >> x) & 1 || (row6 >> x) & 1)
                     {
-                        t3_value -= 2;
-                        if((row5 >> x) & 1)
-                        {
-                            t3_value /= 8;
-                        }
-                        if((row6 >> x) & 1)
-                        {
-                            t3_value = 0;
-                        }
+                        t3_value = 0;
                     }
                     result.t3_value += t3_value;
                     if(t3_value > 3)
@@ -839,6 +823,7 @@ namespace ai_zzz
     TOJ::Status TOJ::get(Result const &eval_result, size_t depth, Status const &status, TetrisContext::Env const &env) const
     {
         Status result = status;
+        result.attack = 0;
         result.value = 0;
         if(eval_result.safe <= 0)
         {
@@ -854,7 +839,7 @@ namespace ai_zzz
             result.combo = 0;
             if(status.under_attack > 0)
             {
-                result.map_rise += std::max(0, status.under_attack - status.attack);
+                result.map_rise += std::max(0, status.under_attack - status.max_attack);
                 if(result.map_rise >= eval_result.safe)
                 {
                     result.death += result.map_rise - eval_result.safe;
@@ -899,7 +884,7 @@ namespace ai_zzz
         }
         if(result.combo < 5)
         {
-            result.like -= 1.2 * result.combo;
+            result.like -= 1.6 * result.combo;
         }
         if(eval_result.count == 0 && result.map_rise == 0)
         {
@@ -941,20 +926,23 @@ namespace ai_zzz
             break;
         }
         double rate = (1. / depth) + 3;
-        double us_rage = std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_));
+        double us_rage = std::max<double>(0.08, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_));
         result.max_combo = std::max(result.combo, result.max_combo);
-        result.max_attack = std::max(result.attack, result.max_attack);
+        result.max_attack += result.attack;
         result.value += ((0.
-                          + result.max_attack * 40
-                          + result.attack * 320
-                          + eval_result.t2_value * (t_expect < 8 ? 512 : 320) * 1.8
+                          + result.max_attack * (result.max_attack - 1) * 128
+                          + result.attack * 128
+                          + eval_result.t2_value * (t_expect < 8 ? 512 : 320) * 1.6
                           + (eval_result.safe >= 12 ? eval_result.t3_value * (t_expect < 4 ? 10 : 8) * (result.b2b ? 512 : 256) / (6 + result.under_attack) : 0)
                           + (result.b2b ? 640 : 0)
-                          + result.like * 80
+                          + result.like * 40
                           ) * us_rage
-                         + result.max_combo * (result.max_combo - 1) * 64
+                         + result.max_combo * 64
+                         + result.max_combo * (result.max_combo - 1) * 32
+                         + result.max_combo * (result.max_combo - 1) * (result.max_combo - 2) * 16
+                         + result.max_combo * (result.max_combo - 1) * (result.max_combo - 2) * (result.max_combo - 3) * 8
                          - result.death * 999999999.0
-                         + eval_result.value * 0.6
+                         + eval_result.value * 0.66666
                          );
         return result;
     }
