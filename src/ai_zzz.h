@@ -104,6 +104,7 @@ namespace ai_zzz
         struct Result
         {
             double value;
+            double dig;
             int clear;
             int count;
             int safe;
@@ -113,8 +114,7 @@ namespace ai_zzz
         };
         struct Status
         {
-            int max_combo;
-            int max_attack;
+            int total_attack;
             int death;
             int combo;
             int attack;
@@ -134,7 +134,6 @@ namespace ai_zzz
         m_tetris::TetrisContext const *context_;
         Config const *config_;
         int col_mask_, row_mask_;
-        int full_count_;
         struct MapInDangerData
         {
             int data[4];

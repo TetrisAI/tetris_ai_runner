@@ -169,8 +169,7 @@ extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int fiel
             ;
         return max - 1;
     }();
-    srs_ai.status()->max_combo = combo;
-    srs_ai.status()->max_attack = 0;
+    srs_ai.status()->total_attack = combo;
     srs_ai.status()->death = 0;
     srs_ai.status()->combo = combo;
     srs_ai.status()->attack = 0;

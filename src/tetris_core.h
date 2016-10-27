@@ -325,6 +325,7 @@ namespace m_tetris
         {
             char const *next;
             size_t length;
+            char node;
             char hold;
         };
         enum PrepareResult : int
@@ -1601,7 +1602,10 @@ namespace m_tetris
         {
             if(EnableEnv)
             {
-                TetrisContext::Env result;
+                TetrisContext::Env result =
+                {
+                    nullptr, 0, node, hold
+                };
                 result.length = std::distance(next, context->next.cend());
                 if(result.length == 0)
                 {
@@ -1611,14 +1615,13 @@ namespace m_tetris
                 {
                     result.next = context->next_c.data() + (context->next_c.size() - result.length);
                 }
-                result.hold = hold;
                 return result;
             }
             else
             {
                 return
                 {
-                    nullptr, 0, ' '
+                    nullptr, 0, ' ', ' '
                 };
             }
         }

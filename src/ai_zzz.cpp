@@ -529,7 +529,6 @@ namespace ai_zzz
         config_ = config;
         col_mask_ = context->full() & ~1;
         row_mask_ = context->full();
-        full_count_ = context->width() * 20;
         map_danger_data_.resize(context->type_max());
         for(size_t i = 0; i < context->type_max(); ++i)
         {
@@ -665,13 +664,14 @@ namespace ai_zzz
                         - (v.HoleDepth   + config_->p[18]) * config_->p[19]
                         - (BoardDeadZone + config_->p[20]) * config_->p[21]
                         );
+        result.dig = 0;
         double rate = config_->p[22], mul = config_->p[23];
         for(int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
         {
-            result.value -= a[i].ClearWidth * rate;
+            result.dig -= a[i].ClearWidth * rate;
         }
         result.value *= config_->p_rate;
-        result.count = map.count + v.HoleCount;
+        result.count = map.count;
         result.clear = int(clear);
         result.safe = 0;
         while(map_in_danger_(map, result.safe + 1) == 0)
@@ -740,10 +740,10 @@ namespace ai_zzz
                             t3_value += 1;
                             if(((row2 >> x) & 15) == 11)
                             {
-                                t3_value += 2;
+                                t3_value += 1;
                                 if(BitCount(row2) == map.width - 1)
                                 {
-                                    t3_value += 2;
+                                    t3_value += 1;
                                 }
                             }
                             int row3_check = ((row3 >> x) & 15);
@@ -760,14 +760,14 @@ namespace ai_zzz
                     int row4_check = ((row4 >> x) & 15);
                     if(row4_check == 4 || row4_check == 12)
                     {
-                        t3_value += 2;
+                        t3_value += 1;
                     }
                     if((row5 >> x) & 8 || (row6 >> x) & 8)
                     {
                         t3_value = 0;
                     }
                     result.t3_value += t3_value;
-                    if(t3_value > 3)
+                    if(t3_value >= 3)
                     {
                         finding3 = false;
                     }
@@ -783,10 +783,10 @@ namespace ai_zzz
                             t3_value += 1;
                             if(((row2 >> x) & 15) == 13)
                             {
-                                t3_value += 2;
+                                t3_value += 1;
                                 if(BitCount(row2) == map.width - 1)
                                 {
-                                    t3_value += 2;
+                                    t3_value += 1;
                                 }
                             }
                             int row3_check = ((row3 >> x) & 15);
@@ -803,14 +803,14 @@ namespace ai_zzz
                     int row4_check = ((row4 >> x) & 15);
                     if(row4_check == 3 || row4_check == 1)
                     {
-                        t3_value += 2;
+                        t3_value += 1;
                     }
                     if((row5 >> x) & 1 || (row6 >> x) & 1)
                     {
                         t3_value = 0;
                     }
                     result.t3_value += t3_value;
-                    if(t3_value > 3)
+                    if(t3_value >= 3)
                     {
                         finding3 = false;
                     }
@@ -822,9 +822,13 @@ namespace ai_zzz
 
     TOJ::Status TOJ::get(Result const &eval_result, size_t depth, Status const &status, TetrisContext::Env const &env) const
     {
-        Status result = status;
-        result.attack = 0;
-        result.value = 0;
+        Status result = {};
+        result.total_attack = status.total_attack;
+        result.combo = status.combo;
+        result.death = status.death;
+        result.under_attack = status.under_attack;
+        result.map_rise = status.map_rise;
+        result.b2b = status.b2b;
         if(eval_result.safe <= 0)
         {
             result.value -= 99999;
@@ -832,14 +836,10 @@ namespace ai_zzz
         switch(eval_result.clear)
         {
         case 0:
-            if(status.combo > 0 && status.combo < 3)
-            {
-                result.like -= 1;
-            }
             result.combo = 0;
             if(status.under_attack > 0)
             {
-                result.map_rise += std::max(0, status.under_attack - status.max_attack);
+                result.map_rise += std::max(0, status.under_attack - status.total_attack);
                 if(result.map_rise >= eval_result.safe)
                 {
                     result.death += result.map_rise - eval_result.safe;
@@ -862,7 +862,7 @@ namespace ai_zzz
         case 2:
             if(eval_result.t_spin != TSpinType::None)
             {
-                result.like += 8;
+                result.like += 1;
                 result.attack += status.b2b ? 5 : 4;
             }
             result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
@@ -871,7 +871,7 @@ namespace ai_zzz
         case 3:
             if(eval_result.t_spin != TSpinType::None)
             {
-                result.like += 12;
+                result.like += 1;
                 result.attack += status.b2b ? 8 : 6;
             }
             result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
@@ -882,18 +882,10 @@ namespace ai_zzz
             result.b2b = true;
             break;
         }
-        if(result.combo < 5)
-        {
-            result.like -= 1.6 * result.combo;
-        }
         if(eval_result.count == 0 && result.map_rise == 0)
         {
-            result.like += 20;
+            result.like += 100;
             result.attack += 6;
-        }
-        if(status.b2b && !result.b2b)
-        {
-            result.like -= 2;
         }
         size_t t_expect = [=]()->size_t
         {
@@ -915,34 +907,31 @@ namespace ai_zzz
         case 'T':
             if(eval_result.t_spin == TSpinType::None)
             {
-                result.like += 3;
+                result.like += 1;
             }
             break;
         case 'I':
             if(eval_result.clear != 4)
             {
-                result.like += 2;
+                result.like += 1;
             }
             break;
         }
-        double rate = (1. / depth) + 3;
-        double us_rage = std::max<double>(0.08, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_));
-        result.max_combo = std::max(result.combo, result.max_combo);
-        result.max_attack += result.attack;
-        result.value += ((0.
-                          + result.max_attack * (result.max_attack - 1) * 128
-                          + result.attack * 128
-                          + eval_result.t2_value * (t_expect < 8 ? 512 : 320) * 1.6
-                          + (eval_result.safe >= 12 ? eval_result.t3_value * (t_expect < 4 ? 10 : 8) * (result.b2b ? 512 : 256) / (6 + result.under_attack) : 0)
-                          + (result.b2b ? 640 : 0)
-                          + result.like * 40
-                          ) * us_rage
-                         + result.max_combo * 64
-                         + result.max_combo * (result.max_combo - 1) * 32
-                         + result.max_combo * (result.max_combo - 1) * (result.max_combo - 2) * 16
-                         + result.max_combo * (result.max_combo - 1) * (result.max_combo - 2) * (result.max_combo - 3) * 8
+        double attack_val = 1024;
+        double t2_max = (attack_val * 4) / (5 * 3) * 0.75;
+        double t3_max = (attack_val * 6) / ((6 * 10 * 3) / 6) * 0.75;
+        result.total_attack += result.attack;
+        result.value += (0.
+                         + result.total_attack * attack_val
+                         + eval_result.t2_value * (t_expect < 8 ? 3 : 2) * t2_max
+                         + (eval_result.safe >= 12 ? eval_result.t3_value * (t_expect < 4 ? 10 : 7) * (result.b2b ? 4 : 3) / (6 + result.under_attack) : 0) * t3_max
+                         + (result.b2b ? 128 : 0)
+                         + result.like * 128
+                         - result.map_rise * attack_val * 0.5
+                         + std::max<double>(0.25, config_->table[std::min(config_->table_max - 1, result.combo + 1)]) * attack_val * 0.75
                          - result.death * 999999999.0
-                         + eval_result.value * 0.66666
+                         + eval_result.value * 0.8
+                         + eval_result.dig * 0.6
                          );
         return result;
     }
