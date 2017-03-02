@@ -1168,7 +1168,7 @@ namespace ai_zzz
         result.fill = float(map.count) / (map.width * (map.height - config_->safe));
         result.hole = float(v.HoleCountSrc) / (map.height - config_->safe);
         result.new_hole = v.HoleCount > v.HoleCountSrc ? float(v.HoleCount - v.HoleCountSrc) / map.height : 0;
-        result.soft_drop = !node->open(map);
+        result.soft_drop = !node->open(src_map);
         return result;
     }
 
@@ -1185,7 +1185,7 @@ namespace ai_zzz
             {
                 result.combo = 0;
             }
-            if(result.combo_limit < 6 && result.combo < 4)
+            if(result.combo_limit < 6 && result.combo < 3)
             {
                 result.combo = 0;
             }
@@ -1199,14 +1199,14 @@ namespace ai_zzz
                 { 6000 +  6000,  6000,  6000,  6000},
                 { 8000 +  8000,  8000,  8000,  8000},
                 {10000 + 10000, 10000, 10000, 10000},
-                {12000 + 11000, 12000, 12000, 12000},
-                {14000 + 11000, 14000, 14000, 14000},
-                {16000 + 11000, 16000, 16000, 16000},
-                {18000 + 11000, 18000, 18000, 18000},
-                {20000 + 11000, 20000, 20000, 20000},
-                {22000 + 11000, 22000, 22000, 22000},
-                {24000 + 11000, 24000, 24000, 24000},
-                {26000 + 11000, 26000, 26000, 26000},
+                {12000 + 12000, 12000, 12000, 12000},
+                {14000 + 14000, 14000, 14000, 14000},
+                {16000 + 16000, 16000, 16000, 16000},
+                {18000 + 18000, 18000, 18000, 18000},
+                {20000 + 20000, 20000, 20000, 20000},
+                {22000 + 22000, 22000, 22000, 22000},
+                {24000 + 24000, 24000, 24000, 24000},
+                {26000 + 26000, 26000, 26000, 26000},
                 {99999        , 99999, 99999, 99999},
                 {99999        , 99999, 99999, 99999},
                 {99999        , 99999, 99999, 99999},
@@ -1217,17 +1217,17 @@ namespace ai_zzz
                 {99999        , 99999, 99999, 99999},
                 {99999        , 99999, 99999, 99999},
             };
-            double upstack = (config_->danger ? 0.2 : 1) * std::max<double>(0, 1 - eval_result.hole * 4.2) * std::max<double>(0, 1 - (eval_result.fill < 0.4 ? 0 : eval_result.fill - 0.4) * 4);
+            double upstack = (config_->danger ? 0.3 : 1) * std::max<double>(0, 1 - eval_result.hole * 4.2) * std::max<double>(0, 1 - (eval_result.fill < 0.4 ? 0 : eval_result.fill - 0.4) * 4);
             double downstack;
             if(status.combo == 0)
             {
-                downstack = (config_->danger ? 0.4 : 1) * std::max<double>(0, 1 - eval_result.hole * 2) * std::max<double>(0, 1 - std::abs(eval_result.fill - 0.48) * 5);
+                downstack = (config_->danger ? 0.5 : 1) * std::max<double>(0, 1 - eval_result.hole * 3.3) * std::max<double>(0, 1 - std::abs(eval_result.fill - 0.48) * 5);
                 result.attack -= 1600 * eval_result.new_hole;
                 result.attack += eval_result.attack * upstack;
             }
             else
             {
-                downstack = (config_->danger ? 0.4 : 1) * std::max<double>(0, 1 - eval_result.hole * 2) * std::max<double>(0, 1 - eval_result.fill * 1.2);
+                downstack = (config_->danger ? 0.5 : 1) * std::max<double>(0, 1 - eval_result.hole * 3.3) * std::max<double>(0, 1 - eval_result.fill * 1.2);
             }
             if(eval_result.clear > 0)
             {
@@ -1275,9 +1275,13 @@ namespace ai_zzz
             {
                 result.attack -= 100;
             }
-            result.attack += (status.attack + 9999999999) * 1.05 - 9999999999;
+            result.attack += (status.attack + 9999999999) * 1.2 - 9999999999;
         }
         result.map = (status.map + 9999999999) * 0.9 - 9999999999 + eval_result.map;
+        if (eval_result.soft_drop && !config_->soft_drop)
+        {
+            result.map -= 9999999999;
+        }
         result.value = result.attack + result.map;
         return result;
     }
@@ -1289,22 +1293,44 @@ namespace ai_zzz
         result.value = 0;
         result.combo_limit = 0;
         double
-            lower = std::numeric_limits<double>::max(),
-            upper = std::numeric_limits<double>::min();
+            lower1 = std::numeric_limits<double>::max(),
+            lower2 = std::numeric_limits<double>::max(),
+            lower3 = std::numeric_limits<double>::max(),
+            upper1 = std::numeric_limits<double>::min();
         for(size_t i = 0; i < status_length; ++i)
         {
             double v = status[i] == nullptr ? -9999999999 : status[i]->value;
             result.value += v;
-            if(v < lower)
+            if (v < lower1)
             {
-                lower = v;
+                if (lower1 < lower2)
+                {
+                    if (lower2 < lower3)
+                    {
+                        lower3 = lower2;
+                    }
+                    lower2 = lower1;
+                }
+                lower1 = v;
             }
-            if(v > upper)
+            else if (v < lower2)
             {
-                upper = v;
+                if (lower2 < lower3)
+                {
+                    lower3 = lower2;
+                }
+                lower2 = v;
+            }
+            else if (v < lower3)
+            {
+                lower3 = v;
+            }
+            if(v > upper1)
+            {
+                upper1 = v;
             }
         }
-        result.value = (result.value - lower - upper) / (status_length - 2);
+        result.value = (result.value - lower1 - lower2 - lower3 - upper1) / (status_length - 4);
         return result;
     }
 

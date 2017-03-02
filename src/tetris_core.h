@@ -714,7 +714,7 @@ namespace m_tetris
             typedef std::true_type enable_next_c;
             static void get(TetrisAI &ai, TreeNode *node, TreeNode *parent)
             {
-                node->status.set(ai.get(node->result, parent->level + 1, parent->status.get_raw(), parent->template env<EnableEnv>()));
+                node->status.set(ai.get(node->result, parent->level, parent->status.get_raw(), parent->template env<EnableEnv>()));
             }
         };
         template<class TreeNode, bool EnableEnv>
@@ -723,7 +723,7 @@ namespace m_tetris
             typedef std::false_type enable_next_c;
             static void get(TetrisAI &ai, TreeNode *node, TreeNode *parent)
             {
-                node->status.set(ai.get(node->result, parent->level + 1, parent->status.get_raw()));
+                node->status.set(ai.get(node->result, parent->level, parent->status.get_raw()));
             }
         };
         template<class TreeNode, bool EnableEnv>
@@ -732,7 +732,7 @@ namespace m_tetris
             typedef std::false_type enable_next_c;
             static void get(TetrisAI &ai, TreeNode *node, TreeNode *parent)
             {
-                node->status.set(ai.get(node->result, parent->level + 1));
+                node->status.set(ai.get(node->result, parent->level));
             }
         };
         template<class TreeNode, bool EnableEnv>
@@ -770,7 +770,7 @@ namespace m_tetris
 
     struct TetrisTreeNodeBase
     {
-        TetrisTreeNodeBase() : node(' '), hold(' '), level(), flag()
+        TetrisTreeNodeBase() : node(' '), hold(' '), level(1), flag()
         {
         }
         TetrisTreeNodeBase *base_parent, *base_left, *base_right;
@@ -969,7 +969,7 @@ namespace m_tetris
                 node->node_flag.clear();
                 node->node = ' ';
                 node->hold = ' ';
-                node->level = 0;
+                node->level = 1;
                 node->flag = 0;
                 tree_cache.push_back(node);
             }

@@ -92,12 +92,12 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
 
 m_tetris::TetrisEngine<rule_toj::TetrisRule, ai_zzz::TOJ, search_tspin::Search> srs_ai;
 
-extern "C" DECLSPEC_EXPORT int AIDllVersion()
+extern "C" DECLSPEC_EXPORT int __cdecl AIDllVersion()
 {
     return 2;
 }
 
-extern "C" DECLSPEC_EXPORT char *AIName(int level)
+extern "C" DECLSPEC_EXPORT char *__cdecl AIName(int level)
 {
     static char name[200];
     strcpy_s(name, srs_ai.ai_name().c_str());
@@ -123,7 +123,7 @@ might be caused by re-think after a hold move.
 canhold: false if hold is completely disabled.
 comboTable: -1 is the end of the table.
 */
-extern "C" DECLSPEC_EXPORT char *TetrisAI(int overfield[], int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, int level, int player)
+extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, int level, int player)
 {
     static char result_buffer[8][1024];
     char *result = result_buffer[player];
@@ -274,7 +274,7 @@ private:
 };
 m_tetris::TetrisEngine<rule_qq::TetrisRule, ai_zzz::qq::Attack, QQTetrisSearch> qq_ai;
 
-extern "C" DECLSPEC_EXPORT int QQTetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int level, int mode, char path[], size_t limit)
+extern "C" DECLSPEC_EXPORT int __cdecl QQTetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int level, int mode, char path[], size_t limit)
 {
     if(!qq_ai.prepare(boardW, boardH))
     {
@@ -358,8 +358,41 @@ struct c2_out_put
     uint8_t r;
 };
 
-extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int mode, int vp, int safe, int combo, int combo_limit, int danger, c2_out_put path[], size_t limit)
+struct c2_param
 {
+    int boardW;
+    int boardH;
+    int const *board;
+    char const *nextPiece;
+    int curX, curY, curR;
+    int safe;
+    int combo;
+    int combo_limit;
+    int danger;
+    c2_out_put *path;
+    size_t limit;
+    int mode;
+    int vp;
+    int soft_drop;
+};
+
+
+extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
+{
+    int const &boardW = param->boardW;
+    int const &boardH = param->boardH;
+    int const *board = param->board;
+    char const *nextPiece = param->nextPiece;
+    int const &curX = param->curX, &curY = param->curY, &curR = param->curR;
+    int const &safe = param->safe;
+    int const &combo = param->combo;
+    int const &combo_limit = param->combo_limit;
+    int const &danger = param->danger;
+    c2_out_put *path = param->path;
+    size_t const &limit = param->limit;
+    int const &mode = param->mode;
+    int const &vp = param->vp;
+    int const &soft_drop = param->soft_drop;
     if(!c2_ai.prepare(boardW, boardH))
     {
         path[0] = {'\0'};
@@ -395,6 +428,7 @@ extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], c
     c2_ai.ai_config()->safe = safe;
     c2_ai.ai_config()->mode = mode;
     c2_ai.ai_config()->danger = danger;
+    c2_ai.ai_config()->soft_drop = soft_drop;
     c2_ai.status()->combo = combo;
     c2_ai.status()->combo_limit = combo_limit;
     c2_ai.status()->value = 0;
@@ -420,6 +454,7 @@ extern "C" DECLSPEC_EXPORT int C2TetrisAI(int boardW, int boardH, int board[], c
     if(target != nullptr)
     {
         ai_path = c2_ai.make_path(node, target, map);
+        node->open(map);
         for(char c : ai_path)
         {
             switch(c)

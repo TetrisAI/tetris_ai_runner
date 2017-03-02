@@ -152,6 +152,7 @@ namespace ai_zzz
             int safe;
             int mode;
             int danger;
+            int soft_drop;
         };
         struct Status
         {
