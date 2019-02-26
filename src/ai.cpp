@@ -156,6 +156,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     }
     srs_ai.update();
     srs_ai.search_config()->allow_180 = can180spin;
+    srs_ai.search_config()->last_rotate = false;
     srs_ai.ai_config()->p =
     {
         2.21814, 0.391674, -0.0358847, 0.678461, 3.39133, 0.859429, -0.201051, 110.951, -0.572156, 111.773, -3.35123, 113.878, -0.633104, 47.1717, -1.54499, 396.14, -4.83616, 95.5258, -1.62344, 63.8952, 1.95443, 45990.6, 34.1561, 0.257397,
@@ -249,16 +250,16 @@ public:
             return std::vector<char>();
         }
     }
-    std::vector<m_tetris::TetrisNode const *> const *search(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node)
+    std::vector<m_tetris::TetrisNode const *> const *search(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node, size_t depth)
     {
         switch(*config_ptr)
         {
         case Simple:
-            return simple_.search(map, node);
+            return simple_.search(map, node, depth);
         case Simulate:
-            return simulate_.search(map, node);
+            return simulate_.search(map, node, depth);
         case Path:
-            return path_.search(map, node);
+            return path_.search(map, node, depth);
         default:
             empty_.resize(1);
             empty_.front() = node->drop(map);

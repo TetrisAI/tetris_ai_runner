@@ -159,7 +159,7 @@ namespace search_tag
         return std::vector<char>();
     }
 
-    std::vector<Search::TetrisNodeWithTSpinType> const *Search::search(TetrisMap const &map, TetrisNode const *node)
+    std::vector<Search::TetrisNodeWithTSpinType> const *Search::search(TetrisMap const &map, TetrisNode const *node, size_t depth)
     {
         land_point_cache_.clear();
         if(!node->check(map))
@@ -353,7 +353,7 @@ namespace search_tag
                 //z
                 if(node->rotate_counterclockwise && node->rotate_counterclockwise->check(snap))
                 {
-                    if(node_mark_.cover(node->rotate_counterclockwise, node, 'z'))
+                    if(node_mark_.cover_if(node->rotate_counterclockwise, node, ' ', 'z'))
                     {
                         node_search_.push_back(node->rotate_counterclockwise);
                     }
@@ -361,7 +361,7 @@ namespace search_tag
                 //c
                 if(node->rotate_clockwise && node->rotate_clockwise->check(snap))
                 {
-                    if(node_mark_.cover(node->rotate_clockwise, node, 'c'))
+                    if(node_mark_.cover_if(node->rotate_clockwise, node, ' ', 'c'))
                     {
                         node_search_.push_back(node->rotate_clockwise);
                     }

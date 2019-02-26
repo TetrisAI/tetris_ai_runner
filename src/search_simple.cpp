@@ -62,7 +62,7 @@ namespace search_simple
         }
     }
 
-    std::vector<TetrisNode const *> const *Search::search(TetrisMap const &map, TetrisNode const *node)
+    std::vector<TetrisNode const *> const *Search::search(TetrisMap const &map, TetrisNode const *node, size_t depth)
     {
         land_point_cache_.clear();
         if(!node->check(map))

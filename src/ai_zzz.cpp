@@ -306,7 +306,7 @@ namespace ai_zzz
             return result;
         }
 
-        Attack::Status Attack::get(Result const &eval_result, size_t depth, Status const &status) const
+        Attack::Status Attack::get(m_tetris::TetrisNode const *node, Result const &eval_result, size_t depth, Status const &status) const
         {
 
             Status result = status;
@@ -500,7 +500,7 @@ namespace ai_zzz
         return value;
     }
 
-    double Dig::get(double const &eval_result) const
+    double Dig::get(m_tetris::TetrisNode const *node, double const &eval_result) const
     {
         return eval_result;
     }
@@ -548,7 +548,7 @@ namespace ai_zzz
         return "ZZZ TOJ v0.9";
     }
 
-    TOJ::Result TOJ::eval(TetrisNodeEx &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
+    TOJ::Result TOJ::eval(TetrisNodeEx const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
     {
         const int width_m1 = map.width - 1;
         size_t ColTrans = 2 * (map.height - map.roof);
@@ -652,6 +652,10 @@ namespace ai_zzz
             }
         }
         double BoardDeadZone = map_in_danger_(map, 0);
+        if (node->row >= 20)
+        {
+            BoardDeadZone = 7;
+        }
 
         Result result;
         result.value = (0.
@@ -678,22 +682,6 @@ namespace ai_zzz
         {
             ++result.safe;
         }
-        if(clear > 0 && node.is_check && node.is_last_rotate)
-        {
-            if(clear == 1 && node.is_mini_ready)
-            {
-                node.type = TSpinType::TSpinMini;
-            }
-            else if(node.is_ready)
-            {
-                node.type = TSpinType::TSpin;
-            }
-            else
-            {
-                node.type = TSpinType::None;
-            }
-        }
-        result.t_spin = node.type;
         result.t2_value = 0;
         result.t3_value = 0;
         bool finding2 = true;
@@ -820,8 +808,23 @@ namespace ai_zzz
         return result;
     }
 
-    TOJ::Status TOJ::get(Result const &eval_result, size_t depth, Status const &status, TetrisContext::Env const &env) const
+    TOJ::Status TOJ::get(TetrisNodeEx &node, Result const &eval_result, size_t depth, Status const &status, TetrisContext::Env const &env) const
     {
+        if (eval_result.clear > 0 && node.is_check && node.is_last_rotate)
+        {
+            if (eval_result.clear == 1 && node.is_mini_ready)
+            {
+                node.type = TSpinType::TSpinMini;
+            }
+            else if (node.is_ready)
+            {
+                node.type = TSpinType::TSpin;
+            }
+            else
+            {
+                node.type = TSpinType::None;
+            }
+        }
         Status result = {};
         result.total_attack = status.total_attack;
         result.combo = status.combo;
@@ -848,34 +851,34 @@ namespace ai_zzz
             }
             break;
         case 1:
-            if(eval_result.t_spin == TSpinType::TSpinMini)
+            if(node.type == TSpinType::TSpinMini)
             {
                 result.attack += status.b2b ? 2 : 1;
             }
-            else if(eval_result.t_spin == TSpinType::TSpin)
+            else if(node.type == TSpinType::TSpin)
             {
                 result.attack += status.b2b ? 3 : 2;
             }
             result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
-            result.b2b = eval_result.t_spin != TSpinType::None;
+            result.b2b = node.type != TSpinType::None;
             break;
         case 2:
-            if(eval_result.t_spin != TSpinType::None)
+            if(node.type != TSpinType::None)
             {
                 result.like += 1;
                 result.attack += status.b2b ? 5 : 4;
             }
             result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
-            result.b2b = eval_result.t_spin != TSpinType::None;
+            result.b2b = node.type != TSpinType::None;
             break;
         case 3:
-            if(eval_result.t_spin != TSpinType::None)
+            if(node.type != TSpinType::None)
             {
                 result.like += 1;
                 result.attack += status.b2b ? 8 : 6;
             }
             result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
-            result.b2b = eval_result.t_spin != TSpinType::None;
+            result.b2b = node.type != TSpinType::None;
             break;
         case 4:
             result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
@@ -905,7 +908,7 @@ namespace ai_zzz
         switch(env.hold)
         {
         case 'T':
-            if(eval_result.t_spin == TSpinType::None)
+            if(node.type == TSpinType::None)
             {
                 result.like += 1;
             }
@@ -1172,7 +1175,7 @@ namespace ai_zzz
         return result;
     }
 
-    C2::Status C2::get(Result const &eval_result, size_t depth, Status const &status) const
+    C2::Status C2::get(m_tetris::TetrisNode const *node, Result const &eval_result, size_t depth, Status const &status) const
     {
         Status result;
         result.attack = 0;

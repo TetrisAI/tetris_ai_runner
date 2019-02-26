@@ -407,7 +407,7 @@ namespace ai_tag
         return "The AI Games (SetoSan) v0.1";
     }
 
-    the_ai_games::Result the_ai_games::eval(TetrisNodeEx &node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
+    the_ai_games::Result the_ai_games::eval(TetrisNodeEx const &node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
     {
         Result result;
         const int width_m1 = map.width - 1;
@@ -530,22 +530,22 @@ namespace ai_tag
         }
         result.node_top = node->row + node->height;
         result.clear = clear;
-        result.tspin = node.is_check && node.is_ready && node.is_last_rotate ? clear : 0;
         result.tbuild = map_for_tspin_(map, attack_x, map.top[attack_x]);
         if(result.map_low == map.top[attack_x])
         {
             result.tbuild *= 8;
         }
         result.save_map = &map;
-        if(result.tspin > 0)
-        {
-            node.type = TSpinType::TSpin;
-        }
         return result;
     }
 
-    the_ai_games::Status the_ai_games::get(Result const &eval_result, size_t depth, Status const &status) const
+    the_ai_games::Status the_ai_games::get(TetrisNodeEx &node, Result const &eval_result, size_t depth, Status const &status) const
     {
+        int tspin = node.is_check && node.is_ready && node.is_last_rotate ? eval_result.clear : 0;
+        if (tspin > 0)
+        {
+            node.type = TSpinType::TSpin;
+        }
         Status result = status;
         double BoardDeadZone = 0;
         if(eval_result.save_map->roof + status.up[depth] >= context_->height() || eval_result.node_top >= context_->height())
@@ -558,9 +558,9 @@ namespace ai_tag
         }
         result.attack -= BoardDeadZone * 50000000;
         result.attack += eval_result.clear * (eval_result.clear + 1) * config_->line_clear_width;
-        if(eval_result.tspin > 0)
+        if(tspin > 0)
         {
-            result.attack += eval_result.tspin * config_->tspin_clear_width;
+            result.attack += tspin * config_->tspin_clear_width;
         }
         if(eval_result.clear == 4)
         {
@@ -704,7 +704,7 @@ namespace ai_tag
         return result;
     }
 
-    the_ai_games_enemy::Status the_ai_games_enemy::get(Result const &eval_result, size_t depth, Status const &status) const
+    the_ai_games_enemy::Status the_ai_games_enemy::get(TetrisNodeEx &node, Result const &eval_result, size_t depth, Status const &status) const
     {
         Status result = status;
         if(eval_result.clear > 0)

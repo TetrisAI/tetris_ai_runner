@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.271
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tetris_ai_runner", "tetris_ai_runner.vcxproj", "{2EF25942-7BE9-41F8-B540-DAE8034BE8F7}"
 EndProject
@@ -10,6 +10,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "the_ai_games", "the_ai_games.vcxproj", "{5A4C9125-3594-4784-96F8-FC7B4C060F13}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "demo", "demo.vcxproj", "{6AEF5DAD-17DB-4855-B083-757AD993290C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "top_bot", "top_bot.vcxproj", "{A7EF8FDE-32B9-4386-8329-3ADC391C9E7F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,8 +47,19 @@ Global
 		{6AEF5DAD-17DB-4855-B083-757AD993290C}.Release|Win32.ActiveCfg = Release|Win32
 		{6AEF5DAD-17DB-4855-B083-757AD993290C}.Release|Win32.Build.0 = Release|Win32
 		{6AEF5DAD-17DB-4855-B083-757AD993290C}.Release|x64.ActiveCfg = Release|x64
+		{A7EF8FDE-32B9-4386-8329-3ADC391C9E7F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{A7EF8FDE-32B9-4386-8329-3ADC391C9E7F}.Debug|Win32.Build.0 = Debug|Win32
+		{A7EF8FDE-32B9-4386-8329-3ADC391C9E7F}.Debug|x64.ActiveCfg = Debug|x64
+		{A7EF8FDE-32B9-4386-8329-3ADC391C9E7F}.Debug|x64.Build.0 = Debug|x64
+		{A7EF8FDE-32B9-4386-8329-3ADC391C9E7F}.Release|Win32.ActiveCfg = Release|Win32
+		{A7EF8FDE-32B9-4386-8329-3ADC391C9E7F}.Release|Win32.Build.0 = Release|Win32
+		{A7EF8FDE-32B9-4386-8329-3ADC391C9E7F}.Release|x64.ActiveCfg = Release|x64
+		{A7EF8FDE-32B9-4386-8329-3ADC391C9E7F}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {EC803E5A-1776-4F55-AF26-26F9EF6F993D}
 	EndGlobalSection
 EndGlobal

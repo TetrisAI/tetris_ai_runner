@@ -65,7 +65,7 @@ namespace ai_tag
         struct Result
         {
             double map;
-            int node_top, map_low, clear, tspin, tbuild;
+            int node_top, map_low, clear, tbuild;
             m_tetris::TetrisMap const *save_map;
         };
         struct Status
@@ -82,8 +82,8 @@ namespace ai_tag
     public:
         void init(m_tetris::TetrisContext const *context, Config const *config);
         std::string ai_name() const;
-        Result eval(TetrisNodeEx &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
-        Status get(Result const &eval_result, size_t depth, Status const &status) const;
+        Result eval(TetrisNodeEx const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
+        Status get(TetrisNodeEx &node, Result const &eval_result, size_t depth, Status const &status) const;
         Status iterate(Status const **status, size_t status_length) const;
 
     private:
@@ -124,7 +124,7 @@ namespace ai_tag
         void init(m_tetris::TetrisContext const *context, Config const *param);
         std::string ai_name() const;
         Result eval(TetrisNodeEx const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
-        Status get(Result const &eval_result, size_t depth, Status const &status) const;
+        Status get(TetrisNodeEx &node, Result const &eval_result, size_t depth, Status const &status) const;
         Status iterate(Status const **status, size_t status_length) const;
 
     private:

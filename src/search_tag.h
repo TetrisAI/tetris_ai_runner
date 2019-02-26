@@ -39,7 +39,7 @@ namespace search_tag
         };
         void init(m_tetris::TetrisContext const *context);
         std::vector<char> make_path(m_tetris::TetrisNode const *node, TetrisNodeWithTSpinType const &land_point, m_tetris::TetrisMap const &map);
-        std::vector<TetrisNodeWithTSpinType> const *search(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
+        std::vector<TetrisNodeWithTSpinType> const *search(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node, size_t depth);
     private:
         std::vector<TetrisNodeWithTSpinType> const *search_t(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
         bool check_ready(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);

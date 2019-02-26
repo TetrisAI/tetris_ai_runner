@@ -25,7 +25,7 @@ namespace ai_easy
         {
             return config_->eval_func(node, map, src_map, clear);
         }
-        double get(double const &eval_result) const
+        double get(m_tetris::TetrisNode const *node, double const &eval_result) const
         {
             return eval_result;
         }

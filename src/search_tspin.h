@@ -16,6 +16,7 @@ namespace search_tspin
         struct Config
         {
             bool allow_180;
+            bool last_rotate;
         };
         struct TetrisNodeWithTSpinType
         {
@@ -49,12 +50,16 @@ namespace search_tspin
             {
                 return node;
             }
+            bool operator == (TetrisNodeWithTSpinType const &other)
+            {
+                return node == other.node && last == other.last && type == other.type && flags == other.flags;
+            }
         };
         void init(m_tetris::TetrisContext const *context, Config const *config);
         std::vector<char> make_path(m_tetris::TetrisNode const *node, TetrisNodeWithTSpinType const &land_point, m_tetris::TetrisMap const &map);
-        std::vector<TetrisNodeWithTSpinType> const *search(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
+        std::vector<TetrisNodeWithTSpinType> const *search(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node, size_t depth);
     private:
-        std::vector<TetrisNodeWithTSpinType> const *search_t(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
+        std::vector<TetrisNodeWithTSpinType> const *search_t(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node, size_t depth);
         bool check_ready(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
         bool check_mini_ready(m_tetris::TetrisMapSnap const &snap, TetrisNodeWithTSpinType const &node);
         std::vector<TetrisNodeWithTSpinType> land_point_cache_;

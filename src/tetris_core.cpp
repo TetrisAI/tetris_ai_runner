@@ -268,12 +268,14 @@ namespace m_tetris
 
     std::pair<TetrisNode const *, char> TetrisNodeMark::get(size_t index)
     {
-        return data_[index].data;
+        Mark &mark = data_[index];
+        return mark.version == version_ ? mark.data : std::pair<TetrisNode const *, char>{ nullptr, ' ' };
     }
 
     std::pair<TetrisNode const *, char> TetrisNodeMark::get(TetrisNode const *key)
     {
-        return data_[key->index].data;
+        Mark &mark = data_[key->index];
+        return mark.version == version_ ? mark.data : std::pair<TetrisNode const *, char>{ nullptr, ' ' };
     }
 
     bool TetrisNodeMark::set(TetrisNode const *key, TetrisNode const *node, char op)
@@ -289,15 +291,15 @@ namespace m_tetris
         return true;
     }
 
-    bool TetrisNodeMark::cover(TetrisNode const *key, TetrisNode const *node, char op)
+    bool TetrisNodeMark::cover_if(TetrisNode const *key, TetrisNode const *node, char ck, char op)
     {
         Mark &mark = data_[key->index];
-        mark.data.first = node;
-        mark.data.second = op;
-        if(mark.version == version_)
+        if (mark.version == version_ && mark.data.second != ck)
         {
             return false;
         }
+        mark.data.first = node;
+        mark.data.second = op;
         mark.version = version_;
         return true;
     }
@@ -333,12 +335,14 @@ namespace m_tetris
 
     std::pair<TetrisNode const *, char> TetrisNodeMarkFiltered::get(size_t index)
     {
-        return data_[index].data;
+        Mark &mark = data_[index];
+        return mark.version == version_ ? mark.data : std::pair<TetrisNode const *, char>{ nullptr, ' ' };
     }
 
     std::pair<TetrisNode const *, char> TetrisNodeMarkFiltered::get(TetrisNode const *key)
     {
-        return data_[key->index_filtered].data;
+        Mark &mark = data_[key->index_filtered];
+        return mark.version == version_ ? mark.data : std::pair<TetrisNode const *, char>{ nullptr, ' ' };
     }
 
     bool TetrisNodeMarkFiltered::set(TetrisNode const *key, TetrisNode const *node, char op)
@@ -354,15 +358,15 @@ namespace m_tetris
         return true;
     }
 
-    bool TetrisNodeMarkFiltered::cover(TetrisNode const *key, TetrisNode const *node, char op)
+    bool TetrisNodeMarkFiltered::cover_if(TetrisNode const *key, TetrisNode const *node, char ck, char op)
     {
         Mark &mark = data_[key->index_filtered];
-        mark.data.first = node;
-        mark.data.second = op;
-        if(mark.version == version_)
+        if (mark.version == version_ && mark.data.second != ck)
         {
             return false;
         }
+        mark.data.first = node;
+        mark.data.second = op;
         mark.version = version_;
         return true;
     }
