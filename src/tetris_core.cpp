@@ -602,7 +602,7 @@ namespace m_tetris
 /**//**//**//**/{\
 /**//**//**//**//**/if(node.rotate_##func != nullptr)\
 /**//**//**//**//**/{\
-/**//**//**//**//**//**/node.wall_kick_##func[wall_kick_index++] = node.rotate_##func;\
+/**//**//**//**//**//**/++wall_kick_index;\
 /**//**//**//**//**/}\
 /**//**//**//**//**/TetrisNode copy = *generate(node.status.t);\
 /**//**//**//**//**/node.op.rotate_##func(copy, this);\

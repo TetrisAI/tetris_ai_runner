@@ -203,21 +203,30 @@ namespace m_tetris
         //对应操作所造成的数据改变全都预置好,不需要再计算
         //如果为空,表示已经到达场景边界或者不支持该操作
 
-        TetrisNode const *rotate_clockwise;
-        TetrisNode const *rotate_counterclockwise;
-        TetrisNode const *rotate_opposite;
         TetrisNode const *move_left;
         TetrisNode const *move_right;
         TetrisNode const *move_down;
         TetrisNode const *move_up;
-        TetrisNode const *move_down_multi[max_height];
 
         //踢墙序列,依次尝试
         //遇到nullptr,表示序列结束
+        union
+        {
+            TetrisNode const *rotate_clockwise;
+            TetrisNode const *wall_kick_clockwise[max_wall_kick];
+        };
+        union
+        {
+            TetrisNode const *rotate_counterclockwise;
+            TetrisNode const *wall_kick_counterclockwise[max_wall_kick];
+        };
+        union
+        {
+            TetrisNode const *rotate_opposite;
+            TetrisNode const *wall_kick_opposite[max_wall_kick];
+        };
 
-        TetrisNode const *wall_kick_clockwise[max_wall_kick];
-        TetrisNode const *wall_kick_counterclockwise[max_wall_kick];
-        TetrisNode const *wall_kick_opposite[max_wall_kick];
+        TetrisNode const *move_down_multi[max_height];
 
         //上下文...这个需要解释么?
         TetrisContext const *context;

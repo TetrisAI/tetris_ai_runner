@@ -181,9 +181,10 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     srs_ai.status()->value = 0;
     m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
     m_tetris::TetrisNode const *node = srs_ai.get(status);
+    static double const base_time = std::pow(100, 1.0 / 8);
     if(canhold)
     {
-        auto run_result = srs_ai.run_hold(map, node, hold, curCanHold, next, maxDepth, level * 8 + 1);
+        auto run_result = srs_ai.run_hold(map, node, hold, curCanHold, next, maxDepth, time_t(std::pow(base_time, level)));
         if(run_result.change_hold)
         {
             result++[0] = 'v';
@@ -208,7 +209,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     }
     else
     {
-        auto target = srs_ai.run(map, node, next, maxDepth, level * 8 + 1).target;
+        auto target = srs_ai.run(map, node, next, maxDepth, time_t(std::pow(base_time, level))).target;
         if(target != nullptr)
         {
             std::vector<char> ai_path = srs_ai.make_path(node, target, map);
