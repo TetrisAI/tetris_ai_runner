@@ -60,16 +60,16 @@ extern "C" DECLSPEC_EXPORT char const *WINAPI Name()
  */
 extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char const *nextPiece, char path[])
 {
-    if(!tetris_ai.prepare(boardW, boardH))
+    if (!tetris_ai.prepare(boardW, boardH))
     {
         return 0;
     }
     m_tetris::TetrisMap map(boardW, boardH);
-    for(int y = 0, add = 0; y < boardH; ++y, add += boardW)
+    for (int y = 0, add = 0; y < boardH; ++y, add += boardW)
     {
-        for(int x = 0; x < boardW; ++x)
+        for (int x = 0; x < boardW; ++x)
         {
-            if(board[x + add] == '1')
+            if (board[x + add] == '1')
             {
                 map.top[x] = map.roof = y + 1;
                 map.row[y] |= 1 << x;
@@ -81,7 +81,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     std::string next(nextPiece);
     m_tetris::TetrisNode const *node = tetris_ai.get(status);
     auto target = tetris_ai.run(map, node, next.data(), next.size(), 49).target;
-    if(target != nullptr)
+    if (target != nullptr)
     {
         std::vector<char> ai_path = tetris_ai.make_path(node, target, map);
         std::memcpy(path, ai_path.data(), ai_path.size());
@@ -128,25 +128,25 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     static char result_buffer[8][1024];
     char *result = result_buffer[player];
 
-    if(field_w != 10 || field_h != 22 || !srs_ai.prepare(10, 40))
+    if (field_w != 10 || field_h != 22 || !srs_ai.prepare(10, 40))
     {
         *result = '\0';
         return result;
     }
     m_tetris::TetrisMap map(10, 40);
-    for(size_t d = 0, s = 22; d < 23; ++d, --s)
+    for (size_t d = 0, s = 22; d < 23; ++d, --s)
     {
         map.row[d] = field[s];
     }
-    for(size_t d = 23, s = 0; s < 8; ++d, ++s)
+    for (size_t d = 23, s = 0; s < 8; ++d, ++s)
     {
         map.row[d] = overfield[s];
     }
-    for(int my = 0; my < map.height; ++my)
+    for (int my = 0; my < map.height; ++my)
     {
-        for(int mx = 0; mx < map.width; ++mx)
+        for (int mx = 0; mx < map.width; ++mx)
         {
-            if(map.full(mx, my))
+            if (map.full(mx, my))
             {
                 map.top[mx] = map.roof = my + 1;
                 map.row[my] |= 1 << mx;
@@ -166,14 +166,12 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     srs_ai.ai_config()->table_max = [comboTable]()->size_t
     {
         size_t max = 0;
-        while(comboTable[max++] != -1)
+        while (comboTable[max++] != -1)
             ;
         return max - 1;
     }();
-    srs_ai.status()->total_attack = combo;
     srs_ai.status()->death = 0;
     srs_ai.status()->combo = combo;
-    srs_ai.status()->attack = 0;
     srs_ai.status()->under_attack = upcomeAtt;
     srs_ai.status()->map_rise = 0;
     srs_ai.status()->b2b = !!b2b;
@@ -182,13 +180,13 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
     m_tetris::TetrisNode const *node = srs_ai.get(status);
     static double const base_time = std::pow(100, 1.0 / 8);
-    if(canhold)
+    if (canhold)
     {
         auto run_result = srs_ai.run_hold(map, node, hold, curCanHold, next, maxDepth, time_t(std::pow(base_time, level)));
-        if(run_result.change_hold)
+        if (run_result.change_hold)
         {
             result++[0] = 'v';
-            if(run_result.target != nullptr)
+            if (run_result.target != nullptr)
             {
                 std::vector<char> ai_path = srs_ai.make_path(srs_ai.context()->generate(run_result.target->status.t), run_result.target, map);
                 std::memcpy(result, ai_path.data(), ai_path.size());
@@ -198,7 +196,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
         }
         else
         {
-            if(run_result.target != nullptr)
+            if (run_result.target != nullptr)
             {
                 std::vector<char> ai_path = srs_ai.make_path(node, run_result.target, map);
                 std::memcpy(result, ai_path.data(), ai_path.size());
@@ -210,7 +208,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     else
     {
         auto target = srs_ai.run(map, node, next, maxDepth, time_t(std::pow(base_time, level))).target;
-        if(target != nullptr)
+        if (target != nullptr)
         {
             std::vector<char> ai_path = srs_ai.make_path(node, target, map);
             std::memcpy(result, ai_path.data(), ai_path.size());
@@ -239,7 +237,7 @@ public:
     }
     std::vector<char> make_path(m_tetris::TetrisNode const *node, m_tetris::TetrisNode const *land_point, m_tetris::TetrisMap const &map)
     {
-        switch(*config_ptr)
+        switch (*config_ptr)
         {
         case Simple:
             return simple_.make_path(node, land_point, map);
@@ -253,7 +251,7 @@ public:
     }
     std::vector<m_tetris::TetrisNode const *> const *search(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node, size_t depth)
     {
-        switch(*config_ptr)
+        switch (*config_ptr)
         {
         case Simple:
             return simple_.search(map, node, depth);
@@ -278,18 +276,18 @@ m_tetris::TetrisEngine<rule_qq::TetrisRule, ai_zzz::qq::Attack, QQTetrisSearch> 
 
 extern "C" DECLSPEC_EXPORT int __cdecl QQTetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int level, int mode, char path[], size_t limit)
 {
-    if(!qq_ai.prepare(boardW, boardH))
+    if (!qq_ai.prepare(boardW, boardH))
     {
         *path = '\0';
         return 0;
     }
     m_tetris::TetrisMap map(boardW, boardH);
     std::memcpy(map.row, board, boardH * sizeof(int));
-    for(int my = 0; my < map.height; ++my)
+    for (int my = 0; my < map.height; ++my)
     {
-        for(int mx = 0; mx < map.width; ++mx)
+        for (int mx = 0; mx < map.width; ++mx)
         {
-            if(map.full(mx, my))
+            if (map.full(mx, my))
             {
                 map.top[mx] = map.roof = my + 1;
                 map.row[my] |= 1 << mx;
@@ -299,26 +297,26 @@ extern "C" DECLSPEC_EXPORT int __cdecl QQTetrisAI(int boardW, int boardH, int bo
     }
     m_tetris::TetrisBlockStatus status(nextPiece[0], curX, curY, (4 - curR) % 4);
     size_t next_length = std::strlen(nextPiece) - 1;
-    if(level < 10)
+    if (level < 10)
     {
         next_length = std::min<size_t>(level, next_length);
     }
     std::string next_str(nextPiece + 1, nextPiece + 1 + next_length);
-    if(next_length <= 2)
+    if (next_length <= 2)
     {
         std::string next_new = "?";
-        for(auto c : next_str)
+        for (auto c : next_str)
         {
             next_new += c;
             next_new += '?';
         }
         next_str.swap(next_new);
     }
-    if(level == 10)
+    if (level == 10)
     {
         *qq_ai.search_config() = QQTetrisSearch::Path;
     }
-    else if(mode == 0 || map.count <= boardW * 2)
+    else if (mode == 0 || map.count <= boardW * 2)
     {
         *qq_ai.search_config() = QQTetrisSearch::Simulate;
     }
@@ -333,14 +331,14 @@ extern "C" DECLSPEC_EXPORT int __cdecl QQTetrisAI(int boardW, int boardH, int bo
     qq_ai.status()->rubbish = 0;
     qq_ai.status()->value = 0;
     m_tetris::TetrisNode const *node = qq_ai.get(status);
-    while(node == nullptr && status.y > 0)
+    while (node == nullptr && status.y > 0)
     {
         --status.y;
         node = qq_ai.get(status);
     }
     auto target = qq_ai.run(map, node, next_str.data(), next_str.length(), 60).target;
     std::vector<char> ai_path;
-    if(target != nullptr)
+    if (target != nullptr)
     {
         ai_path = qq_ai.make_path(node, target, map);
         std::memcpy(path, ai_path.data(), ai_path.size());
@@ -395,18 +393,18 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
     int const &mode = param->mode;
     int const &vp = param->vp;
     int const &soft_drop = param->soft_drop;
-    if(!c2_ai.prepare(boardW, boardH))
+    if (!c2_ai.prepare(boardW, boardH))
     {
-        path[0] = {'\0'};
+        path[0] = { '\0' };
         return 0;
     }
     m_tetris::TetrisMap map(boardW, boardH);
     std::memcpy(map.row, board, boardH * sizeof(int));
-    for(int my = 0; my < map.height; ++my)
+    for (int my = 0; my < map.height; ++my)
     {
-        for(int mx = 0; mx < map.width; ++mx)
+        for (int mx = 0; mx < map.width; ++mx)
         {
-            if(map.full(mx, my))
+            if (map.full(mx, my))
             {
                 map.top[mx] = map.roof = my + 1;
                 map.row[my] |= 1 << mx;
@@ -437,14 +435,14 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
     m_tetris::TetrisBlockStatus status(nextPiece[0], curX, curY, curR);
     size_t next_length = nextPiece[1] == ' ' ? 0 : 1;
     std::string next;
-    if(vp)
+    if (vp)
     {
         next += '?';
     }
-    for(char const *n = nextPiece + 1, *const ne = nextPiece + 1 + next_length; n != ne; ++n)
+    for (char const *n = nextPiece + 1, *const ne = nextPiece + 1 + next_length; n != ne; ++n)
     {
         next += *n;
-        if(vp)
+        if (vp)
         {
             next += '?';
         }
@@ -453,22 +451,22 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
     auto target = c2_ai.run(map, node, next.data(), next.size(), limit).target;
     std::vector<char> ai_path;
     size_t size = 0;
-    if(target != nullptr)
+    if (target != nullptr)
     {
         ai_path = c2_ai.make_path(node, target, map);
         node->open(map);
-        for(char c : ai_path)
+        for (char c : ai_path)
         {
-            switch(c)
+            switch (c)
             {
             case 'L':
-                while(node->move_left != nullptr && node->move_left->check(map))
+                while (node->move_left != nullptr && node->move_left->check(map))
                 {
                     node = node->move_left;
                 }
                 break;
             case 'R':
-                while(node->move_right != nullptr && node->move_right->check(map))
+                while (node->move_right != nullptr && node->move_right->check(map))
                 {
                     node = node->move_right;
                 }
@@ -477,24 +475,24 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
                 node = node->drop(map);
                 break;
             case 'l':
-                if(node->move_left != nullptr && node->move_left->check(map))
+                if (node->move_left != nullptr && node->move_left->check(map))
                 {
                     node = node->move_left;
                 }
                 break;
             case 'r':
-                if(node->move_right != nullptr && node->move_right->check(map))
+                if (node->move_right != nullptr && node->move_right->check(map))
                 {
                     node = node->move_right;
                 }
                 break;
 
             case 'z':
-                for(auto wall_kick_node : node->wall_kick_counterclockwise)
+                for (auto wall_kick_node : node->wall_kick_counterclockwise)
                 {
-                    if(wall_kick_node)
+                    if (wall_kick_node)
                     {
-                        if(wall_kick_node->check(map))
+                        if (wall_kick_node->check(map))
                         {
                             node = wall_kick_node;
                             break;
@@ -507,11 +505,11 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
                 }
                 break;
             case 'x':
-                for(auto wall_kick_node : node->wall_kick_opposite)
+                for (auto wall_kick_node : node->wall_kick_opposite)
                 {
-                    if(wall_kick_node)
+                    if (wall_kick_node)
                     {
-                        if(wall_kick_node->check(map))
+                        if (wall_kick_node->check(map))
                         {
                             node = wall_kick_node;
                             break;
@@ -524,11 +522,11 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
                 }
                 break;
             case 'c':
-                for(auto wall_kick_node : node->wall_kick_clockwise)
+                for (auto wall_kick_node : node->wall_kick_clockwise)
                 {
-                    if(wall_kick_node)
+                    if (wall_kick_node)
                     {
-                        if(wall_kick_node->check(map))
+                        if (wall_kick_node->check(map))
                         {
                             node = wall_kick_node;
                             break;
@@ -543,18 +541,18 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
             default:
                 break;
             }
-            path[size++] = {c, node->status.x, node->status.y, node->status.r};
+            path[size++] = { c, node->status.x, node->status.y, node->status.r };
         }
     }
-    if(size == 0)
+    if (size == 0)
     {
-        path[size++] = {'V', int8_t(curX), int8_t(curY), uint8_t(curR)};
+        path[size++] = { 'V', int8_t(curX), int8_t(curY), uint8_t(curR) };
     }
     else
     {
         path[size] = path[size - 1];
         path[size++].move = 'V';
     }
-    path[size++] = {'\0'};
+    path[size++] = { '\0' };
     return target == nullptr ? 0 : target->attach(map);
 }

@@ -67,24 +67,24 @@ namespace ai_zzz
             check_line_1_end_ = check_line_1_;
             check_line_2_end_ = check_line_2_;
             const int full = context->full();
-            for(int x = 0; x < context->width(); ++x)
+            for (int x = 0; x < context->width(); ++x)
             {
                 *check_line_1_end_++ = full & ~(1 << x);
             }
-            for(int x = 0; x < context->width() - 1; ++x)
+            for (int x = 0; x < context->width() - 1; ++x)
             {
                 *check_line_2_end_++ = full & ~(3 << x);
             }
             std::sort(check_line_1_, check_line_1_end_);
             std::sort(check_line_2_, check_line_2_end_);
             map_danger_data_.resize(context->type_max());
-            for(size_t i = 0; i < context->type_max(); ++i)
+            for (size_t i = 0; i < context->type_max(); ++i)
             {
                 TetrisMap map(context->width(), context->height());
                 TetrisNode const *node = context->generate(i);
                 node->attach(map);
                 std::memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
-                for(int y = 0; y < 3; ++y)
+                for (int y = 0; y < 3; ++y)
                 {
                     map_danger_data_[i].data[y + 1] |= map_danger_data_[i].data[y];
                 }
@@ -105,7 +105,7 @@ namespace ai_zzz
             double EraseCount = clear;
             double DeadZone = node->row + node->height == map.height ? 500000. : 0;
             double BoardDeadZone = map_in_danger_(map);
-            if(map.roof == map.height)
+            if (map.roof == map.height)
             {
                 BoardDeadZone += 70;
             }
@@ -113,18 +113,18 @@ namespace ai_zzz
             const int width_m1 = map.width - 1;
             int ColTrans = 2 * (map.height - map.roof);
             int RowTrans = map.roof == map.height ? 0 : map.width;
-            for(int y = 0; y < map.roof; ++y)
+            for (int y = 0; y < map.roof; ++y)
             {
-                if(!map.full(0, y))
+                if (!map.full(0, y))
                 {
                     ++ColTrans;
                 }
-                if(!map.full(width_m1, y))
+                if (!map.full(width_m1, y))
                 {
                     ++ColTrans;
                 }
                 ColTrans += BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
-                if(y != 0)
+                if (y != 0)
                 {
                     RowTrans += BitCount(map.row[y - 1] ^ map.row[y]);
                 }
@@ -152,23 +152,23 @@ namespace ai_zzz
             } v;
             std::memset(&v, 0, sizeof v);
 
-            for(int y = map.roof - 1; y >= 0; --y)
+            for (int y = map.roof - 1; y >= 0; --y)
             {
                 v.LineCoverBits |= map.row[y];
                 int LineHole = v.LineCoverBits ^ map.row[y];
-                if(LineHole != 0)
+                if (LineHole != 0)
                 {
                     v.HoleCount += BitCount(LineHole);
                     v.HoleLine++;
-                    if(v.HolePosy == 0)
+                    if (v.HolePosy == 0)
                     {
                         v.HolePosy = y + 1;
                         v.TopHoleBits = LineHole;
                     }
                 }
-                for(int x = 1; x < width_m1; ++x)
+                for (int x = 1; x < width_m1; ++x)
                 {
-                    if((LineHole >> x) & 1)
+                    if ((LineHole >> x) & 1)
                     {
                         v.HoleDepth += ++v.HoleNum[x];
                     }
@@ -176,12 +176,12 @@ namespace ai_zzz
                     {
                         v.HoleNum[x] = 0;
                     }
-                    if(((v.LineCoverBits >> (x - 1)) & 7) == 5)
+                    if (((v.LineCoverBits >> (x - 1)) & 7) == 5)
                     {
                         v.WellDepth += ++v.WellNum[x];
                     }
                 }
-                if(LineHole & 1)
+                if (LineHole & 1)
                 {
                     v.HoleDepth += ++v.HoleNum[0];
                 }
@@ -189,11 +189,11 @@ namespace ai_zzz
                 {
                     v.HoleNum[0] = 0;
                 }
-                if((v.LineCoverBits & 3) == 2)
+                if ((v.LineCoverBits & 3) == 2)
                 {
                     v.WellDepth += ++v.WellNum[0];
                 }
-                if((LineHole >> width_m1) & 1)
+                if ((LineHole >> width_m1) & 1)
                 {
                     v.HoleDepth += ++v.HoleNum[width_m1];
                 }
@@ -201,17 +201,17 @@ namespace ai_zzz
                 {
                     v.HoleNum[width_m1] = 0;
                 }
-                if(((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
+                if (((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
                 {
                     v.WellDepth += ++v.WellNum[width_m1];
                 }
             }
-            if(v.HolePosy != 0)
+            if (v.HolePosy != 0)
             {
-                for(int y = v.HolePosy; y < map.roof; ++y)
+                for (int y = v.HolePosy; y < map.roof; ++y)
                 {
                     int CheckLine = v.TopHoleBits & map.row[y];
-                    if(CheckLine == 0)
+                    if (CheckLine == 0)
                     {
                         break;
                     }
@@ -219,21 +219,21 @@ namespace ai_zzz
                 }
             }
             int low_x;
-            if((config_->mode & 1) == 0)
+            if ((config_->mode & 1) == 0)
             {
                 low_x = 1;
-                for(int x = 2; x < width_m1; ++x)
+                for (int x = 2; x < width_m1; ++x)
                 {
-                    if(map.top[x] < map.top[low_x])
+                    if (map.top[x] < map.top[low_x])
                     {
                         low_x = x;
                     }
                 }
-                if(map.top[0] < map.top[low_x])
+                if (map.top[0] < map.top[low_x])
                 {
                     low_x = 0;
                 }
-                if(map.top[width_m1] < map.top[low_x])
+                if (map.top[width_m1] < map.top[low_x])
                 {
                     low_x = width_m1;
                 }
@@ -241,17 +241,17 @@ namespace ai_zzz
             else
             {
                 low_x = (map.top[width_m1 - 3] <= map.top[width_m1 - 4]) ? width_m1 - 3 : width_m1 - 4;
-                if(map.top[width_m1 - 2] <= map.top[low_x])
+                if (map.top[width_m1 - 2] <= map.top[low_x])
                 {
                     low_x = width_m1 - 2;
                 }
             }
             int low_y = map.top[low_x];
-            for(int y = map.roof - 1; y >= low_y; --y)
+            for (int y = map.roof - 1; y >= low_y; --y)
             {
-                if(std::binary_search<uint32_t const *>(check_line_1_, check_line_1_end_, map.row[y]))
+                if (std::binary_search<uint32_t const *>(check_line_1_, check_line_1_end_, map.row[y]))
                 {
-                    if(y + 1 < map.height && std::binary_search<uint32_t const *>(check_line_2_, check_line_2_end_, map.row[y + 1]))
+                    if (y + 1 < map.height && std::binary_search<uint32_t const *>(check_line_2_, check_line_2_end_, map.row[y + 1]))
                     {
                         v.AttackDepth += 20;
                     }
@@ -259,9 +259,9 @@ namespace ai_zzz
                     {
                         v.AttackDepth += 16;
                     }
-                    for(--y; y >= low_y; --y)
+                    for (--y; y >= low_y; --y)
                     {
-                        if(std::binary_search<uint32_t const *>(check_line_1_, check_line_1_end_, map.row[y]))
+                        if (std::binary_search<uint32_t const *>(check_line_1_, check_line_1_end_, map.row[y]))
                         {
                             v.AttackDepth += 3;
                         }
@@ -278,29 +278,29 @@ namespace ai_zzz
                 }
             }
             v.Danger = 5 - std::min(map.height - low_y, 5);
-            if(v.Danger > 0 && v.AttackDepth < 20)
+            if (v.Danger > 0 && v.AttackDepth < 20)
             {
                 v.AttackDepth = 0;
             }
 
             Result result;
             result.land_point = (0.
-                                 - LandHeight * 16
-                                 + Middle  * 0.2
-                                 + EraseCount * 6
-                                 - DeadZone
-                                 - BoardDeadZone * 500000
-                                 );
+                - LandHeight * 16
+                + Middle * 0.2
+                + EraseCount * 6
+                - DeadZone
+                - BoardDeadZone * 500000
+                );
             result.map = (0.
-                          - ColTrans * 32
-                          - RowTrans * 32
-                          - v.HoleCount * 400
-                          - v.HoleLine * 38
-                          - v.WellDepth * 16
-                          - v.HoleDepth * 4
-                          - v.HolePiece * 2
-                          + v.AttackDepth * 100
-                          );
+                - ColTrans * 32
+                - RowTrans * 32
+                - v.HoleCount * 400
+                - v.HoleLine * 38
+                - v.WellDepth * 16
+                - v.HoleDepth * 4
+                - v.HolePiece * 2
+                + v.AttackDepth * 100
+                );
             result.clear = clear;
             result.danger = v.Danger;
             return result;
@@ -312,7 +312,7 @@ namespace ai_zzz
             Status result = status;
             result.land_point += eval_result.land_point;
             double length_rate = 10. / depth;
-            switch(eval_result.clear)
+            switch (eval_result.clear)
             {
             case 0:
                 break;
@@ -321,7 +321,7 @@ namespace ai_zzz
                 result.rubbish += eval_result.clear;
                 break;
             case 3:
-                if(config_->mode != 0)
+                if (config_->mode != 0)
                 {
                     result.attack += 12;
                     break;
@@ -331,20 +331,20 @@ namespace ai_zzz
                 break;
             }
             result.value = (0.
-                            + result.land_point / depth
-                            + eval_result.map
-                            - result.rubbish * (eval_result.danger > 0 ? -100 : 640)
-                            + result.attack * 100
-                            );
+                + result.land_point / depth
+                + eval_result.map
+                - result.rubbish * (eval_result.danger > 0 ? -100 : 640)
+                + result.attack * 100
+                );
             return result;
         }
 
         size_t Attack::map_in_danger_(m_tetris::TetrisMap const &map) const
         {
             size_t danger = 0;
-            for(size_t i = 0; i < context_->type_max(); ++i)
+            for (size_t i = 0; i < context_->type_max(); ++i)
             {
-                if(map_danger_data_[i].data[0] & map.row[map.height - 4] || map_danger_data_[i].data[1] & map.row[map.height - 3] || map_danger_data_[i].data[2] & map.row[map.height - 2] || map_danger_data_[i].data[3] & map.row[map.height - 1])
+                if (map_danger_data_[i].data[0] & map.row[map.height - 4] || map_danger_data_[i].data[1] & map.row[map.height - 3] || map_danger_data_[i].data[2] & map.row[map.height - 2] || map_danger_data_[i].data[3] & map.row[map.height - 1])
                 {
                     ++danger;
                 }
@@ -352,18 +352,18 @@ namespace ai_zzz
             return danger;
         }
     }
-    
+
     void Dig::init(m_tetris::TetrisContext const *context, Config const *config)
     {
         context_ = context;
         map_danger_data_.resize(context->type_max());
-        for(size_t i = 0; i < context->type_max(); ++i)
+        for (size_t i = 0; i < context->type_max(); ++i)
         {
             TetrisMap map(context->width(), context->height());
             TetrisNode const *node = context->generate(i);
             node->attach(map);
             std::memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
-            for(int y = 0; y < 3; ++y)
+            for (int y = 0; y < 3; ++y)
             {
                 map_danger_data_[i].data[y + 1] |= map_danger_data_[i].data[y];
             }
@@ -383,18 +383,18 @@ namespace ai_zzz
         const int width_m1 = map.width - 1;
         size_t ColTrans = 2 * (map.height - map.roof);
         size_t RowTrans = zzz::BitCount(row_mask_ ^ map.row[0]) + zzz::BitCount(map.roof == map.height ? ~row_mask_ & map.row[map.roof - 1] : map.row[map.roof - 1]);
-        for(int y = 0; y < map.roof; ++y)
+        for (int y = 0; y < map.roof; ++y)
         {
-            if(!map.full(0, y))
+            if (!map.full(0, y))
             {
                 ++ColTrans;
             }
-            if(!map.full(width_m1, y))
+            if (!map.full(width_m1, y))
             {
                 ++ColTrans;
             }
             ColTrans += zzz::BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
-            if(y != 0)
+            if (y != 0)
             {
                 RowTrans += zzz::BitCount(map.row[y - 1] ^ map.row[y]);
             }
@@ -419,19 +419,19 @@ namespace ai_zzz
             double ClearWidth;
         } a[40];
 
-        for(int y = map.roof - 1; y >= 0; --y)
+        for (int y = map.roof - 1; y >= 0; --y)
         {
             v.LineCoverBits |= map.row[y];
             int LineHole = v.LineCoverBits ^ map.row[y];
-            if(LineHole != 0)
+            if (LineHole != 0)
             {
                 v.HoleCount += BitCount(LineHole);
                 ++v.HoleLine;
                 a[v.HolePosyIndex].ClearWidth = 0;
-                for(int hy = y + 1; hy < map.roof; ++hy)
+                for (int hy = y + 1; hy < map.roof; ++hy)
                 {
                     uint32_t CheckLine = LineHole & map.row[hy];
-                    if(CheckLine == 0)
+                    if (CheckLine == 0)
                     {
                         break;
                     }
@@ -439,9 +439,9 @@ namespace ai_zzz
                 }
                 ++v.HolePosyIndex;
             }
-            for(int x = 1; x < width_m1; ++x)
+            for (int x = 1; x < width_m1; ++x)
             {
-                if((LineHole >> x) & 1)
+                if ((LineHole >> x) & 1)
                 {
                     v.HoleDepth += (++v.HoleNum[x] + config_->p[4]) * config_->p[5];
                 }
@@ -449,12 +449,12 @@ namespace ai_zzz
                 {
                     v.HoleNum[x] = 0;
                 }
-                if(((v.LineCoverBits >> (x - 1)) & 7) == 5)
+                if (((v.LineCoverBits >> (x - 1)) & 7) == 5)
                 {
                     v.WellDepth += (++v.WellNum[x] + config_->p[2]) * config_->p[3];
                 }
             }
-            if(LineHole & 1)
+            if (LineHole & 1)
             {
                 v.HoleDepth += (++v.HoleNum[0] + config_->p[4]) * config_->p[5];
             }
@@ -462,11 +462,11 @@ namespace ai_zzz
             {
                 v.HoleNum[0] = 0;
             }
-            if((v.LineCoverBits & 3) == 2)
+            if ((v.LineCoverBits & 3) == 2)
             {
                 v.WellDepth += (++v.WellNum[0] + config_->p[2]) * config_->p[3];
             }
-            if((LineHole >> width_m1) & 1)
+            if ((LineHole >> width_m1) & 1)
             {
                 v.HoleDepth += (++v.HoleNum[width_m1] + config_->p[4]) * config_->p[5];
             }
@@ -474,7 +474,7 @@ namespace ai_zzz
             {
                 v.HoleNum[width_m1] = 0;
             }
-            if(((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
+            if (((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
             {
                 v.WellDepth += (++v.WellNum[width_m1] + config_->p[2]) * config_->p[3];
             }
@@ -483,17 +483,17 @@ namespace ai_zzz
         size_t BoardDeadZone = map_in_danger_(map);
 
         double value = (0.
-                        - (map.roof      + config_->p[ 6]) * config_->p[ 7]
-                        - (ColTrans      + config_->p[ 8]) * config_->p[ 9]
-                        - (RowTrans      + config_->p[10]) * config_->p[11]
-                        - (v.HoleCount   + config_->p[12]) * config_->p[13]
-                        - (v.HoleLine    + config_->p[14]) * config_->p[15]
-                        - (v.WellDepth   + config_->p[16]) * config_->p[17]
-                        - (v.HoleDepth   + config_->p[18]) * config_->p[19]
-                        - (BoardDeadZone + config_->p[20]) * config_->p[21]
-                        );
+            - (map.roof      + config_->p[ 6]) * config_->p[ 7]
+            - (ColTrans      + config_->p[ 8]) * config_->p[ 9]
+            - (RowTrans      + config_->p[10]) * config_->p[11]
+            - (v.HoleCount   + config_->p[12]) * config_->p[13]
+            - (v.HoleLine    + config_->p[14]) * config_->p[15]
+            - (v.WellDepth   + config_->p[16]) * config_->p[17]
+            - (v.HoleDepth   + config_->p[18]) * config_->p[19]
+            - (BoardDeadZone + config_->p[20]) * config_->p[21]
+            );
         double rate = config_->p[22], mul = config_->p[23];
-        for(int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
+        for (int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
         {
             value -= a[i].ClearWidth * rate;
         }
@@ -508,9 +508,9 @@ namespace ai_zzz
     size_t Dig::map_in_danger_(m_tetris::TetrisMap const &map) const
     {
         size_t danger = 0;
-        for(size_t i = 0; i < context_->type_max(); ++i)
+        for (size_t i = 0; i < context_->type_max(); ++i)
         {
-            if(map_danger_data_[i].data[0] & map.row[map.height - 4] || map_danger_data_[i].data[1] & map.row[map.height - 3] || map_danger_data_[i].data[2] & map.row[map.height - 2] || map_danger_data_[i].data[3] & map.row[map.height - 1])
+            if (map_danger_data_[i].data[0] & map.row[map.height - 4] || map_danger_data_[i].data[1] & map.row[map.height - 3] || map_danger_data_[i].data[2] & map.row[map.height - 2] || map_danger_data_[i].data[3] & map.row[map.height - 1])
             {
                 ++danger;
             }
@@ -530,13 +530,13 @@ namespace ai_zzz
         col_mask_ = context->full() & ~1;
         row_mask_ = context->full();
         map_danger_data_.resize(context->type_max());
-        for(size_t i = 0; i < context->type_max(); ++i)
+        for (size_t i = 0; i < context->type_max(); ++i)
         {
             TetrisMap map(context->width(), context->height());
             TetrisNode const *node = context->generate(i);
             node->attach(map);
             std::memcpy(map_danger_data_[i].data, &map.row[18], sizeof map_danger_data_[i].data);
-            for(int y = 0; y < 3; ++y)
+            for (int y = 0; y < 3; ++y)
             {
                 map_danger_data_[i].data[y + 1] |= map_danger_data_[i].data[y];
             }
@@ -553,18 +553,18 @@ namespace ai_zzz
         const int width_m1 = map.width - 1;
         size_t ColTrans = 2 * (map.height - map.roof);
         size_t RowTrans = map.roof == map.height ? 0 : map.width;
-        for(int y = 0; y < map.roof; ++y)
+        for (int y = 0; y < map.roof; ++y)
         {
-            if(!map.full(0, y))
+            if (!map.full(0, y))
             {
                 ++ColTrans;
             }
-            if(!map.full(width_m1, y))
+            if (!map.full(width_m1, y))
             {
                 ++ColTrans;
             }
             ColTrans += zzz::BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
-            if(y != 0)
+            if (y != 0)
             {
                 RowTrans += zzz::BitCount(map.row[y - 1] ^ map.row[y]);
             }
@@ -591,19 +591,19 @@ namespace ai_zzz
             double ClearWidth;
         } a[40];
 
-        for(int y = map.roof - 1; y >= 0; --y)
+        for (int y = map.roof - 1; y >= 0; --y)
         {
             v.LineCoverBits |= map.row[y];
             int LineHole = v.LineCoverBits ^ map.row[y];
-            if(LineHole != 0)
+            if (LineHole != 0)
             {
                 v.HoleCount += BitCount(LineHole);
                 ++v.HoleLine;
                 a[v.HolePosyIndex].ClearWidth = 0;
-                for(int hy = y + 1; hy < map.roof; ++hy)
+                for (int hy = y + 1; hy < map.roof; ++hy)
                 {
                     uint32_t CheckLine = LineHole & map.row[hy];
-                    if(CheckLine == 0)
+                    if (CheckLine == 0)
                     {
                         break;
                     }
@@ -611,9 +611,9 @@ namespace ai_zzz
                 }
                 ++v.HolePosyIndex;
             }
-            for(int x = 1; x < width_m1; ++x)
+            for (int x = 1; x < width_m1; ++x)
             {
-                if((LineHole >> x) & 1)
+                if ((LineHole >> x) & 1)
                 {
                     v.HoleDepth += (++v.HoleNum[x] + config_->p[4]) * config_->p[5];
                 }
@@ -621,12 +621,12 @@ namespace ai_zzz
                 {
                     v.HoleNum[x] = 0;
                 }
-                if(((v.LineCoverBits >> (x - 1)) & 7) == 5)
+                if (((v.LineCoverBits >> (x - 1)) & 7) == 5)
                 {
                     v.WellDepth += (++v.WellNum[x] + config_->p[2]) * config_->p[3];
                 }
             }
-            if(LineHole & 1)
+            if (LineHole & 1)
             {
                 v.HoleDepth += (++v.HoleNum[0] + config_->p[4]) * config_->p[5];
             }
@@ -634,11 +634,11 @@ namespace ai_zzz
             {
                 v.HoleNum[0] = 0;
             }
-            if((v.LineCoverBits & 3) == 2)
+            if ((v.LineCoverBits & 3) == 2)
             {
                 v.WellDepth += (++v.WellNum[0] + config_->p[2]) * config_->p[3];
             }
-            if((LineHole >> width_m1) & 1)
+            if ((LineHole >> width_m1) & 1)
             {
                 v.HoleDepth += (++v.HoleNum[width_m1] + config_->p[4]) * config_->p[5];
             }
@@ -646,7 +646,7 @@ namespace ai_zzz
             {
                 v.HoleNum[width_m1] = 0;
             }
-            if(((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
+            if (((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
             {
                 v.WellDepth += (++v.WellNum[width_m1] + config_->p[2]) * config_->p[3];
             }
@@ -654,26 +654,25 @@ namespace ai_zzz
         double BoardDeadZone = map_in_danger_(map, 0);
 
         Result result;
+        memset(&result, 0, sizeof result);
         result.value = (0.
-                        - (map.roof      + config_->p[ 6]) * config_->p[ 7]
-                        - (ColTrans      + config_->p[ 8]) * config_->p[ 9]
-                        - (RowTrans      + config_->p[10]) * config_->p[11]
-                        - (v.HoleCount   + config_->p[12]) * config_->p[13]
-                        - (v.HoleLine    + config_->p[14]) * config_->p[15]
-                        - (v.WellDepth   + config_->p[16]) * config_->p[17]
-                        - (v.HoleDepth   + config_->p[18]) * config_->p[19]
-                        - (BoardDeadZone + config_->p[20]) * config_->p[21]
-                        );
-        result.dig = 0;
+            - (map.roof      + config_->p[ 6]) * config_->p[ 7]
+            - (ColTrans      + config_->p[ 8]) * config_->p[ 9]
+            - (RowTrans      + config_->p[10]) * config_->p[11]
+            - (v.HoleCount   + config_->p[12]) * config_->p[13]
+            - (v.HoleLine    + config_->p[14]) * config_->p[15]
+            - (v.WellDepth   + config_->p[16]) * config_->p[17]
+            - (v.HoleDepth   + config_->p[18]) * config_->p[19]
+            - (BoardDeadZone + config_->p[20]) * config_->p[21]
+            );
         double rate = config_->p[22], mul = config_->p[23];
-        for(int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
+        for (int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
         {
             result.dig -= a[i].ClearWidth * rate;
         }
         result.value *= config_->p_rate;
         result.count = map.count;
-        result.clear = int(clear);
-        result.safe = 0;
+        result.clear = int8_t(clear);
         if (node->row >= 20)
         {
             result.safe = -1;
@@ -685,129 +684,115 @@ namespace ai_zzz
                 ++result.safe;
             }
         }
-        result.t2_value = 0;
-        result.t3_value = 0;
-        bool finding2 = true;
-        bool finding3 = true;
-        for(int y = 0; (finding2 || finding3) && y < map.roof - 2; ++y)
+        auto get_t_value = [](TetrisMap const &m, int16_t &t2_value_ref, int16_t &t3_value_ref)
         {
-            int row0 = map.row[y];
-            int row1 = map.row[y + 1];
-            int row2 = y + 2 < map.height ? map.row[y + 2] : 0;
-            int row3 = y + 3 < map.height ? map.row[y + 3] : 0;
-            int row4 = y + 4 < map.height ? map.row[y + 4] : 0;
-            int row5 = y + 5 < map.height ? map.row[y + 5] : 0;
-            int row6 = y + 6 < map.height ? map.row[y + 6] : 0;
-            for(int x = 0; finding2 && x < map.width - 2; ++x)
+            for (int y = 0; y < m.roof - 2; ++y)
             {
-                if(((row0 >> x) & 7) == 5 && ((row1 >> x) & 7) == 0)
+                int row0 = m.row[y];
+                int row1 = m.row[y + 1];
+                int row2 = y + 2 < m.height ? m.row[y + 2] : 0;
+                int row3 = y + 3 < m.height ? m.row[y + 3] : 0;
+                int row4 = y + 4 < m.height ? m.row[y + 4] : 0;
+                int row5 = y + 5 < m.height ? m.row[y + 5] : 0;
+                int row6 = y + 6 < m.height ? m.row[y + 6] : 0;
+                for (int x = 0; x < m.width - 2; ++x)
                 {
-                    if(BitCount(row0) == map.width - 1)
+                    if (((row0 >> x) & 7) == 5 && ((row1 >> x) & 7) == 0)
                     {
-                        result.t2_value += 1;
-                        if(BitCount(row1) == map.width - 3)
+                        int t2_value = 1;
+                        if (BitCount(row0) == m.width - 1)
                         {
-                            result.t2_value += 2;
-                            int row2_check = (row2 >> x) & 7;
-                            if(row2_check == 1 || row2_check == 4)
+                            t2_value += 4;
+                            if (BitCount(row1) == m.width - 3)
                             {
-                                result.t2_value += 2;
+                                t2_value += 4;
+                                int row2_check = (row2 >> x) & 7;
+                                if (row2_check == 1 || row2_check == 4)
+                                {
+                                    t2_value += 11;
+                                }
+                                t2_value_ref += t2_value;
+                                break;
                             }
-                            finding2 = false;
+                        }
+                        t2_value_ref += t2_value;
+                    }
+                }
+                for (int x = 0; x < m.width - 2; ++x)
+                {
+                    if (((~row0 >> x) & 1) && ((~row1 >> x) & 3) == 3 && ((~row2 >> x) & 1) && ((row3 >> x) & 7) == 0 && ((~row4 >> x) & 6) == 6)
+                    {
+                        int t3_count = 0;
+                        if (BitCount(row0) == m.width - 1)
+                        {
+                            t3_count += 1;
+                        }
+                        if (BitCount(row1) == m.width - 2)
+                        {
+                            t3_count += 1;
+                        }
+                        if (BitCount(row2) == m.width - 1)
+                        {
+                            t3_count += 1;
+                        }
+                        if (t3_count >= 2)
+                        {
+                            int t3_value = 0;
+                            if ((row2 >> x) & 2)
+                            {
+                                t3_value += t3_count;
+                            }
+                            if ((row4 >> x) & 1)
+                            {
+                                t3_value += t3_count;
+                            }
+                            else if (x == 0)
+                            {
+                                t3_value = 0;
+                            }
+                            t3_value_ref += t3_value;
+                            break;
+                        }
+                    }
+                    if (((~row0 >> x) & 4) && ((~row1 >> x) & 6) == 6 && ((~row2 >> x) & 4) && ((row3 >> x) & 7) == 0 && ((~row4 >> x) & 3) == 3)
+                    {
+                        int t3_count = 0;
+                        if (BitCount(row0) == m.width - 1)
+                        {
+                            t3_count += 1;
+                        }
+                        if (BitCount(row1) == m.width - 2)
+                        {
+                            t3_count += 1;
+                        }
+                        if (BitCount(row2) == m.width - 1)
+                        {
+                            t3_count += 1;
+                        }
+                        if (t3_count >= 2)
+                        {
+                            int t3_value = 0;
+                            if ((row2 >> x) & 2)
+                            {
+                                t3_value += t3_count;
+                            }
+                            if ((row4 >> x) & 4)
+                            {
+                                t3_value += t3_count;
+                            }
+                            else if (x == m.width - 3)
+                            {
+                                t3_value = 0;
+                            }
+                            t3_value_ref += t3_value;
+                            break;
                         }
                     }
                 }
             }
-            for(int x = 0; finding3 && x < map.width - 3; ++x)
-            {
-                if(((row0 >> x) & 15) == 11 && ((row1 >> x) & 15) == 9)
-                {
-                    int t3_value = 0;
-                    if(BitCount(row0) == map.width - 1)
-                    {
-                        t3_value += 1;
-                        if(BitCount(row1) == map.width - 2)
-                        {
-                            t3_value += 1;
-                            if(((row2 >> x) & 15) == 11)
-                            {
-                                t3_value += 1;
-                                if(BitCount(row2) == map.width - 1)
-                                {
-                                    t3_value += 1;
-                                }
-                            }
-                            int row3_check = ((row3 >> x) & 15);
-                            if(row3_check == 8 || row3_check == 0)
-                            {
-                                t3_value += !!row3_check;
-                            }
-                            else
-                            {
-                                t3_value = 0;
-                            }
-                        }
-                    }
-                    int row4_check = ((row4 >> x) & 15);
-                    if(row4_check == 4 || row4_check == 12)
-                    {
-                        t3_value += 1;
-                    }
-                    if((row5 >> x) & 8 || (row6 >> x) & 8)
-                    {
-                        t3_value = 0;
-                    }
-                    result.t3_value += t3_value;
-                    if(t3_value >= 3)
-                    {
-                        finding3 = false;
-                    }
-                }
-                if(((row0 >> x) & 15) == 13 && ((row1 >> x) & 15) == 9)
-                {
-                    int t3_value = 0;
-                    if(BitCount(row0) == map.width - 1)
-                    {
-                        t3_value += 1;
-                        if(BitCount(row1) == map.width - 2)
-                        {
-                            t3_value += 1;
-                            if(((row2 >> x) & 15) == 13)
-                            {
-                                t3_value += 1;
-                                if(BitCount(row2) == map.width - 1)
-                                {
-                                    t3_value += 1;
-                                }
-                            }
-                            int row3_check = ((row3 >> x) & 15);
-                            if(row3_check == 1 || row3_check == 0)
-                            {
-                                t3_value += !!row3_check;
-                            }
-                            else
-                            {
-                                t3_value = 0;
-                            }
-                        }
-                    }
-                    int row4_check = ((row4 >> x) & 15);
-                    if(row4_check == 3 || row4_check == 1)
-                    {
-                        t3_value += 1;
-                    }
-                    if((row5 >> x) & 1 || (row6 >> x) & 1)
-                    {
-                        t3_value = 0;
-                    }
-                    result.t3_value += t3_value;
-                    if(t3_value >= 3)
-                    {
-                        finding3 = false;
-                    }
-                }
-            }
-        }
+        };
+        get_t_value(map, result.t2_value, result.t3_value);
+        get_t_value(src_map, result.src_t2_value, result.src_t3_value);
         return result;
     }
 
@@ -829,20 +814,21 @@ namespace ai_zzz
             }
         }
         Status result = {};
-        result.total_attack = status.total_attack;
         result.combo = status.combo;
         result.death = status.death;
         result.under_attack = status.under_attack;
         result.map_rise = status.map_rise;
         result.b2b = status.b2b;
-        switch(eval_result.clear)
+        int attack = 0;
+        double like = 0;
+        switch (eval_result.clear)
         {
         case 0:
             result.combo = 0;
-            if(status.under_attack > 0)
+            if (status.under_attack > 0)
             {
                 result.map_rise = status.under_attack;
-                if(result.map_rise > eval_result.safe)
+                if (result.map_rise > eval_result.safe)
                 {
                     result.death = 1;
                 }
@@ -850,127 +836,126 @@ namespace ai_zzz
             }
             break;
         case 1:
-            if(node.type == TSpinType::TSpinMini)
+            if (node.type == TSpinType::TSpinMini)
             {
-                result.like -= 1;
-                result.attack += status.b2b ? 2 : 1;
+                attack = 1 + status.b2b;
             }
-            else if(node.type == TSpinType::TSpin)
+            else if (node.type == TSpinType::TSpin)
             {
-                result.like -= 1;
-                result.attack += status.b2b ? 3 : 2;
+                attack = 2 + status.b2b;
             }
-            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
+            like -= 16;
+            attack += config_->table[std::min<int>(config_->table_max - 1, ++result.combo)];
             result.b2b = node.type != TSpinType::None;
             break;
         case 2:
-            if(node.type != TSpinType::None)
+            if (node.type != TSpinType::None)
             {
-                result.like += 1;
-                result.attack += status.b2b ? 5 : 4;
+                attack += 4 + status.b2b;
+                result.b2b = true;
             }
-            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
-            result.b2b = node.type != TSpinType::None;
+            else
+            {
+                like -= 8;
+                result.b2b = false;
+            }
+            attack += config_->table[std::min<int>(config_->table_max - 1, ++result.combo)];
             break;
         case 3:
-            if(node.type != TSpinType::None)
+            if (node.type != TSpinType::None)
             {
-                result.like += 1;
-                result.attack += status.b2b ? 8 : 6;
+                attack = 6 + status.b2b * 2;
+                result.b2b = true;
             }
-            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
-            result.b2b = node.type != TSpinType::None;
+            else
+            {
+                like -= 4;
+                result.b2b = false;
+            }
+            attack += config_->table[std::min<int>(config_->table_max - 1, ++result.combo)] + 2;
             break;
         case 4:
-            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
+            attack = config_->table[std::min<int>(config_->table_max - 1, ++result.combo)] + 4 + status.b2b;
             result.b2b = true;
             break;
         }
-        if(eval_result.count == 0 && result.map_rise == 0)
+        result.under_attack -= attack;
+        int t_expect = [=]()->int
         {
-            result.like += 1000;
-            result.attack += 6;
-        }
-        if (result.under_attack > 0 && result.attack > 0) {
-            if (result.attack >= result.under_attack) {
-                result.attack -= result.under_attack;
-                result.under_attack = 0;
-            }
-            else {
-                result.under_attack -= result.attack;
-                result.attack = 0;
-            }
-        }
-        size_t t_expect = [=]()->size_t
-        {
-            if(env.hold == 'T')
+            if (env.hold == 'T')
             {
                 return 0;
             }
-            for(size_t i = 0; i < env.length; ++i)
+            for (size_t i = 0; i < env.length; ++i)
             {
-                if(env.next[i] == 'T')
+                if (env.next[i] == 'T')
                 {
                     return i;
                 }
             }
-            return 14;
+            return 13;
         }();
-        switch(env.hold)
+        switch (env.hold)
         {
         case 'T':
-            if(node.type == TSpinType::None)
+            if (node.type == TSpinType::None)
             {
-                result.like += 1;
+                like += 8;
             }
             break;
         case 'I':
-            if(eval_result.clear != 4)
+            if (eval_result.clear != 4)
             {
-                result.like += 1;
+                like += 1;
             }
             break;
         }
-        int safe = eval_result.safe - status.map_rise;
+        int safe = eval_result.safe - result.map_rise;
         if (safe < 0)
         {
             result.death = 1;
             safe = 0;
         }
-        else if (safe == 0)
+        if (eval_result.count == 0 && result.map_rise == 0)
         {
-            result.value -= 99999;
+            like += 999;
+            attack += 6;
         }
-        double attack_val = 2048 * std::min(16, safe) / 32;
-        double t2_max = (attack_val * 4) / (5 * 3) * 1.25;
-        double t3_max = (attack_val * 6) / ((6 * 10 * 3) / 6) * 0.8;
-        result.total_attack += result.attack;
-        result.value += (0.
-                         + result.total_attack * attack_val
-                         + eval_result.t2_value * (t_expect < 8 ? 3 : 2) * t2_max
-                         + eval_result.t3_value * (t_expect < 4 ? 10 : 7) * (3 + result.b2b) / 6 * t3_max
-                         + (result.b2b * 128)
-                         + result.like * 64
-                         - result.map_rise * attack_val * 0.5
-                         + std::max<double>(0.25, config_->table[std::min(config_->table_max - 1, result.combo + 1)]) * attack_val * 0.75
-                         - result.death * 999999999.0
-                         + eval_result.value * 0.8
-                         + eval_result.dig * 2
-                         );
+        double t2_max = (t_expect < 8 ? 3 : 2) * 64 * std::max(0, safe - 4) / 16;
+        double t3_max = std::max(10 - t_expect, 4) * (3 + result.b2b) * 64 * std::max(0, safe - 10) / 10;
+        result.like += (status.like
+            + like * (safe * 3 + 4)
+            + attack * (safe + 16) * 32
+            + (node.type != TSpinType::None) * (eval_result.src_t2_value - eval_result.t2_value) * t2_max
+            + (node.type != TSpinType::None) * (eval_result.src_t3_value - eval_result.t3_value) * t3_max
+            + config_->table[std::min<int>(config_->table_max - 1, result.combo + 1)] * (40 - safe) * 16
+            + (result.b2b - status.b2b) * 1024
+            + safe * 24
+            + eval_result.value * 0.08
+            + eval_result.dig * 0.2
+            );
+        result.value += (result.like
+            + eval_result.t2_value * t2_max
+            + eval_result.t3_value * t3_max
+            - result.death * 999999999.0
+            + eval_result.value * 1.2
+            + eval_result.dig * 1.8
+            );
+        result.death += !!result.death;
         return result;
     }
 
     size_t TOJ::map_in_danger_(m_tetris::TetrisMap const &map, size_t up) const
     {
         size_t danger = 0;
-        for(size_t i = 0; i < context_->type_max(); ++i)
+        for (size_t i = 0; i < context_->type_max(); ++i)
         {
-            if(up >= 18)
+            if (up >= 18)
             {
                 return context_->type_max();
             }
             size_t height = 22 - up;
-            if(map_danger_data_[i].data[0] & map.row[height - 4] || map_danger_data_[i].data[1] & map.row[height - 3] || map_danger_data_[i].data[2] & map.row[height - 2] || map_danger_data_[i].data[3] & map.row[height - 1])
+            if (map_danger_data_[i].data[0] & map.row[height - 4] || map_danger_data_[i].data[1] & map.row[height - 3] || map_danger_data_[i].data[2] & map.row[height - 2] || map_danger_data_[i].data[3] & map.row[height - 1])
             {
                 ++danger;
             }
@@ -989,13 +974,13 @@ namespace ai_zzz
         context_ = context;
         config_ = config;
         map_danger_data_.resize(context->type_max());
-        for(size_t i = 0; i < context->type_max(); ++i)
+        for (size_t i = 0; i < context->type_max(); ++i)
         {
             TetrisMap map(context->width(), context->height());
             TetrisNode const *node = context->generate(i);
             node->move_down->attach(map);
             std::memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
-            for(int y = 0; y < 3; ++y)
+            for (int y = 0; y < 3; ++y)
             {
                 map_danger_data_[i].data[y + 1] |= map_danger_data_[i].data[y];
             }
@@ -1014,18 +999,18 @@ namespace ai_zzz
         const int width_m1 = map.width - 1;
         size_t ColTrans = 2 * (map.height - map.roof);
         size_t RowTrans = map.roof == map.height ? 0 : map.width;
-        for(int y = 0; y < map.roof; ++y)
+        for (int y = 0; y < map.roof; ++y)
         {
-            if(!map.full(0, y))
+            if (!map.full(0, y))
             {
                 ++ColTrans;
             }
-            if(!map.full(width_m1, y))
+            if (!map.full(width_m1, y))
             {
                 ++ColTrans;
             }
             ColTrans += zzz::BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
-            if(y != 0)
+            if (y != 0)
             {
                 RowTrans += zzz::BitCount(map.row[y - 1] ^ map.row[y]);
             }
@@ -1054,18 +1039,18 @@ namespace ai_zzz
             double ClearWidth;
         } a[40];
 
-        for(int y = map.roof - 1; y >= 0; --y)
+        for (int y = map.roof - 1; y >= 0; --y)
         {
             v.LineCoverBits |= map.row[y];
             int LineHole = v.LineCoverBits ^ map.row[y];
-            if(LineHole != 0)
+            if (LineHole != 0)
             {
                 ++v.HoleLine;
                 a[v.HolePosyIndex].ClearWidth = 0;
-                for(int hy = y + 1; hy < map.roof; ++hy)
+                for (int hy = y + 1; hy < map.roof; ++hy)
                 {
                     uint32_t CheckLine = LineHole & map.row[hy];
-                    if(CheckLine == 0)
+                    if (CheckLine == 0)
                     {
                         break;
                     }
@@ -1073,9 +1058,9 @@ namespace ai_zzz
                 }
                 ++v.HolePosyIndex;
             }
-            for(int x = 1; x < width_m1; ++x)
+            for (int x = 1; x < width_m1; ++x)
             {
-                if((LineHole >> x) & 1)
+                if ((LineHole >> x) & 1)
                 {
                     v.HoleDepth += (++v.HoleNum[x] + config_->p[4]) * config_->p[5];
                 }
@@ -1083,12 +1068,12 @@ namespace ai_zzz
                 {
                     v.HoleNum[x] = 0;
                 }
-                if(((v.LineCoverBits >> (x - 1)) & 7) == 5)
+                if (((v.LineCoverBits >> (x - 1)) & 7) == 5)
                 {
                     v.WellDepth += (++v.WellNum[x] + config_->p[2]) * config_->p[3];
                 }
             }
-            if(LineHole & 1)
+            if (LineHole & 1)
             {
                 v.HoleDepth += (++v.HoleNum[0] + config_->p[4]) * config_->p[5];
             }
@@ -1096,11 +1081,11 @@ namespace ai_zzz
             {
                 v.HoleNum[0] = 0;
             }
-            if((v.LineCoverBits & 3) == 2)
+            if ((v.LineCoverBits & 3) == 2)
             {
                 v.WellDepth += (++v.WellNum[0] + config_->p[2]) * config_->p[3];
             }
-            if((LineHole >> width_m1) & 1)
+            if ((LineHole >> width_m1) & 1)
             {
                 v.HoleDepth += (++v.HoleNum[width_m1] + config_->p[4]) * config_->p[5];
             }
@@ -1108,17 +1093,17 @@ namespace ai_zzz
             {
                 v.HoleNum[width_m1] = 0;
             }
-            if(((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
+            if (((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
             {
                 v.WellDepth += (++v.WellNum[width_m1] + config_->p[2]) * config_->p[3];
             }
             int WellWidth = 0;
             int MaxWellWidth = 0;
-            for(int x = 0; x < map.width; ++x)
+            for (int x = 0; x < map.width; ++x)
             {
-                if((v.LineCoverBits >> x) & 1)
+                if ((v.LineCoverBits >> x) & 1)
                 {
-                    if(WellWidth > MaxWellWidth)
+                    if (WellWidth > MaxWellWidth)
                     {
                         MaxWellWidth = WellWidth;
                     }
@@ -1129,13 +1114,13 @@ namespace ai_zzz
                     ++WellWidth;
                 }
             }
-            if(WellWidth > MaxWellWidth)
+            if (WellWidth > MaxWellWidth)
             {
                 MaxWellWidth = WellWidth;
             }
-            if(MaxWellWidth >= 1 && MaxWellWidth <= 6)
+            if (MaxWellWidth >= 1 && MaxWellWidth <= 6)
             {
-                if(zzz::BitCount(map.row[y]) + MaxWellWidth == map.width)
+                if (zzz::BitCount(map.row[y]) + MaxWellWidth == map.width)
                 {
                     v.WideWellDepth[MaxWellWidth - 1] += 2;
                 }
@@ -1145,7 +1130,7 @@ namespace ai_zzz
                 }
             }
         }
-        for(int x = 0; x < map.width; ++x)
+        for (int x = 0; x < map.width; ++x)
         {
             v.HoleCountSrc += src_map.top[x];
             v.HoleCount += map.top[x];
@@ -1154,39 +1139,39 @@ namespace ai_zzz
         v.HoleCount -= map.count;
 
         double BoardDeadZone = map_in_danger_(map);
-        if(map.roof == map.height)
+        if (map.roof == map.height)
         {
             BoardDeadZone += 70;
         }
 
         Result result;
         result.map = (0.
-                      - (map.roof      + config_->p[ 6]) * config_->p[ 7]
-                      - (ColTrans      + config_->p[ 8]) * config_->p[ 9]
-                      - (RowTrans      + config_->p[10]) * config_->p[11]
-                      - (v.HoleCount   + config_->p[12]) * config_->p[13]
-                      - (v.HoleLine    + config_->p[14]) * config_->p[15]
-                      - (v.WellDepth   + config_->p[16]) * config_->p[17]
-                      - (v.HoleDepth   + config_->p[18]) * config_->p[19]
-                      - (BoardDeadZone + config_->p[20]) * config_->p[21]
-                      );
+            - (map.roof      + config_->p[ 6]) * config_->p[ 7]
+            - (ColTrans      + config_->p[ 8]) * config_->p[ 9]
+            - (RowTrans      + config_->p[10]) * config_->p[11]
+            - (v.HoleCount   + config_->p[12]) * config_->p[13]
+            - (v.HoleLine    + config_->p[14]) * config_->p[15]
+            - (v.WellDepth   + config_->p[16]) * config_->p[17]
+            - (v.HoleDepth   + config_->p[18]) * config_->p[19]
+            - (BoardDeadZone + config_->p[20]) * config_->p[21]
+            );
         double rate = config_->p[22], mul = config_->p[23];
-        for(int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
+        for (int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
         {
             result.map -= a[i].ClearWidth * rate;
         }
         result.map *= config_->p_rate;
-        if(config_->mode == 0)
+        if (config_->mode == 0)
         {
             int attack_well = std::min(4, v.WideWellDepth[0]);
             result.attack = (0.
-                             + v.WideWellDepth[5] * 2.8
-                             + v.WideWellDepth[4] * 3.0
-                             + v.WideWellDepth[3] * 3.2
-                             + v.WideWellDepth[2] * 4.8
-                             + v.WideWellDepth[1] * -8
-                             + ((attack_well * attack_well) + config_->p[16]) * config_->p[17] * config_->p_rate
-                             );
+                + v.WideWellDepth[5] * 2.8
+                + v.WideWellDepth[4] * 3.0
+                + v.WideWellDepth[3] * 3.2
+                + v.WideWellDepth[2] * 4.8
+                + v.WideWellDepth[1] *  -8
+                + ((attack_well * attack_well) + config_->p[16]) * config_->p[17] * config_->p_rate
+                );
         }
         result.clear = clear;
         result.fill = float(map.count) / (map.width * (map.height - config_->safe));
@@ -1203,13 +1188,13 @@ namespace ai_zzz
         result.combo = status.combo;
         result.combo_limit = status.combo_limit > 0 ? status.combo_limit - 1 : 0;
         result.value = eval_result.map;
-        if(config_->mode == 0)
+        if (config_->mode == 0)
         {
-            if(result.combo_limit == 0)
+            if (result.combo_limit == 0)
             {
                 result.combo = 0;
             }
-            if(result.combo_limit < 6 && result.combo < 3)
+            if (result.combo_limit < 6 && result.combo < 3)
             {
                 result.combo = 0;
             }
@@ -1243,7 +1228,7 @@ namespace ai_zzz
             };
             double upstack = (config_->danger ? 0.3 : 1) * std::max<double>(0, 1 - eval_result.hole * 4.2) * std::max<double>(0, 1 - (eval_result.fill < 0.4 ? 0 : eval_result.fill - 0.4) * 4);
             double downstack;
-            if(status.combo == 0)
+            if (status.combo == 0)
             {
                 downstack = (config_->danger ? 0.5 : 1) * std::max<double>(0, 1 - eval_result.hole * 3.3) * std::max<double>(0, 1 - std::abs(eval_result.fill - 0.48) * 5);
                 result.attack -= 1600 * eval_result.new_hole;
@@ -1253,12 +1238,12 @@ namespace ai_zzz
             {
                 downstack = (config_->danger ? 0.5 : 1) * std::max<double>(0, 1 - eval_result.hole * 3.3) * std::max<double>(0, 1 - eval_result.fill * 1.2);
             }
-            if(eval_result.clear > 0)
+            if (eval_result.clear > 0)
             {
-                if(status.combo == 0)
+                if (status.combo == 0)
                 {
                     result.attack -= 8000 * upstack;
-                    if(eval_result.clear <= 2)
+                    if (eval_result.clear <= 2)
                     {
                         result.attack -= table[status.combo][eval_result.clear - 1] * upstack;
                     }
@@ -1269,7 +1254,7 @@ namespace ai_zzz
                 }
                 else
                 {
-                    if(config_->danger && eval_result.clear == 1)
+                    if (config_->danger && eval_result.clear == 1)
                     {
                         result.attack += table[status.combo][1] * downstack;
                     }
@@ -1280,13 +1265,13 @@ namespace ai_zzz
                 }
                 ++result.combo;
             }
-            else if(status.combo > 0)
+            else if (status.combo > 0)
             {
                 result.attack -= (800 + status.combo * 100) * downstack;
             }
-            if(eval_result.clear == 0 && config_->danger)
+            if (eval_result.clear == 0 && config_->danger)
             {
-                if(status.combo < 3)
+                if (status.combo < 3)
                 {
                     result.attack -= 400;
                 }
@@ -1295,7 +1280,7 @@ namespace ai_zzz
                     result.attack -= 100;
                 }
             }
-            if(eval_result.soft_drop)
+            if (eval_result.soft_drop)
             {
                 result.attack -= 100;
             }
@@ -1321,7 +1306,7 @@ namespace ai_zzz
             lower2 = std::numeric_limits<double>::max(),
             lower3 = std::numeric_limits<double>::max(),
             upper1 = std::numeric_limits<double>::min();
-        for(size_t i = 0; i < status_length; ++i)
+        for (size_t i = 0; i < status_length; ++i)
         {
             double v = status[i] == nullptr ? -9999999999 : status[i]->value;
             result.value += v;
@@ -1349,7 +1334,7 @@ namespace ai_zzz
             {
                 lower3 = v;
             }
-            if(v > upper1)
+            if (v > upper1)
             {
                 upper1 = v;
             }
@@ -1361,14 +1346,14 @@ namespace ai_zzz
     size_t C2::map_in_danger_(m_tetris::TetrisMap const &map) const
     {
         size_t danger = 0;
-        for(size_t i = 0; i < context_->type_max(); ++i)
+        for (size_t i = 0; i < context_->type_max(); ++i)
         {
-            if(map_danger_data_[i].data[0] & map.row[map.height - 4] || map_danger_data_[i].data[1] & map.row[map.height - 3] || map_danger_data_[i].data[2] & map.row[map.height - 2] || map_danger_data_[i].data[3] & map.row[map.height - 1])
+            if (map_danger_data_[i].data[0] & map.row[map.height - 4] || map_danger_data_[i].data[1] & map.row[map.height - 3] || map_danger_data_[i].data[2] & map.row[map.height - 2] || map_danger_data_[i].data[3] & map.row[map.height - 1])
             {
                 ++danger;
             }
         }
-        if(map.row[17] != 0)
+        if (map.row[17] != 0)
         {
             ++danger;
         }

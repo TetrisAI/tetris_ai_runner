@@ -105,24 +105,22 @@ namespace ai_zzz
         {
             double value;
             double dig;
-            int clear;
-            int count;
-            int safe;
-            int t2_value;
-            int t3_value;
-            int index;
+            int8_t clear;
+            int8_t safe;
+            int16_t count;
+            int16_t t2_value;
+            int16_t t3_value;
+            int16_t src_t2_value;
+            int16_t src_t3_value;
             TSpinType t_spin;
         };
         struct Status
         {
-            int total_attack;
-            int death;
-            int combo;
-            int attack;
-            int under_attack;
-            int map_rise;
-            int b2b;
-            int index;
+            int8_t death;
+            int8_t combo;
+            int8_t under_attack;
+            int8_t map_rise;
+            int8_t b2b;
             double like;
             double value;
             bool operator < (Status const &) const;

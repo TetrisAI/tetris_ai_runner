@@ -54,6 +54,14 @@ namespace search_tspin
             {
                 return node == other.node && last == other.last && type == other.type && flags == other.flags;
             }
+            bool operator == (nullptr_t)
+            {
+                return node == nullptr;
+            }
+            bool operator != (nullptr_t)
+            {
+                return node != nullptr;
+            }
         };
         void init(m_tetris::TetrisContext const *context, Config const *config);
         std::vector<char> make_path(m_tetris::TetrisNode const *node, TetrisNodeWithTSpinType const &land_point, m_tetris::TetrisMap const &map);

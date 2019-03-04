@@ -60,7 +60,7 @@ namespace m_tetris
         }
         TetrisMap &operator = (TetrisMap const &other)
         {
-            if(this != &other)
+            if (this != &other)
             {
                 std::memcpy(this, &other, sizeof *this);
             }
@@ -850,12 +850,12 @@ namespace m_tetris
                 char : 8;
                 char : 8;
                 uint8_t : 8;
-                uint8_t is_nil : 1;
-                uint8_t is_black : 1;
-                uint8_t is_dead : 1;
-                uint8_t is_hold : 1;
-                uint8_t is_hold_lock : 1;
-                uint8_t is_virtual : 1;
+                          uint8_t is_nil : 1;
+                          uint8_t is_black : 1;
+                          uint8_t is_dead : 1;
+                          uint8_t is_hold : 1;
+                          uint8_t is_hold_lock : 1;
+                          uint8_t is_virtual : 1;
             };
         };
     };
@@ -976,7 +976,7 @@ namespace m_tetris
             }
             void release()
             {
-                for(auto node : tree_cache)
+                for (auto node : tree_cache)
                 {
                     delete node;
                 }
@@ -1008,7 +1008,7 @@ namespace m_tetris
             TetrisTreeNode *alloc(TetrisTreeNode *parent)
             {
                 TetrisTreeNode *node;
-                if(!tree_cache.empty())
+                if (!tree_cache.empty())
                 {
                     node = tree_cache.back();
                     tree_cache.pop_back();
@@ -1023,7 +1023,7 @@ namespace m_tetris
             }
             void dealloc(TetrisTreeNode *node)
             {
-                for(auto it = node->children; it != nullptr; it = it->children_next)
+                for (auto it = node->children; it != nullptr; it = it->children_next)
                 {
                     dealloc(it);
                 }
@@ -1194,21 +1194,21 @@ namespace m_tetris
 
         TetrisTreeNode *update_root(TetrisMap const &_map)
         {
-            if(map == _map)
+            if (map == _map)
             {
                 return this;
             }
             TetrisTreeNode *new_root = nullptr;
-            for(TetrisTreeNode *it = children, *last = nullptr; it != nullptr; last = it, it = it->children_next)
+            for (TetrisTreeNode *it = children, *last = nullptr; it != nullptr; last = it, it = it->children_next)
             {
-                if(it->map == _map)
+                if (it->map == _map)
                 {
                     new_root = it;
                     (last == nullptr ? children : last->children_next) = it->children_next;
                     break;
                 }
             }
-            if(new_root == nullptr)
+            if (new_root == nullptr)
             {
                 new_root = context->alloc(nullptr);
                 new_root->map = _map;
@@ -1233,9 +1233,9 @@ namespace m_tetris
             std::vector<next_t> next;
             next.push_back(_node->status.t);
             size_t length = 0;
-            for(size_t i = 0; i < _next_length; ++i)
+            for (size_t i = 0; i < _next_length; ++i)
             {
-                if(_next[i] == '?')
+                if (_next[i] == '?')
                 {
                     next[length].set_vp(true);
                 }
@@ -1251,7 +1251,7 @@ namespace m_tetris
         {
             TetrisTreeNode *root = update_root(_map);
             std::vector<next_t> next = process_next(_next, _next_length, _node);
-            if(root != this || (context->current == nullptr || _node->status.t != root->node) || context->is_open_hold || next != context->next)
+            if (root != this || (context->current == nullptr || _node->status.t != root->node) || context->is_open_hold || next != context->next)
             {
                 context->is_complete = false;
                 context->max_length = next.size() - 1;
@@ -1259,14 +1259,14 @@ namespace m_tetris
                 context->is_open_hold = false;
                 context->current = _node;
                 context->next = next;
-                if(Core::EnableNextC::value)
+                if (Core::EnableNextC::value)
                 {
                     context->next_c.assign(next.begin(), next.end());
                 }
                 root->node = _node->status.t;
                 root->next = std::next(context->next.begin());
             }
-            else if(context->current != _node)
+            else if (context->current != _node)
             {
                 context->is_complete = false;
                 ++context->version;
@@ -1279,11 +1279,11 @@ namespace m_tetris
         {
             TetrisTreeNode *root = update_root(_map);
             std::vector<next_t> next = process_next(_next, _next_length, _node);
-            if(root != this || (context->current == nullptr || _node->status.t != root->node) || !context->is_open_hold || next != context->next || _hold != root->hold || !!_hold_lock != root->is_hold_lock)
+            if (root != this || (context->current == nullptr || _node->status.t != root->node) || !context->is_open_hold || next != context->next || _hold != root->hold || !!_hold_lock != root->is_hold_lock)
             {
                 context->is_complete = false;
                 context->max_length = next.size() - 1;
-                if(_hold != ' ' && (_next_length > 1 || !_hold_lock))
+                if (_hold != ' ' && (_next_length > 1 || !_hold_lock))
                 {
                     ++context->max_length;
                 }
@@ -1291,7 +1291,7 @@ namespace m_tetris
                 context->is_open_hold = true;
                 context->current = _node;
                 context->next = next;
-                if(Core::EnableNextC::value)
+                if (Core::EnableNextC::value)
                 {
                     context->next_c.assign(next.begin(), next.end());
                 }
@@ -1301,7 +1301,7 @@ namespace m_tetris
                 root->is_hold_lock = _hold_lock;
                 root->next = std::next(context->next.begin());
             }
-            else if(context->current != _node)
+            else if (context->current != _node)
             {
                 context->is_complete = false;
                 ++context->version;
@@ -1312,10 +1312,10 @@ namespace m_tetris
         }
         void search(TetrisNode const *search_node, bool is_hold)
         {
-            if(node_flag.empty())
+            if (node_flag.empty())
             {
                 node_flag.set(search_node);
-                for(auto land_point_node : *context->search->search(map, search_node, level))
+                for (auto land_point_node : *context->search->search(map, search_node, level))
                 {
                     TetrisTreeNode *child = context->alloc(this);
                     Core::eval(*context->ai, map, land_point_node, child);
@@ -1324,20 +1324,20 @@ namespace m_tetris
                     children = child;
                 }
             }
-            else if(!node_flag.check(search_node))
+            else if (!node_flag.check(search_node))
             {
                 node_flag.set(search_node);
                 children_sort_t old;
-                for(auto it = children; it != nullptr; it = it->children_next)
+                for (auto it = children; it != nullptr; it = it->children_next)
                 {
                     old.insert(it);
                 }
                 children = nullptr;
-                for(auto land_point_node : *context->search->search(map, search_node, level))
+                for (auto land_point_node : *context->search->search(map, search_node, level))
                 {
                     TetrisTreeNode *child;
                     auto find = old.find(land_point_node->status);
-                    if(find != old.end())
+                    if (find != old.end())
                     {
                         child = &*find;
                         old.erase(find);
@@ -1351,7 +1351,7 @@ namespace m_tetris
                     child->children_next = children;
                     children = child;
                 }
-                for(auto &child : old)
+                for (auto &child : old)
                 {
                     context->dealloc(&child);
                 }
@@ -1359,17 +1359,17 @@ namespace m_tetris
         }
         void search(TetrisNode const *search_node, TetrisNode const *hold_node)
         {
-            if(search_node == hold_node)
+            if (search_node == hold_node)
             {
                 return search(search_node, false);
             }
-            if(search_node->status.t == hold_node->status.t)
+            if (search_node->status.t == hold_node->status.t)
             {
-                if(node_flag.empty())
+                if (node_flag.empty())
                 {
                     node_flag.set(search_node, hold_node);
                     children_sort_t sort;
-                    for(auto land_point_node : *context->search->search(map, search_node, level))
+                    for (auto land_point_node : *context->search->search(map, search_node, level))
                     {
                         TetrisTreeNode *child = context->alloc(this);
                         Core::eval(*context->ai, map, land_point_node, child);
@@ -1378,11 +1378,11 @@ namespace m_tetris
                         children = child;
                         sort.insert(child);
                     }
-                    if(children != nullptr)
+                    if (children != nullptr)
                     {
-                        for(auto land_point_node : *context->search->search(map, hold_node, level))
+                        for (auto land_point_node : *context->search->search(map, hold_node, level))
                         {
-                            if(sort.find(land_point_node->status) != sort.end())
+                            if (sort.find(land_point_node->status) != sort.end())
                             {
                                 continue;
                             }
@@ -1394,18 +1394,18 @@ namespace m_tetris
                         }
                     }
                 }
-                else if(!node_flag.check(search_node, hold_node))
+                else if (!node_flag.check(search_node, hold_node))
                 {
                     children_sort_t old;
-                    for(auto it = children; it != nullptr; it = it->children_next)
+                    for (auto it = children; it != nullptr; it = it->children_next)
                     {
                         old.insert(it);
                     }
                     children = nullptr;
-                    if(node_flag.check(hold_node, search_node))
+                    if (node_flag.check(hold_node, search_node))
                     {
                         node_flag.set(search_node, hold_node);
-                        for(auto land_point_node : *context->search->search(map, search_node, level))
+                        for (auto land_point_node : *context->search->search(map, search_node, level))
                         {
                             auto find = old.find(land_point_node->status);
                             assert(find != old.end());
@@ -1415,9 +1415,9 @@ namespace m_tetris
                             child->children_next = children;
                             children = child;
                         }
-                        if(children != nullptr)
+                        if (children != nullptr)
                         {
-                            for(auto &child : old)
+                            for (auto &child : old)
                             {
                                 child.is_hold = true;
                                 child.children_next = children;
@@ -1426,7 +1426,7 @@ namespace m_tetris
                         }
                         else
                         {
-                            for(auto &child : old)
+                            for (auto &child : old)
                             {
                                 context->dealloc(&child);
                             }
@@ -1436,11 +1436,11 @@ namespace m_tetris
                     {
                         node_flag.set(search_node, hold_node);
                         children_sort_t sort;
-                        for(auto land_point_node : *context->search->search(map, search_node, level))
+                        for (auto land_point_node : *context->search->search(map, search_node, level))
                         {
                             TetrisTreeNode *child;
                             auto find = old.find(land_point_node->status);
-                            if(find != old.end())
+                            if (find != old.end())
                             {
                                 child = &*find;
                                 old.erase(find);
@@ -1455,17 +1455,17 @@ namespace m_tetris
                             children = child;
                             sort.insert(child);
                         }
-                        if(children != nullptr)
+                        if (children != nullptr)
                         {
-                            for(auto land_point_node : *context->search->search(map, hold_node, level))
+                            for (auto land_point_node : *context->search->search(map, hold_node, level))
                             {
-                                if(sort.find(land_point_node->status) != sort.end())
+                                if (sort.find(land_point_node->status) != sort.end())
                                 {
                                     continue;
                                 }
                                 TetrisTreeNode *child;
                                 auto find = old.find(land_point_node->status);
-                                if(find != old.end())
+                                if (find != old.end())
                                 {
                                     child = &*find;
                                     old.erase(find);
@@ -1480,7 +1480,7 @@ namespace m_tetris
                                 children = child;
                             }
                         }
-                        for(auto &child : old)
+                        for (auto &child : old)
                         {
                             context->dealloc(&child);
                         }
@@ -1489,10 +1489,10 @@ namespace m_tetris
             }
             else
             {
-                if(node_flag.empty())
+                if (node_flag.empty())
                 {
                     node_flag.set(search_node, hold_node);
-                    for(auto land_point_node : *context->search->search(map, search_node, level))
+                    for (auto land_point_node : *context->search->search(map, search_node, level))
                     {
                         TetrisTreeNode *child = context->alloc(this);
                         Core::eval(*context->ai, map, land_point_node, child);
@@ -1500,9 +1500,9 @@ namespace m_tetris
                         child->children_next = children;
                         children = child;
                     }
-                    if(children != nullptr)
+                    if (children != nullptr)
                     {
-                        for(auto land_point_node : *context->search->search(map, hold_node, level))
+                        for (auto land_point_node : *context->search->search(map, hold_node, level))
                         {
                             TetrisTreeNode *child = context->alloc(this);
                             Core::eval(*context->ai, map, land_point_node, child);
@@ -1512,21 +1512,21 @@ namespace m_tetris
                         }
                     }
                 }
-                else if(!node_flag.check(search_node, hold_node))
+                else if (!node_flag.check(search_node, hold_node))
                 {
-                    if(node_flag.check(hold_node, search_node))
+                    if (node_flag.check(hold_node, search_node))
                     {
                         node_flag.set(search_node, hold_node);
-                        if(!context->search->search(map, search_node, level)->empty())
+                        if (!context->search->search(map, search_node, level)->empty())
                         {
-                            for(auto it = children; it != nullptr; it = it->children_next)
+                            for (auto it = children; it != nullptr; it = it->children_next)
                             {
                                 it->is_hold = it->identity->status.t == hold_node->status.t;
                             }
                         }
                         else
                         {
-                            for(auto it = children; it != nullptr; it = it->children_next)
+                            for (auto it = children; it != nullptr; it = it->children_next)
                             {
                                 context->dealloc(it);
                             }
@@ -1537,16 +1537,16 @@ namespace m_tetris
                     {
                         node_flag.set(search_node, hold_node);
                         children_sort_t old;
-                        for(auto it = children; it != nullptr; it = it->children_next)
+                        for (auto it = children; it != nullptr; it = it->children_next)
                         {
                             old.insert(it);
                         }
                         children = nullptr;
-                        for(auto land_point_node : *context->search->search(map, search_node, level))
+                        for (auto land_point_node : *context->search->search(map, search_node, level))
                         {
                             TetrisTreeNode *child;
                             auto find = old.find(land_point_node->status);
-                            if(find != old.end())
+                            if (find != old.end())
                             {
                                 child = &*find;
                                 old.erase(find);
@@ -1560,11 +1560,11 @@ namespace m_tetris
                             child->children_next = children;
                             children = child;
                         }
-                        for(auto land_point_node : *context->search->search(map, hold_node, level))
+                        for (auto land_point_node : *context->search->search(map, hold_node, level))
                         {
                             TetrisTreeNode *child;
                             auto find = old.find(land_point_node->status);
-                            if(find != old.end())
+                            if (find != old.end())
                             {
                                 child = &*find;
                                 old.erase(find);
@@ -1578,7 +1578,7 @@ namespace m_tetris
                             child->children_next = children;
                             children = child;
                         }
-                        for(auto &child : old)
+                        for (auto &child : old)
                         {
                             context->dealloc(&child);
                         }
@@ -1588,13 +1588,13 @@ namespace m_tetris
         }
         void search()
         {
-            if(node_flag.empty())
+            if (node_flag.empty())
             {
                 node_flag.set(&context->virtual_flag);
                 size_t max = context->engine->type_max();
-                for(size_t i = 0; i < max; ++i)
+                for (size_t i = 0; i < max; ++i)
                 {
-                    for(auto land_point_node : *context->search->search(map, context->engine->generate(i), level))
+                    for (auto land_point_node : *context->search->search(map, context->engine->generate(i), level))
                     {
                         TetrisTreeNode *child = context->alloc(this);
                         Core::eval(*context->ai, map, land_point_node, child);
@@ -1604,23 +1604,23 @@ namespace m_tetris
                     }
                 }
             }
-            else if(node_flag.check(&context->virtual_flag))
+            else if (node_flag.check(&context->virtual_flag))
             {
                 node_flag.set(&context->virtual_flag);
                 children_sort_t old;
-                for(auto it = children; it != nullptr; it = it->children_next)
+                for (auto it = children; it != nullptr; it = it->children_next)
                 {
                     old.insert(it);
                 }
                 children = nullptr;
                 size_t max = context->engine->type_max();
-                for(size_t i = 0; i < max; ++i)
+                for (size_t i = 0; i < max; ++i)
                 {
-                    for(auto land_point_node : *context->search->search(map, context->engine->generate(i), level))
+                    for (auto land_point_node : *context->search->search(map, context->engine->generate(i), level))
                     {
                         TetrisTreeNode *child;
                         auto find = old.find(land_point_node->status);
-                        if(find != old.end())
+                        if (find != old.end())
                         {
                             child = &*find;
                             old.erase(find);
@@ -1635,7 +1635,7 @@ namespace m_tetris
                         children = child;
                     }
                 }
-                for(auto &child : old)
+                for (auto &child : old)
                 {
                     context->dealloc(&child);
                 }
@@ -1648,11 +1648,11 @@ namespace m_tetris
             auto &iterate_cache = context->iterate_cache;
             iterate_cache.clear();
             iterate_cache.resize(context->engine->type_max(), nullptr);
-            for(auto it = children; it != nullptr; it = it->children_next)
+            for (auto it = children; it != nullptr; it = it->children_next)
             {
                 Core::template get<false>(*context->ai, it, this);
                 auto &status = iterate_cache[engine->convert(it->identity->status.t)];
-                if(status == nullptr || *status < it->status.get())
+                if (status == nullptr || *status < it->status.get())
                 {
                     status = &it->status.get();
                 }
@@ -1662,14 +1662,14 @@ namespace m_tetris
         template<bool EnableEnv>
         TetrisContext::Env env()
         {
-            if(EnableEnv)
+            if (EnableEnv)
             {
                 TetrisContext::Env result =
                 {
                     nullptr, 0, node, hold
                 };
                 result.length = std::distance(next, context->next.cend());
-                if(result.length == 0)
+                if (result.length == 0)
                 {
                     result.next = nullptr;
                 }
@@ -1690,24 +1690,24 @@ namespace m_tetris
         template<bool EnableHold>
         bool build_children()
         {
-            if(version == context->version || is_dead)
+            if (version == context->version || is_dead)
             {
                 return false;
             }
             version = context->version;
             search_children<EnableHold>();
-            if(children == nullptr)
+            if (children == nullptr)
             {
                 is_dead = true;
                 return false;
             }
-            for(auto it = children; it != nullptr; it = it->children_next)
+            for (auto it = children; it != nullptr; it = it->children_next)
             {
                 Core::template get<true>(*context->ai, it, this);
             }
-            if(TetrisAIHasIterate<TetrisAI>::type::value && context->next[level].get_vp())
+            if (TetrisAIHasIterate<TetrisAI>::type::value && context->next[level].get_vp())
             {
-                for(auto it = children; it != nullptr; it = it->children_next)
+                for (auto it = children; it != nullptr; it = it->children_next)
                 {
                     it->level = level + 1;
                     it->run_virtual();
@@ -1718,15 +1718,15 @@ namespace m_tetris
         template<bool EnableHold>
         void search_children()
         {
-            if(parent == nullptr)
+            if (parent == nullptr)
             {
                 assert(context->current->status.t == node);
                 level = 0;
-                if(EnableHold)
+                if (EnableHold)
                 {
-                    if(hold == ' ')
+                    if (hold == ' ')
                     {
-                        if(is_hold_lock || next == context->next.end())
+                        if (is_hold_lock || next == context->next.end())
                         {
                             search(context->current, false);
                         }
@@ -1754,9 +1754,9 @@ namespace m_tetris
                 return;
             }
             level = parent->level + 1;
-            if(EnableHold)
+            if (EnableHold)
             {
-                if(is_hold && parent->hold == ' ')
+                if (is_hold && parent->hold == ' ')
                 {
                     assert(parent->next != context->next.end());
                     next = std::next(parent->next);
@@ -1765,7 +1765,7 @@ namespace m_tetris
                 {
                     next = parent->next;
                 }
-                if(next == context->next.end())
+                if (next == context->next.end())
                 {
                     node = ' ';
                 }
@@ -1776,9 +1776,9 @@ namespace m_tetris
                 }
                 hold = is_hold ? parent->node : parent->hold;
                 assert(node != ' ' || hold != ' ');
-                if(hold == ' ')
+                if (hold == ' ')
                 {
-                    if(next == context->next.end())
+                    if (next == context->next.end())
                     {
                         search(context->engine->generate(node), false);
                     }
@@ -1789,7 +1789,7 @@ namespace m_tetris
                 }
                 else
                 {
-                    if(node == ' ')
+                    if (node == ' ')
                     {
                         search(context->engine->generate(hold), true);
                     }
@@ -1810,16 +1810,16 @@ namespace m_tetris
         template<bool EnableHold>
         bool run()
         {
-            if(context->is_complete)
+            if (context->is_complete)
             {
                 return true;
             }
             assert(parent == nullptr);
-            if(context->width == 0)
+            if (context->width == 0)
             {
                 build_children<EnableHold>();
                 auto &wait = context->wait.back();
-                for(auto it = children; it != nullptr; it = it->children_next)
+                for (auto it = children; it != nullptr; it = it->children_next)
                 {
                     wait.insert(it);
                 }
@@ -1831,16 +1831,16 @@ namespace m_tetris
             }
             bool complete = true;
             size_t next_length = context->max_length;
-            while(context->max_length >= context->pow_cache.size())
+            while (context->max_length >= context->pow_cache.size())
             {
                 context->pow_cache.emplace_back(std::pow(context->pow_cache.size(), 1.5));
             }
-            while(next_length > 0)
+            while (next_length > 0)
             {
                 double level_prune_hold = context->pow_cache[next_length] / context->max_length * context->width;
                 --next_length;
                 auto wait = &context->wait[next_length + 1];
-                if(wait->empty())
+                if (wait->empty())
                 {
                     continue;
                 }
@@ -1850,21 +1850,21 @@ namespace m_tetris
                 }
                 auto sort = &context->sort[next_length + 1];
                 auto next = &context->wait[next_length];
-                while(sort->size() < level_prune_hold && !wait->empty())
+                while (sort->size() < level_prune_hold && !wait->empty())
                 {
                     TetrisTreeNode *child = &*wait->begin();
                     wait->erase(child);
                     sort->insert(child);
-                    if(child->build_children<EnableHold>())
+                    if (child->build_children<EnableHold>())
                     {
-                        for(auto it = child->children; it != nullptr; it = it->children_next)
+                        for (auto it = child->children; it != nullptr; it = it->children_next)
                         {
                             next->insert(it);
                         }
                     }
                 }
             }
-            if(complete)
+            if (complete)
             {
                 context->is_complete = true;
                 return true;
@@ -1874,13 +1874,13 @@ namespace m_tetris
         std::pair<TetrisTreeNode const *, Status const *> get_best()
         {
             TetrisTreeNode *best = nullptr;
-            for(size_t i = 0; i < context->wait.size() && i < context->sort.size(); ++i)
+            for (size_t i = 0; i < context->wait.size() && i < context->sort.size(); ++i)
             {
                 auto wait_best = (context->wait.size() <= i || context->wait[i].empty()) ? nullptr : &*context->wait[i].begin();
                 auto sort_best = (context->sort.size() <= i || context->sort[i].empty()) ? nullptr : &*context->sort[i].begin();
-                if(wait_best == nullptr)
+                if (wait_best == nullptr)
                 {
-                    if(sort_best == nullptr)
+                    if (sort_best == nullptr)
                     {
                         continue;
                     }
@@ -1891,7 +1891,7 @@ namespace m_tetris
                 }
                 else
                 {
-                    if(sort_best == nullptr)
+                    if (sort_best == nullptr)
                     {
                         best = wait_best;
                     }
@@ -1902,15 +1902,16 @@ namespace m_tetris
                 }
                 break;
             }
-            if(best == nullptr)
+            if (best == nullptr)
             {
                 return std::make_pair(nullptr, nullptr);
             }
-            while(best->parent->parent != nullptr)
+            auto status = &best->status.get_raw();
+            while (best->parent->parent != nullptr)
             {
                 best = best->parent;
             }
-            return std::make_pair(best, &best->status.get_raw());
+            return std::make_pair(best, status);
         }
     };
 
@@ -2006,18 +2007,18 @@ namespace m_tetris
         //准备好上下文
         bool prepare(int width, int height)
         {
-            if(!TetrisRuleInit<TetrisRule>::init(width, height))
+            if (!TetrisRuleInit<TetrisRule>::init(width, height))
             {
                 return false;
             }
             TetrisContext::PrepareResult result = context_->prepare(width, height);
-            if(result == TetrisContext::rebuild)
+            if (result == TetrisContext::rebuild)
             {
                 ContextBuilder::init_ai(ai_, context_);
                 ContextBuilder::init_search(search_, context_);
                 return true;
             }
-            else if(result == TetrisContext::fail)
+            else if (result == TetrisContext::fail)
             {
                 return false;
             }
@@ -2038,7 +2039,7 @@ namespace m_tetris
         //run!
         RunResult run(TetrisMap const &map, TetrisNode const *node, char const *next, size_t next_length, time_t limit = 100)
         {
-            if(node == nullptr || !node->check(map))
+            if (node == nullptr || !node->check(map))
             {
                 return RunResult();
             }
@@ -2046,18 +2047,17 @@ namespace m_tetris
             tree_root_ = tree_root_->update(map, status_, node, next, next_length);
             do
             {
-                if(tree_root_->template run<false>())
+                if (tree_root_->template run<false>())
                 {
                     break;
                 }
-            }
-            while((now = clock() / double(CLOCKS_PER_SEC)) < end);
+            } while ((now = clock() / double(CLOCKS_PER_SEC)) < end);
             return RunResult(tree_root_->get_best());
         }
         //带hold的run!
         RunResult run_hold(TetrisMap const &map, TetrisNode const *node, char hold, bool hold_free, char const *next, size_t next_length, time_t limit = 100)
         {
-            if(node == nullptr || !node->check(map))
+            if (node == nullptr || !node->check(map))
             {
                 return RunResult();
             }
@@ -2065,13 +2065,12 @@ namespace m_tetris
             tree_root_ = tree_root_->update(map, status_, node, hold, !hold_free, next, next_length);
             do
             {
-                if(tree_root_->template run<true>())
+                if (tree_root_->template run<true>())
                 {
                     break;
                 }
-            }
-            while((now = clock() / double(CLOCKS_PER_SEC)) < end);
-            if(tree_root_->hold == ' ' && tree_context_.next.size() == 1 && !tree_root_->is_hold_lock)
+            } while ((now = clock() / double(CLOCKS_PER_SEC)) < end);
+            if (tree_root_->hold == ' ' && tree_context_.next.size() == 1 && !tree_root_->is_hold_lock)
             {
                 return RunResult(true);
             }
@@ -2085,9 +2084,9 @@ namespace m_tetris
         std::vector<char> make_path(TetrisNode const *node, LandPoint const &land_point, TetrisMap const &map, bool cut_drop = true)
         {
             auto path = search_.make_path(node, land_point, map);
-            if(cut_drop)
+            if (cut_drop)
             {
-                while(!path.empty() && (path.back() == 'd' || path.back() == 'D'))
+                while (!path.empty() && (path.back() == 'd' || path.back() == 'D'))
                 {
                     path.pop_back();
                 }
