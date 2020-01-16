@@ -393,7 +393,8 @@ namespace m_tetris
             return fail;
         }
         place_cache_.clear();
-        node_cache_.clear();
+        node_index_.clear();
+        node_storage_.clear();
         node_block_.clear();
         width_ = width;
         height_ = height;
@@ -411,10 +412,11 @@ namespace m_tetris
         node_block_.resize(type_max_ * 4);
         for(size_t i = 0; i < type_max_; ++i)
         {
-            TetrisNode node;
+            node_storage_.emplace_back();
+            TetrisNode &node = node_storage_.back();
             create(generate_[convert(i)](this), node);
             check.push_back(node.status);
-            node_cache_.insert(std::make_pair(node.status, node));
+            node_index_.emplace(node.status, &node);
         }
         struct IndexFilter
         {
@@ -439,7 +441,7 @@ namespace m_tetris
         {
             for(size_t max_index = check.size(); check_index < max_index; ++check_index)
             {
-                TetrisNode &node = node_cache_.find(check[check_index])->second;
+                TetrisNode &node = *node_index_.find(check[check_index])->second;
                 node.index = check_index;
                 node.index_filtered = index_filter.insert(std::make_pair(node, uint32_t(check_index))).first->second;
                 node.context = this;
@@ -452,12 +454,14 @@ namespace m_tetris
 /**//**//**//**//**/};\
 /**//**//**//**//**/if(copy.op.func != nullptr && copy.op.func(copy, this))\
 /**//**//**//**//**/{\
-/**//**//**//**//**//**/auto result = node_cache_.insert(std::make_pair(copy.status, copy));\
-/**//**//**//**//**//**/if(result.second)\
+/**//**//**//**//**//**/auto find = node_index_.find(copy.status);\
+/**//**//**//**//**//**/if(find == node_index_.end())\
 /**//**//**//**//**//**/{\
 /**//**//**//**//**//**//**/check.push_back(copy.status);\
+/**//**//**//**//**//**//**/node_storage_.emplace_back(copy);\
+/**//**//**//**//**//**//**/find = node_index_.emplace(copy.status, &node_storage_.back()).first;\
 /**//**//**//**//**//**/}\
-/**//**//**//**//**//**/node.func = &result.first->second;\
+/**//**//**//**//**//**/node.func = find->second;\
 /**//**//**//**//**/}\
 /**//**//**//**/} while(false)\
 /**//**//**//**/
@@ -474,12 +478,14 @@ namespace m_tetris
 /**//**//**//**//**/};\
 /**//**//**//**//**/if(m_tetris_rule_tools::func(copy, this))\
 /**//**//**//**//**/{\
-/**//**//**//**//**//**/auto result = node_cache_.insert(std::make_pair(copy.status, copy));\
-/**//**//**//**//**//**/if(result.second)\
+/**//**//**//**//**//**/auto find = node_index_.find(copy.status);\
+/**//**//**//**//**//**/if(find == node_index_.end())\
 /**//**//**//**//**//**/{\
 /**//**//**//**//**//**//**/check.push_back(copy.status);\
+/**//**//**//**//**//**//**/node_storage_.emplace_back(copy);\
+/**//**//**//**//**//**//**/find = node_index_.emplace(copy.status, &node_storage_.back()).first;\
 /**//**//**//**//**//**/}\
-/**//**//**//**//**//**/node.func = &result.first->second;\
+/**//**//**//**//**//**/node.func = find->second;\
 /**//**//**//**//**/}\
 /**//**//**//**/} while(false)\
 /**//**//**//**/
@@ -499,12 +505,14 @@ namespace m_tetris
                     int index = 2;
                     while(m_tetris_rule_tools::move_down(copy, this))
                     {
-                        auto result = node_cache_.insert(std::make_pair(copy.status, copy));
-                        if(result.second)
+                        auto find - node_index_.find(copy.status);
+                        if (find == node_index_.end())
                         {
                             check.push_back(copy.status);
+                            node_storage_.emplace_back(copy);
+                            find = node_index_.emplace(copy.status, &node_storage_.back()).first;
                         }
-                        node.move_down_multi[index] = &result.first->second;
+                        node.move_down_multi[index] = find->second;
                         ++index;
                     }
                 }
@@ -591,9 +599,9 @@ namespace m_tetris
             }
             while(rotate != nullptr  && rotate != node);
         }
-        for(auto it = node_cache_.begin(); it != node_cache_.end(); ++it)
+        for(auto it = node_index_.begin(); it != node_index_.end(); ++it)
         {
-            TetrisNode &node = it->second;
+            TetrisNode &node = *it->second;
 #define WALL_KICK(func)\
 /**//**//**/do\
 /**//**//**/{\
@@ -650,7 +658,7 @@ namespace m_tetris
 
     size_t TetrisContext::node_max() const
     {
-        return node_cache_.size();
+        return node_index_.size();
     }
 
     size_t TetrisContext::convert(char type) const
@@ -684,14 +692,14 @@ namespace m_tetris
 
     TetrisNode const *TetrisContext::get(TetrisBlockStatus const &status) const
     {
-        auto find = node_cache_.find(status);
-        if(find == node_cache_.end())
+        auto find = node_index_.find(status);
+        if(find == node_index_.end())
         {
             return nullptr;
         }
         else
         {
-            return &find->second;
+            return find->second;
         }
     }
 
