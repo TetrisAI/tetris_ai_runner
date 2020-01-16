@@ -505,7 +505,7 @@ namespace m_tetris
                     int index = 2;
                     while(m_tetris_rule_tools::move_down(copy, this))
                     {
-                        auto find - node_index_.find(copy.status);
+                        auto find = node_index_.find(copy.status);
                         if (find == node_index_.end())
                         {
                             check.push_back(copy.status);

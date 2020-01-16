@@ -370,6 +370,7 @@ struct c2_param
     int combo_limit;
     int danger;
     c2_out_put *path;
+    size_t ai_width;
     size_t limit;
     int mode;
     int vp;

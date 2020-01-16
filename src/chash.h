@@ -214,10 +214,6 @@ public:
         {
         }
         iterator(iterator const &) = default;
-        size_type offset() const
-        {
-            return offset;
-        }
         iterator &operator++()
         {
             offset = self->advance_next_(offset);
@@ -268,10 +264,6 @@ public:
         const_iterator(iterator const &it) : offset(it.offset), self(it.self)
         {
         }
-        size_type offset() const
-        {
-            return offset;
-        }
         const_iterator &operator++()
         {
             offset = self->advance_next_(offset);
@@ -317,10 +309,6 @@ public:
         {
         }
         local_iterator(local_iterator const &) = default;
-        size_type offset() const
-        {
-            return offset;
-        }
         local_iterator &operator++()
         {
             offset = self->local_advance_next_(offset);
@@ -370,10 +358,6 @@ public:
         const_local_iterator(const_local_iterator const &) = default;
         const_local_iterator(local_iterator const &it) : offset(it.offset), self(it.self)
         {
-        }
-        size_type offset() const
-        {
-            return offset;
         }
         const_local_iterator &operator++()
         {

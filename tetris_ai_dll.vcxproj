@@ -16,7 +16,9 @@
     <ClInclude Include="src\ai_farter.h" />
     <ClInclude Include="src\ai_misaka.h" />
     <ClInclude Include="src\ai_tag.h" />
-    <ClInclude Include="src\bst_base.h" />
+    <ClInclude Include="src\chash.h" />
+    <ClInclude Include="src\chash_map.h" />
+    <ClInclude Include="src\chash_set.h" />
     <ClInclude Include="src\integer_utils.h" />
     <ClInclude Include="src\search_path.h" />
     <ClInclude Include="src\search_simple.h" />
@@ -30,8 +32,6 @@
     <ClInclude Include="src\rule_st.h" />
     <ClInclude Include="src\rule_tag.h" />
     <ClInclude Include="src\rule_toj.h" />
-    <ClInclude Include="src\rb_tree.h" />
-    <ClInclude Include="src\sb_tree.h" />
     <ClInclude Include="src\tetris_core.h" />
     <ClInclude Include="src\ai_zzz.h" />
     <ClInclude Include="src\search_cautious.h" />
@@ -61,6 +61,9 @@
     <ClCompile Include="src\ai_zzz.cpp" />
     <ClCompile Include="src\search_cautious.cpp" />
     <ClCompile Include="src\rule_srs.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="src\chash.natvis" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{7190EA95-4DF4-4F70-AC20-194B0FB7B6E2}</ProjectGuid>

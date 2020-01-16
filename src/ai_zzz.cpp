@@ -545,7 +545,7 @@ namespace ai_zzz
 
     std::string TOJ::ai_name() const
     {
-        return "ZZZ TOJ v0.9";
+        return "ZZZ TOJ v0.10";
     }
 
     TOJ::Result TOJ::eval(TetrisNodeEx const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
@@ -856,7 +856,7 @@ namespace ai_zzz
             }
             else
             {
-                like -= 8;
+                like -= 16;
                 result.b2b = false;
             }
             attack += config_->table[std::min<int>(config_->table_max - 1, ++result.combo)];
@@ -869,7 +869,7 @@ namespace ai_zzz
             }
             else
             {
-                like -= 4;
+                like -= 24;
                 result.b2b = false;
             }
             attack += config_->table[std::min<int>(config_->table_max - 1, ++result.combo)] + 2;
@@ -924,11 +924,11 @@ namespace ai_zzz
         double t2_max = (t_expect < 8 ? 3 : 2) * 64 * std::max(0, safe - 4) / 16;
         double t3_max = std::max(10 - t_expect, 4) * (3 + result.b2b) * 64 * std::max(0, safe - 10) / 10;
         result.like += (status.like
-            + like * (safe * 3 + 4)
+            + like * (safe * 3 + 4) * 2
             + attack * (safe + 16) * 32
             + (node.type != TSpinType::None) * (eval_result.src_t2_value - eval_result.t2_value) * t2_max
             + (node.type != TSpinType::None) * (eval_result.src_t3_value - eval_result.t3_value) * t3_max
-            + config_->table[std::min<int>(config_->table_max - 1, result.combo + 1)] * (40 - safe) * 16
+            + config_->table[std::min<int>(config_->table_max - 1, result.combo + 1)] * (40 - safe) * 32
             + (result.b2b - status.b2b) * 1024
             + safe * 24
             + eval_result.value * 0.08
@@ -1165,11 +1165,11 @@ namespace ai_zzz
         {
             int attack_well = std::min(4, v.WideWellDepth[0]);
             result.attack = (0.
-                + v.WideWellDepth[5] * 2.8
-                + v.WideWellDepth[4] * 3.0
-                + v.WideWellDepth[3] * 3.2
-                + v.WideWellDepth[2] * 4.8
-                + v.WideWellDepth[1] *  -8
+                + v.WideWellDepth[5] * 2.4
+                + v.WideWellDepth[4] * 3.6
+                + v.WideWellDepth[3] * 7.2
+                + v.WideWellDepth[2] * 9.6
+                + v.WideWellDepth[1] * -20
                 + ((attack_well * attack_well) + config_->p[16]) * config_->p[17] * config_->p_rate
                 );
         }
@@ -1181,7 +1181,7 @@ namespace ai_zzz
         return result;
     }
 
-    C2::Status C2::get(m_tetris::TetrisNode const *node, Result const &eval_result, size_t depth, Status const &status) const
+    C2::Status C2::get(m_tetris::TetrisNode const *node, Result const &eval_result, size_t depth, Status const &status, TetrisContext::Env const &env) const
     {
         Status result;
         result.attack = 0;
@@ -1198,95 +1198,57 @@ namespace ai_zzz
             {
                 result.combo = 0;
             }
-            static const float table[][4] =
+            static const float table[][5] =
             {
-                { 4000        ,  3000,  4000,  8000},
-                {    0        ,     0,   400,   800},
-                {    0        ,     0,   100,   200},
-                { 4000 +  2000,  2000,  2000,  2000},
-                { 8000 +  4000,  4000,  4000,  4000},
-                { 6000 +  6000,  6000,  6000,  6000},
-                { 8000 +  8000,  8000,  8000,  8000},
-                {10000 + 10000, 10000, 10000, 10000},
-                {12000 + 12000, 12000, 12000, 12000},
-                {14000 + 14000, 14000, 14000, 14000},
-                {16000 + 16000, 16000, 16000, 16000},
-                {18000 + 18000, 18000, 18000, 18000},
-                {20000 + 20000, 20000, 20000, 20000},
-                {22000 + 22000, 22000, 22000, 22000},
-                {24000 + 24000, 24000, 24000, 24000},
-                {26000 + 26000, 26000, 26000, 26000},
-                {99999        , 99999, 99999, 99999},
-                {99999        , 99999, 99999, 99999},
-                {99999        , 99999, 99999, 99999},
-                {99999        , 99999, 99999, 99999},
-                {99999        , 99999, 99999, 99999},
-                {99999        , 99999, 99999, 99999},
-                {99999        , 99999, 99999, 99999},
-                {99999        , 99999, 99999, 99999},
-                {99999        , 99999, 99999, 99999},
+                {    0, -3000, 3000, 4000, 5000},
+                {  333,   500, 1000, 1000, 2000},
+                {  667,  1000,  500,  500,  500},
+                { 1000,  2000, 1000, 1000, 1000},
+                { 2000,  4000, 2000, 2000, 2000},
+                { 3000,  6000, 3000, 3000, 3000},
+                { 4000,  8000, 4000, 4000, 4000},
+                { 5000, 10000, 5000, 5000, 5000},
+                { 6000, 10000, 5000, 5000, 5000},
+                { 7000, 10000, 5000, 5000, 5000},
+                { 8000, 10000, 5000, 5000, 5000},
+                { 9000, 10000, 5000, 5000, 5000},
+                {10000, 10000, 5000, 5000, 5000},
             };
-            double upstack = (config_->danger ? 0.3 : 1) * std::max<double>(0, 1 - eval_result.hole * 4.2) * std::max<double>(0, 1 - (eval_result.fill < 0.4 ? 0 : eval_result.fill - 0.4) * 4);
+            double fill = eval_result.fill + (config_->danger ? 0.32 : 0);
+            double hole = eval_result.hole + (config_->danger ? 0.16 : 0);
+            double upstack = std::max<double>(0, 1 - hole * 3.3) * std::max<double>(0, 1 - (fill < 0.4 ? 0 : fill - 0.4) * 4);
             double downstack;
+            double length_ratio = (0.5 + 0.5 * env.length);
             if (status.combo == 0)
             {
-                downstack = (config_->danger ? 0.5 : 1) * std::max<double>(0, 1 - eval_result.hole * 3.3) * std::max<double>(0, 1 - std::abs(eval_result.fill - 0.48) * 5);
-                result.attack -= 1600 * eval_result.new_hole;
+                downstack = std::max<double>(0.2, 1 - hole * 3.3) * std::max<double>(0.2, 1 - std::abs(fill - 0.48) * 5);
+                result.attack -= 32000 * eval_result.new_hole;
                 result.attack += eval_result.attack * upstack;
             }
             else
             {
-                downstack = (config_->danger ? 0.5 : 1) * std::max<double>(0, 1 - eval_result.hole * 3.3) * std::max<double>(0, 1 - eval_result.fill * 1.2);
+                downstack = std::max<double>(0.2, 1 - hole * 3.3) * std::max<double>(0.2, 1 - fill * 1.2);
             }
             if (eval_result.clear > 0)
             {
                 if (status.combo == 0)
                 {
                     result.attack -= 8000 * upstack;
-                    if (eval_result.clear <= 2)
-                    {
-                        result.attack -= table[status.combo][eval_result.clear - 1] * upstack;
-                    }
-                    else
-                    {
-                        result.attack += table[status.combo][eval_result.clear - 1] * downstack;
-                    }
+                    result.attack += table[status.combo][eval_result.clear] * downstack;
                 }
                 else
                 {
-                    if (config_->danger && eval_result.clear == 1)
-                    {
-                        result.attack += table[status.combo][1] * downstack;
-                    }
-                    else
-                    {
-                        result.attack += table[status.combo][eval_result.clear - 1] * downstack;
-                    }
+                    result.attack += table[status.combo][eval_result.clear] * downstack * length_ratio;
                 }
-                ++result.combo;
+                result.combo = std::min<size_t>(12, result.combo + 1);
             }
             else if (status.combo > 0)
             {
-                result.attack -= (800 + status.combo * 100) * downstack;
+                result.attack -= table[status.combo][0] * downstack * length_ratio;
             }
-            if (eval_result.clear == 0 && config_->danger)
-            {
-                if (status.combo < 3)
-                {
-                    result.attack -= 400;
-                }
-                else
-                {
-                    result.attack -= 100;
-                }
-            }
-            if (eval_result.soft_drop)
-            {
-                result.attack -= 100;
-            }
-            result.attack += (status.attack + 9999999999) * 1.2 - 9999999999;
+            result.attack += status.attack;
         }
-        result.map = (status.map + 9999999999) * 0.9 - 9999999999 + eval_result.map;
+        result.map = status.map + eval_result.map;
         if (eval_result.soft_drop && !config_->soft_drop)
         {
             result.map -= 9999999999;
@@ -1301,14 +1263,15 @@ namespace ai_zzz
         result.combo = 0;
         result.value = 0;
         result.combo_limit = 0;
+        static constexpr double max_val = 1e20;
         double
-            lower1 = std::numeric_limits<double>::max(),
-            lower2 = std::numeric_limits<double>::max(),
-            lower3 = std::numeric_limits<double>::max(),
-            upper1 = std::numeric_limits<double>::min();
+            lower1 = +max_val,
+            lower2 = +max_val,
+            lower3 = +max_val,
+            upper1 = -max_val;
         for (size_t i = 0; i < status_length; ++i)
         {
-            double v = status[i] == nullptr ? -9999999999 : status[i]->value;
+            double v = status[i] == nullptr ? -max_val : status[i]->value;
             result.value += v;
             if (v < lower1)
             {
