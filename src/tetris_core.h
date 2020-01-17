@@ -1735,11 +1735,11 @@ namespace m_tetris
             size_t next_length = context->max_length;
             while (context->max_length >= context->pow_cache.size())
             {
-                context->pow_cache.emplace_back(std::pow(context->pow_cache.size(), 2.5));
+                context->pow_cache.emplace_back(std::pow(context->pow_cache.size(), 2));
             }
             while (next_length > 0)
             {
-                double level_prune_hold = context->pow_cache[next_length] / context->max_length * context->width;
+                size_t level_prune_hold = std::max<size_t>(1, size_t(context->pow_cache[next_length] / context->max_length * context->width));
                 --next_length;
                 auto wait = &context->wait[next_length + 1];
                 if (wait->empty())
