@@ -1735,7 +1735,7 @@ namespace m_tetris
             size_t next_length = context->max_length;
             while (context->max_length >= context->pow_cache.size())
             {
-                context->pow_cache.emplace_back(std::pow(context->pow_cache.size(), 2));
+                context->pow_cache.emplace_back(std::pow(context->pow_cache.size(), 2.71828182845904523536));
             }
             while (next_length > 0)
             {
@@ -1752,7 +1752,7 @@ namespace m_tetris
                 }
                 auto sort = &context->sort[next_length + 1];
                 auto next = &context->wait[next_length];
-                while (sort->size() < level_prune_hold && !wait->empty())
+                auto push_one = [&]
                 {
                     TetrisTreeNode *child = wait->top();
                     wait->pop();
@@ -1761,6 +1761,25 @@ namespace m_tetris
                     {
                         next->push(it);
                     }
+                };
+                if (wait->empty())
+                {
+                    // do nothing
+                }
+                else if (sort->size() >= level_prune_hold)
+                {
+                    if (sort->top()->status.get() < wait->top()->status.get())
+                    {
+                        push_one();
+                    }
+                }
+                else
+                {
+                    do
+                    {
+                        push_one();
+                    }
+                    while (sort->size() < level_prune_hold && !wait->empty());
                 }
             }
             if (complete)

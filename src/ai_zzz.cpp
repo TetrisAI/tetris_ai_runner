@@ -545,7 +545,7 @@ namespace ai_zzz
 
     std::string TOJ::ai_name() const
     {
-        return "ZZZ TOJ v0.10";
+        return "ZZZ TOJ v0.11";
     }
 
     TOJ::Result TOJ::eval(TetrisNodeEx const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
@@ -821,6 +821,24 @@ namespace ai_zzz
         result.b2b = status.b2b;
         int attack = 0;
         double like = 0;
+        if (node->status.t == 'T')
+        {
+            if (node.type == TSpinType::None || eval_result.clear == 0)
+            {
+                like -= 3;
+            }
+            else if (eval_result.clear == 1)
+            {
+                like -= 2;
+            }
+        }
+        else if (node->status.t == 'I')
+        {
+            if (eval_result.clear < 4)
+            {
+                like -= 1;
+            }
+        }
         switch (eval_result.clear)
         {
         case 0:
@@ -834,17 +852,30 @@ namespace ai_zzz
                 }
                 result.under_attack = 0;
             }
+            if (node->status.t == 'T')
+            {
+                like -= 3;
+            }
+            else
+            {
+                like -= (node->status.t == 'I') + 1;
+            }
             break;
         case 1:
             if (node.type == TSpinType::TSpinMini)
             {
                 attack = 1 + status.b2b;
+                like -= 2;
             }
             else if (node.type == TSpinType::TSpin)
             {
                 attack = 2 + status.b2b;
+                like -= 1;
             }
-            like -= 16;
+            else
+            {
+                like -= (node->status.t == 'I') + 1;
+            }
             attack += config_->table[std::min<int>(config_->table_max - 1, ++result.combo)];
             result.b2b = node.type != TSpinType::None;
             break;
@@ -856,8 +887,8 @@ namespace ai_zzz
             }
             else
             {
-                like -= 16;
                 result.b2b = false;
+                like -= (node->status.t == 'I') + 1;
             }
             attack += config_->table[std::min<int>(config_->table_max - 1, ++result.combo)];
             break;
@@ -866,16 +897,18 @@ namespace ai_zzz
             {
                 attack = 6 + status.b2b * 2;
                 result.b2b = true;
+                like += 1;
             }
             else
             {
-                like -= 24;
                 result.b2b = false;
+                like -= (node->status.t == 'I') + 1;
             }
             attack += config_->table[std::min<int>(config_->table_max - 1, ++result.combo)] + 2;
             break;
         case 4:
             attack = config_->table[std::min<int>(config_->table_max - 1, ++result.combo)] + 4 + status.b2b;
+            like += 1;
             result.b2b = true;
             break;
         }
@@ -906,7 +939,7 @@ namespace ai_zzz
         case 'I':
             if (eval_result.clear != 4)
             {
-                like += 1;
+                like += 4;
             }
             break;
         }
@@ -924,12 +957,12 @@ namespace ai_zzz
         double t2_max = (t_expect < 8 ? 3 : 2) * 64 * std::max(0, safe - 4) / 16;
         double t3_max = std::max(10 - t_expect, 4) * (3 + result.b2b) * 64 * std::max(0, safe - 10) / 10;
         result.like += (status.like
-            + like * (safe * 3 + 4) * 2
+            + like * safe * 8
             + attack * (safe + 16) * 32
             + (node.type != TSpinType::None) * (eval_result.src_t2_value - eval_result.t2_value) * t2_max
             + (node.type != TSpinType::None) * (eval_result.src_t3_value - eval_result.t3_value) * t3_max
-            + config_->table[std::min<int>(config_->table_max - 1, result.combo + 1)] * (40 - safe) * 32
-            + (result.b2b - status.b2b) * 1024
+            + config_->table[std::min<int>(config_->table_max - 1, result.combo + 1)] * (40 - safe) * 4
+            + (result.b2b - status.b2b) * (safe + 16) * 32
             + safe * 24
             + eval_result.value * 0.08
             + eval_result.dig * 0.2
