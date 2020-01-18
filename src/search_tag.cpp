@@ -389,7 +389,7 @@ namespace search_tag
         int row = block_data_[node->status.x];
         if(y == 0)
         {
-            return zzz::BitCount(map.row[1] & row) + 2 >= 3;
+            return ZZZ_BitCount(map.row[1] & row) + 2 >= 3;
         }
         else
         {
@@ -402,7 +402,7 @@ namespace search_tag
             {
                 count = 0;
             }
-            return zzz::BitCount(map.row[y - 1] & row) + zzz::BitCount(map.row[y + 1] & row) + count >= 3;
+            return ZZZ_BitCount(map.row[y - 1] & row) + ZZZ_BitCount(map.row[y + 1] & row) + count >= 3;
         }
     }
 }

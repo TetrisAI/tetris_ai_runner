@@ -16,38 +16,6 @@
 
 namespace m_tetris
 {
-    bool TetrisNode::check(TetrisMap const &map) const
-    {
-        switch(height)
-        {
-        case 4:
-            if(map.row[row + 3] & data[3])
-            {
-                return false;
-            }
-        case 3:
-            if(map.row[row + 2] & data[2])
-            {
-                return false;
-            }
-        case 2:
-            if(map.row[row + 1] & data[1])
-            {
-                return false;
-            }
-        case 1:
-            if(map.row[row] & data[0])
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    bool TetrisNode::check(TetrisMapSnap const &snap) const
-    {
-        return ((snap.row[status.r][row] >> col) & 1) == 0;
-    }
 
     void TetrisNode::build_snap(TetrisMap const &map, TetrisContext const *context, TetrisMapSnap &snap) const
     {
@@ -94,34 +62,6 @@ namespace m_tetris
                 }
             }
         }
-    }
-
-    bool TetrisNode::open(TetrisMap const &map) const
-    {
-        switch(width)
-        {
-        case 4:
-            if(bottom[3] < map.top[col + 3])
-            {
-                return false;
-            }
-        case 3:
-            if(bottom[2] < map.top[col + 2])
-            {
-                return false;
-            }
-        case 2:
-            if(bottom[1] < map.top[col + 1])
-            {
-                return false;
-            }
-        case 1:
-            if(bottom[0] < map.top[col])
-            {
-                return false;
-            }
-        }
-        return true;
     }
 
     size_t TetrisNode::attach(TetrisMap &map) const

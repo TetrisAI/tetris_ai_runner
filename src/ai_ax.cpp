@@ -53,7 +53,7 @@ namespace ai_ax
         const int width_m1 = map.width - 1;
         //行列变换
         int ColTrans = 2 * (map.height - map.roof);
-        int RowTrans = zzz::BitCount(row_mask_ ^ map.row[0]) + zzz::BitCount(map.roof == map.height ? ~row_mask_ & map.row[map.roof - 1] : map.row[map.roof - 1]);
+        int RowTrans = ZZZ_BitCount(row_mask_ ^ map.row[0]) + ZZZ_BitCount(map.roof == map.height ? ~row_mask_ & map.row[map.roof - 1] : map.row[map.roof - 1]);
         for(int y = 0; y < map.roof; ++y)
         {
             if(!map.full(0, y))
@@ -64,10 +64,10 @@ namespace ai_ax
             {
                 ++ColTrans;
             }
-            ColTrans += zzz::BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+            ColTrans += ZZZ_BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
             if(y != 0)
             {
-                RowTrans += zzz::BitCount(map.row[y - 1] ^ map.row[y]);
+                RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
             }
         }
         struct
@@ -100,7 +100,7 @@ namespace ai_ax
             int LineHole = v.LineCoverBits ^ map.row[y];
             if(LineHole != 0)
             {
-                v.HoleCount += zzz::BitCount(LineHole);
+                v.HoleCount += ZZZ_BitCount(LineHole);
                 v.HoleLine++;
                 if(v.HolePosy == 0)
                 {
@@ -158,7 +158,7 @@ namespace ai_ax
                 {
                     break;
                 }
-                v.HolePiece += (y + 1) * zzz::BitCount(CheckLine);
+                v.HolePiece += (y + 1) * ZZZ_BitCount(CheckLine);
             }
         }
 

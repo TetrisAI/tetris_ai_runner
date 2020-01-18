@@ -1,18 +1,10 @@
 ﻿
-#include <cstddef>
-#include <cstdint>
-
-#if __SSE4__
-#   include <nmmintrin.h>
-#endif
+#include "integer_utils.h"
 
 namespace zzz
 {
-    size_t BitCount(uint32_t n)
+    size_t BitCountImpl(uint32_t n)
     {
-#if __SSE4__
-        return size_t(_mm_popcnt_u32(n));
-#else
         // HD, Figure 5-2
         n = n - ((n >> 1) & 0x55555555);
         n = (n & 0x33333333) + ((n >> 2) & 0x33333333);
@@ -20,7 +12,6 @@ namespace zzz
         n = n + (n >> 8);
         n = n + (n >> 16);
         return n & 0x3f;
-#endif
     }
 
     size_t NumberOfTrailingZeros(uint32_t i)
