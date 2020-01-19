@@ -871,9 +871,9 @@ namespace ai_zzz
             attack += get_combo_attack(++result.combo) + 2;
             break;
         case 4:
-            attack = get_combo_attack(++result.combo) + 4 + status.b2b;
             like += 1;
             result.b2b = true;
+            attack = get_combo_attack(++result.combo) + 4 + status.b2b;
             break;
         }
         result.under_attack -= attack;
@@ -921,15 +921,15 @@ namespace ai_zzz
         double t2_max = (t_expect < 8 ? 3 : 2) * 64 * std::max(0, safe - 4) / 16;
         double t3_max = std::max(10 - t_expect, 4) * (3 + result.b2b) * 64 * std::max(0, safe - 10) / 10;
         result.like += (status.like
-            + like * safe * 8
+            + like * safe * (safe + 2) * 0.625
             + attack * (safe + 16) * 32
             + (node.type != TSpinType::None) * (status.t2_value - eval_result.t2_value) * t2_max
             + (node.type != TSpinType::None) * (status.t3_value - eval_result.t3_value) * t3_max
-            + get_combo_attack(result.combo) * get_combo_attack(result.combo + 1) * (40 - safe) * 2
+            + get_combo_attack(result.combo) * result.combo * 64
             + (result.b2b - status.b2b) * (safe + 16) * 32
             + safe * 24
             + eval_result.value * 0.1
-            + eval_result.dig * 0.25
+            + eval_result.dig * 0.5
             );
         result.value += (result.like
             + eval_result.t2_value * t2_max
