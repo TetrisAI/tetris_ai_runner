@@ -119,8 +119,7 @@ namespace ai_zzz
             int8_t under_attack;
             int8_t map_rise;
             int8_t b2b;
-            int16_t t2_value;
-            int16_t t3_value;
+            double t_attack;
             double like;
             double value;
             bool operator < (Status const &) const;

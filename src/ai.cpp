@@ -175,9 +175,9 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     srs_ai.status()->under_attack = upcomeAtt;
     srs_ai.status()->map_rise = 0;
     srs_ai.status()->b2b = !!b2b;
+    srs_ai.status()->t_attack = 0;
     srs_ai.status()->like = 0;
     srs_ai.status()->value = 0;
-    ai_zzz::TOJ::Status::init_t_value(map, srs_ai.status()->t2_value = 0, srs_ai.status()->t3_value = 0);
     m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
     m_tetris::TetrisNode const *node = srs_ai.get(status);
     static double const base_time = std::pow(100, 1.0 / 8);

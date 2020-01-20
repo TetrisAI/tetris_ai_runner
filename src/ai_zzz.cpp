@@ -795,9 +795,9 @@ namespace ai_zzz
         result.under_attack = status.under_attack;
         result.map_rise = status.map_rise;
         result.b2b = status.b2b;
-        result.t2_value = eval_result.t2_value;
-        result.t3_value = eval_result.t3_value;
         int attack = 0;
+        int t2_attack = 0;
+        int t3_attack = 0;
         double like = 0;
         auto get_combo_attack = [&](int c)
         {
@@ -816,14 +816,7 @@ namespace ai_zzz
                 }
                 result.under_attack = 0;
             }
-            if (node->status.t == 'T')
-            {
-                like -= 3;
-            }
-            else
-            {
-                like -= (node->status.t == 'I');
-            }
+            like -= (node->status.t == 'I') + (node->status.t == 'T') * 2;
             break;
         case 1:
             if (node.type == TSpinType::TSpinMini)
@@ -838,7 +831,7 @@ namespace ai_zzz
             }
             else
             {
-                like -= (node->status.t == 'I') + 8;
+                like -= (node->status.t == 'I') + (node->status.t == 'T') * 2 + 8;
             }
             attack += get_combo_attack(++result.combo);
             result.b2b = node.type != TSpinType::None;
@@ -846,20 +839,20 @@ namespace ai_zzz
         case 2:
             if (node.type != TSpinType::None)
             {
-                attack += 4 + status.b2b;
+                attack += t2_attack = 4 + status.b2b;
                 result.b2b = true;
             }
             else
             {
                 result.b2b = false;
-                like -= (node->status.t == 'I') + 16;
+                like -= (node->status.t == 'I') + (node->status.t == 'T') * 2 + 16;
             }
             attack += get_combo_attack(++result.combo);
             break;
         case 3:
             if (node.type != TSpinType::None)
             {
-                attack = 6 + status.b2b * 2;
+                attack = t3_attack = 6 + status.b2b * 2;
                 result.b2b = true;
                 like += 1;
             }
@@ -871,8 +864,8 @@ namespace ai_zzz
             attack += get_combo_attack(++result.combo) + 2;
             break;
         case 4:
-            like += 1;
             result.b2b = true;
+            like -= 1;
             attack = get_combo_attack(++result.combo) + 4 + status.b2b;
             break;
         }
@@ -897,13 +890,13 @@ namespace ai_zzz
         case 'T':
             if (node.type == TSpinType::None)
             {
-                like += 8;
+                like += 4;
             }
             break;
         case 'I':
             if (eval_result.clear != 4)
             {
-                like += 4;
+                like += 2;
             }
             break;
         }
@@ -918,25 +911,28 @@ namespace ai_zzz
             like += 999;
             attack += 6;
         }
-        double t2_max = (t_expect < 8 ? 3 : 2) * 64 * std::max(0, safe - 4) / 16;
-        double t3_max = std::max(10 - t_expect, 4) * (3 + result.b2b) * 64 * std::max(0, safe - 10) / 10;
+        double t2_max = (t_expect < 8 ? 3 : 2) * 64;
+        double t3_max = std::max(10 - t_expect, 4) * (3 + result.b2b) * 32;
+        result.t_attack = (status.t_attack
+            + t2_attack * 2 * t2_max
+            + t3_attack * 2 * t3_max
+            );
         result.like += (status.like
-            + like * safe * (safe + 2) * 0.625
-            + attack * (safe + 16) * 32
-            + (node.type != TSpinType::None) * (status.t2_value - eval_result.t2_value) * t2_max
-            + (node.type != TSpinType::None) * (status.t3_value - eval_result.t3_value) * t3_max
-            + get_combo_attack(result.combo) * result.combo * 64
-            + (result.b2b - status.b2b) * (safe + 16) * 32
-            + safe * 24
-            + eval_result.value * 0.1
+            + like * 128
+            + attack * 256
+            + get_combo_attack(result.combo + 1) * get_combo_attack(result.combo + 2) * 256
+            + ((result.b2b > status.b2b) - (result.b2b < status.b2b) * 2) * 512
+            + safe * 32
+            + eval_result.value * 0.05
             + eval_result.dig * 0.5
             );
         result.value += (result.like
+            + result.t_attack
             + eval_result.t2_value * t2_max
             + eval_result.t3_value * t3_max
             - result.death * 999999999.0
-            + eval_result.value * 1.2
-            + eval_result.dig * 1.8
+            + eval_result.value * 1.95
+            + eval_result.dig * 1.5
             );
         result.death += !!result.death;
         return result;
