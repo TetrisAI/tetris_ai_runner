@@ -156,6 +156,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     }
     srs_ai.update();
     srs_ai.search_config()->allow_180 = can180spin;
+    srs_ai.search_config()->is_20g = false;
     srs_ai.search_config()->last_rotate = false;
     srs_ai.ai_config()->p =
     {
@@ -170,6 +171,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
             ;
         return max - 1;
     }();
+    srs_ai.ai_config()->safe = srs_ai.ai()->get_safe(map);
     srs_ai.status()->death = 0;
     srs_ai.status()->combo = combo;
     srs_ai.status()->under_attack = upcomeAtt;
@@ -177,6 +179,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     srs_ai.status()->b2b = !!b2b;
     srs_ai.status()->t_attack = 0;
     srs_ai.status()->like = 0;
+    srs_ai.status()->like_u = 0;
     srs_ai.status()->value = 0;
     m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
     m_tetris::TetrisNode const *node = srs_ai.get(status);

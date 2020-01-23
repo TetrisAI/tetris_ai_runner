@@ -507,6 +507,15 @@ namespace ai_zzz
         return value < other.value;
     }
 
+    int8_t TOJ::get_safe(m_tetris::TetrisMap const &m) const {
+        int safe = 0;
+        while (map_in_danger_(m, safe + 1) == 0)
+        {
+            ++safe;
+        }
+        return safe;
+    }
+
     void TOJ::init(m_tetris::TetrisContext const *context, Config const *config)
     {
         context_ = context;
@@ -757,17 +766,7 @@ namespace ai_zzz
         result.value *= config_->p_rate;
         result.count = map.count;
         result.clear = int8_t(clear);
-        if (node->row >= 20)
-        {
-            result.safe = -1;
-        }
-        else
-        {
-            while (map_in_danger_(map, result.safe + 1) == 0)
-            {
-                ++result.safe;
-            }
-        }
+        result.safe = node->row >= 20 ? -1 : get_safe(map);
         Status::init_t_value(map, result.t2_value, result.t3_value);
         return result;
     }
@@ -890,13 +889,13 @@ namespace ai_zzz
         case 'T':
             if (node.type == TSpinType::None)
             {
-                like += 4;
+                like += double(20 + config_->safe) / 4;
             }
             break;
         case 'I':
             if (eval_result.clear != 4)
             {
-                like += 2;
+                like += double(40 - config_->safe) / 4;
             }
             break;
         }
@@ -911,28 +910,31 @@ namespace ai_zzz
             like += 999;
             attack += 6;
         }
-        double t2_max = (t_expect < 8 ? 3 : 2) * 64;
-        double t3_max = std::max(10 - t_expect, 4) * (3 + result.b2b) * 32;
+        double t2_max = std::max(10 - t_expect, 4) * std::max(0, config_->safe - 4) * 3;
+        double t3_max = std::max(10 - t_expect, 4) * (3 + result.b2b) * std::max(0, config_->safe - 10) * 5;
+        double field = double(40 - config_->safe) / 30;
         result.t_attack = (status.t_attack
             + t2_attack * 2 * t2_max
             + t3_attack * 2 * t3_max
             );
         result.like += (status.like
-            + like * 128
-            + attack * 256
-            + get_combo_attack(result.combo + 1) * get_combo_attack(result.combo + 2) * 256
-            + ((result.b2b > status.b2b) - (result.b2b < status.b2b) * 2) * 512
-            + safe * 32
-            + eval_result.value * 0.05
-            + eval_result.dig * 0.5
+            + attack * (config_->safe + 16) * 32
+            + get_combo_attack(result.combo + 2) * get_combo_attack(result.combo + 3) * (40 - config_->safe) * 2
+            + ((result.b2b > status.b2b) - (result.b2b < status.b2b) * 2) * (config_->safe + 16) * 32
+            + safe * (40 - config_->safe)
             );
-        result.value += (result.like
+        result.like_u += (status.like_u * 1.05
+            + like * config_->safe * (config_->safe + 8) * 0.5
+            + eval_result.value * 0.05 * field
+            + eval_result.dig * 0.5 * field
+            );
+        result.value += (result.like + result.like_u
             + result.t_attack
             + eval_result.t2_value * t2_max
             + eval_result.t3_value * t3_max
             - result.death * 999999999.0
-            + eval_result.value * 1.95
-            + eval_result.dig * 1.5
+            + eval_result.value * 1.95 * field
+            + eval_result.dig * 1.5 * field
             );
         result.death += !!result.death;
         return result;

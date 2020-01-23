@@ -1922,6 +1922,10 @@ namespace m_tetris
         {
             return &status_;
         }
+        TetrisAI *ai()
+        {
+            return &ai_;
+        }
         //准备好上下文
         bool prepare(int width, int height)
         {

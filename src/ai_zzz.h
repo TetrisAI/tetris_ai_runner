@@ -100,6 +100,7 @@ namespace ai_zzz
             double p_rate;
             int const *table;
             int table_max;
+            int safe;
         };
         struct Result
         {
@@ -121,12 +122,14 @@ namespace ai_zzz
             int8_t b2b;
             double t_attack;
             double like;
+            double like_u;
             double value;
             bool operator < (Status const &) const;
 
             static void init_t_value(m_tetris::TetrisMap const &m, int16_t &t2_value_ref, int16_t &t3_value_ref);
         };
     public:
+        int8_t get_safe(m_tetris::TetrisMap const &m) const;
         void init(m_tetris::TetrisContext const *context, Config const *config);
         std::string ai_name() const;
         Result eval(TetrisNodeEx const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
