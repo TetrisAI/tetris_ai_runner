@@ -344,6 +344,7 @@ namespace m_tetris
             size_t length;
             char node;
             char hold;
+            bool is_hold;
         };
         enum PrepareResult : int
         {
@@ -780,7 +781,7 @@ namespace m_tetris
             typedef std::true_type enable_next_c;
             static void get(TetrisAI &ai, TreeNode *node, TreeNode *parent)
             {
-                node->status.set(TetrisCallAI<TetrisAI, LandPoint>::get(ai, node->identity, node->result, parent->level, parent->status.get_raw(), parent->template env<EnableEnv>()));
+                node->status.set(TetrisCallAI<TetrisAI, LandPoint>::get(ai, node->identity, node->result, parent->level, parent->status.get_raw(), parent->template env<EnableEnv>(node)));
             }
         };
         template<class TreeNode, bool EnableEnv>
@@ -1563,13 +1564,13 @@ namespace m_tetris
             Core::iterate(*context->ai, iterate_cache.data(), iterate_cache.size(), this);
         }
         template<bool EnableEnv>
-        TetrisContext::Env env()
+        TetrisContext::Env env(TetrisTreeNode const *tree_node)
         {
             if (EnableEnv)
             {
                 TetrisContext::Env result =
                 {
-                    nullptr, 0, node, hold
+                    nullptr, 0, tree_node->identity->status.t, tree_node->is_hold ? node : hold
                 };
                 result.length = std::distance(next, context->next.cend());
                 if (result.length == 0)
@@ -1580,13 +1581,14 @@ namespace m_tetris
                 {
                     result.next = context->next_c.data() + (context->next_c.size() - result.length);
                 }
+                result.is_hold = tree_node->is_hold;
                 return result;
             }
             else
             {
                 return
                 {
-                    nullptr, 0, ' ', ' '
+                    nullptr, 0, ' ', ' ', false
                 };
             }
         }

@@ -919,7 +919,7 @@ namespace ai_zzz
             );
         result.like += (status.like
             + attack * (config_->safe + 16) * 32
-            + get_combo_attack(result.combo + 2) * get_combo_attack(result.combo + 3) * (40 - config_->safe) * 2
+            + get_combo_attack(result.combo) * result.combo * (60 - config_->safe) * 4
             + ((result.b2b > status.b2b) - (result.b2b < status.b2b) * 2) * (config_->safe + 16) * 32
             + safe * (40 - config_->safe)
             );
