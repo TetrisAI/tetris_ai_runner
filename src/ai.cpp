@@ -155,7 +155,9 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
         }
     }
     srs_ai.update();
+    srs_ai.search_config()->allow_rotate_move = false;
     srs_ai.search_config()->allow_180 = can180spin;
+    srs_ai.search_config()->allow_d = true;
     srs_ai.search_config()->is_20g = false;
     srs_ai.search_config()->last_rotate = false;
     srs_ai.ai_config()->p =

@@ -15,9 +15,11 @@ namespace search_tspin
         };
         struct Config
         {
-            bool allow_180;
-            bool is_20g;
-            bool last_rotate;
+            bool allow_rotate_move = false;
+            bool allow_180 = true;
+            bool allow_d = true;
+            bool is_20g = false;
+            bool last_rotate = false;
         };
         struct TetrisNodeWithTSpinType
         {

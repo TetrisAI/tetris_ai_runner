@@ -11,7 +11,7 @@ namespace search_cautious
     public:
         struct Config
         {
-            bool fast_move_down;
+            bool fast_move_down = false;
         };
     private:
         std::vector<m_tetris::TetrisNode const *> land_point_cache_;
