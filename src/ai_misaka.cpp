@@ -404,11 +404,11 @@ namespace ai_misaka
 
         if(pool.m_hold == GEMTYPE_I)
         {
-            score -= ai_param.hold_I;
+            score -= ai_param.hold_i;
         }
         if(pool.m_hold == GEMTYPE_T)
         {
-            score -= ai_param.hold_T;
+            score -= ai_param.hold_t;
         }
         if(maxy_cnt > 0)
         {
@@ -871,7 +871,7 @@ namespace ai_misaka
                 int cs = 0;
                 if(cur_num == GEMTYPE_T && wallkick_spin && clears > 0 && ai_param.tspin > 0)
                 { // T消附加分，要比T1/T2形状基本分大一
-                    s -= ai_param.hold_T;
+                    s -= ai_param.hold_t;
                     if(clears >= 3)
                     {
                         if(clear_att >= clears * 2)

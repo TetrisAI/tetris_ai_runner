@@ -160,11 +160,6 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     srs_ai.search_config()->allow_d = true;
     srs_ai.search_config()->is_20g = false;
     srs_ai.search_config()->last_rotate = false;
-    srs_ai.ai_config()->p =
-    {
-        2.21814, 0.391674, -0.0358847, 0.678461, 3.39133, 0.859429, -0.201051, 110.951, -0.572156, 111.773, -3.35123, 113.878, -0.633104, 47.1717, -1.54499, 396.14, -4.83616, 95.5258, -1.62344, 63.8952, 1.95443, 45990.6, 34.1561, 0.257397,
-    };
-    srs_ai.ai_config()->p_rate = 1;
     srs_ai.ai_config()->table = comboTable;
     srs_ai.ai_config()->table_max = [comboTable]()->size_t
     {
@@ -179,10 +174,10 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     srs_ai.status()->under_attack = upcomeAtt;
     srs_ai.status()->map_rise = 0;
     srs_ai.status()->b2b = !!b2b;
-    srs_ai.status()->t_attack = 0;
+    srs_ai.status()->acc_value = 0;
     srs_ai.status()->like = 0;
-    srs_ai.status()->like_u = 0;
     srs_ai.status()->value = 0;
+    ai_zzz::TOJ::Status::init_t_value(map, srs_ai.status()->t2_value, srs_ai.status()->t3_value);
     m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
     m_tetris::TetrisNode const *node = srs_ai.get(status);
     static double const base_time = std::pow(100, 1.0 / 8);

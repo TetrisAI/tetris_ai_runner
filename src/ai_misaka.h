@@ -26,8 +26,8 @@ namespace ai_misaka
 
             int hole_dis_factor; // -洞距离系数
             int tspin; // tspin系数
-            int hold_T; // hold T和I系数
-            int hold_I; // hold T和I系数
+            int hold_t; // hold T和I系数
+            int hold_i; // hold T和I系数
             int clear_useless_factor; // 无效行系数
                                       //int ready_combo; // 连击预备分x
 

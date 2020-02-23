@@ -1967,7 +1967,7 @@ namespace m_tetris
             {
                 return RunResult();
             }
-            double now = clock() / double(CLOCKS_PER_SEC), end = now + limit / 1000.;
+            time_t now = clock(), end = now + limit * CLOCKS_PER_SEC / 1000;
             tree_root_ = tree_root_->update(map, status_, node, next, next_length);
             do
             {
@@ -1975,7 +1975,7 @@ namespace m_tetris
                 {
                     break;
                 }
-            } while ((now = clock() / double(CLOCKS_PER_SEC)) < end);
+            } while ((now = clock()) < end);
             return RunResult(tree_root_->get_best());
         }
         //带hold的run!
@@ -1985,7 +1985,7 @@ namespace m_tetris
             {
                 return RunResult();
             }
-            double now = clock() / double(CLOCKS_PER_SEC), end = now + limit / 1000.;
+            time_t now = clock(), end = now + limit * CLOCKS_PER_SEC / 1000;
             tree_root_ = tree_root_->update(map, status_, node, hold, !hold_free, next, next_length);
             do
             {
@@ -1993,7 +1993,7 @@ namespace m_tetris
                 {
                     break;
                 }
-            } while ((now = clock() / double(CLOCKS_PER_SEC)) < end);
+            } while ((now = clock()) < end);
             if (tree_root_->hold == ' ' && tree_context_.next.size() == 1 && !tree_root_->is_hold_lock)
             {
                 return RunResult(true);

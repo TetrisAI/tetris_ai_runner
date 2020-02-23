@@ -94,18 +94,44 @@ namespace ai_zzz
     public:
         typedef search_tspin::Search::TSpinType TSpinType;
         typedef search_tspin::Search::TetrisNodeWithTSpinType TetrisNodeEx;
+        struct Param {
+            double base = 5;
+            double roof = 80;
+            double col_trans = 40;
+            double row_trans = 40;
+            double hole_count = 64;
+            double hole_line = 96;
+            double well_depth = 25;
+            double clear_width = 64;
+            double safe = 4;
+            double b2b = 64;
+            double attack = 64;
+            double hold_t = 0.25;
+            double hold_i = 0.25;
+            double waste_t = -2;
+            double waste_i = -1;
+            double clear_1 = -8;
+            double clear_2 = -12;
+            double clear_3 = -2;
+            double clear_4 = -1;
+            double t2_slot = 4;
+            double t3_slot = 5;
+            double tspin_mini = -2;
+            double tspin_1 = 0;
+            double tspin_2 = 32;
+            double tspin_3 = 32;
+            double combo = 12;
+        };
         struct Config
         {
-            std::array<double, 100> p;
-            double p_rate;
             int const *table;
             int table_max;
             int safe;
+            Param param;
         };
         struct Result
         {
             double value;
-            double dig;
             int8_t clear;
             int8_t safe;
             int16_t count;
@@ -120,9 +146,10 @@ namespace ai_zzz
             int8_t under_attack;
             int8_t map_rise;
             int8_t b2b;
-            double t_attack;
+            int16_t t2_value;
+            int16_t t3_value;
+            double acc_value;
             double like;
-            double like_u;
             double value;
             bool operator < (Status const &) const;
 
