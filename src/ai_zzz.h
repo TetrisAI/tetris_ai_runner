@@ -95,32 +95,34 @@ namespace ai_zzz
         typedef search_tspin::Search::TSpinType TSpinType;
         typedef search_tspin::Search::TetrisNodeWithTSpinType TetrisNodeEx;
         struct Param {
-            double base = 5;
-            double roof = 80;
-            double col_trans = 40;
-            double row_trans = 40;
-            double hole_count = 64;
-            double hole_line = 96;
-            double well_depth = 25;
-            double clear_width = 64;
-            double safe = 4;
-            double b2b = 64;
-            double attack = 64;
+            double base = 20;
+            double roof = 128;
+            double col_trans = 160;
+            double row_trans = 160;
+            double hole_count = 256;
+            double hole_line = 24;
+            double clear_width = 12;
+            double wide_2 = -16;
+            double wide_3 = -8;
+            double wide_4 = 8;
+            double safe = 16;
+            double b2b = 128;
+            double attack = 128;
             double hold_t = 0.25;
             double hold_i = 0.25;
-            double waste_t = -2;
-            double waste_i = -1;
-            double clear_1 = -8;
-            double clear_2 = -12;
-            double clear_3 = -2;
-            double clear_4 = -1;
-            double t2_slot = 4;
-            double t3_slot = 5;
+            double waste_t = -12;
+            double waste_i = -8;
+            double clear_1 = -64;
+            double clear_2 = -64;
+            double clear_3 = -64;
+            double clear_4 = 8;
+            double t2_slot = 0.5;
+            double t3_slot = 0.25;
             double tspin_mini = -2;
             double tspin_1 = 0;
-            double tspin_2 = 32;
-            double tspin_3 = 32;
-            double combo = 12;
+            double tspin_2 = 8;
+            double tspin_3 = 8;
+            double combo = 80;
         };
         struct Config
         {
@@ -153,7 +155,7 @@ namespace ai_zzz
             double value;
             bool operator < (Status const &) const;
 
-            static void init_t_value(m_tetris::TetrisMap const &m, int16_t &t2_value_ref, int16_t &t3_value_ref);
+            static void init_t_value(m_tetris::TetrisMap const &m, int16_t &t2_value_ref, int16_t &t3_value_ref, m_tetris::TetrisMap *out_map = nullptr);
         };
     public:
         int8_t get_safe(m_tetris::TetrisMap const &m) const;
