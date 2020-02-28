@@ -248,6 +248,36 @@ namespace zzz
             return sbt_rank_(&*where);
         }
     protected:
+
+        using base_t = bst_base<Interface>;
+        using base_t::nil_;
+        using base_t::get_root_;
+        using base_t::set_root_;
+        using base_t::get_most_left_;
+        using base_t::set_most_left_;
+        using base_t::get_most_right_;
+        using base_t::set_most_right_;
+        using base_t::get_key_;
+        using base_t::set_nil_;
+        using base_t::is_nil_;
+        using base_t::get_parent_;
+        using base_t::set_parent_;
+        using base_t::get_left_;
+        using base_t::set_left_;
+        using base_t::get_right_;
+        using base_t::set_right_;
+        using base_t::set_child_;
+        using base_t::get_child_;
+        using base_t::predicate;
+        using base_t::bst_clear_;
+        using base_t::bst_init_node_;
+        using base_t::bst_move_;
+        using base_t::bst_most_;
+        using base_t::bst_lower_bound_;
+        using base_t::bst_upper_bound_;
+        using base_t::bst_equal_range_;
+        using base_t::bst_rotate_;
+
         static size_t get_size_(node_t *node)
         {
             return interface_t::get_size(node);
