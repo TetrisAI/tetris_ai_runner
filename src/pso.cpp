@@ -18,8 +18,10 @@
 #include "rule_srs.h"
 #include "sb_tree.h"
 
+#if _MSC_VER
 #define NOMINMAX
 #include <windows.h>
+#endif
 
 
 namespace zzz
@@ -408,10 +410,10 @@ struct NodeData
         gen = 0;
     }
     char name[64];
-    volatile double score;
-    volatile double best;
-    size_t match;
-    size_t gen;
+    double score;
+    double best;
+    uint32_t match;
+    uint32_t gen;
     pso_data data;
 };
 
@@ -425,12 +427,12 @@ struct Node : public BaseNode
 
 struct SBTreeInterface
 {
-    typedef volatile double key_t;
+    typedef double key_t;
     typedef BaseNode node_t;
     typedef Node value_node_t;
     static key_t const &get_key(Node *node)
     {
-        return node->data.score;
+        return *reinterpret_cast<double const *>(&node->data.score);
     }
     static bool is_nil(BaseNode *node)
     {
@@ -480,7 +482,7 @@ struct SBTreeInterface
 
 int main(int argc, char const *argv[])
 {
-    std::atomic_uint32_t count = std::max<uint32_t>(1, std::thread::hardware_concurrency() - 1);
+    std::atomic<uint32_t> count{std::max<uint32_t>(1, std::thread::hardware_concurrency() - 1)};
     std::string file = "data.bin";
     if (argc > 1)
     {
@@ -490,9 +492,18 @@ int main(int argc, char const *argv[])
             count = arg_count;
         }
     }
-    std::atomic_bool view = false;
-    std::atomic_uint32_t view_index = 0;
+    uint32_t node_count = count * 2;
     if (argc > 2)
+    {
+        uint32_t arg_count = std::stoul(argv[2], nullptr, 10);
+        if (arg_count >= 2)
+        {
+            node_count = arg_count;
+        }
+    }
+    std::atomic<bool> view{false};
+    std::atomic<uint32_t> view_index{0};
+    if (argc > 3)
     {
         file = argv[2];
     }
@@ -569,7 +580,7 @@ int main(int argc, char const *argv[])
         }
     }
 
-    while (rank_table.size() < count * 2)
+    while (rank_table.size() < node_count)
     {
         NodeData init_node;
 
@@ -607,8 +618,8 @@ int main(int argc, char const *argv[])
                 auto m12 = rand_match(mt, rank_table.size());
                 auto m1 = rank_table.at(m12.first);
                 auto m2 = rank_table.at(m12.second);
-                volatile double *pm1s = &m1->data.score;
-                volatile double *pm2s = &m2->data.score;
+                double *pm1s = &m1->data.score;
+                double *pm2s = &m2->data.score;
                 double m1s = *pm1s;
                 double m2s = *pm2s;
 #if _MSC_VER
@@ -678,7 +689,7 @@ int main(int argc, char const *argv[])
                     Sleep(333);
                 };
 #else
-                view_func = [](test_ai const &ai1, test_ai const &ai2) {};
+                auto view_func = [](test_ai const &ai1, test_ai const &ai2) {};
 #endif
                 ai1.init(m1->data.data, pso_cfg);
                 ai2.init(m2->data.data, pso_cfg);
@@ -828,7 +839,7 @@ int main(int argc, char const *argv[])
             "[26]tspin_3      = %8.3f, %8.3f, %8.3f\n"
             "[27]combo        = %8.3f, %8.3f, %8.3f\n"
             , node->data.name
-            , rank_table.rank(node->data.score)
+            , rank_table.rank(double(node->data.score))
             , node->data.score
             , node->data.best
             , node->data.match
@@ -1009,9 +1020,9 @@ int main(int argc, char const *argv[])
         );
         return true;
     }));
+    std::string line, last;
     while (true)
     {
-        std::string line;
         std::getline(std::cin, line);
         if (view)
         {
@@ -1023,6 +1034,11 @@ int main(int argc, char const *argv[])
         zzz::split(token, line, " ");
         if (token.empty())
         {
+            line = last;
+            zzz::split(token, line, " ");
+        }
+        if (token.empty())
+        {
             continue;
         }
         auto find = command_map.find(token.front());
@@ -1032,6 +1048,7 @@ int main(int argc, char const *argv[])
         }
         if (find->second(token))
         {
+            last = line;
             std::cout.flush();
         }
     }

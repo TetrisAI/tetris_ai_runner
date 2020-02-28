@@ -3,6 +3,7 @@
 
 #include "tetris_core.h"
 #include <vector>
+#include <cstddef>
 
 namespace search_tspin
 {

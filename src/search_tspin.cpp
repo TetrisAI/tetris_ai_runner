@@ -1,6 +1,4 @@
 
-#pragma once
-
 #include "search_tspin.h"
 #include "integer_utils.h"
 
@@ -55,7 +53,7 @@ namespace search_tspin
         }
         bool allow_180 = config_->allow_180;
         const int index = land_point.type == None || land_point.last == nullptr ? land_point->index_filtered : land_point.last->index_filtered;
-        auto build_path = [node, &land_point, &map, allow_180, this](TetrisNode const *node, decltype(node_mark_) &node_mark)->std::vector<char>
+        auto build_path = [&land_point, &map, allow_180, this](TetrisNode const *node, decltype(node_mark_) &node_mark)->std::vector<char>
         {
             size_t node_index = node->index_filtered;
             std::vector<char> path;
@@ -712,7 +710,7 @@ namespace search_tspin
         }
         bool allow_180 = config_->allow_180;
         const int index = land_point.type == None || land_point.last == nullptr ? land_point->index_filtered : land_point.last->index_filtered;
-        auto build_path = [node, &land_point, &map, allow_180, this](TetrisNode const *node, decltype(node_mark_) &node_mark)->std::vector<char>
+        auto build_path = [&land_point, &map, allow_180, this](TetrisNode const *node, decltype(node_mark_) &node_mark)->std::vector<char>
         {
             size_t node_index = node->index_filtered;
             std::vector<char> path;

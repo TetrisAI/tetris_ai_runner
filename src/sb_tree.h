@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <numeric>
+#include <cassert>
 #include "bst_base.h"
 
 namespace zzz
@@ -11,6 +12,38 @@ namespace zzz
     template<class Interface>
     class sb_tree : public bst_base<Interface>
     {
+        using base_t = bst_base<Interface>;
+        using node_t = typename bst_base<Interface>::node_t;
+        using value_node_t = typename bst_base<Interface>::value_node_t;
+        using base_t::nil_;
+        using base_t::get_root_;
+        using base_t::set_root_;
+        using base_t::get_most_left_;
+        using base_t::set_most_left_;
+        using base_t::get_most_right_;
+        using base_t::set_most_right_;
+        using base_t::get_key_;
+        using base_t::set_nil_;
+        using base_t::is_nil_;
+        using base_t::get_parent_;
+        using base_t::set_parent_;
+        using base_t::get_left_;
+        using base_t::set_left_;
+        using base_t::get_right_;
+        using base_t::set_right_;
+        using base_t::set_child_;
+        using base_t::get_child_;
+        using base_t::predicate;
+        using base_t::bst_clear_;
+        using base_t::bst_init_node_;
+        using base_t::bst_move_;
+        using base_t::bst_most_;
+        using base_t::bst_lower_bound_;
+        using base_t::bst_upper_bound_;
+        using base_t::bst_equal_range_;
+        using base_t::bst_rotate_;
+
+
     public:
         class iterator
         {
@@ -52,12 +85,12 @@ namespace zzz
             }
             iterator &operator++()
             {
-                ptr_ = sb_tree::bst_move_<true>(ptr_);
+                ptr_ = sb_tree::template bst_move_<true>(ptr_);
                 return *this;
             }
             iterator &operator--()
             {
-                ptr_ = sb_tree::bst_move_<false>(ptr_);
+                ptr_ = sb_tree::template bst_move_<false>(ptr_);
                 return *this;
             }
             iterator operator++(int)
@@ -94,7 +127,7 @@ namespace zzz
         friend class iterator;
 
     public:
-        sb_tree() : bst_base()
+        sb_tree() : bst_base<Interface>()
         {
             set_size_(get_root_(), 0);
         }
@@ -134,7 +167,7 @@ namespace zzz
         iterator find(key_t const &key)
         {
             node_t *where = bst_lower_bound_(key);
-            return (is_nil_(where) || interface_t::predicate(key, get_key_(where))) ? iterator(nil_()) : iterator(where);
+            return (is_nil_(where) || Interface::predicate(key, get_key_(where))) ? iterator(nil_()) : iterator(where);
         }
         void erase(iterator where)
         {
@@ -248,44 +281,14 @@ namespace zzz
             return sbt_rank_(&*where);
         }
     protected:
-
-        using base_t = bst_base<Interface>;
-        using base_t::nil_;
-        using base_t::get_root_;
-        using base_t::set_root_;
-        using base_t::get_most_left_;
-        using base_t::set_most_left_;
-        using base_t::get_most_right_;
-        using base_t::set_most_right_;
-        using base_t::get_key_;
-        using base_t::set_nil_;
-        using base_t::is_nil_;
-        using base_t::get_parent_;
-        using base_t::set_parent_;
-        using base_t::get_left_;
-        using base_t::set_left_;
-        using base_t::get_right_;
-        using base_t::set_right_;
-        using base_t::set_child_;
-        using base_t::get_child_;
-        using base_t::predicate;
-        using base_t::bst_clear_;
-        using base_t::bst_init_node_;
-        using base_t::bst_move_;
-        using base_t::bst_most_;
-        using base_t::bst_lower_bound_;
-        using base_t::bst_upper_bound_;
-        using base_t::bst_equal_range_;
-        using base_t::bst_rotate_;
-
         static size_t get_size_(node_t *node)
         {
-            return interface_t::get_size(node);
+            return Interface::get_size(node);
         }
 
         static void set_size_(node_t *node, size_t size)
         {
-            interface_t::set_size(node, size);
+            Interface::set_size(node, size);
         }
 
         void sbt_refresh_size_(node_t *node)
@@ -406,26 +409,26 @@ namespace zzz
         template<bool is_left>
         node_t *sbt_rotate_(node_t *node)
         {
-            node_t *child = get_child_<!is_left>(node), *parent = get_parent_(node);
-            set_child_<!is_left>(node, get_child_<is_left>(child));
-            if(!is_nil_(get_child_<is_left>(child)))
+            node_t *child = sb_tree::template get_child_<!is_left>(node), *parent = get_parent_(node);
+            sb_tree::template set_child_<!is_left>(node, sb_tree::template get_child_<is_left>(child));
+            if(!is_nil_(sb_tree::template get_child_<is_left>(child)))
             {
-                set_parent_(get_child_<is_left>(child), node);
+                set_parent_(sb_tree::template get_child_<is_left>(child), node);
             }
             set_parent_(child, parent);
             if(node == get_root_())
             {
                 set_root_(child);
             }
-            else if(node == get_child_<is_left>(parent))
+            else if(node == sb_tree::template get_child_<is_left>(parent))
             {
-                set_child_<is_left>(parent, child);
+                sb_tree::template set_child_<is_left>(parent, child);
             }
             else
             {
-                set_child_<!is_left>(parent, child);
+                sb_tree::template set_child_<!is_left>(parent, child);
             }
-            set_child_<is_left>(child, node);
+            sb_tree::template set_child_<is_left>(child, node);
             set_parent_(node, child);
             set_size_(child, get_size_(node));
             sbt_refresh_size_(node);
@@ -491,19 +494,19 @@ namespace zzz
         template<bool is_left>
         node_t *sbt_maintain_(node_t *node)
         {
-            if(is_nil_(get_child_<is_left>(node)))
+            if(is_nil_(sb_tree::template get_child_<is_left>(node)))
             {
                 return node;
             }
-            if(get_size_(get_child_<is_left>(get_child_<is_left>(node))) > get_size_(get_child_<!is_left>(node)))
+            if(get_size_(sb_tree::template get_child_<is_left>(sb_tree::template get_child_<is_left>(node))) > get_size_(sb_tree::template get_child_<!is_left>(node)))
             {
                 node = sbt_rotate_<!is_left>(node);
             }
             else
             {
-                if(get_size_(get_child_<!is_left>(get_child_<is_left>(node))) > get_size_(get_child_<!is_left>(node)))
+                if(get_size_(sb_tree::template get_child_<!is_left>(sb_tree::template get_child_<is_left>(node))) > get_size_(sb_tree::template get_child_<!is_left>(node)))
                 {
-                    sbt_rotate_<is_left>(get_child_<is_left>(node));
+                    sbt_rotate_<is_left>(sb_tree::template get_child_<is_left>(node));
                     node = sbt_rotate_<!is_left>(node);
                 }
                 else
@@ -511,13 +514,13 @@ namespace zzz
                     return node;
                 };
             };
-            if(!is_nil_(get_child_<true>(node)))
+            if(!is_nil_(sb_tree::template get_child_<true>(node)))
             {
-                sbt_maintain_<true>(get_child_<true>(node));
+                sbt_maintain_<true>(sb_tree::template get_child_<true>(node));
             }
-            if(!is_nil_(get_child_<false>(node)))
+            if(!is_nil_(sb_tree::template get_child_<false>(node)))
             {
-                sbt_maintain_<false>(get_child_<false>(node));
+                sbt_maintain_<false>(sb_tree::template get_child_<false>(node));
             }
             node = sbt_maintain_<true>(node);
             node = sbt_maintain_<false>(node);
@@ -573,11 +576,11 @@ namespace zzz
             }
             if(get_most_left_() == erase_node)
             {
-                set_most_left_(is_nil_(fix_node) ? fix_node_parent : bst_most_<true>(fix_node));
+                set_most_left_(is_nil_(fix_node) ? fix_node_parent : sb_tree::template bst_most_<true>(fix_node));
             }
             if(get_most_right_() == erase_node)
             {
-                set_most_right_(is_nil_(fix_node) ? fix_node_parent : bst_most_<false>(fix_node));
+                set_most_right_(is_nil_(fix_node) ? fix_node_parent : sb_tree::template bst_most_<false>(fix_node));
             }
         }
 
@@ -587,16 +590,16 @@ namespace zzz
             node_t *erase_node = node;
             node_t *fix_node;
             node_t *fix_node_parent;
-            node = bst_move_<!is_left>(node);
-            fix_node = get_child_<is_left>(node);
+            node = sb_tree::template bst_move_<!is_left>(node);
+            fix_node = sb_tree::template get_child_<is_left>(node);
             fix_node_parent = node;
             while((fix_node_parent = get_parent_(fix_node_parent)) != erase_node)
             {
                 set_size_(fix_node_parent, get_size_(fix_node_parent) - 1);
             }
-            set_parent_(get_child_<!is_left>(erase_node), node);
-            set_child_<!is_left>(node, get_child_<!is_left>(erase_node));
-            if(node == get_child_<is_left>(erase_node))
+            set_parent_(sb_tree::template get_child_<!is_left>(erase_node), node);
+            sb_tree::template set_child_<!is_left>(node, sb_tree::template get_child_<!is_left>(erase_node));
+            if(node == sb_tree::template get_child_<is_left>(erase_node))
             {
                 fix_node_parent = node;
             }
@@ -607,21 +610,21 @@ namespace zzz
                 {
                     set_parent_(fix_node, fix_node_parent);
                 }
-                set_child_<!is_left>(fix_node_parent, fix_node);
-                set_child_<is_left>(node, get_child_<is_left>(erase_node));
-                set_parent_(get_child_<is_left>(erase_node), node);
+                sb_tree::template set_child_<!is_left>(fix_node_parent, fix_node);
+                sb_tree::template set_child_<is_left>(node, sb_tree::template get_child_<is_left>(erase_node));
+                set_parent_(sb_tree::template get_child_<is_left>(erase_node), node);
             }
             if(get_root_() == erase_node)
             {
                 set_root_(node);
             }
-            else if(get_child_<!is_left>(get_parent_(erase_node)) == erase_node)
+            else if(sb_tree::template get_child_<!is_left>(get_parent_(erase_node)) == erase_node)
             {
-                set_child_<!is_left>(get_parent_(erase_node), node);
+                sb_tree::template set_child_<!is_left>(get_parent_(erase_node), node);
             }
             else
             {
-                set_child_<is_left>(get_parent_(erase_node), node);
+                sb_tree::template set_child_<is_left>(get_parent_(erase_node), node);
             }
             set_parent_(node, get_parent_(erase_node));
             sbt_refresh_size_(node);
@@ -641,7 +644,7 @@ namespace zzz
             {
                 if(get_size_(node) != get_size_(get_left_(node)) + get_size_(get_right_(node)) + 1)
                 {
-                    _asm int 3;
+                    assert(false);
                 }
                 std::string fork =
                     !is_nil_(get_left_(node)) && !is_nil_(get_right_(node)) ? "©Ï" :
