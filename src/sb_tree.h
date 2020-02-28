@@ -78,7 +78,7 @@ namespace zzz
             }
             value_node_t *operator->()
             {
-                return *static_cast<value_node_t *>(ptr_);
+                return static_cast<value_node_t *>(ptr_);
             }
             bool operator == (iterator const &other) const
             {

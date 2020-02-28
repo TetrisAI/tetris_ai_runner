@@ -579,34 +579,27 @@ namespace ai_zzz
                     {
                         t3_count += 1;
                     }
+                    else
+                    {
+                        continue;
+                    }
                     int t3_bit_count = row_bit_count[0] + row_bit_count[1] + row_bit_count[2];
                     if (t3_count >= 2 && t3_bit_count > map.width * 2)
                     {
                         int t3_value = t3_bit_count * t3_count;
-                        bool false_check = false;
-                        if ((row2 >> x) & 2)
-                        {
-                            t3_value += t3_bit_count;
-                        }
-                        else
-                        {
-                            false_check = true;
-                            t3_value /= 2;
-                        }
                         if ((row4 >> x) & 1)
                         {
                             t3_value += t3_bit_count + row_bit_count[3];
                         }
-                        else
-                        {
-                            false_check = true;
-                            t3_value /= 2;
-                        }
-                        if (false_check && ((row4 >> x) & 7) == 1 && ((row5 >> x) & 7) == 1 && ((row6 >> x) & 7) == 1)
+                        else if (((row4 >> x) & 7) == 1 && ((row5 >> x) & 7) == 1 && ((row6 >> x) & 7) == 1)
                         {
                             t3_value = 0;
                         }
-                        else if (((row3 >> x) & 8) != ((row4 >> x) & 8))
+                        else
+                        {
+                            t3_value /= 2;
+                        }
+                        if (((row3 >> x) & 8) != ((row4 >> x) & 8))
                         {
                             t3_value = 0;
                         }
@@ -645,34 +638,27 @@ namespace ai_zzz
                     {
                         t3_count += 1;
                     }
+                    else
+                    {
+                        continue;
+                    }
                     int t3_bit_count = row_bit_count[0] + row_bit_count[1] + row_bit_count[2];
                     if (t3_count >= 2 && t3_bit_count > map.width * 2)
                     {
                         int t3_value = t3_bit_count * t3_count;
-                        bool false_check = false;
                         if ((row2 >> x) & 2)
                         {
                             t3_value += t3_bit_count;
                         }
-                        else
-                        {
-                            false_check = true;
-                            t3_value /= 2;
-                        }
-                        if ((row4 >> x) & 4)
-                        {
-                            t3_value += t3_bit_count + row_bit_count[3];
-                        }
-                        else
-                        {
-                            false_check = true;
-                            t3_value /= 2;
-                        }
-                        if (false_check && ((row4 >> x) & 7) == 4 && ((row5 >> x) & 7) == 4 && ((row6 >> x) & 7) == 4)
+                        else if (((row4 >> x) & 7) == 4 && ((row5 >> x) & 7) == 4 && ((row6 >> x) & 7) == 4)
                         {
                             t3_value = 0;
                         }
-                        else if (((row3 >> x) & 1) != ((row4 >> x) & 1))
+                        else
+                        {
+                            t3_value /= 4;
+                        }
+                        if (((row3 >> x) & 1) != ((row4 >> x) & 1))
                         {
                             t3_value = 0;
                         }
@@ -714,10 +700,11 @@ namespace ai_zzz
                         switch (row2_check)
                         {
                         case 1: case 4:
-                            t2_value += row01_count * 2;
+                            t2_value += row01_count * 3;
                             break;
                         case 2: case 3: case 5: case 6: case 7:
                             t2_value = 0;
+                            break;
                         default:
                             t2_value = t2_value / 2;
                             break;
@@ -959,7 +946,7 @@ namespace ai_zzz
         int safe = eval_result.safe - result.map_rise;
         if (safe < 0)
         {
-            ++result.death;
+            result.death = 1;
             safe = 0;
         }
         if (eval_result.count == 0 && result.map_rise == 0)
@@ -999,20 +986,18 @@ namespace ai_zzz
             + (result.b2b - status.b2b) * (config_safe + 16) * p.b2b
             - t_dislike
             - dislike * config_safe * (config_safe + 4) * 4
+            - result.death * 999999999.0
             );
         result.like = (status.like * 1.3
             + safe * (40 - config_safe) * p.safe
             + like * config_safe * (config_safe + 4) * 4
             + t_like
-            + field * 0.125 * p.base
             );
         result.value = (result.acc_value
             - result.map_rise * (40 - config_safe) * p.safe
             + result.like
-            - result.death * 999999999.0
             + field * p.base
             );
-        result.death += !!result.death;
         return result;
     }
 
