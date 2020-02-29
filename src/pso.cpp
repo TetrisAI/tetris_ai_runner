@@ -145,6 +145,8 @@ struct test_ai
     char hold;
     bool b2b;
     bool dead;
+    int total_block;
+    int total_attack;
 
     test_ai(int const *_combo_table, int _combo_table_max)
         : combo_table(_combo_table)
@@ -167,6 +169,8 @@ struct test_ai
         b2b = false;
         dead = false;
         next_length = 6;
+        total_block = 0;
+        total_attack = 0;
     }
     m_tetris::TetrisNode const *node() const
     {
@@ -284,6 +288,8 @@ struct test_ai
         {
             attack += 6;
         }
+        ++total_block;
+        total_attack += attack;
         send_attack = attack;
         while (!recv_attack.empty())
         {
@@ -355,6 +361,10 @@ struct test_ai
             ai2.run();
 
             if (ai1.dead || ai2.dead)
+            {
+                return;
+            }
+            if (round > 1200)
             {
                 return;
             }
@@ -505,7 +515,7 @@ int main(int argc, char const *argv[])
     std::atomic<uint32_t> view_index{0};
     if (argc > 3)
     {
-        file = argv[2];
+        file = argv[3];
     }
     std::recursive_mutex rank_table_lock;
     zzz::sb_tree<SBTreeInterface> rank_table;
@@ -619,7 +629,7 @@ int main(int argc, char const *argv[])
                 auto m1 = rank_table.at(m12.first);
                 auto m2 = rank_table.at(m12.second);
 #if _MSC_VER
-                auto view_func = [m1, m2, m1s, m2s, index, &view, &view_index, &rank_table_lock](test_ai const &ai1, test_ai const &ai2)
+                auto view_func = [m1, m2, index, &view, &view_index, &rank_table_lock](test_ai const &ai1, test_ai const &ai2)
                 {
                     COORD coordScreen = { 0, 0 };
                     DWORD cCharsWritten;
@@ -711,7 +721,11 @@ int main(int argc, char const *argv[])
                 m2->data.match += handle_elo_2;
                 double m1s = m1->data.score;
                 double m2s = m2->data.score;
-                if (ai1.dead && ai2.dead)
+                double ai1_apl = 2.5 * ai1.total_attack / ai1.total_block;
+                double ai2_apl = 2.5 * ai2.total_attack / ai2.total_block;
+                int ai1_win = ai2.dead + (ai1_apl > ai2_apl);
+                int ai2_win = ai1.dead + (ai2_apl > ai1_apl);
+                if (ai1_win == ai2_win)
                 {
                     if (handle_elo_1)
                     {
@@ -724,7 +738,7 @@ int main(int argc, char const *argv[])
                 }
                 else
                 {
-                    if (ai2.dead)
+                    if (ai1_win > ai2_win)
                     {
                         if (handle_elo_1)
                         {
@@ -974,6 +988,88 @@ int main(int argc, char const *argv[])
         view = true;
         return true;
     }));
+    command_map.insert(std::make_pair("best", [&rank_table, &rank_table_lock](std::vector<std::string> const &token)
+    {
+        rank_table_lock.lock();
+        double best;
+        pso_data* node = nullptr;
+        for (auto it = rank_table.begin(); it != rank_table.end(); ++it)
+        {
+            if (std::isnan(it->data.best))
+            {
+                continue;
+            }
+            if (node == nullptr || it->data.best > best)
+            {
+                best = it->data.best;
+                node = &it->data.data;
+            }
+        }
+        if (node == nullptr)
+        {
+            node = &rank_table.front()->data.data;
+        }
+        printf(
+            "SET base=%.9f\n"
+            "SET roof=%.9f\n"
+            "SET col_trans=%.9f\n"
+            "SET row_trans=%.9f\n"
+            "SET hole_count=%.9f\n"
+            "SET hole_line=%.9f\n"
+            "SET clear_width=%.9f\n"
+            "SET wide_2=%.9f\n"
+            "SET wide_3=%.9f\n"
+            "SET wide_4=%.9f\n"
+            "SET safe=%.9f\n"
+            "SET b2b=%.9f\n"
+            "SET attack=%.9f\n"
+            "SET hold_t=%.9f\n"
+            "SET hold_i=%.9f\n"
+            "SET waste_t=%.9f\n"
+            "SET waste_i=%.9f\n"
+            "SET clear_1=%.9f\n"
+            "SET clear_2=%.9f\n"
+            "SET clear_3=%.9f\n"
+            "SET clear_4=%.9f\n"
+            "SET t2_slot=%.9f\n"
+            "SET t3_slot=%.9f\n"
+            "SET tspin_mini=%.9f\n"
+            "SET tspin_1=%.9f\n"
+            "SET tspin_2=%.9f\n"
+            "SET tspin_3=%.9f\n"
+            "SET combo=%.9f\n"
+            , node->p[ 0]
+            , node->p[ 1]
+            , node->p[ 2]
+            , node->p[ 3]
+            , node->p[ 4]
+            , node->p[ 5]
+            , node->p[ 6]
+            , node->p[ 7]
+            , node->p[ 8]
+            , node->p[ 9]
+            , node->p[10]
+            , node->p[11]
+            , node->p[12]
+            , node->p[13]
+            , node->p[14]
+            , node->p[15]
+            , node->p[16]
+            , node->p[17]
+            , node->p[18]
+            , node->p[19]
+            , node->p[20]
+            , node->p[21]
+            , node->p[22]
+            , node->p[23]
+            , node->p[24]
+            , node->p[25]
+            , node->p[26]
+            , node->p[27]
+        );
+        rank_table_lock.unlock();
+        return true;
+    }));
     command_map.insert(std::make_pair("save", [&file, &rank_table, &rank_table_lock](std::vector<std::string> const &token)
     {
         rank_table_lock.lock();
@@ -1008,6 +1104,7 @@ int main(int argc, char const *argv[])
             "help                 - ...\n"
             "view                 - view a match (press enter to stop)\n"
             "rank                 - show all nodes\n"
+            "best                 - print current best\n"
             "rank [rank]          - show a node at rank\n"
             "rank [rank] [length] - show nodes at rank\n"
             "select [rank]        - select a node and view info\n"
