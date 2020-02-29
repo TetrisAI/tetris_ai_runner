@@ -110,7 +110,7 @@ void pso_logic(pso_config const &config, pso_data const &best, pso_data &item, s
     for(size_t i = 0; i < config.config.size(); ++i)
     {
         auto &cfg = config.config[i];
-        if (item.v[i] <= config.d && std::abs(best.p[i] - item.p[i]) <= best.p[i] * config.d)
+        if (std::abs(item.v[i]) <= config.d && std::abs(best.p[i] - item.p[i]) <= std::abs(best.p[i] * config.d))
         {
             item.v[i] = std::uniform_real_distribution<double>(-cfg.v_max, cfg.v_max)(mt);
         }
@@ -523,8 +523,8 @@ int main(int argc, char const *argv[])
     {
         {}, 1, 1, 0.5, 0.01,
     };
-    size_t elo_max_match = 200;
-    size_t elo_min_match = 100;
+    size_t elo_max_match = 256;
+    size_t elo_min_match = 128;
 
     auto v = [&pso_cfg](double v, double r, double s)
     {
@@ -618,10 +618,6 @@ int main(int argc, char const *argv[])
                 auto m12 = rand_match(mt, rank_table.size());
                 auto m1 = rank_table.at(m12.first);
                 auto m2 = rank_table.at(m12.second);
-                double *pm1s = &m1->data.score;
-                double *pm2s = &m2->data.score;
-                double m1s = *pm1s;
-                double m2s = *pm2s;
 #if _MSC_VER
                 auto view_func = [m1, m2, m1s, m2s, index, &view, &view_index, &rank_table_lock](test_ai const &ai1, test_ai const &ai2)
                 {
@@ -699,8 +695,6 @@ int main(int argc, char const *argv[])
 
                 rank_table.erase(m1);
                 rank_table.erase(m2);
-                m1s = *pm1s;
-                m2s = *pm2s;
                 bool handle_elo_1;
                 bool handle_elo_2;
                 if ((m1->data.match > elo_min_match) == (m2->data.match > elo_min_match))
@@ -713,6 +707,10 @@ int main(int argc, char const *argv[])
                     handle_elo_1 = m2->data.match > elo_min_match;
                     handle_elo_2 = !handle_elo_1;
                 }
+                m1->data.match += handle_elo_1;
+                m2->data.match += handle_elo_2;
+                double m1s = m1->data.score;
+                double m2s = m2->data.score;
                 if (ai1.dead && ai2.dead)
                 {
                     if (handle_elo_1)
@@ -755,7 +753,14 @@ int main(int argc, char const *argv[])
                 auto do_pso_logic = [&](Node* node)
                 {
                     NodeData* data = &node->data;
-                    data->best = data->best * 0.9 + data->score * 0.1;
+                    if (std::isnan(data->best))
+                    {
+                        data->best = data->score;
+                    }
+                    else
+                    {
+                        data->best = data->best * 0.875 + data->score * 0.125;
+                    }
                     if (std::isnan(data->best) || data->score > data->best)
                     {
                         data->data.p = data->data.x;
@@ -783,16 +788,13 @@ int main(int argc, char const *argv[])
                     {
                         best_data = &rank_table.front()->data.data;
                     }
-                    if (best_data != &data->data)
-                    {
-                        pso_logic(pso_cfg, *best_data, data->data, mt);
-                    }
+                    pso_logic(pso_cfg, *best_data, data->data, mt);
                 };
-                if (++m1->data.match >= elo_max_match)
+                if (m1->data.match >= elo_max_match)
                 {
                     do_pso_logic(m1);
                 }
-                if (++m2->data.match >= elo_max_match)
+                if (m2->data.match >= elo_max_match)
                 {
                     do_pso_logic(m2);
                 }
@@ -947,7 +949,6 @@ int main(int argc, char const *argv[])
     }));
     command_map.insert(std::make_pair("rank", [&rank_table, &rank_table_lock](std::vector<std::string> const &token)
     {
-        printf("-------------------------------------------------------------\n");
         rank_table_lock.lock();
         size_t begin = 0, end = rank_table.size();
         if (token.size() == 2)
@@ -963,10 +964,9 @@ int main(int argc, char const *argv[])
         for (size_t i = begin; i < end && i < rank_table.size(); ++i)
         {
             auto node = rank_table.at(i);
-            printf("rank = %3d elo = %4.1f match = %3zd gen = %5zd name = %s\n", i + 1, node->data.score, node->data.match, node->data.gen, node->data.name);
+            printf("rank = %3d elo = %4.1f best = %4.1f match = %3zd gen = %5zd name = %s\n", i + 1, node->data.score, node->data.best, node->data.match, node->data.gen, node->data.name);
         }
         rank_table_lock.unlock();
-        printf("-------------------------------------------------------------\n");
         return true;
     }));
     command_map.insert(std::make_pair("view", [&view](std::vector<std::string> const &token)
@@ -1005,7 +1005,6 @@ int main(int argc, char const *argv[])
     command_map.insert(std::make_pair("help", [](std::vector<std::string> const &token)
     {
         printf(
-            "-------------------------------------------------------------\n"
             "help                 - ...\n"
             "view                 - view a match (press enter to stop)\n"
             "rank                 - show all nodes\n"
@@ -1016,7 +1015,6 @@ int main(int argc, char const *argv[])
             "copy [name]          - copy a new node which last selected\n"
             "save                 - ...\n"
             "exit                 - save & exit\n"
-            "-------------------------------------------------------------\n"
         );
         return true;
     }));
@@ -1048,6 +1046,7 @@ int main(int argc, char const *argv[])
         }
         if (find->second(token))
         {
+            printf("-------------------------------------------------------------\n");
             last = line;
             std::cout.flush();
         }
