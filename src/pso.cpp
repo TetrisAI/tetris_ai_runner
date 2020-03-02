@@ -18,8 +18,10 @@
 #include "rule_srs.h"
 #include "sb_tree.h"
 
+#if _MSC_VER
 #define NOMINMAX
 #include <windows.h>
+#endif
 
 
 namespace zzz
@@ -108,7 +110,7 @@ void pso_logic(pso_config const &config, pso_data const &best, pso_data &item, s
     for(size_t i = 0; i < config.config.size(); ++i)
     {
         auto &cfg = config.config[i];
-        if (item.v[i] <= config.d && std::abs(best.p[i] - item.p[i]) <= best.p[i] * config.d)
+        if (std::abs(item.v[i]) <= config.d && std::abs(best.p[i] - item.p[i]) <= std::abs(best.p[i] * config.d))
         {
             item.v[i] = std::uniform_real_distribution<double>(-cfg.v_max, cfg.v_max)(mt);
         }
@@ -143,6 +145,8 @@ struct test_ai
     char hold;
     bool b2b;
     bool dead;
+    int total_block;
+    int total_attack;
 
     test_ai(int const *_combo_table, int _combo_table_max)
         : combo_table(_combo_table)
@@ -165,6 +169,8 @@ struct test_ai
         b2b = false;
         dead = false;
         next_length = 6;
+        total_block = 0;
+        total_attack = 0;
     }
     m_tetris::TetrisNode const *node() const
     {
@@ -282,6 +288,8 @@ struct test_ai
         {
             attack += 6;
         }
+        ++total_block;
+        total_attack += attack;
         send_attack = attack;
         while (!recv_attack.empty())
         {
@@ -356,6 +364,10 @@ struct test_ai
             {
                 return;
             }
+            if (round > 720)
+            {
+                return;
+            }
 
             ai1.under_attack(ai2.send_attack);
             ai2.under_attack(ai1.send_attack);
@@ -408,10 +420,10 @@ struct NodeData
         gen = 0;
     }
     char name[64];
-    volatile double score;
-    volatile double best;
-    size_t match;
-    size_t gen;
+    double score;
+    double best;
+    uint32_t match;
+    uint32_t gen;
     pso_data data;
 };
 
@@ -425,12 +437,12 @@ struct Node : public BaseNode
 
 struct SBTreeInterface
 {
-    typedef volatile double key_t;
+    typedef double key_t;
     typedef BaseNode node_t;
     typedef Node value_node_t;
     static key_t const &get_key(Node *node)
     {
-        return node->data.score;
+        return *reinterpret_cast<double const *>(&node->data.score);
     }
     static bool is_nil(BaseNode *node)
     {
@@ -480,7 +492,7 @@ struct SBTreeInterface
 
 int main(int argc, char const *argv[])
 {
-    std::atomic_uint32_t count = std::max<uint32_t>(1, std::thread::hardware_concurrency() - 1);
+    std::atomic<uint32_t> count{std::max<uint32_t>(1, std::thread::hardware_concurrency() - 1)};
     std::string file = "data.bin";
     if (argc > 1)
     {
@@ -490,11 +502,20 @@ int main(int argc, char const *argv[])
             count = arg_count;
         }
     }
-    std::atomic_bool view = false;
-    std::atomic_uint32_t view_index = 0;
+    uint32_t node_count = count * 2;
     if (argc > 2)
     {
-        file = argv[2];
+        uint32_t arg_count = std::stoul(argv[2], nullptr, 10);
+        if (arg_count >= 2)
+        {
+            node_count = arg_count;
+        }
+    }
+    std::atomic<bool> view{false};
+    std::atomic<uint32_t> view_index{0};
+    if (argc > 3)
+    {
+        file = argv[3];
     }
     std::recursive_mutex rank_table_lock;
     zzz::sb_tree<SBTreeInterface> rank_table;
@@ -512,8 +533,8 @@ int main(int argc, char const *argv[])
     {
         {}, 1, 1, 0.5, 0.01,
     };
-    size_t elo_max_match = 200;
-    size_t elo_min_match = 100;
+    size_t elo_max_match = 256;
+    size_t elo_min_match = 128;
 
     auto v = [&pso_cfg](double v, double r, double s)
     {
@@ -569,7 +590,7 @@ int main(int argc, char const *argv[])
         }
     }
 
-    while (rank_table.size() < count * 2)
+    while (rank_table.size() < node_count)
     {
         NodeData init_node;
 
@@ -607,12 +628,8 @@ int main(int argc, char const *argv[])
                 auto m12 = rand_match(mt, rank_table.size());
                 auto m1 = rank_table.at(m12.first);
                 auto m2 = rank_table.at(m12.second);
-                volatile double *pm1s = &m1->data.score;
-                volatile double *pm2s = &m2->data.score;
-                double m1s = *pm1s;
-                double m2s = *pm2s;
 #if _MSC_VER
-                auto view_func = [m1, m2, m1s, m2s, index, &view, &view_index, &rank_table_lock](test_ai const &ai1, test_ai const &ai2)
+                auto view_func = [m1, m2, index, &view, &view_index, &rank_table_lock](test_ai const &ai1, test_ai const &ai2)
                 {
                     COORD coordScreen = { 0, 0 };
                     DWORD cCharsWritten;
@@ -678,7 +695,7 @@ int main(int argc, char const *argv[])
                     Sleep(333);
                 };
 #else
-                view_func = [](test_ai const &ai1, test_ai const &ai2) {};
+                auto view_func = [](test_ai const &ai1, test_ai const &ai2) {};
 #endif
                 ai1.init(m1->data.data, pso_cfg);
                 ai2.init(m2->data.data, pso_cfg);
@@ -688,8 +705,6 @@ int main(int argc, char const *argv[])
 
                 rank_table.erase(m1);
                 rank_table.erase(m2);
-                m1s = *pm1s;
-                m2s = *pm2s;
                 bool handle_elo_1;
                 bool handle_elo_2;
                 if ((m1->data.match > elo_min_match) == (m2->data.match > elo_min_match))
@@ -702,7 +717,15 @@ int main(int argc, char const *argv[])
                     handle_elo_1 = m2->data.match > elo_min_match;
                     handle_elo_2 = !handle_elo_1;
                 }
-                if (ai1.dead && ai2.dead)
+                m1->data.match += handle_elo_1;
+                m2->data.match += handle_elo_2;
+                double m1s = m1->data.score;
+                double m2s = m2->data.score;
+                double ai1_apl = 2.5 * ai1.total_attack / ai1.total_block;
+                double ai2_apl = 2.5 * ai2.total_attack / ai2.total_block;
+                int ai1_win = ai2.dead + (ai1_apl > ai2_apl);
+                int ai2_win = ai1.dead + (ai2_apl > ai1_apl);
+                if (ai1_win == ai2_win)
                 {
                     if (handle_elo_1)
                     {
@@ -715,7 +738,7 @@ int main(int argc, char const *argv[])
                 }
                 else
                 {
-                    if (ai2.dead)
+                    if (ai1_win > ai2_win)
                     {
                         if (handle_elo_1)
                         {
@@ -744,10 +767,14 @@ int main(int argc, char const *argv[])
                 auto do_pso_logic = [&](Node* node)
                 {
                     NodeData* data = &node->data;
-                    data->best = data->best * 0.9 + data->score * 0.1;
                     if (std::isnan(data->best) || data->score > data->best)
                     {
+                        data->best = data->score;
                         data->data.p = data->data.x;
+                    }
+                    else
+                    {
+                        data->best = data->best * 0.9 + data->score * 0.1;
                     }
                     data->match = 0;
                     ++data->gen;
@@ -772,16 +799,16 @@ int main(int argc, char const *argv[])
                     {
                         best_data = &rank_table.front()->data.data;
                     }
-                    if (best_data != &data->data)
+                    if (strcmp(node->data.name, "default") != 0)
                     {
                         pso_logic(pso_cfg, *best_data, data->data, mt);
                     }
                 };
-                if (++m1->data.match >= elo_max_match)
+                if (m1->data.match >= elo_max_match)
                 {
                     do_pso_logic(m1);
                 }
-                if (++m2->data.match >= elo_max_match)
+                if (m2->data.match >= elo_max_match)
                 {
                     do_pso_logic(m2);
                 }
@@ -828,7 +855,7 @@ int main(int argc, char const *argv[])
             "[26]tspin_3      = %8.3f, %8.3f, %8.3f\n"
             "[27]combo        = %8.3f, %8.3f, %8.3f\n"
             , node->data.name
-            , rank_table.rank(node->data.score)
+            , rank_table.rank(double(node->data.score))
             , node->data.score
             , node->data.best
             , node->data.match
@@ -936,7 +963,6 @@ int main(int argc, char const *argv[])
     }));
     command_map.insert(std::make_pair("rank", [&rank_table, &rank_table_lock](std::vector<std::string> const &token)
     {
-        printf("-------------------------------------------------------------\n");
         rank_table_lock.lock();
         size_t begin = 0, end = rank_table.size();
         if (token.size() == 2)
@@ -952,15 +978,96 @@ int main(int argc, char const *argv[])
         for (size_t i = begin; i < end && i < rank_table.size(); ++i)
         {
             auto node = rank_table.at(i);
-            printf("rank = %3d elo = %4.1f match = %3zd gen = %5zd name = %s\n", i + 1, node->data.score, node->data.match, node->data.gen, node->data.name);
+            printf("rank = %3d elo = %4.1f best = %4.1f match = %3zd gen = %5zd name = %s\n", i + 1, node->data.score, node->data.best, node->data.match, node->data.gen, node->data.name);
         }
         rank_table_lock.unlock();
-        printf("-------------------------------------------------------------\n");
         return true;
     }));
     command_map.insert(std::make_pair("view", [&view](std::vector<std::string> const &token)
     {
         view = true;
+        return true;
+    }));
+    command_map.insert(std::make_pair("best", [&rank_table, &rank_table_lock](std::vector<std::string> const &token)
+    {
+        rank_table_lock.lock();
+        double best;
+        pso_data* node = nullptr;
+        for (auto it = rank_table.begin(); it != rank_table.end(); ++it)
+        {
+            if (std::isnan(it->data.best))
+            {
+                continue;
+            }
+            if (node == nullptr || it->data.best > best)
+            {
+                best = it->data.best;
+                node = &it->data.data;
+            }
+        }
+        if (node == nullptr)
+        {
+            node = &rank_table.front()->data.data;
+        }
+        printf(
+            "SET base=%.9f\n"
+            "SET roof=%.9f\n"
+            "SET col_trans=%.9f\n"
+            "SET row_trans=%.9f\n"
+            "SET hole_count=%.9f\n"
+            "SET hole_line=%.9f\n"
+            "SET clear_width=%.9f\n"
+            "SET wide_2=%.9f\n"
+            "SET wide_3=%.9f\n"
+            "SET wide_4=%.9f\n"
+            "SET safe=%.9f\n"
+            "SET b2b=%.9f\n"
+            "SET attack=%.9f\n"
+            "SET hold_t=%.9f\n"
+            "SET hold_i=%.9f\n"
+            "SET waste_t=%.9f\n"
+            "SET waste_i=%.9f\n"
+            "SET clear_1=%.9f\n"
+            "SET clear_2=%.9f\n"
+            "SET clear_3=%.9f\n"
+            "SET clear_4=%.9f\n"
+            "SET t2_slot=%.9f\n"
+            "SET t3_slot=%.9f\n"
+            "SET tspin_mini=%.9f\n"
+            "SET tspin_1=%.9f\n"
+            "SET tspin_2=%.9f\n"
+            "SET tspin_3=%.9f\n"
+            "SET combo=%.9f\n"
+            , node->p[ 0]
+            , node->p[ 1]
+            , node->p[ 2]
+            , node->p[ 3]
+            , node->p[ 4]
+            , node->p[ 5]
+            , node->p[ 6]
+            , node->p[ 7]
+            , node->p[ 8]
+            , node->p[ 9]
+            , node->p[10]
+            , node->p[11]
+            , node->p[12]
+            , node->p[13]
+            , node->p[14]
+            , node->p[15]
+            , node->p[16]
+            , node->p[17]
+            , node->p[18]
+            , node->p[19]
+            , node->p[20]
+            , node->p[21]
+            , node->p[22]
+            , node->p[23]
+            , node->p[24]
+            , node->p[25]
+            , node->p[26]
+            , node->p[27]
+        );
+        rank_table_lock.unlock();
         return true;
     }));
     command_map.insert(std::make_pair("save", [&file, &rank_table, &rank_table_lock](std::vector<std::string> const &token)
@@ -994,10 +1101,10 @@ int main(int argc, char const *argv[])
     command_map.insert(std::make_pair("help", [](std::vector<std::string> const &token)
     {
         printf(
-            "-------------------------------------------------------------\n"
             "help                 - ...\n"
             "view                 - view a match (press enter to stop)\n"
             "rank                 - show all nodes\n"
+            "best                 - print current best\n"
             "rank [rank]          - show a node at rank\n"
             "rank [rank] [length] - show nodes at rank\n"
             "select [rank]        - select a node and view info\n"
@@ -1005,13 +1112,12 @@ int main(int argc, char const *argv[])
             "copy [name]          - copy a new node which last selected\n"
             "save                 - ...\n"
             "exit                 - save & exit\n"
-            "-------------------------------------------------------------\n"
         );
         return true;
     }));
+    std::string line, last;
     while (true)
     {
-        std::string line;
         std::getline(std::cin, line);
         if (view)
         {
@@ -1023,6 +1129,11 @@ int main(int argc, char const *argv[])
         zzz::split(token, line, " ");
         if (token.empty())
         {
+            line = last;
+            zzz::split(token, line, " ");
+        }
+        if (token.empty())
+        {
             continue;
         }
         auto find = command_map.find(token.front());
@@ -1032,6 +1143,8 @@ int main(int argc, char const *argv[])
         }
         if (find->second(token))
         {
+            printf("-------------------------------------------------------------\n");
+            last = line;
             std::cout.flush();
         }
     }

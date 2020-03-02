@@ -855,7 +855,7 @@ public:
     }
     void rehash(size_type count)
     {
-        rehash_(typename config_t::unique_type(), std::max<size_type>({8, count, size_type(std::ceil(size() / root_.setting_load_factor))}));
+        rehash_(typename config_t::unique_type(), std::max({size_type(8), count, size_type(std::ceil(size() / root_.setting_load_factor))}));
     }
 
     void max_load_factor(float ml)
