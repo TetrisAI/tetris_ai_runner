@@ -364,7 +364,7 @@ struct test_ai
             {
                 return;
             }
-            if (round > 1200)
+            if (round > 720)
             {
                 return;
             }
@@ -767,17 +767,14 @@ int main(int argc, char const *argv[])
                 auto do_pso_logic = [&](Node* node)
                 {
                     NodeData* data = &node->data;
-                    if (std::isnan(data->best))
+                    if (std::isnan(data->best) || data->score > data->best)
                     {
                         data->best = data->score;
+                        data->data.p = data->data.x;
                     }
                     else
                     {
-                        data->best = data->best * 0.875 + data->score * 0.125;
-                    }
-                    if (std::isnan(data->best) || data->score > data->best)
-                    {
-                        data->data.p = data->data.x;
+                        data->best = data->best * 0.9 + data->score * 0.1;
                     }
                     data->match = 0;
                     ++data->gen;
@@ -802,7 +799,10 @@ int main(int argc, char const *argv[])
                     {
                         best_data = &rank_table.front()->data.data;
                     }
-                    pso_logic(pso_cfg, *best_data, data->data, mt);
+                    if (strcmp(node->data.name, "default") != 0)
+                    {
+                        pso_logic(pso_cfg, *best_data, data->data, mt);
+                    }
                 };
                 if (m1->data.match >= elo_max_match)
                 {
