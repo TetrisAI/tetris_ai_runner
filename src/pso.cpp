@@ -384,22 +384,14 @@ double elo_rate(double const &self_score, double const &other_score)
 {
     return 1 / (1 + std::pow(10, -(self_score - other_score) / 400));
 }
-double elo_get_k()
+double elo_get_k(int curr, int max)
 {
-    return 12;
+    double scale = 2.5 * (max - curr) / max + 0.5;
+    return 12 * scale;
 }
-double elo_calc(double const &self_score, double const &other_score, double const &win)
+double elo_calc(double const &self_score, double const &other_score, double const &win, int curr, int max)
 {
-    return self_score + elo_get_k() * (win - elo_rate(self_score, other_score));
-}
-double elo_calc(double const &self_score, double const *other_score_array, size_t length, double const &win)
-{
-    double rate = 0;
-    for (size_t i = 0; i < length; ++i)
-    {
-        rate += elo_rate(self_score, other_score_array[i]);
-    }
-    return self_score + elo_get_k() * (win - rate) / length;
+    return self_score + elo_get_k(curr, max) * (win - elo_rate(self_score, other_score));
 }
 
 
@@ -582,20 +574,26 @@ int main(int argc, char const *argv[])
         {
             NodeData init_node;
 
-            strncpy(init_node.name, "default", sizeof init_node.name);
+            strncpy(init_node.name, "*default", sizeof init_node.name);
             memset(&init_node.data, 0, sizeof init_node.data);
             init_node.data.param = p;
             init_node.data.p = init_node.data.x;
             rank_table.insert(new Node(init_node));
-        }
+
+            // strncpy(init_node.name, "*train", sizeof init_node.name);
+            // memset(&init_node.data, 0, sizeof init_node.data);
+            // init_node.data.param = {36.763733285, 232.578526080, 210.480386222, 166.090160327, 254.613214996, 256.246166963, 23.882897204, -30.541508005, 73.144962326, 7.959344476, 9.851667126, 131.206700504, 175.898465827, 0.092212585, -0.018999710, -18.667663214, -6.305313809, -65.134671812, -64.422913474, -64.636167847, 0.217778010, 1.950287269, -0.977509324, -1.680004010, 0.953828877, 7.122056853, 4.762840741, 85.998372825};
+            // init_node.data.p = init_node.data.x;
+            // rank_table.insert(new Node(init_node));
+	}
     }
 
     while (rank_table.size() < node_count)
     {
-        NodeData init_node;
+        NodeData init_node = rank_table.at(std::uniform_int_distribution<size_t>(0, rank_table.size() - 1)(mt))->data;
 
-        strncpy(init_node.name, ("init " + std::to_string(rank_table.size())).c_str(), sizeof init_node.name);
-        pso_init(pso_cfg, init_node.data, mt);
+        strncpy(init_node.name, ("init_" + std::to_string(rank_table.size())).c_str(), sizeof init_node.name);
+        pso_logic(pso_cfg, init_node.data, init_node.data, mt);
         rank_table.insert(new Node(init_node));
     }
 
@@ -723,17 +721,17 @@ int main(int argc, char const *argv[])
                 double m2s = m2->data.score;
                 double ai1_apl = 2.5 * ai1.total_attack / ai1.total_block;
                 double ai2_apl = 2.5 * ai2.total_attack / ai2.total_block;
-                int ai1_win = ai2.dead + (ai1_apl > ai2_apl);
-                int ai2_win = ai1.dead + (ai2_apl > ai1_apl);
+                int ai1_win = ai2.dead * 2 + (ai1_apl > ai2_apl);
+                int ai2_win = ai1.dead * 2 + (ai2_apl > ai1_apl);
                 if (ai1_win == ai2_win)
                 {
                     if (handle_elo_1)
                     {
-                        m1->data.score = elo_calc(m1s, m2s, 0.5);
+                        m1->data.score = elo_calc(m1s, m2s, 0.5, m1->data.match, elo_max_match);
                     }
                     if (handle_elo_2)
                     {
-                        m2->data.score = elo_calc(m2s, m1s, 0.5);
+                        m2->data.score = elo_calc(m2s, m1s, 0.5, m2->data.match, elo_max_match);
                     }
                 }
                 else
@@ -742,22 +740,22 @@ int main(int argc, char const *argv[])
                     {
                         if (handle_elo_1)
                         {
-                            m1->data.score = elo_calc(m1s, m2s, 1);
+                            m1->data.score = elo_calc(m1s, m2s, 1, m1->data.match, elo_max_match);
                         }
                         if (handle_elo_2)
                         {
-                            m2->data.score = elo_calc(m2s, m1s, 0);
+                            m2->data.score = elo_calc(m2s, m1s, 0, m2->data.match, elo_max_match);
                         }
                     }
                     else
                     {
                         if (handle_elo_1)
                         {
-                            m1->data.score = elo_calc(m1s, m2s, 0);
+                            m1->data.score = elo_calc(m1s, m2s, 0, m1->data.match, elo_max_match);
                         }
                         if (handle_elo_2)
                         {
-                            m2->data.score = elo_calc(m2s, m1s, 1);
+                            m2->data.score = elo_calc(m2s, m1s, 1, m2->data.match, elo_max_match);
                         }
                     }
                 }
@@ -774,18 +772,22 @@ int main(int argc, char const *argv[])
                     }
                     else
                     {
-                        data->best = data->best * 0.9 + data->score * 0.1;
+                        data->best = data->best * 0.95 + data->score * 0.05;
                     }
                     data->match = 0;
                     ++data->gen;
                     rank_table.erase(node);
                     data->score = elo_init();
                     rank_table.insert(node);
+                    if (node->data.name[0] == '*')
+                    {
+                        return;
+                    }
                     double best;
                     pso_data* best_data = nullptr;
                     for (auto it = rank_table.begin(); it != rank_table.end(); ++it)
                     {
-                        if (std::isnan(it->data.best))
+                        if (it->data.name[0] == '*' || std::isnan(it->data.best))
                         {
                             continue;
                         }
@@ -795,14 +797,7 @@ int main(int argc, char const *argv[])
                             best_data = &it->data.data;
                         }
                     }
-                    if (best_data == nullptr)
-                    {
-                        best_data = &rank_table.front()->data.data;
-                    }
-                    if (strcmp(node->data.name, "default") != 0)
-                    {
-                        pso_logic(pso_cfg, *best_data, data->data, mt);
-                    }
+                    pso_logic(pso_cfg, best_data != nullptr ? *best_data : data->data, data->data, mt);
                 };
                 if (m1->data.match >= elo_max_match)
                 {
@@ -918,14 +913,14 @@ int main(int argc, char const *argv[])
         if (token.size() >= 3 && token.size() <= 5 && edit != nullptr)
         {
             size_t index = std::atoi(token[1].c_str());
-            if (index >= sizeof(ai_zzz::TOJ::Param) / sizeof(double) || (index == 0 && token[2].size() >= 64))
-            {
-                return true;
-            }
             rank_table_lock.lock();
-            if (index == 99)
+            if (index == 99 && token[2].size() < 64)
             {
                 memcpy(edit->data.name, token[2].c_str(), token[2].size() + 1);
+            }
+            else if (index >= sizeof(ai_zzz::TOJ::Param) / sizeof(double))
+            {
+                return true;
             }
             else
             {
