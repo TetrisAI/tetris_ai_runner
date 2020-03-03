@@ -579,12 +579,6 @@ int main(int argc, char const *argv[])
             init_node.data.param = p;
             init_node.data.p = init_node.data.x;
             rank_table.insert(new Node(init_node));
-
-            // strncpy(init_node.name, "*train", sizeof init_node.name);
-            // memset(&init_node.data, 0, sizeof init_node.data);
-            // init_node.data.param = {36.763733285, 232.578526080, 210.480386222, 166.090160327, 254.613214996, 256.246166963, 23.882897204, -30.541508005, 73.144962326, 7.959344476, 9.851667126, 131.206700504, 175.898465827, 0.092212585, -0.018999710, -18.667663214, -6.305313809, -65.134671812, -64.422913474, -64.636167847, 0.217778010, 1.950287269, -0.977509324, -1.680004010, 0.953828877, 7.122056853, 4.762840741, 85.998372825};
-            // init_node.data.p = init_node.data.x;
-            // rank_table.insert(new Node(init_node));
 	}
     }
 
@@ -715,8 +709,6 @@ int main(int argc, char const *argv[])
                     handle_elo_1 = m2->data.match > elo_min_match;
                     handle_elo_2 = !handle_elo_1;
                 }
-                m1->data.match += handle_elo_1;
-                m2->data.match += handle_elo_2;
                 double m1s = m1->data.score;
                 double m2s = m2->data.score;
                 double ai1_apl = 2.5 * ai1.total_attack / ai1.total_block;
@@ -734,31 +726,30 @@ int main(int argc, char const *argv[])
                         m2->data.score = elo_calc(m2s, m1s, 0.5, m2->data.match, elo_max_match);
                     }
                 }
-                else
+                else if (ai1_win > ai2_win)
                 {
-                    if (ai1_win > ai2_win)
+                    if (handle_elo_1)
                     {
-                        if (handle_elo_1)
-                        {
-                            m1->data.score = elo_calc(m1s, m2s, 1, m1->data.match, elo_max_match);
-                        }
-                        if (handle_elo_2)
-                        {
-                            m2->data.score = elo_calc(m2s, m1s, 0, m2->data.match, elo_max_match);
-                        }
+                        m1->data.score = elo_calc(m1s, m2s, 1, m1->data.match, elo_max_match);
                     }
-                    else
+                    if (handle_elo_2)
                     {
-                        if (handle_elo_1)
-                        {
-                            m1->data.score = elo_calc(m1s, m2s, 0, m1->data.match, elo_max_match);
-                        }
-                        if (handle_elo_2)
-                        {
-                            m2->data.score = elo_calc(m2s, m1s, 1, m2->data.match, elo_max_match);
-                        }
+                        m2->data.score = elo_calc(m2s, m1s, 0, m2->data.match, elo_max_match);
                     }
                 }
+                else
+                {
+                    if (handle_elo_1)
+                    {
+                        m1->data.score = elo_calc(m1s, m2s, 0, m1->data.match, elo_max_match);
+                    }
+                    if (handle_elo_2)
+                    {
+                        m2->data.score = elo_calc(m2s, m1s, 1, m2->data.match, elo_max_match);
+                    }
+                }
+                m1->data.match += handle_elo_1;
+                m2->data.match += handle_elo_2;
                 rank_table.insert(m1);
                 rank_table.insert(m2);
 
@@ -779,7 +770,7 @@ int main(int argc, char const *argv[])
                     rank_table.erase(node);
                     data->score = elo_init();
                     rank_table.insert(node);
-                    if (node->data.name[0] == '*')
+                    if (node->data.name[0] == '*' || node->data.name[0] == '-')
                     {
                         return;
                     }
