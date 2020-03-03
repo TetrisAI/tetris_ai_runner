@@ -538,7 +538,7 @@ namespace ai_zzz
 
     std::string TOJ::ai_name() const
     {
-        return "ZZZ TOJ v0.11";
+        return "ZZZ TOJ v0.12";
     }
 
     void TOJ::Status::init_t_value(TetrisMap const &map, int16_t &t2_value_ref, int16_t &t3_value_ref, TetrisMap *out_map)

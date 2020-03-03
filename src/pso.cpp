@@ -990,6 +990,10 @@ int main(int argc, char const *argv[])
     }));
     command_map.insert(std::make_pair("best", [&rank_table, &rank_table_lock](std::vector<std::string> const &token)
     {
+        if (token.size() != 2)
+        {
+            return true;
+        }
         rank_table_lock.lock();
         double best;
         pso_data* node = nullptr;
@@ -1009,64 +1013,103 @@ int main(int argc, char const *argv[])
         {
             node = &rank_table.front()->data.data;
         }
-        printf(
-            "SET base=%.9f\n"
-            "SET roof=%.9f\n"
-            "SET col_trans=%.9f\n"
-            "SET row_trans=%.9f\n"
-            "SET hole_count=%.9f\n"
-            "SET hole_line=%.9f\n"
-            "SET clear_width=%.9f\n"
-            "SET wide_2=%.9f\n"
-            "SET wide_3=%.9f\n"
-            "SET wide_4=%.9f\n"
-            "SET safe=%.9f\n"
-            "SET b2b=%.9f\n"
-            "SET attack=%.9f\n"
-            "SET hold_t=%.9f\n"
-            "SET hold_i=%.9f\n"
-            "SET waste_t=%.9f\n"
-            "SET waste_i=%.9f\n"
-            "SET clear_1=%.9f\n"
-            "SET clear_2=%.9f\n"
-            "SET clear_3=%.9f\n"
-            "SET clear_4=%.9f\n"
-            "SET t2_slot=%.9f\n"
-            "SET t3_slot=%.9f\n"
-            "SET tspin_mini=%.9f\n"
-            "SET tspin_1=%.9f\n"
-            "SET tspin_2=%.9f\n"
-            "SET tspin_3=%.9f\n"
-            "SET combo=%.9f\n"
-            , node->p[ 0]
-            , node->p[ 1]
-            , node->p[ 2]
-            , node->p[ 3]
-            , node->p[ 4]
-            , node->p[ 5]
-            , node->p[ 6]
-            , node->p[ 7]
-            , node->p[ 8]
-            , node->p[ 9]
-            , node->p[10]
-            , node->p[11]
-            , node->p[12]
-            , node->p[13]
-            , node->p[14]
-            , node->p[15]
-            , node->p[16]
-            , node->p[17]
-            , node->p[18]
-            , node->p[19]
-            , node->p[20]
-            , node->p[21]
-            , node->p[22]
-            , node->p[23]
-            , node->p[24]
-            , node->p[25]
-            , node->p[26]
-            , node->p[27]
-        );
+        if (token[1] == "bat")
+        {
+            printf(
+                "SET base=%.9f\n"
+                "SET roof=%.9f\n"
+                "SET col_trans=%.9f\n"
+                "SET row_trans=%.9f\n"
+                "SET hole_count=%.9f\n"
+                "SET hole_line=%.9f\n"
+                "SET clear_width=%.9f\n"
+                "SET wide_2=%.9f\n"
+                "SET wide_3=%.9f\n"
+                "SET wide_4=%.9f\n"
+                "SET safe=%.9f\n"
+                "SET b2b=%.9f\n"
+                "SET attack=%.9f\n"
+                "SET hold_t=%.9f\n"
+                "SET hold_i=%.9f\n"
+                "SET waste_t=%.9f\n"
+                "SET waste_i=%.9f\n"
+                "SET clear_1=%.9f\n"
+                "SET clear_2=%.9f\n"
+                "SET clear_3=%.9f\n"
+                "SET clear_4=%.9f\n"
+                "SET t2_slot=%.9f\n"
+                "SET t3_slot=%.9f\n"
+                "SET tspin_mini=%.9f\n"
+                "SET tspin_1=%.9f\n"
+                "SET tspin_2=%.9f\n"
+                "SET tspin_3=%.9f\n"
+                "SET combo=%.9f\n"
+                , node->p[ 0]
+                , node->p[ 1]
+                , node->p[ 2]
+                , node->p[ 3]
+                , node->p[ 4]
+                , node->p[ 5]
+                , node->p[ 6]
+                , node->p[ 7]
+                , node->p[ 8]
+                , node->p[ 9]
+                , node->p[10]
+                , node->p[11]
+                , node->p[12]
+                , node->p[13]
+                , node->p[14]
+                , node->p[15]
+                , node->p[16]
+                , node->p[17]
+                , node->p[18]
+                , node->p[19]
+                , node->p[20]
+                , node->p[21]
+                , node->p[22]
+                , node->p[23]
+                , node->p[24]
+                , node->p[25]
+                , node->p[26]
+                , node->p[27]
+            );
+        }
+        else if (token[1] == "cpp")
+        {
+            printf(
+                "{%.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
+                " %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
+                " %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f}\n"
+                , node->p[ 0]
+                , node->p[ 1]
+                , node->p[ 2]
+                , node->p[ 3]
+                , node->p[ 4]
+                , node->p[ 5]
+                , node->p[ 6]
+                , node->p[ 7]
+                , node->p[ 8]
+                , node->p[ 9]
+                , node->p[10]
+                , node->p[11]
+                , node->p[12]
+                , node->p[13]
+                , node->p[14]
+                , node->p[15]
+                , node->p[16]
+                , node->p[17]
+                , node->p[18]
+                , node->p[19]
+                , node->p[20]
+                , node->p[21]
+                , node->p[22]
+                , node->p[23]
+                , node->p[24]
+                , node->p[25]
+                , node->p[26]
+                , node->p[27]
+            );
+        }
         rank_table_lock.unlock();
         return true;
     }));
