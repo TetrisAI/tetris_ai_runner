@@ -160,7 +160,8 @@ struct test_ai
         map = m_tetris::TetrisMap(10, 40);
         ai.prepare(10, 22);
         ai.ai_config()->param = data.param;
-
+        r_next.seed(std::random_device()());
+        r_garbage.seed(r_next());
         next.clear();
         recv_attack.clear();
         send_attack = 0;
@@ -386,7 +387,7 @@ double elo_rate(double const &self_score, double const &other_score)
 }
 double elo_get_k(int curr, int max)
 {
-    double scale = 2.5 * (max - curr) / max + 0.5;
+    double scale = 1.75 * (max - curr) / max + 0.25;
     return 12 * scale;
 }
 double elo_calc(double const &self_score, double const &other_score, double const &win, int curr, int max)
@@ -909,11 +910,7 @@ int main(int argc, char const *argv[])
             {
                 memcpy(edit->data.name, token[2].c_str(), token[2].size() + 1);
             }
-            else if (index >= sizeof(ai_zzz::TOJ::Param) / sizeof(double))
-            {
-                return true;
-            }
-            else
+            else if (index < sizeof(ai_zzz::TOJ::Param) / sizeof(double))
             {
                 edit->data.data.x[index] = std::atof(token[2].c_str());
                 if (token.size() >= 4)
