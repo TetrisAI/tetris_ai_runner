@@ -773,7 +773,7 @@ namespace ai_zzz
                     uint32_t CheckLine = LineHole & t_map.row[hy];
                     if (CheckLine > 0)
                     {
-                        v.ClearWidth += t_map.width - ZZZ_BitCount(t_map.row[hy]);
+                        v.ClearWidth += (t_map.width - ZZZ_BitCount(t_map.row[hy])) * hy;
                     }
                 }
             }

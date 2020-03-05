@@ -21,6 +21,8 @@
 #if _MSC_VER
 #define NOMINMAX
 #include <windows.h>
+#else
+#include <unistd.h>
 #endif
 
 
@@ -688,7 +690,53 @@ int main(int argc, char const *argv[])
                     Sleep(333);
                 };
 #else
-                auto view_func = [](test_ai const &ai1, test_ai const &ai2) {};
+                auto view_func = [m1, m2, index, &view, &view_index, &rank_table_lock](test_ai const &ai1, test_ai const &ai2)
+                {
+                    if (view && view_index == 0)
+                    {
+                        rank_table_lock.lock();
+                        if (view && view_index == 0)
+                        {
+                            view_index = index;
+                        }
+                        rank_table_lock.unlock();
+                    }
+                    if (index != view_index)
+                    {
+                        return;
+                    }
+
+                    char out[81920] = "";
+                    char box_0[3] = "  ";
+                    char box_1[3] = "[]";
+
+                    out[0] = '\0';
+                    int up1 = std::accumulate(ai1.recv_attack.begin(), ai1.recv_attack.end(), 0);
+                    int up2 = std::accumulate(ai2.recv_attack.begin(), ai2.recv_attack.end(), 0);
+                    snprintf(out, sizeof out, "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d UP = %2d NAME = %s\n"
+                                              "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d UP = %2d NAME = %s\n",
+                        ai1.hold, ai1.next[1], ai1.next[2], ai1.next[3], ai1.next[4], ai1.next[5], ai1.next[6], ai1.combo, ai1.b2b, up1, m1->data.name,
+                        ai2.hold, ai2.next[1], ai2.next[2], ai2.next[3], ai2.next[4], ai2.next[5], ai2.next[6], ai2.combo, ai2.b2b, up2, m2->data.name);
+                    m_tetris::TetrisMap map_copy1 = ai1.map;
+                    m_tetris::TetrisMap map_copy2 = ai2.map;
+                    ai1.node()->attach(map_copy1);
+                    ai2.node()->attach(map_copy2);
+                    for (int y = 21; y >= 0; --y)
+                    {
+                        for (int x = 0; x < 10; ++x)
+                        {
+                            strcat(out, map_copy1.full(x, y) ? box_1 : box_0);
+                        }
+                        strcat(out, "  ");
+                        for (int x = 0; x < 10; ++x)
+                        {
+                            strcat(out, map_copy2.full(x, y) ? box_1 : box_0);
+                        }
+                        strcat(out, "\r\n");
+                    }
+		    printf("%s", out);
+                    usleep(333000);
+                };
 #endif
                 ai1.init(m1->data.data, pso_cfg);
                 ai2.init(m2->data.data, pso_cfg);
