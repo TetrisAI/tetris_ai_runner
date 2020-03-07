@@ -215,7 +215,7 @@ struct test_ai
         ai_zzz::TOJ::Status::init_t_value(map, ai.status()->t2_value, ai.status()->t3_value);
 
         char current = next.front();
-        auto result = ai.run_hold(map, ai.context()->generate(current), hold, true, next.data() + 1, next_length, 2);
+        auto result = ai.run_hold(map, ai.context()->generate(current), hold, true, next.data() + 1, next_length, 5);
         if(result.target == nullptr || result.target->low >= 20)
         {
             dead = true;
