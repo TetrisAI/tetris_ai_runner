@@ -322,15 +322,11 @@ namespace m_tetris
         return true;
     }
 
-    TetrisContext::PrepareResult TetrisContext::prepare(int width, int height)
+    bool TetrisContext::prepare(int width, int height)
     {
-        if(width == width_ && height == height_)
-        {
-            return ok;
-        }
         if(width > 32 || height > max_height || width < 4 || height < 4)
         {
-            return fail;
+            return false;
         }
         place_cache_.clear();
         node_index_.clear();
@@ -573,7 +569,7 @@ namespace m_tetris
             WALL_KICK(opposite);
 #undef WALL_KICK
         }
-        return rebuild;
+        return true;
     }
 
     int32_t TetrisContext::width() const

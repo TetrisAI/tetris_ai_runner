@@ -152,17 +152,16 @@ struct test_ai
     int total_attack;
     int total_receive;
 
-    test_ai(int const *_combo_table, int _combo_table_max)
-        : combo_table(_combo_table)
+    test_ai(m_tetris::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ, search_tspin::Search> &global_ai, int const *_combo_table, int _combo_table_max)
+        : ai(global_ai.context())
+        , combo_table(_combo_table)
         , combo_table_max(_combo_table_max)
     {
-        ai.prepare(10, 40);
     }
 
     void init(pso_data const &data, pso_config const &config)
     {
         map = m_tetris::TetrisMap(10, 40);
-        ai.prepare(10, 22);
         ai.ai_config()->param = data.param;
         r_next.seed(std::random_device()());
         r_garbage.seed(r_next());
@@ -578,7 +577,7 @@ int main(int argc, char const *argv[])
         v(p.tspin_2    ,  100,   2);
         v(p.tspin_3    ,  100,   2);
         v(p.combo      ,  100,   2);
-        v(p.ratio      ,   10, 0.2);
+        v(p.ratio      ,   10, 0.5);
 
         if (rank_table.empty())
         {
@@ -604,6 +603,8 @@ int main(int argc, char const *argv[])
     std::vector<std::thread> threads;
     int combo_table[] = { 0,0,0,1,1,2,2,3,3,4,4,4,5 };
     int combo_table_max = 13;
+    m_tetris::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ, search_tspin::Search> global_ai;
+    global_ai.prepare(10, 40);
 
     for (size_t i = 1; i <= count; ++i)
     {
@@ -620,8 +621,8 @@ int main(int argc, char const *argv[])
                 } while (ret.second == ret.first);
                 return ret;
             };
-            test_ai ai1(combo_table, combo_table_max);
-            test_ai ai2(combo_table, combo_table_max);
+            test_ai ai1(global_ai, combo_table, combo_table_max);
+            test_ai ai2(global_ai, combo_table, combo_table_max);
             rank_table_lock.lock();
             rank_table_lock.unlock();
             for (; ; )
@@ -767,10 +768,10 @@ int main(int argc, char const *argv[])
                 }
                 double m1s = m1->data.score;
                 double m2s = m2->data.score;
-                // double ai1_apl = ai1.total_clear == 0 ? 0. : 1. * ai1.total_attack / ai1.total_clear;
-                // double ai2_apl = ai2.total_clear == 0 ? 0. : 1. * ai2.total_attack / ai2.total_clear;
-                int ai1_win = ai2.dead;// + (ai1_apl > ai2_apl);
-                int ai2_win = ai1.dead;// + (ai2_apl > ai1_apl);
+                double ai1_apl = ai1.total_clear == 0 ? 0. : 1. * ai1.total_attack / ai1.total_clear;
+                double ai2_apl = ai2.total_clear == 0 ? 0. : 1. * ai2.total_attack / ai2.total_clear;
+                int ai1_win = ai2.dead * 2 + (ai1_apl > ai2_apl);
+                int ai2_win = ai1.dead * 2 + (ai2_apl > ai1_apl);
                 if (ai1_win == ai2_win)
                 {
                     if (handle_elo_1)

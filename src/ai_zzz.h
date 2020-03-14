@@ -125,6 +125,10 @@ namespace ai_zzz
     public:
         void init(m_tetris::TetrisContext const *context, Config const *config);
         std::string ai_name() const;
+        double ratio() const
+        {
+            return 1.5;
+        }
         Result eval(TetrisNodeEx const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
         Status get(TetrisNodeEx &node, Result const &eval_result, size_t depth, Status const & status, m_tetris::TetrisContext::Env const &env) const;
     private:

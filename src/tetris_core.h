@@ -309,7 +309,7 @@ namespace m_tetris
     class TetrisContext
     {
         template<class TetrisRule, class AI, class Search>
-        friend struct TetrisContextBuilder;
+        friend class TetrisEngine;
     private:
         TetrisContext()
         {
@@ -350,8 +350,8 @@ namespace m_tetris
         {
             fail = 0, ok = 1, rebuild = 2,
         };
-        //准备好上下文,返回fail表示上下错误
-        PrepareResult prepare(int32_t width, int32_t height);
+        //初始化
+        bool prepare(int32_t width, int32_t height);
 
         int32_t width() const;
         int32_t height() const;
@@ -634,8 +634,8 @@ namespace m_tetris
         typedef decltype(func<Derived>(nullptr)) type;
     };
 
-    template<class TetrisRule, class TetrisAI, class TetrisSearch>
-    struct TetrisContextBuilder
+    template<class TreeContext, class TetrisRule, class TetrisAI, class TetrisSearch>
+    struct LocalContextBuilder
     {
     private:
         template<class CallAI, class>
@@ -711,49 +711,42 @@ namespace m_tetris
             };
         };
     public:
-        class TetrisContextEx : public TetrisContext, public AIConfig<TetrisAI, typename TetrisHasConfig<TetrisAI>::type>::AIConfigHolder, public SearchConfig<TetrisSearch, typename TetrisHasConfig<TetrisSearch>::type>::SearchConfigHolder
+        class LocalContext : public TreeContext, public AIConfig<TetrisAI, typename TetrisHasConfig<TetrisAI>::type>::AIConfigHolder, public SearchConfig<TetrisSearch, typename TetrisHasConfig<TetrisSearch>::type>::SearchConfigHolder
         {
         };
-        static TetrisContextEx *build_context()
-        {
-            TetrisContextEx *context = new TetrisContextEx();
-            context->opertion_ = TetrisRule::get_opertion();
-            context->generate_ = TetrisRule::get_generate();
-            return context;
-        }
     private:
         template<class, class>
         struct CallInit
         {
-            static void call(TetrisAI &ai, TetrisContextEx const *context)
+            static void call(TetrisAI &ai, LocalContext const *local_context, TetrisContext const *shared_context)
             {
-                TetrisCallInit<TetrisAI>(ai, context, context->ai_config());
+                TetrisCallInit<TetrisAI>(ai, shared_context, local_context->ai_config());
             }
-            static void call(TetrisSearch &search, TetrisContextEx const *context)
+            static void call(TetrisSearch &search, LocalContext const *local_context, TetrisContext const *shared_context)
             {
-                TetrisCallInit<TetrisSearch>(search, context, context->search_config());
+                TetrisCallInit<TetrisSearch>(search, shared_context, local_context->search_config());
             }
         };
         template<class Unuse>
         struct CallInit<Unuse, void>
         {
-            static void call(TetrisAI &ai, TetrisContextEx const *context)
+            static void call(TetrisAI &ai, LocalContext const *local_context, TetrisContext const *shared_context)
             {
-                TetrisCallInit<TetrisAI>(ai, context);
+                TetrisCallInit<TetrisAI>(ai, shared_context);
             }
-            static void call(TetrisSearch &search, TetrisContextEx const *context)
+            static void call(TetrisSearch &search, LocalContext const *local_context, TetrisContext const *shared_context)
             {
-                TetrisCallInit<TetrisSearch>(search, context);
+                TetrisCallInit<TetrisSearch>(search, shared_context);
             }
         };
     public:
-        static void init_ai(TetrisAI &ai, TetrisContextEx const *context)
+        static void init_ai(TetrisAI &ai, LocalContext const *local_context, TetrisContext const *shared_context)
         {
-            CallInit<TetrisContextEx, typename TetrisContextEx::AIConfigType>::call(ai, context);
+            CallInit<TetrisContext, typename LocalContext::AIConfigType>::call(ai, local_context, shared_context);
         }
-        static void init_search(TetrisSearch &search, TetrisContextEx const *context)
+        static void init_search(TetrisSearch &search, LocalContext const *local_context, TetrisContext const *shared_context)
         {
-            CallInit<TetrisContextEx, typename TetrisContextEx::SearchConfigType>::call(search, context);
+            CallInit<TetrisContext, typename LocalContext::SearchConfigType>::call(search, local_context, shared_context);
         }
     };
 
@@ -1778,7 +1771,7 @@ namespace m_tetris
             double ratio = Core::template get_ratio<TetrisTreeNode>(*context->ai);
             while (context->max_length >= context->width_cache.size())
             {
-                context->width_cache.emplace_back(std::pow(context->width_cache.size() + 1, ratio) / context->max_length);
+                context->width_cache.emplace_back(std::pow(context->width_cache.size(), ratio));
             }
             while (next_length > 0)
             {
@@ -1882,13 +1875,13 @@ namespace m_tetris
     private:
         typedef TetrisCore<TetrisAI, TetrisSearch> Core;
         typedef TetrisTreeNode<typename Core::Status, TetrisAI, TetrisSearch> TreeNode;
-        typedef TetrisContextBuilder<TetrisRule, TetrisAI, TetrisSearch> ContextBuilder;
+        typedef LocalContextBuilder<typename TreeNode::Context, TetrisRule, TetrisAI, TetrisSearch> ContextBuilder;
         typedef typename Core::LandPoint LandPoint;
-        typename ContextBuilder::TetrisContextEx *context_;
+        std::shared_ptr<TetrisContext> shared_context_;
+        typename ContextBuilder::LocalContext local_context_;
+        TreeNode *root_;
         TetrisAI ai_;
         TetrisSearch search_;
-        typename TreeNode::Context tree_context_;
-        TreeNode *tree_root_;
         typename Core::Status status_;
 
     public:
@@ -1914,48 +1907,88 @@ namespace m_tetris
         };
 
     public:
-        TetrisEngine() : context_(ContextBuilder::build_context()), ai_(), tree_root_(new TreeNode(&tree_context_)), status_()
+        TetrisEngine() : shared_context_(), ai_(), root_(new TreeNode(&local_context_)), status_()
         {
-            tree_context_.engine = context_;
-            tree_context_.ai = &ai_;
-            tree_context_.search = &search_;
+        }
+        TetrisEngine(std::shared_ptr<TetrisContext> context) : shared_context_(context), ai_(), root_(new TreeNode(&local_context_)), status_()
+        {
+            local_context_.engine = shared_context_.get();
+            local_context_.ai = &ai_;
+            local_context_.search = &search_;
+            if (TetrisRuleInit<TetrisRule>::init(shared_context_->width(), shared_context_->height()))
+            {
+                ContextBuilder::init_ai(ai_, &local_context_, shared_context_.get());
+                ContextBuilder::init_search(search_, &local_context_, shared_context_.get());
+            }
+            else
+            {
+                shared_context_.reset();
+            }
+        }
+        bool prepare(int width, int height)
+        {
+            if (shared_context_ != nullptr && shared_context_->width() == width && shared_context_->height() == height)
+            {
+                return true;
+            }
+            shared_context_.reset(new TetrisContext());
+            shared_context_->opertion_ = TetrisRule::get_opertion();
+            shared_context_->generate_ = TetrisRule::get_generate();
+            if (!shared_context_->prepare(width, height))
+            {
+                shared_context_.reset();
+                return false;
+            }
+            local_context_.engine = shared_context_.get();
+            local_context_.ai = &ai_;
+            local_context_.search = &search_;
+            if (TetrisRuleInit<TetrisRule>::init(width, height))
+            {
+                ContextBuilder::init_ai(ai_, &local_context_, shared_context_.get());
+                ContextBuilder::init_search(search_, &local_context_, shared_context_.get());
+            }
+            else
+            {
+                shared_context_.reset();
+                return false;
+            }
+            return true;
         }
         ~TetrisEngine()
         {
-            tree_context_.dealloc(tree_root_);
-            tree_context_.release();
-            delete context_;
+            local_context_.dealloc(root_);
+            local_context_.release();
         }
         //从状态获取当前块
         TetrisNode const *get(TetrisBlockStatus const &status) const
         {
-            return context_->get(status);
+            return shared_context_->get(status);
         }
-        //上下文对象...用来做什么呢= =?
-        TetrisContext const *context() const
+        //上下文对象...
+        std::shared_ptr<TetrisContext> context() const
         {
-            return context_;
+            return shared_context_;
         }
         //AI名称
         std::string ai_name() const
         {
             return ai_.ai_name();
         }
-        auto ai_config() const->decltype(context_->ai_config())
+        auto ai_config() const->decltype(local_context_.ai_config())
         {
-            return context_->ai_config();
+            return local_context_.ai_config();
         }
-        auto ai_config()->decltype(context_->ai_config())
+        auto ai_config()->decltype(local_context_.ai_config())
         {
-            return context_->ai_config();
+            return local_context_.ai_config();
         }
-        auto search_config() const->decltype(context_->search_config())
+        auto search_config() const->decltype(local_context_.search_config())
         {
-            return context_->search_config();
+            return local_context_.search_config();
         }
-        auto search_config()->decltype(context_->search_config())
+        auto search_config()->decltype(local_context_.search_config())
         {
-            return context_->search_config();
+            return local_context_.search_config();
         }
         Status const *status() const
         {
@@ -1969,82 +2002,62 @@ namespace m_tetris
         {
             return &ai_;
         }
-        //准备好上下文
-        bool prepare(int width, int height)
-        {
-            if (!TetrisRuleInit<TetrisRule>::init(width, height))
-            {
-                return false;
-            }
-            TetrisContext::PrepareResult result = context_->prepare(width, height);
-            if (result == TetrisContext::rebuild)
-            {
-                ContextBuilder::init_ai(ai_, context_);
-                ContextBuilder::init_search(search_, context_);
-                return true;
-            }
-            else if (result == TetrisContext::fail)
-            {
-                return false;
-            }
-            return true;
-        }
         //update!强制刷新上下文
         void update()
         {
-            tree_context_.is_complete = false;
-            ++tree_context_.version;
-            tree_context_.total += tree_context_.width;
-            tree_context_.avg = tree_context_.total / tree_context_.version;
-            tree_context_.width = 0;
-            tree_context_.wait.clear();
-            tree_context_.sort.clear();
-            tree_context_.wait.resize(tree_context_.max_length + 1);
-            tree_context_.sort.resize(tree_context_.max_length + 1);
+            local_context_.is_complete = false;
+            ++local_context_.version;
+            local_context_.total += local_context_.width;
+            local_context_.avg = local_context_.total / local_context_.version;
+            local_context_.width = 0;
+            local_context_.wait.clear();
+            local_context_.sort.clear();
+            local_context_.wait.resize(local_context_.max_length + 1);
+            local_context_.sort.resize(local_context_.max_length + 1);
         }
         //run!
         RunResult run(TetrisMap const &map, TetrisNode const *node, char const *next, size_t next_length, time_t limit = 100)
         {
             using namespace std::chrono;
-            if (node == nullptr || !node->check(map))
+            if (shared_context_ == nullptr || node == nullptr || !node->check(map))
             {
                 return RunResult();
             }
             auto now = high_resolution_clock::now(), end = now + std::chrono::milliseconds(limit);
-            tree_root_ = tree_root_->update(map, status_, node, next, next_length);
+            root_ = root_->update(map, status_, node, next, next_length);
             do
             {
-                if (tree_root_->template run<false>())
+                if (root_->template run<false>())
                 {
                     break;
                 }
             } while ((now = high_resolution_clock::now()) < end);
-            return RunResult(tree_root_->get_best());
+            return RunResult(root_->get_best());
         }
         //带hold的run!
         RunResult run_hold(TetrisMap const &map, TetrisNode const *node, char hold, bool hold_free, char const *next, size_t next_length, time_t limit = 100)
         {
             using namespace std::chrono;
-            if (node == nullptr || !node->check(map))
+            if (shared_context_ == nullptr || node == nullptr || !node->check(map))
             {
                 return RunResult();
             }
             auto now = high_resolution_clock::now(), end = now + std::chrono::milliseconds(limit);
-            tree_root_ = tree_root_->update(map, status_, node, hold, !hold_free, next, next_length);
+            root_ = root_->update(map, status_, node, hold, !hold_free, next, next_length);
             do
             {
-                if (tree_root_->template run<true>())
+                if (root_->template run<true>())
                 {
                     break;
                 }
             } while ((now = high_resolution_clock::now()) < end);
-            if (tree_root_->hold == ' ' && tree_context_.next.size() == 1 && !tree_root_->is_hold_lock)
+            if (root_->hold == ' ' && local_context_.next.size() == 1 && !root_->is_hold_lock)
             {
                 return RunResult(true);
             }
             else
             {
-                auto best = tree_root_->get_best();
+                auto best = root_->get_best();
                 return RunResult(best, best.first == nullptr ? false : best.first->is_hold);
             }
         }
