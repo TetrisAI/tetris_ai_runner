@@ -148,7 +148,9 @@ struct test_ai
     bool b2b;
     bool dead;
     int total_block;
+    int total_clear;
     int total_attack;
+    int total_receive;
 
     test_ai(int const *_combo_table, int _combo_table_max)
         : combo_table(_combo_table)
@@ -173,7 +175,9 @@ struct test_ai
         dead = false;
         next_length = 6;
         total_block = 0;
+        total_clear = 0;
         total_attack = 0;
+        total_receive = 0;
     }
     m_tetris::TetrisNode const *node() const
     {
@@ -215,7 +219,7 @@ struct test_ai
         ai_zzz::TOJ::Status::init_t_value(map, ai.status()->t2_value, ai.status()->t3_value);
 
         char current = next.front();
-        auto result = ai.run_hold(map, ai.context()->generate(current), hold, true, next.data() + 1, next_length, 5);
+        auto result = ai.run_hold(map, ai.context()->generate(current), hold, true, next.data() + 1, next_length, 20);
         if(result.target == nullptr || result.target->low >= 20)
         {
             dead = true;
@@ -234,7 +238,9 @@ struct test_ai
         {
             return combo_table[std::min(combo_table_max - 1, c)];
         };
-        switch (result.target->attach(map))
+        int clear = result.target->attach(map);
+        total_clear += clear;
+        switch (clear)
         {
         case 0:
             combo = 0;
@@ -315,6 +321,7 @@ struct test_ai
                 break;
             }
             int line = recv_attack.front();
+            total_receive += line;
             recv_attack.pop_front();
             for (int y = map.height - 1; y >= line; --y)
             {
@@ -389,8 +396,7 @@ double elo_rate(double const &self_score, double const &other_score)
 }
 double elo_get_k(int curr, int max)
 {
-    double scale = 1.75 * (max - curr) / max + 0.25;
-    return 12 * scale;
+    return 20 * (max - curr) / max + 4;
 }
 double elo_calc(double const &self_score, double const &other_score, double const &win, int curr, int max)
 {
@@ -572,6 +578,7 @@ int main(int argc, char const *argv[])
         v(p.tspin_2    ,  100,   2);
         v(p.tspin_3    ,  100,   2);
         v(p.combo      ,  100,   2);
+        v(p.ratio      ,   10, 0.2);
 
         if (rank_table.empty())
         {
@@ -760,10 +767,10 @@ int main(int argc, char const *argv[])
                 }
                 double m1s = m1->data.score;
                 double m2s = m2->data.score;
-                double ai1_apl = 2.5 * ai1.total_attack / ai1.total_block;
-                double ai2_apl = 2.5 * ai2.total_attack / ai2.total_block;
-                int ai1_win = ai2.dead * 2 + (ai1_apl > ai2_apl);
-                int ai2_win = ai1.dead * 2 + (ai2_apl > ai1_apl);
+                // double ai1_apl = ai1.total_clear == 0 ? 0. : 1. * ai1.total_attack / ai1.total_clear;
+                // double ai2_apl = ai2.total_clear == 0 ? 0. : 1. * ai2.total_attack / ai2.total_clear;
+                int ai1_win = ai2.dead;// + (ai1_apl > ai2_apl);
+                int ai2_win = ai1.dead;// + (ai2_apl > ai1_apl);
                 if (ai1_win == ai2_win)
                 {
                     if (handle_elo_1)
@@ -889,6 +896,7 @@ int main(int argc, char const *argv[])
             "[25]tspin_2      = %8.3f, %8.3f, %8.3f\n"
             "[26]tspin_3      = %8.3f, %8.3f, %8.3f\n"
             "[27]combo        = %8.3f, %8.3f, %8.3f\n"
+            "[28]ratio        = %8.3f, %8.3f, %8.3f\n"
             , node->data.name
             , rank_table.rank(double(node->data.score))
             , node->data.score
@@ -922,6 +930,7 @@ int main(int argc, char const *argv[])
             , node->data.data.x[25], node->data.data.p[25], node->data.data.v[25]
             , node->data.data.x[26], node->data.data.p[26], node->data.data.v[26]
             , node->data.data.x[27], node->data.data.p[27], node->data.data.v[27]
+            , node->data.data.x[28], node->data.data.p[28], node->data.data.v[28]
         );
         rank_table_lock.unlock();
     };
@@ -1075,6 +1084,7 @@ int main(int argc, char const *argv[])
                 "SET tspin_2=%.9f\n"
                 "SET tspin_3=%.9f\n"
                 "SET combo=%.9f\n"
+                "SET ratio=%.9f\n"
                 , node->p[ 0]
                 , node->p[ 1]
                 , node->p[ 2]
@@ -1103,6 +1113,7 @@ int main(int argc, char const *argv[])
                 , node->p[25]
                 , node->p[26]
                 , node->p[27]
+                , node->p[28]
             );
         }
         else if (token[1] == "cpp")
@@ -1110,7 +1121,7 @@ int main(int argc, char const *argv[])
             printf(
                 "{%.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
                 " %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
-                " %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f}\n"
+                " %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f}\n"
                 , node->p[ 0]
                 , node->p[ 1]
                 , node->p[ 2]
@@ -1139,6 +1150,7 @@ int main(int argc, char const *argv[])
                 , node->p[25]
                 , node->p[26]
                 , node->p[27]
+                , node->p[28]
             );
         }
         rank_table_lock.unlock();

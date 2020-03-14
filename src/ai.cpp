@@ -89,8 +89,12 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     }
     return 0;
 }
-
+#define USE_V08 0
+#if !USE_V08
 m_tetris::TetrisEngine<rule_toj::TetrisRule, ai_zzz::TOJ, search_tspin::Search> srs_ai;
+#else
+m_tetris::TetrisEngine<rule_toj::TetrisRule, ai_zzz::TOJ_v08, search_tspin::Search> srs_ai;
+#endif
 
 extern "C" DECLSPEC_EXPORT int __cdecl AIDllVersion()
 {
@@ -168,8 +172,11 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
             ;
         return max - 1;
     }();
+#if !USE_V08
     srs_ai.ai_config()->safe = srs_ai.ai()->get_safe(map);
-    srs_ai.ai_config()->param = { 33.451230390, 201.559795560, 186.174076678, 162.646247762, 258.723824748, 255.759074619, 11.806081584, -46.965827950, -43.004086435, 10.501944653, 6.859389950, 131.757977065, 147.330514449, 0.059484266, 0.000557781, -22.655876213, -7.140727929, -62.345419988, -65.631820043, -63.573454235, -1.386883815, 1.234364709, 0.080621806, -3.174397798, 1.805742736, 3.189809392, 4.241496571, 84.333888503 };
+    // srs_ai.ai_config()->param = { 29.688070003, 199.597608791, 187.991624908, 164.612658708, 271.889924704, 255.008244945, 5.398766061, -50.231406318, -40.647492851, 17.244123352, 4.261855776, 128.452825248, 161.384505730, 0.058290284, 0.058805633, -24.263183836, -6.180170698, -64.153945767, -66.695003042, -65.053094150, -0.025608883, 1.182428642, 0.292094859, -5.189811818, 3.909842188, 5.083594438, 2.558231905, 86.697290612 };
+    // srs_ai.ai_config()->param = { 34.342886539, 191.305366810, 193.254275810, 168.872346401, 273.924279546, 245.448382222, 4.495546964, -59.612482252, -34.594602898, 15.714198996, 2.222642015, 122.853817333, 161.777507080, 0.078424153, 0.063095050, -26.031132734, -5.953612416, -61.419178596, -67.023768432, -62.925972410, -1.780814719, 1.771826244, 0.218530935, -4.283641450, 4.066277633, 4.327142481, 2.963138508, 87.198144813 };
+    srs_ai.ai_config()->param = { 35.019890069, 192.596282261, 190.907767908, 167.410707805, 265.497851266, 241.734614182, 3.527131479, -57.336620320, -33.877009274, 12.750783514, 1.732564544, 121.900256718, 156.508400129, 0.128611948, 0.024204596, -24.061459889, -6.220286151, -58.810081829, -69.732760031, -63.686888704, -1.201322236, 1.784946073, 0.118408970, -4.066293406, 5.215027792, 4.270978546, 2.684055704, 86.681921324 };
     srs_ai.status()->death = 0;
     srs_ai.status()->combo = combo;
     srs_ai.status()->under_attack = upcomeAtt;
@@ -179,6 +186,17 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     srs_ai.status()->like = 0;
     srs_ai.status()->value = 0;
     ai_zzz::TOJ::Status::init_t_value(map, srs_ai.status()->t2_value, srs_ai.status()->t3_value);
+#else
+    srs_ai.status()->max_combo = 0;
+    srs_ai.status()->max_attack = 0;
+    srs_ai.status()->death = 0;
+    srs_ai.status()->combo = combo;
+    srs_ai.status()->under_attack = upcomeAtt;
+    srs_ai.status()->map_rise = 0;
+    srs_ai.status()->b2b = !!b2b;
+    srs_ai.status()->like = 0;
+    srs_ai.status()->value = 0;
+#endif
     m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
     m_tetris::TetrisNode const *node = srs_ai.get(status);
     static double const base_time = std::pow(100, 1.0 / 8);

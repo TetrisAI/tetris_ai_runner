@@ -1019,6 +1019,441 @@ namespace ai_zzz
         return danger;
     }
 
+
+    bool TOJ_v08::Status::operator < (Status const &other) const
+    {
+        return value < other.value;
+    }
+
+    void TOJ_v08::init(m_tetris::TetrisContext const *context, Config const *config)
+    {
+        context_ = context;
+        config_ = config;
+        col_mask_ = context->full() & ~1;
+        row_mask_ = context->full();
+        full_count_ = context->width() * 24;
+        map_danger_data_.resize(context->type_max());
+        for (size_t i = 0; i < context->type_max(); ++i)
+        {
+            TetrisMap map(context->width(), context->height());
+            TetrisNode const *node = context->generate(i);
+            node->attach(map);
+            std::memcpy(map_danger_data_[i].data, &map.row[18], sizeof map_danger_data_[i].data);
+            for (int y = 0; y < 3; ++y)
+            {
+                map_danger_data_[i].data[y + 1] |= map_danger_data_[i].data[y];
+            }
+        }
+    }
+
+    std::string TOJ_v08::ai_name() const
+    {
+        return "ZZZ TOJ v0.8";
+    }
+
+    TOJ_v08::Result TOJ_v08::eval(TetrisNodeEx const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
+    {
+        const int width_m1 = map.width - 1;
+        int ColTrans = 2 * (map.height - map.roof);
+        int RowTrans = map.roof == map.height ? 0 : map.width;
+        for (int y = 0; y < map.roof; ++y)
+        {
+            if (!map.full(0, y))
+            {
+                ++ColTrans;
+            }
+            if (!map.full(width_m1, y))
+            {
+                ++ColTrans;
+            }
+            ColTrans += ZZZ_BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+            if (y != 0)
+            {
+                RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
+            }
+        }
+        RowTrans += ZZZ_BitCount(row_mask_ & ~map.row[0]);
+        RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+        struct
+        {
+            int HoleCount;
+            int HoleLine;
+
+            int HoleDepth;
+            int WellDepth;
+
+            int HoleNum[32];
+            int WellNum[32];
+
+            int LineCoverBits;
+            int HolePosyIndex;
+        } v;
+        std::memset(&v, 0, sizeof v);
+        struct
+        {
+            int ClearWidth;
+        } a[40];
+
+        for (int y = map.roof - 1; y >= 0; --y)
+        {
+            v.LineCoverBits |= map.row[y];
+            int LineHole = v.LineCoverBits ^ map.row[y];
+            if (LineHole != 0)
+            {
+                ++v.HoleLine;
+                a[v.HolePosyIndex].ClearWidth = 0;
+                for (int hy = y + 1; hy < map.roof; ++hy)
+                {
+                    uint32_t CheckLine = LineHole & map.row[hy];
+                    if (CheckLine == 0)
+                    {
+                        break;
+                    }
+                    a[v.HolePosyIndex].ClearWidth += (hy + 1) * ZZZ_BitCount(CheckLine);
+                }
+                ++v.HolePosyIndex;
+            }
+            for (int x = 1; x < width_m1; ++x)
+            {
+                if ((LineHole >> x) & 1)
+                {
+                    v.HoleDepth += ++v.HoleNum[x];
+                }
+                else
+                {
+                    v.HoleNum[x] = 0;
+                }
+                if (((v.LineCoverBits >> (x - 1)) & 7) == 5)
+                {
+                    v.WellDepth += ++v.WellNum[x];
+                }
+            }
+            if (LineHole & 1)
+            {
+                v.HoleDepth += ++v.HoleNum[0];
+            }
+            else
+            {
+                v.HoleNum[0] = 0;
+            }
+            if ((v.LineCoverBits & 3) == 2)
+            {
+                v.WellDepth += ++v.WellNum[0];
+            }
+            if ((LineHole >> width_m1) & 1)
+            {
+                v.HoleDepth += ++v.HoleNum[width_m1];
+            }
+            else
+            {
+                v.HoleNum[width_m1] = 0;
+            }
+            if (((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
+            {
+                v.WellDepth += ++v.WellNum[width_m1];
+            }
+        }
+
+        Result result;
+        result.value = (0.
+            - map.roof * 128
+            - ColTrans * 160
+            - RowTrans * 160
+            - v.HoleCount * 80
+            - v.HoleLine * 380
+            - v.WellDepth * 100
+            - v.HoleDepth * 40
+            );
+        double rate = 32, mul = 1.0 / 4;
+        for (int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
+        {
+            result.value -= a[i].ClearWidth * rate;
+        }
+        result.count = map.count + v.HoleCount;
+        result.clear = clear;
+        result.safe = 0;
+        while (map_in_danger_(map, result.safe + 1) == 0)
+        {
+            ++result.safe;
+        }
+        result.t2_value = 0;
+        result.t3_value = 0;
+        bool finding2 = true;
+        bool finding3 = true;
+        for (int y = 0; (finding2 || finding3) && y < map.roof - 2; ++y)
+        {
+            int row0 = map.row[y];
+            int row1 = map.row[y + 1];
+            int row2 = y + 2 < map.height ? map.row[y + 2] : 0;
+            int row3 = y + 3 < map.height ? map.row[y + 3] : 0;
+            int row4 = y + 4 < map.height ? map.row[y + 4] : 0;
+            for (int x = 0; finding2 && x < map.width - 2; ++x)
+            {
+                if (((row0 >> x) & 7) == 5 && ((row1 >> x) & 7) == 0)
+                {
+                    if (ZZZ_BitCount(row0) == map.width - 1)
+                    {
+                        result.t2_value += 1;
+                        if (ZZZ_BitCount(row1) == map.width - 3)
+                        {
+                            result.t2_value += 2;
+                            int row2_check = (row2 >> x) & 7;
+                            if (row2_check == 1 || row2_check == 4)
+                            {
+                                result.t2_value += 2;
+                            }
+                            finding2 = false;
+                        }
+                    }
+                }
+            }
+            for (int x = 0; finding3 && x < map.width - 3; ++x)
+            {
+                if (((row0 >> x) & 15) == 11 && ((row1 >> x) & 15) == 9)
+                {
+                    int t3_value = 0;
+                    if (ZZZ_BitCount(row0) == map.width - 1)
+                    {
+                        t3_value += 1;
+                        if (ZZZ_BitCount(row1) == map.width - 2)
+                        {
+                            t3_value += 1;
+                            if (((row2 >> x) & 15) == 11)
+                            {
+                                t3_value += 2;
+                                if (ZZZ_BitCount(row2) == map.width - 1)
+                                {
+                                    t3_value += 2;
+                                }
+                            }
+                            int row3_check = ((row3 >> x) & 15);
+                            if (row3_check == 8 || row3_check == 0)
+                            {
+                                t3_value += !!row3_check;
+                                int row4_check = ((row4 >> x) & 15);
+                                if (row4_check == 4 || row4_check == 12)
+                                {
+                                    t3_value += 1;
+                                }
+                                else
+                                {
+                                    t3_value -= 2;
+                                }
+                            }
+                            else
+                            {
+                                t3_value = 0;
+                            }
+                        }
+                    }
+                    result.t3_value += t3_value;
+                    if (t3_value > 3)
+                    {
+                        finding3 = false;
+                    }
+                }
+                if (((row0 >> x) & 15) == 13 && ((row1 >> x) & 15) == 9)
+                {
+                    int t3_value = 0;
+                    if (ZZZ_BitCount(row0) == map.width - 1)
+                    {
+                        t3_value += 1;
+                        if (ZZZ_BitCount(row1) == map.width - 2)
+                        {
+                            t3_value += 1;
+                            if (((row2 >> x) & 15) == 13)
+                            {
+                                t3_value += 2;
+                                if (ZZZ_BitCount(row2) == map.width - 1)
+                                {
+                                    t3_value += 2;
+                                }
+                            }
+                            int row3_check = ((row3 >> x) & 15);
+                            if (row3_check == 1 || row3_check == 0)
+                            {
+                                t3_value += !!row3_check;
+                                int row4_check = ((row4 >> x) & 15);
+                                if (row4_check == 3 || row4_check == 1)
+                                {
+                                    t3_value += 1;
+                                }
+                                else
+                                {
+                                    t3_value -= 2;
+                                }
+                            }
+                            else
+                            {
+                                t3_value = 0;
+                            }
+                        }
+                    }
+                    result.t3_value += t3_value;
+                    if (t3_value > 3)
+                    {
+                        finding3 = false;
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    TOJ_v08::Status TOJ_v08::get(TetrisNodeEx &node, Result const &eval_result, size_t depth, Status const &status, TetrisContext::Env const &env) const
+    {
+        Status result = status;
+        if (eval_result.clear > 0 && node.is_check && node.is_last_rotate)
+        {
+            if (eval_result.clear == 1 && node.is_mini_ready)
+            {
+                node.type = TSpinType::TSpinMini;
+            }
+            else if (node.is_ready)
+            {
+                node.type = TSpinType::TSpin;
+            }
+            else
+            {
+                node.type = TSpinType::None;
+            }
+        }
+        result.value = eval_result.value;
+        if (eval_result.safe <= 0)
+        {
+            result.value -= 99999;
+        }
+        switch (eval_result.clear)
+        {
+        case 0:
+            if (status.combo > 0 && status.combo < 3)
+            {
+                result.like -= 2;
+            }
+            result.combo = 0;
+            if (status.under_attack > 0)
+            {
+                result.map_rise += std::max(0, int(status.under_attack) - status.attack);
+                if (result.map_rise >= eval_result.safe)
+                {
+                    result.death += result.map_rise - eval_result.safe;
+                }
+                result.under_attack = 0;
+            }
+            break;
+        case 1:
+            if (node.type == TSpinType::TSpinMini)
+            {
+                result.attack += status.b2b ? 2 : 1;
+            }
+            else if (node.type == TSpinType::TSpin)
+            {
+                result.attack += status.b2b ? 3 : 2;
+            }
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
+            result.b2b = node.type != TSpinType::None;
+            break;
+        case 2:
+            if (node.type != TSpinType::None)
+            {
+                result.like += 8;
+                result.attack += status.b2b ? 5 : 4;
+            }
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 1;
+            result.b2b = node.type != TSpinType::None;
+            break;
+        case 3:
+            if (node.type != TSpinType::None)
+            {
+                result.like += 12;
+                result.attack += status.b2b ? 8 : 6;
+            }
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
+            result.b2b = node.type != TSpinType::None;
+            break;
+        case 4:
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
+            result.b2b = true;
+            break;
+        }
+        if (result.combo < 5)
+        {
+            result.like -= 1.5 * result.combo;
+        }
+        if (eval_result.count == 0 && result.map_rise == 0)
+        {
+            result.like += 20;
+            result.attack += 6;
+        }
+        if (status.b2b && !result.b2b)
+        {
+            result.like -= 2;
+        }
+        size_t t_expect = [=]()->int
+        {
+            if (env.hold == 'T')
+            {
+                return 0;
+            }
+            for (size_t i = 0; i < env.length; ++i)
+            {
+                if (env.next[i] == 'T')
+                {
+                    return i;
+                }
+            }
+            return 14;
+        }();
+        switch (env.hold)
+        {
+        case 'T':
+            if (node.type == TSpinType::None)
+            {
+                result.like += 4;
+            }
+            break;
+        case 'I':
+            if (eval_result.clear != 4)
+            {
+                result.like += 2;
+            }
+            break;
+        }
+        double rate = (1. / depth) + 3;
+        result.max_combo = std::max(result.combo, result.max_combo);
+        result.max_attack = std::max(result.attack, result.max_attack);
+        result.value += ((0.
+            + result.max_attack * 40
+            + result.attack * 256 * rate
+            + eval_result.t2_value * (t_expect < 8 ? 512 : 320) * 1.5
+            + (eval_result.safe >= 12 ? eval_result.t3_value * (t_expect < 4 ? 10 : 8) * (result.b2b ? 512 : 256) / (6 + result.under_attack) : 0)
+            + (result.b2b ? 512 : 0)
+            + result.like * 64
+            ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_))
+            + result.max_combo * (result.max_combo - 1) * 40
+            - result.death * 999999999.0
+            );
+        return result;
+    }
+
+    size_t TOJ_v08::map_in_danger_(m_tetris::TetrisMap const &map, size_t up) const
+    {
+        size_t danger = 0;
+        for (size_t i = 0; i < context_->type_max(); ++i)
+        {
+            if (up >= 20)
+            {
+                return context_->type_max();
+            }
+            size_t height = 22 - up;
+            if (map_danger_data_[i].data[0] & map.row[height - 4] || map_danger_data_[i].data[1] & map.row[height - 3] || map_danger_data_[i].data[2] & map.row[height - 2] || map_danger_data_[i].data[3] & map.row[height - 1])
+            {
+                ++danger;
+            }
+        }
+        return danger;
+    }
+
     bool C2::Status::operator < (Status const &other) const
     {
         return value < other.value;

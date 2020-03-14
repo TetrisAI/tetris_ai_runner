@@ -582,6 +582,23 @@ namespace m_tetris
     };
 
     template<class TetrisAI>
+    struct TetrisAIHasRatio
+    {
+        struct Fallback
+        {
+            int ratio;
+        };
+        struct Derived : TetrisAI, Fallback
+        {
+        };
+        template<typename U, U> struct Check;
+        template<typename U> static std::false_type func(Check<int Fallback::*, &U::ratio> *);
+        template<typename U> static std::true_type func(...);
+    public:
+        typedef decltype(func<Derived>(nullptr)) type;
+    };
+
+    template<class TetrisAI>
     struct TetrisAIHasIterate
     {
         struct Fallback
@@ -761,6 +778,22 @@ namespace m_tetris
         typedef typename TetrisAIInfo<TetrisAI>::Status Status;
     private:
         template<class TreeNode, class>
+        struct TetrisGetRatio
+        {
+            static double get_ratio(TetrisAI &ai)
+            {
+                return ai.ratio();
+            }
+        };
+        template<class TreeNode>
+        struct TetrisGetRatio<TreeNode, std::false_type>
+        {
+            static double get_ratio(TetrisAI &ai)
+            {
+                return 0;
+            }
+        };
+        template<class TreeNode, class>
         struct TetrisSelectIterate
         {
             static void iterate(TetrisAI &ai, Status const **status, size_t status_length, TreeNode *tree_node)
@@ -822,6 +855,11 @@ namespace m_tetris
             tree_node->identity = node;
             size_t clear = node->attach(new_map);
             tree_node->result = TetrisCallAI<TetrisAI, LandPoint>::eval(ai, tree_node->identity, new_map, map, clear);
+        }
+        template<class TreeNode>
+        static double get_ratio(TetrisAI &ai)
+        {
+            return TetrisGetRatio<TreeNode, typename TetrisAIHasRatio<TetrisAI>::type>::get_ratio(ai);
         }
         template<bool EnableEnv, class TreeNode>
         static void get(TetrisAI &ai, TreeNode *node, TreeNode *parent)
@@ -933,7 +971,7 @@ namespace m_tetris
             TetrisNode const *current;
             std::vector<next_t> next;
             std::vector<char> next_c;
-            std::vector<double> pow_cache;
+            std::vector<double> width_cache;
             double total;
             double avg;
         public:
@@ -1170,6 +1208,7 @@ namespace m_tetris
                 context->current = _node;
             }
             root->status.set(status);
+            context->width_cache.clear();
             return root;
         }
         TetrisTreeNode *update(TetrisMap const &_map, Status const &status, TetrisNode const *_node, char _hold, bool _hold_lock, char const *_next, size_t _next_length)
@@ -1205,6 +1244,7 @@ namespace m_tetris
                 context->current = _node;
             }
             root->status.set(status);
+            context->width_cache.clear();
             return root;
         }
         void search(TetrisNode const *search_node, bool is_hold)
@@ -1735,13 +1775,14 @@ namespace m_tetris
             }
             bool complete = true;
             size_t next_length = context->max_length;
-            while (context->max_length >= context->pow_cache.size())
+            double ratio = Core::template get_ratio<TetrisTreeNode>(*context->ai);
+            while (context->max_length >= context->width_cache.size())
             {
-                context->pow_cache.emplace_back(std::pow(context->pow_cache.size(), 2.71828182845904523536));
+                context->width_cache.emplace_back(std::pow(context->width_cache.size() + 1, ratio) / context->max_length);
             }
             while (next_length > 0)
             {
-                size_t level_prune_hold = std::max<size_t>(1, size_t(context->pow_cache[next_length] / context->max_length * context->width));
+                size_t level_prune_hold = std::max<size_t>(1, size_t(context->width_cache[next_length] * context->width));
                 --next_length;
                 auto wait = &context->wait[next_length + 1];
                 if (wait->empty())
@@ -1951,6 +1992,7 @@ namespace m_tetris
         //update!强制刷新上下文
         void update()
         {
+            tree_context_.is_complete = false;
             ++tree_context_.version;
             tree_context_.total += tree_context_.width;
             tree_context_.avg = tree_context_.total / tree_context_.version;
