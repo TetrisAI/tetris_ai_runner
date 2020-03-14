@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
-#include <ctime>
 #include <deque>
 #include <functional>
 #include <iterator>
@@ -12,6 +11,7 @@
 #include <queue>
 #include <string>
 #include <vector>
+#include <chrono>
 
 #include "chash_map.h"
 #include "chash_set.h"
@@ -2005,11 +2005,12 @@ namespace m_tetris
         //run!
         RunResult run(TetrisMap const &map, TetrisNode const *node, char const *next, size_t next_length, time_t limit = 100)
         {
+            using namespace std::chrono;
             if (node == nullptr || !node->check(map))
             {
                 return RunResult();
             }
-            time_t now = clock(), end = now + limit * CLOCKS_PER_SEC / 1000;
+            auto now = high_resolution_clock::now(), end = now + std::chrono::milliseconds(limit);
             tree_root_ = tree_root_->update(map, status_, node, next, next_length);
             do
             {
@@ -2017,17 +2018,18 @@ namespace m_tetris
                 {
                     break;
                 }
-            } while ((now = clock()) < end);
+            } while ((now = high_resolution_clock::now()) < end);
             return RunResult(tree_root_->get_best());
         }
         //带hold的run!
         RunResult run_hold(TetrisMap const &map, TetrisNode const *node, char hold, bool hold_free, char const *next, size_t next_length, time_t limit = 100)
         {
+            using namespace std::chrono;
             if (node == nullptr || !node->check(map))
             {
                 return RunResult();
             }
-            time_t now = clock(), end = now + limit * CLOCKS_PER_SEC / 1000;
+            auto now = high_resolution_clock::now(), end = now + std::chrono::milliseconds(limit);
             tree_root_ = tree_root_->update(map, status_, node, hold, !hold_free, next, next_length);
             do
             {
@@ -2035,7 +2037,7 @@ namespace m_tetris
                 {
                     break;
                 }
-            } while ((now = clock()) < end);
+            } while ((now = high_resolution_clock::now()) < end);
             if (tree_root_->hold == ' ' && tree_context_.next.size() == 1 && !tree_root_->is_hold_lock)
             {
                 return RunResult(true);
