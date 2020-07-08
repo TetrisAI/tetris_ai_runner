@@ -667,8 +667,8 @@ int main(int argc, char const *argv[])
                     SetConsoleCursorPosition(hConsole, coordScreen);
 
                     char out[81920] = "";
-                    char box_0[3] = "¡õ";
-                    char box_1[3] = "¡ö";
+                    char box_0[3] = "[]";
+                    char box_1[3] = "  ";
 
                     out[0] = '\0';
                     int up1 = std::accumulate(ai1.recv_attack.begin(), ai1.recv_attack.end(), 0);
