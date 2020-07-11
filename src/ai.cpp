@@ -158,26 +158,36 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
             }
         }
     }
-    srs_ai.update();
     srs_ai.search_config()->allow_rotate_move = false;
     srs_ai.search_config()->allow_180 = can180spin;
     srs_ai.search_config()->allow_d = true;
     srs_ai.search_config()->is_20g = false;
     srs_ai.search_config()->last_rotate = false;
-    srs_ai.ai_config()->table = comboTable;
-    srs_ai.ai_config()->table_max = [comboTable]()->size_t
-    {
+    struct ComboTable {
+        int table[24] = {0};
+        int table_max = 0;
+    };
+    static ComboTable table;
+    if (table.table_max == 0) {
         size_t max = 0;
-        while (comboTable[max++] != -1)
-            ;
-        return max - 1;
-    }();
+        while (comboTable[max] != -1)
+        {
+            table.table[max] = comboTable[max];
+            ++max;
+        }
+        table.table_max = max - 1;
+    }
+    srs_ai.ai_config()->table = table.table;
+    srs_ai.ai_config()->table_max = table.table_max;
 #if !USE_V08
     srs_ai.ai_config()->safe = srs_ai.ai()->get_safe(map);
-    // srs_ai.ai_config()->param = { 29.688070003, 199.597608791, 187.991624908, 164.612658708, 271.889924704, 255.008244945, 5.398766061, -50.231406318, -40.647492851, 17.244123352, 4.261855776, 128.452825248, 161.384505730, 0.058290284, 0.058805633, -24.263183836, -6.180170698, -64.153945767, -66.695003042, -65.053094150, -0.025608883, 1.182428642, 0.292094859, -5.189811818, 3.909842188, 5.083594438, 2.558231905, 86.697290612 };
-    srs_ai.ai_config()->param = { 35.129639875, 192.069159880, 187.666077972, 168.638556413, 269.647979472, 251.823560445, 3.983652369, -60.643482616, -34.508550264, 13.631881986, 1.393661859, 124.401318807, 154.665682713, 0.112408482, 0.002920693, -21.421748803, -5.167344137, -57.354678312, -69.579822364, -63.210184376, -1.480905918, 1.995795353, 0.105538942, -4.240213054, 5.630330647, 4.823540494, 3.562816454, 85.839825262, 0.005103939 };
+    srs_ai.ai_config()->param = { 36.118271157, 202.203495764, 200.737909778, 170.781301529, 277.040476787, 247.783175303, 3.729165582, -55.949272093, -30.745551429, 11.519702458, 3.400517468, 112.960485307, 171.678755503, -0.004778355, -0.111297405, -22.246305463, -7.869832591, -56.390368723, -70.581632887, -63.004355360, -1.839383519, 1.285416709, -0.143928932, -3.284161895, 5.967192336, 3.808250892, 3.238022919, 83.284536559, 0.309568618 };
     srs_ai.status()->death = 0;
     srs_ai.status()->combo = combo;
+    if (srs_ai.status()->under_attack != upcomeAtt)
+    {
+        srs_ai.update();
+    }
     srs_ai.status()->under_attack = upcomeAtt;
     srs_ai.status()->map_rise = 0;
     srs_ai.status()->b2b = !!b2b;
@@ -190,6 +200,10 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     srs_ai.status()->max_attack = 0;
     srs_ai.status()->death = 0;
     srs_ai.status()->combo = combo;
+    if (srs_ai.status()->under_attack != upcomeAtt)
+    {
+        srs_ai.update();
+    }
     srs_ai.status()->under_attack = upcomeAtt;
     srs_ai.status()->map_rise = 0;
     srs_ai.status()->b2b = !!b2b;
@@ -367,7 +381,7 @@ extern "C" DECLSPEC_EXPORT int __cdecl QQTetrisAI(int boardW, int boardH, int bo
     return 0;
 }
 
-m_tetris::TetrisEngine<rule_c2::TetrisRule, ai_zzz::C2, search_cautious::Search> c2_ai;
+m_tetris::TetrisThreadEngine<rule_c2::TetrisRule, ai_zzz::C2, search_cautious::Search> c2_ai;
 
 struct c2_out_put
 {

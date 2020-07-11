@@ -12,6 +12,8 @@
 #include <string>
 #include <vector>
 #include <chrono>
+#include <thread>
+#include <condition_variable>
 
 #include "chash_map.h"
 #include "chash_set.h"
@@ -1872,11 +1874,13 @@ namespace m_tetris
     template<class TetrisRule, class TetrisAI, class TetrisSearch>
     class TetrisEngine
     {
-    private:
+    public:
         typedef TetrisCore<TetrisAI, TetrisSearch> Core;
         typedef TetrisTreeNode<typename Core::Status, TetrisAI, TetrisSearch> TreeNode;
         typedef LocalContextBuilder<typename TreeNode::Context, TetrisRule, TetrisAI, TetrisSearch> ContextBuilder;
         typedef typename Core::LandPoint LandPoint;
+
+    private:
         std::shared_ptr<TetrisContext> shared_context_;
         typename ContextBuilder::LocalContext local_context_;
         TreeNode *root_;
@@ -1895,14 +1899,14 @@ namespace m_tetris
             RunResult(bool _change_hold) : target(), status(), change_hold(_change_hold)
             {
             }
-            RunResult(std::pair<TreeNode const *, Status const *> const &_result) : target(_result.first ? _result.first->identity : nullptr), status(_result.second), change_hold()
+            RunResult(std::pair<TreeNode const *, Status const *> const &_result) : target(_result.first ? _result.first->identity : nullptr), status(*_result.second), change_hold()
             {
             }
-            RunResult(std::pair<TreeNode const *, Status const *> const &_result, bool _change_hold) : target(_result.first ? _result.first->identity : nullptr), status(_result.second), change_hold(_change_hold)
+            RunResult(std::pair<TreeNode const *, Status const *> const &_result, bool _change_hold) : target(_result.first ? _result.first->identity : nullptr), status(*_result.second), change_hold(_change_hold)
             {
             }
             LandPoint target;
-            Status const *status;
+            Status status;
             bool change_hold;
         };
 
@@ -1924,6 +1928,11 @@ namespace m_tetris
             {
                 shared_context_.reset();
             }
+        }
+        ~TetrisEngine()
+        {
+            local_context_.dealloc(root_);
+            local_context_.release();
         }
         bool prepare(int width, int height)
         {
@@ -1953,11 +1962,6 @@ namespace m_tetris
                 return false;
             }
             return true;
-        }
-        ~TetrisEngine()
-        {
-            local_context_.dealloc(root_);
-            local_context_.release();
         }
         //从状态获取当前块
         TetrisNode const *get(TetrisBlockStatus const &status) const
@@ -2014,6 +2018,20 @@ namespace m_tetris
             local_context_.sort.clear();
             local_context_.wait.resize(local_context_.max_length + 1);
             local_context_.sort.resize(local_context_.max_length + 1);
+        }
+        void run()
+        {
+            if (root_->identity != nullptr)
+            {
+                root_->template run<false>();
+            }
+        }
+        void run_hold()
+        {
+            if (root_->identity != nullptr)
+            {
+                root_->template run<true>();
+            }
         }
         //run!
         RunResult run(TetrisMap const &map, TetrisNode const *node, char const *next, size_t next_length, time_t limit = 100)
@@ -2074,17 +2092,218 @@ namespace m_tetris
             }
             return path;
         }
-        //根据run的结果得到一组按键状态
-        std::vector<char> make_status(TetrisNode const *node, LandPoint const &land_point, TetrisMap const &map)
-        {
-            return search_.make_status(node, land_point, map);
-        }
         //单块评价
         template<class container_t>
         void search(TetrisNode const *node, TetrisMap const &map, container_t &result)
         {
             auto const *land_point = search_.search(map, node);
             result.assign(land_point->begin(), land_point->end());
+        }
+    };
+
+    template<class TetrisRule, class TetrisAI, class TetrisSearch>
+    class TetrisThreadEngine
+    {
+    private:
+        typedef TetrisEngine<TetrisRule, TetrisAI, TetrisSearch> Engine;
+
+        template<class T, class U> struct ValueHolder
+        {
+            T value;
+            T const *get() const
+            {
+                return &value;
+            }
+            T *get() {
+                return &value;
+            }
+            void assign(T *ptr) const
+            {
+                *ptr = value;
+            }
+        };
+        template<class U> struct ValueHolder<void, U>
+        {
+            void const *get() const
+            {
+                return nullptr;
+            }
+            void *get()
+            {
+                return nullptr;
+            }
+            void assign(void *) const
+            {
+            }
+        };
+
+        Engine engine_;
+        ValueHolder<typename std::decay<decltype(*Engine().ai_config())>::type, void> ai_config_;
+        ValueHolder<typename std::decay<decltype(*Engine().search_config())>::type, void> search_config_;
+        typename Engine::Status status_;
+
+        std::mutex mutex_;
+        std::thread worker_;
+        std::chrono::high_resolution_clock::time_point stop_;
+        std::condition_variable cv_;
+        bool with_hold_;
+        bool backgrond_;
+        bool running_;
+
+        struct PauseBackground {
+            TetrisThreadEngine* self;
+
+            PauseBackground(TetrisThreadEngine* _self) : self(_self)
+            {
+                self->backgrond_ = false;
+                self->mutex_.lock();
+            }
+
+            ~PauseBackground()
+            {
+                self->backgrond_ = true;
+                self->mutex_.unlock();
+            }
+        };
+
+        void work_thread_func()
+        {
+            std::unique_lock<std::mutex> lock(mutex_);
+            while (running_) {
+                if (cv_.wait_for(lock, std::chrono::seconds(1), [&] {
+                    return !running_ || (backgrond_ && std::chrono::high_resolution_clock::now() < stop_);
+                }))
+                {
+                    if (with_hold_)
+                    {
+                        engine_.run();
+                    }
+                    else
+                    {
+                        engine_.run_hold();
+                    }
+                }
+            }
+        }
+
+        void start_work()
+        {
+            if (!running_)
+            {
+                running_ = true;
+                worker_ = std::move(std::thread(&TetrisThreadEngine::work_thread_func, this));
+            }
+            stop_ = std::chrono::high_resolution_clock::now() + std::chrono::seconds(1);
+            cv_.notify_all();
+        }
+
+    public:
+        typedef typename Engine::Status Status;
+        typedef typename Engine::RunResult RunResult;
+
+    public:
+        TetrisThreadEngine() : engine_(), with_hold_(false), backgrond_(false), running_(false)
+        {
+        }
+        TetrisThreadEngine(std::shared_ptr<TetrisContext> context) : engine_(context), with_hold_(false), backgrond_(false), running_(false)
+        {
+        }
+        ~TetrisThreadEngine()
+        {
+            if (running_) {
+                running_ = false;
+                cv_.notify_all();
+                worker_.join();
+            }
+        }
+        bool prepare(int width, int height)
+        {
+            PauseBackground pause(this);
+            return engine_.prepare(width, height);
+        }
+        //从状态获取当前块
+        TetrisNode const *get(TetrisBlockStatus const &status) const
+        {
+            return engine_.get(status);
+        }
+        //上下文对象...
+        std::shared_ptr<TetrisContext> context() const
+        {
+            return engine_.context();
+        }
+        //AI名称
+        std::string ai_name() const
+        {
+            return engine_.ai_name();
+        }
+        auto ai_config() const->decltype(engine_.ai_config())
+        {
+            return ai_config_.get();
+        }
+        auto ai_config()->decltype(engine_.ai_config())
+        {
+            return ai_config_.get();
+        }
+        auto search_config() const->decltype(engine_.search_config())
+        {
+            return search_config_.get();
+        }
+        auto search_config()->decltype(engine_.search_config())
+        {
+            return search_config_.get();
+        }
+        typename Engine::Status const *status() const
+        {
+            return &status_;
+        }
+        typename Engine::Status *status()
+        {
+            return &status_;
+        }
+        TetrisAI *ai()
+        {
+            return engine_.ai();
+        }
+        //update!强制刷新上下文
+        void update()
+        {
+            PauseBackground pause(this);
+            engine_.update();
+        }
+        //run!
+        RunResult run(TetrisMap const &map, TetrisNode const *node, char const *next, size_t next_length, time_t limit = 100)
+        {
+            PauseBackground pause(this);
+            ai_config_.assign(engine_.ai_config());
+            search_config_.assign(engine_.search_config());
+            *engine_.status() = status_;
+            auto run_result = engine_.run(map, node, next, next_length, limit);
+            start_work();
+            return run_result;
+        }
+        //带hold的run!
+        RunResult run_hold(TetrisMap const &map, TetrisNode const *node, char hold, bool hold_free, char const *next, size_t next_length, time_t limit = 100)
+        {
+            PauseBackground pause(this);
+            ai_config_.assign(engine_.ai_config());
+            search_config_.assign(engine_.search_config());
+            *engine_.status() = status_;
+            auto run_result = engine_.run_hold(map, node, hold, hold_free, next, next_length, limit);
+            start_work();
+            return run_result;
+        }
+        //根据run的结果得到一个操作路径
+        std::vector<char> make_path(TetrisNode const *node, typename Engine::LandPoint const &land_point, TetrisMap const &map, bool cut_drop = true)
+        {
+            PauseBackground pause(this);
+            return engine_.make_path(node, land_point, map, cut_drop);
+        }
+        //单块评价
+        template<class container_t>
+        void search(TetrisNode const *node, TetrisMap const &map, container_t &result)
+        {
+            PauseBackground pause(this);
+            engine_.search(node, map, result);
         }
     };
 

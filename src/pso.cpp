@@ -288,8 +288,8 @@ struct test_ai
             attack += get_combo_attack(++combo);
             break;
         case 4:
+            attack += get_combo_attack(++combo) + 4 + b2b;
             b2b = 1;
-            attack += get_combo_attack(++combo) + 4;
             break;
         }
         if (map.count == 0)
@@ -315,7 +315,7 @@ struct test_ai
                     send_attack = 0;
                 }
             }
-            if (attack > 0)
+            if (send_attack > 0 || combo > 0)
             {
                 break;
             }
@@ -667,8 +667,8 @@ int main(int argc, char const *argv[])
                     SetConsoleCursorPosition(hConsole, coordScreen);
 
                     char out[81920] = "";
-                    char box_0[3] = "¡õ";
-                    char box_1[3] = "¡ö";
+                    char box_0[3] = "[]";
+                    char box_1[3] = "  ";
 
                     out[0] = '\0';
                     int up1 = std::accumulate(ai1.recv_attack.begin(), ai1.recv_attack.end(), 0);
