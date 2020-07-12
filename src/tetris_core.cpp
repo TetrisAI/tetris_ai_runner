@@ -64,7 +64,7 @@ namespace m_tetris
         }
     }
 
-    size_t TetrisNode::attach(TetrisMap &map) const
+    size_t TetrisNode::attach(TetrisContext const *context, TetrisMap &map) const
     {
         switch(height)
         {
@@ -134,7 +134,7 @@ namespace m_tetris
         return clear;
     }
 
-    int TetrisNode::clear_low(TetrisMap &map) const
+    int TetrisNode::clear_low(TetrisContext const *context, TetrisMap &map) const
     {
         for(int i = 0; i < height; ++i)
         {
@@ -146,7 +146,7 @@ namespace m_tetris
         return -1;
     }
 
-    int TetrisNode::clear_high(TetrisMap &map) const
+    int TetrisNode::clear_high(TetrisContext const *context, TetrisMap &map) const
     {
         for(int i = height; i > 0; --i)
         {
@@ -380,7 +380,6 @@ namespace m_tetris
                 TetrisNode &node = *node_index_.find(check[check_index])->second;
                 node.index = check_index;
                 node.index_filtered = index_filter.insert(std::make_pair(node, uint32_t(check_index))).first->second;
-                node.context = this;
 #define ROTATE(func)\
 /**//**//**//**/do\
 /**//**//**//**/{\

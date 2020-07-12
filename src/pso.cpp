@@ -237,7 +237,7 @@ struct test_ai
         {
             return combo_table[std::min(combo_table_max - 1, c)];
         };
-        int clear = result.target->attach(map);
+        int clear = result.target->attach(ai.context().get(), map);
         total_clear += clear;
         switch (clear)
         {
@@ -679,8 +679,8 @@ int main(int argc, char const *argv[])
                         ai2.hold, ai2.next[1], ai2.next[2], ai2.next[3], ai2.next[4], ai2.next[5], ai2.next[6], ai2.combo, ai2.b2b, up2, m2->data.name);
                     m_tetris::TetrisMap map_copy1 = ai1.map;
                     m_tetris::TetrisMap map_copy2 = ai2.map;
-                    ai1.node()->attach(map_copy1);
-                    ai2.node()->attach(map_copy2);
+                    ai1.node()->attach(ai1.ai.context().get(), map_copy1);
+                    ai2.node()->attach(ai2.ai.context().get(), map_copy2);
                     for (int y = 21; y >= 0; --y)
                     {
                         for (int x = 0; x < 10; ++x)

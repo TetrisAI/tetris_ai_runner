@@ -446,6 +446,7 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
             }
         }
     }
+    c2_ai.memory_limit(1ull << 30);
     c2_ai.search_config()->fast_move_down = true;
     c2_ai.ai_config()->p =
     {
@@ -581,5 +582,5 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
         path[size++].move = 'V';
     }
     path[size++] = { '\0' };
-    return target == nullptr ? 0 : target->attach(map);
+    return target == nullptr ? 0 : target->attach(c2_ai.context().get(), map);
 }

@@ -82,7 +82,7 @@ namespace ai_zzz
             {
                 TetrisMap map(context->width(), context->height());
                 TetrisNode const *node = context->generate(i);
-                node->attach(map);
+                node->attach(context, map);
                 std::memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
                 for (int y = 0; y < 3; ++y)
                 {
@@ -353,7 +353,7 @@ namespace ai_zzz
         {
             TetrisMap map(context->width(), context->height());
             TetrisNode const *node = context->generate(i);
-            node->attach(map);
+            node->attach(context, map);
             std::memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
             for (int y = 0; y < 3; ++y)
             {
@@ -527,7 +527,7 @@ namespace ai_zzz
         {
             TetrisMap map(context->width(), context->height());
             TetrisNode const *node = context->generate(i);
-            node->attach(map);
+            node->attach(context, map);
             std::memcpy(map_danger_data_[i].data, &map.row[18], sizeof map_danger_data_[i].data);
             for (int y = 0; y < 3; ++y)
             {
@@ -1037,7 +1037,7 @@ namespace ai_zzz
         {
             TetrisMap map(context->width(), context->height());
             TetrisNode const *node = context->generate(i);
-            node->attach(map);
+            node->attach(context, map);
             std::memcpy(map_danger_data_[i].data, &map.row[18], sizeof map_danger_data_[i].data);
             for (int y = 0; y < 3; ++y)
             {
@@ -1469,7 +1469,7 @@ namespace ai_zzz
         {
             TetrisMap map(context->width(), context->height());
             TetrisNode const *node = context->generate(i);
-            node->move_down->attach(map);
+            node->move_down->attach(context, map);
             std::memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
             for (int y = 0; y < 3; ++y)
             {
@@ -1704,17 +1704,17 @@ namespace ai_zzz
                 //{819200, -1764, -1753, -1741, -1729},
                 //{819200, -1867, -1857, -1846, -1835},
                 {    0, -3000, 3000, 4000, 5000},
-                {  333,   500, 1000, 1000, 2000},
-                {  667,  1000,  500,  500,  500},
-                { 1000,  2000, 1000, 1000, 1000},
-                { 2000,  4000, 2000, 2000, 2000},
-                { 3000,  6000, 3000, 3000, 2500},
-                { 4000,  8000, 4000, 3333, 2500},
-                { 5000, 10000, 5000, 3333, 2500},
-                { 6000, 10000, 5000, 3333, 2500},
-                { 7000, 10000, 5000, 3333, 2500},
-                { 8000, 10000, 5000, 3333, 2500},
-                { 9000, 10000, 5000, 3333, 2500},
+                {  500,   500, 1000, 1000, 2000},
+                { 1000,  1000,  500,  500,  500},
+                { 2000,  2000, 1000, 1000, 1000},
+                { 4000,  4000, 2000, 2000, 2000},
+                { 6000,  6000, 3000, 3000, 2500},
+                { 8000,  8000, 4000, 3333, 2500},
+                {10000, 10000, 5000, 3333, 2500},
+                {10000, 10000, 5000, 3333, 2500},
+                {10000, 10000, 5000, 3333, 2500},
+                {10000, 10000, 5000, 3333, 2500},
+                {10000, 10000, 5000, 3333, 2500},
                 {10000, 10000, 5000, 3333, 2500},
                 {10000, 10000, 5000, 3333, 2500},
                 {10000, 10000, 5000, 3333, 2500},
@@ -1727,7 +1727,7 @@ namespace ai_zzz
             double hole = eval_result.hole + (config_->danger ? 0.16 : 0);
             double upstack = std::max<double>(0, 1 - hole * 3.3) * std::max<double>(0, 1 - (fill < 0.4 ? 0 : fill - 0.4) * 4);
             double downstack;
-            double length_ratio = (0.5 + 0.5 * env.length);
+            double length_ratio = (1 << ((env.node != ' ') + env.length)) * 0.5;
             if (status.combo == 0)
             {
                 downstack = std::max<double>(0.2, 1 - hole * 3.3) * std::max<double>(0.2, 1 - std::abs(fill - 0.48) * 5);
@@ -1743,13 +1743,13 @@ namespace ai_zzz
                 if (status.combo == 0)
                 {
                     result.attack -= 8000 * upstack;
-                    result.attack += table[status.combo][eval_result.clear] * downstack * status.combo;
+                    result.attack += table[status.combo][eval_result.clear] * downstack;
                 }
                 else
                 {
-                    result.attack += table[status.combo][eval_result.clear] * downstack * length_ratio * status.combo;
+                    result.attack += table[status.combo][eval_result.clear] * downstack * length_ratio;
                 }
-                result.combo = std::min<size_t>(12, result.combo + 1);
+                result.combo = std::min<size_t>(16, result.combo + 1);
             }
             else if (status.combo > 0)
             {
@@ -1774,38 +1774,39 @@ namespace ai_zzz
         result.combo_limit = 0;
         static constexpr double max_val = 1e20;
         double
-            upper1 = -max_val,
-            upper2 = -max_val,
-            upper3 = -max_val;
+            lower1 = +max_val,
+            lower2 = +max_val,
+            lower3 = +max_val;
         for (size_t i = 0; i < status_length; ++i)
         {
             double v = status[i] == nullptr ? -max_val : status[i]->value;
-            if (v > upper1)
+            result.value += v;
+            if (v < lower1)
             {
-                if (upper1 > upper2)
+                if (lower1 < lower2)
                 {
-                    if (upper2 > upper3)
+                    if (lower2 < lower3)
                     {
-                        upper3 = upper2;
+                        lower3 = lower2;
                     }
-                    upper2 = upper1;
+                    lower2 = lower1;
                 }
-                upper1 = v;
+                lower1 = v;
             }
-            else if (v > upper2)
+            else if (v < lower2)
             {
-                if (upper2 > upper3)
+                if (lower2 < lower3)
                 {
-                    upper3 = upper2;
+                    lower3 = lower2;
                 }
-                upper2 = v;
+                lower2 = v;
             }
-            else if (v > upper3)
+            else if (v < lower3)
             {
-                upper3 = v;
+                lower3 = v;
             }
         }
-        result.value = (upper1 + upper2 + upper3) / 3;
+        result.value = (result.value - lower1 - lower2 - lower3) / 4;
         return result;
     }
 

@@ -25,7 +25,7 @@ namespace ai_tag
         {
             TetrisMap map(context->width(), context->height());
             TetrisNode const *node = context->generate(i);
-            node->move_down->attach(map);
+            node->move_down->attach(context, map);
             std::memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
             for(int y = 0; y < 3; ++y)
             {
@@ -390,7 +390,7 @@ namespace ai_tag
         {
             TetrisMap map(context->width(), context->height());
             TetrisNode const *node = context->generate(i);
-            node->move_down->attach(map);
+            node->move_down->attach(context, map);
             std::memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
             for(int y = 0; y < 3; ++y)
             {
