@@ -64,6 +64,9 @@
       <Filter>ai\farter</Filter>
     </ClCompile>
     <ClCompile Include="src\ai.cpp" />
+    <ClCompile Include="src\rule_asrs.cpp">
+      <Filter>rules\asrs</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\rule_srs.h">
@@ -139,6 +142,9 @@
     <ClInclude Include="src\chash_set.h">
       <Filter>util</Filter>
     </ClInclude>
+    <ClInclude Include="src\rule_asrs.h">
+      <Filter>rules\asrs</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="rules">
@@ -206,6 +212,9 @@
     </Filter>
     <Filter Include="ai\farter">
       <UniqueIdentifier>{58feda22-7255-4863-8a56-00665c649e44}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="rules\asrs">
+      <UniqueIdentifier>{5864e945-6fe6-4921-873a-12cc8a4ce444}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

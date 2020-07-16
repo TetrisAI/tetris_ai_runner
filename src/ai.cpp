@@ -180,7 +180,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     srs_ai.ai_config()->table = table.table;
     srs_ai.ai_config()->table_max = table.table_max;
 #if !USE_V08
-    srs_ai.ai_config()->safe = srs_ai.ai()->get_safe(map);
+    srs_ai.ai_config()->safe = srs_ai.ai()->get_safe(map, active);
     srs_ai.ai_config()->param = { 36.118271157, 202.203495764, 200.737909778, 170.781301529, 277.040476787, 247.783175303, 3.729165582, -55.949272093, -30.745551429, 11.519702458, 3.400517468, 112.960485307, 171.678755503, -0.004778355, -0.111297405, -22.246305463, -7.869832591, -56.390368723, -70.581632887, -63.004355360, -1.839383519, 1.285416709, -0.143928932, -3.284161895, 5.967192336, 3.808250892, 3.238022919, 83.284536559, 0.309568618 };
     srs_ai.status()->death = 0;
     srs_ai.status()->combo = combo;

@@ -507,9 +507,9 @@ namespace ai_zzz
         return value < other.value;
     }
 
-    int8_t TOJ::get_safe(m_tetris::TetrisMap const &m) const {
+    int8_t TOJ::get_safe(m_tetris::TetrisMap const &m, char t) const {
         int safe = 0;
-        while (map_in_danger_(m, safe + 1) == 0)
+        while (map_in_danger_(m, context_->convert(t), safe + 1) == 0)
         {
             ++safe;
         }
@@ -544,27 +544,27 @@ namespace ai_zzz
     void TOJ::Status::init_t_value(TetrisMap const &map, int16_t &t2_value_ref, int16_t &t3_value_ref, TetrisMap *out_map)
     {
         int row_bit_count_global[40];
-        memset(row_bit_count_global, 0, sizeof row_bit_count_global);
         for (int y = 0; y < map.roof; ++y)
         {
             row_bit_count_global[y] = ZZZ_BitCount(map.row[y]);
         }
+        memset(row_bit_count_global + map.roof, 0, sizeof(int) * (40 - map.roof));
         t2_value_ref = 0;
         t3_value_ref = 0;
-        for (int y = 0; y < std::min(20, map.roof - 2); ++y)
+        for (int y = 0, ey = std::min(20, map.roof - 2); y < ey; ++y)
         {
             int new_y = y;
             int row0 = map.row[y];
             int row1 = map.row[y + 1];
-            int row2 = y + 2 < map.height ? map.row[y + 2] : 0;
-            int row3 = y + 3 < map.height ? map.row[y + 3] : 0;
-            int row4 = y + 4 < map.height ? map.row[y + 4] : 0;
-            int row5 = y + 5 < map.height ? map.row[y + 5] : 0;
-            int row6 = y + 6 < map.height ? map.row[y + 6] : 0;
+            int row2 = map.row[y + 2];
+            int row3 = map.row[y + 3];
+            int row4 = map.row[y + 4];
+            int row5 = map.row[y + 5];
+            int row6 = map.row[y + 6];
             int *row_bit_count = row_bit_count_global + y;
-            for (int x = 1; x < map.width - 2; ++x)
+            for (int x = 1, ex = map.width - 2; x < ex; ++x)
             {
-                if (((~row0 >> x) & 1) && ((~row1 >> x) & 3) == 3 && ((~row2 >> x) & 1) && ((row3 >> x) & 7) == 0 && ((~row4 >> x) & 6) == 6)
+                if (((~row0 >> x) & 1) & (((~row1 >> x) & 3) == 3) & ((~row2 >> x) & 1) & !((row3 >> x) & 7) & (((~row4 >> x) & 6) == 6))
                 {
                     int t3_count = 0;
                     if (row_bit_count[0] == map.width - 1)
@@ -621,9 +621,9 @@ namespace ai_zzz
                 y = new_y;
                 continue;
             }
-            for (int x = 0; x < map.width - 3; ++x)
+            for (int x = 0, ex = map.width - 3; x < ex; ++x)
             {
-                if (((~row0 >> x) & 4) && ((~row1 >> x) & 6) == 6 && ((~row2 >> x) & 4) && ((row3 >> x) & 7) == 0 && ((~row4 >> x) & 3) == 3)
+                if (((~row0 >> x) & 4) & (((~row1 >> x) & 6) == 6) & ((~row2 >> x) & 4) & !((row3 >> x) & 7) & (((~row4 >> x) & 3) == 3))
                 {
                     int t3_count = 0;
                     if (row_bit_count[0] == map.width - 1)
@@ -680,9 +680,9 @@ namespace ai_zzz
                 y = new_y;
                 continue;
             }
-            for (int x = 0; x < map.width - 2; ++x)
+            for (int x = 0, ex = map.width - 2; x < ex; ++x)
             {
-                if (((row0 >> x) & 7) == 5 && ((row1 >> x) & 7) == 0)
+                if ((((row0 >> x) & 7) == 5) & !((row1 >> x) & 7))
                 {
                     int row01_count = row_bit_count[0] + row_bit_count[1];
                     int t2_value = row01_count;
@@ -783,7 +783,6 @@ namespace ai_zzz
                 ++v.Wide[WideCount];
             }
         }
-        double BoardDeadZone = map_in_danger_(t_map, 0);
         auto& p = config_->param;
         result.value = (0.
             - t_map.roof * p.roof
@@ -798,7 +797,7 @@ namespace ai_zzz
             );
         result.count = t_map.count;
         result.clear = int8_t(clear);
-        result.safe = node->row >= 20 ? -1 : get_safe(t_map);
+        result.map = &map;
         return result;
     }
 
@@ -833,6 +832,7 @@ namespace ai_zzz
         {
             v > 0 ? like += v : dislike -= v;
         };
+        int safe = node->row >= 20 ? -1 : env.length > 0 ? get_safe(*eval_result.map,  *env.next) : eval_result.map->roof;
         auto& p = config_->param;
         switch (eval_result.clear)
         {
@@ -841,7 +841,7 @@ namespace ai_zzz
             if (status.under_attack > 0)
             {
                 result.map_rise = status.under_attack;
-                if (result.map_rise > eval_result.safe)
+                if (result.map_rise > safe)
                 {
                     result.death = 1;
                 }
@@ -943,7 +943,7 @@ namespace ai_zzz
             }
             break;
         }
-        int safe = eval_result.safe - result.map_rise;
+        safe -= result.map_rise;
         if (safe < 0)
         {
             result.death = 1;
@@ -1001,28 +1001,29 @@ namespace ai_zzz
         return result;
     }
 
-    size_t TOJ::map_in_danger_(m_tetris::TetrisMap const &map, size_t up) const
+    size_t TOJ::map_in_danger_(m_tetris::TetrisMap const &map, size_t t, size_t up) const
     {
-        size_t danger = 0;
-        for (size_t i = 0; i < context_->type_max(); ++i)
+        if (up >= 20)
         {
-            if (up >= 18)
-            {
-                return context_->type_max();
-            }
-            size_t height = 22 - up;
-            if (((map_danger_data_[i].data[0] & map.row[height - 4]) | (map_danger_data_[i].data[1] & map.row[height - 3]) | (map_danger_data_[i].data[2] & map.row[height - 2]) | (map_danger_data_[i].data[3] & map.row[height - 1])) != 0)
-            {
-                ++danger;
-            }
+            return 1;
         }
-        return danger;
+        size_t height = 22 - up;
+        return map_danger_data_[t].data[0] & map.row[height - 4] | map_danger_data_[t].data[1] & map.row[height - 3] | map_danger_data_[t].data[2] & map.row[height - 2] | map_danger_data_[t].data[3] & map.row[height - 1];
     }
 
 
     bool TOJ_v08::Status::operator < (Status const &other) const
     {
         return value < other.value;
+    }
+
+    int8_t TOJ_v08::get_safe(m_tetris::TetrisMap const &m, char t) const {
+        int safe = 0;
+        while (map_in_danger_(m, context_->convert(t), safe + 1) == 0)
+        {
+            ++safe;
+        }
+        return safe;
     }
 
     void TOJ_v08::init(m_tetris::TetrisContext const *context, Config const *config)
@@ -1171,13 +1172,9 @@ namespace ai_zzz
         }
         result.count = map.count + v.HoleCount;
         result.clear = clear;
-        result.safe = 0;
-        while (map_in_danger_(map, result.safe + 1) == 0)
-        {
-            ++result.safe;
-        }
         result.t2_value = 0;
         result.t3_value = 0;
+        result.map = &map;
         bool finding2 = true;
         bool finding3 = true;
         for (int y = 0; (finding2 || finding3) && y < map.roof - 2; ++y)
@@ -1319,7 +1316,8 @@ namespace ai_zzz
             }
         }
         result.value = eval_result.value;
-        if (eval_result.safe <= 0)
+        int safe = node->row >= 20 ? -1 : env.length > 0 ? get_safe(*eval_result.map, *env.next) : eval_result.map->roof;
+        if (safe <= 0)
         {
             result.value -= 99999;
         }
@@ -1334,9 +1332,9 @@ namespace ai_zzz
             if (status.under_attack > 0)
             {
                 result.map_rise += std::max(0, int(status.under_attack) - status.attack);
-                if (result.map_rise >= eval_result.safe)
+                if (result.map_rise >= safe)
                 {
-                    result.death += result.map_rise - eval_result.safe;
+                    result.death += result.map_rise - safe;
                 }
                 result.under_attack = 0;
             }
@@ -1426,7 +1424,7 @@ namespace ai_zzz
             + result.max_attack * 40
             + result.attack * 256 * rate
             + eval_result.t2_value * (t_expect < 8 ? 512 : 320) * 1.5
-            + (eval_result.safe >= 12 ? eval_result.t3_value * (t_expect < 4 ? 10 : 8) * (result.b2b ? 512 : 256) / (6 + result.under_attack) : 0)
+            + (safe >= 12 ? eval_result.t3_value * (t_expect < 4 ? 10 : 8) * (result.b2b ? 512 : 256) / (6 + result.under_attack) : 0)
             + (result.b2b ? 512 : 0)
             + result.like * 64
             ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_))
@@ -1436,22 +1434,14 @@ namespace ai_zzz
         return result;
     }
 
-    size_t TOJ_v08::map_in_danger_(m_tetris::TetrisMap const &map, size_t up) const
+    size_t TOJ_v08::map_in_danger_(m_tetris::TetrisMap const &map, size_t t, size_t up) const
     {
-        size_t danger = 0;
-        for (size_t i = 0; i < context_->type_max(); ++i)
+        if (up >= 20)
         {
-            if (up >= 20)
-            {
-                return context_->type_max();
-            }
-            size_t height = 22 - up;
-            if (map_danger_data_[i].data[0] & map.row[height - 4] || map_danger_data_[i].data[1] & map.row[height - 3] || map_danger_data_[i].data[2] & map.row[height - 2] || map_danger_data_[i].data[3] & map.row[height - 1])
-            {
-                ++danger;
-            }
+            return 1;
         }
-        return danger;
+        size_t height = 22 - up;
+        return map_danger_data_[t].data[0] & map.row[height - 4] | map_danger_data_[t].data[1] & map.row[height - 3] | map_danger_data_[t].data[2] & map.row[height - 2] | map_danger_data_[t].data[3] & map.row[height - 1];
     }
 
     bool C2::Status::operator < (Status const &other) const

@@ -206,7 +206,7 @@ struct test_ai
         ai.search_config()->last_rotate = false;
         ai.ai_config()->table = combo_table;
         ai.ai_config()->table_max = combo_table_max;
-        ai.ai_config()->safe = ai.ai()->get_safe(map);
+        ai.ai_config()->safe = ai.ai()->get_safe(map, next.front());
         ai.status()->death = 0;
         ai.status()->combo = combo;
         ai.status()->under_attack = std::accumulate(recv_attack.begin(), recv_attack.end(), 0);

@@ -104,9 +104,9 @@ namespace ai_zzz
             double value;
             int clear;
             int count;
-            int safe;
             int t2_value;
             int t3_value;
+            m_tetris::TetrisMap const* map;
         };
         struct Status
         {
@@ -123,6 +123,7 @@ namespace ai_zzz
             bool operator < (Status const &) const;
         };
     public:
+        int8_t get_safe(m_tetris::TetrisMap const &m, char t) const;
         void init(m_tetris::TetrisContext const *context, Config const *config);
         std::string ai_name() const;
         double ratio() const
@@ -141,7 +142,7 @@ namespace ai_zzz
             int data[4];
         };
         std::vector<MapInDangerData> map_danger_data_;
-        size_t map_in_danger_(m_tetris::TetrisMap const &map, size_t up) const;
+        size_t map_in_danger_(m_tetris::TetrisMap const &map, size_t t, size_t up) const;
     };
 
     class TOJ
@@ -191,11 +192,11 @@ namespace ai_zzz
         {
             double value;
             int8_t clear;
-            int8_t safe;
             int16_t count;
             int16_t t2_value;
             int16_t t3_value;
             TSpinType t_spin;
+            m_tetris::TetrisMap const* map;
         };
         struct Status
         {
@@ -214,7 +215,7 @@ namespace ai_zzz
             static void init_t_value(m_tetris::TetrisMap const &m, int16_t &t2_value_ref, int16_t &t3_value_ref, m_tetris::TetrisMap *out_map = nullptr);
         };
     public:
-        int8_t get_safe(m_tetris::TetrisMap const &m) const;
+        int8_t get_safe(m_tetris::TetrisMap const &m, char t) const;
         void init(m_tetris::TetrisContext const *context, Config const *config);
         std::string ai_name() const;
         double ratio() const
@@ -232,7 +233,7 @@ namespace ai_zzz
             int data[4];
         };
         std::vector<MapInDangerData> map_danger_data_;
-        size_t map_in_danger_(m_tetris::TetrisMap const &map, size_t up) const;
+        size_t map_in_danger_(m_tetris::TetrisMap const &map, size_t t, size_t up) const;
     };
 
     class C2

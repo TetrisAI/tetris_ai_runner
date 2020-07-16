@@ -20,6 +20,7 @@
     <ClInclude Include="src\chash_map.h" />
     <ClInclude Include="src\chash_set.h" />
     <ClInclude Include="src\integer_utils.h" />
+    <ClInclude Include="src\rule_asrs.h" />
     <ClInclude Include="src\search_path.h" />
     <ClInclude Include="src\search_simple.h" />
     <ClInclude Include="src\search_simulate.h" />
@@ -45,6 +46,7 @@
     <ClCompile Include="src\ai_tag.cpp" />
     <ClCompile Include="src\dllmain.c" />
     <ClCompile Include="src\integer_utils.cpp" />
+    <ClCompile Include="src\rule_asrs.cpp" />
     <ClCompile Include="src\search_path.cpp" />
     <ClCompile Include="src\search_simple.cpp" />
     <ClCompile Include="src\search_simulate.cpp" />
@@ -76,13 +78,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <PlatformToolset>v141</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <PlatformToolset>v141</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -122,6 +124,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
+      <LargeAddressAware>true</LargeAddressAware>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(SolutionDir)$(TargetFileName)</Command>
@@ -136,6 +139,8 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CallingConvention>FastCall</CallingConvention>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -144,6 +149,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
       <Profile>true</Profile>
+      <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <LargeAddressAware>true</LargeAddressAware>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(SolutionDir)$(TargetFileName)</Command>
