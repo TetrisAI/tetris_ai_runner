@@ -138,6 +138,7 @@ struct test_ai
     m_tetris::TetrisMap map;
     std::mt19937 r_next, r_garbage;
     size_t next_length;
+    size_t run_ms;
     int const *combo_table;
     int combo_table_max;
     std::vector<char> next;
@@ -159,7 +160,7 @@ struct test_ai
     {
     }
 
-    void init(pso_data const &data, pso_config const &config)
+    void init(pso_data const &data, pso_config const &config, size_t round_ms)
     {
         map = m_tetris::TetrisMap(10, 40);
         ai.ai_config()->param = data.param;
@@ -173,6 +174,7 @@ struct test_ai
         b2b = false;
         dead = false;
         next_length = 6;
+        run_ms = round_ms;
         total_block = 0;
         total_clear = 0;
         total_attack = 0;
@@ -218,7 +220,7 @@ struct test_ai
         ai_zzz::TOJ::Status::init_t_value(map, ai.status()->t2_value, ai.status()->t3_value);
 
         char current = next.front();
-        auto result = ai.run_hold(map, ai.context()->generate(current), hold, true, next.data() + 1, next_length, 20);
+        auto result = ai.run_hold(map, ai.context()->generate(current), hold, true, next.data() + 1, next_length, run_ms);
         if(result.target == nullptr || result.target->low >= 20)
         {
             dead = true;
@@ -353,7 +355,7 @@ struct test_ai
         }
     }
 
-    static void match(test_ai& ai1, test_ai& ai2, std::function<void(test_ai const &, test_ai const &)> out_put)
+    static void match(test_ai& ai1, test_ai& ai2, std::function<void(test_ai const &, test_ai const &)> out_put, size_t match_round)
     {
         int round = 0;
         for (; ; )
@@ -373,7 +375,7 @@ struct test_ai
             {
                 return;
             }
-            if (round > 720)
+            if (round > match_round)
             {
                 return;
             }
@@ -585,7 +587,7 @@ int main(int argc, char const *argv[])
 
             strncpy(init_node.name, "*default", sizeof init_node.name);
             memset(&init_node.data, 0, sizeof init_node.data);
-            init_node.data.param = p;
+            // init_node.data.param = p;
             init_node.data.p = init_node.data.x;
             rank_table.insert(new Node(init_node));
 	}
@@ -727,8 +729,8 @@ int main(int argc, char const *argv[])
                         ai2.hold, ai2.next[1], ai2.next[2], ai2.next[3], ai2.next[4], ai2.next[5], ai2.next[6], ai2.combo, ai2.b2b, up2, m2->data.name);
                     m_tetris::TetrisMap map_copy1 = ai1.map;
                     m_tetris::TetrisMap map_copy2 = ai2.map;
-                    ai1.node()->attach(map_copy1);
-                    ai2.node()->attach(map_copy2);
+                    ai1.node()->attach(ai1.ai.context().get(), map_copy1);
+                    ai2.node()->attach(ai1.ai.context().get(), map_copy2);
                     for (int y = 21; y >= 0; --y)
                     {
                         for (int x = 0; x < 10; ++x)
@@ -746,10 +748,19 @@ int main(int argc, char const *argv[])
                     usleep(333000);
                 };
 #endif
-                ai1.init(m1->data.data, pso_cfg);
-                ai2.init(m2->data.data, pso_cfg);
+                // size_t round_ms_min = (45 + m1->data.match) / 3;
+                // size_t round_ms_max = (45 + m2->data.match) / 3;
+                // if (round_ms_min > round_ms_max)
+                // {
+                //     std::swap(round_ms_min, round_ms_max);
+                // }
+                // size_t round_ms = std::uniform_int_distribution<size_t>(round_ms_min, round_ms_max)(mt);
+                size_t round_ms = 10;
+                size_t round_count = 1440;
+                ai1.init(m1->data.data, pso_cfg, round_ms);
+                ai2.init(m2->data.data, pso_cfg, round_ms);
                 rank_table_lock.unlock();
-                test_ai::match(ai1, ai2, view_func);
+                test_ai::match(ai1, ai2, view_func, round_count);
                 rank_table_lock.lock();
 
                 rank_table.erase(m1);

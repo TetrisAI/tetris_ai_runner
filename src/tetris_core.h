@@ -1979,8 +1979,8 @@ namespace m_tetris
         }
         void memory_limit(uint64_t value)
         {
-            value = std::max(32ull << 20, value);
-            value = std::min(2ull << 30, value);
+            value = std::max<uint64_t>(32ull << 20, value);
+            value = std::min<uint64_t>(2ull << 30, value);
             memory_limit_ = value;
         }
         uint64_t memory_usage() const
@@ -2066,7 +2066,8 @@ namespace m_tetris
                     break;
                 }
             } while ((now = high_resolution_clock::now()) < end);
-            return RunResult(root_->get_best(&local_context_));
+            auto best = root_->get_best(&local_context_);
+            return best.first != nullptr ? RunResult(root_->get_best(&local_context_)) : RunResult(false);
         }
         //带hold的run!
         RunResult run_hold(TetrisMap const &map, TetrisNode const *node, char hold, bool hold_free, char const *next, size_t next_length, time_t limit = 100)
@@ -2092,7 +2093,7 @@ namespace m_tetris
             else
             {
                 auto best = root_->get_best(&local_context_);
-                return RunResult(best, best.first == nullptr ? false : best.first->is_hold);
+                return best.first != nullptr ? RunResult(best, best.first == nullptr ? false : best.first->is_hold) : RunResult(false);
             }
         }
         //根据run的结果得到一个操作路径
