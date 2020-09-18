@@ -756,7 +756,7 @@ int main(int argc, char const *argv[])
                 // }
                 // size_t round_ms = std::uniform_int_distribution<size_t>(round_ms_min, round_ms_max)(mt);
                 size_t round_ms = 10;
-                size_t round_count = 1440;
+                size_t round_count = 3600;
                 ai1.init(m1->data.data, pso_cfg, round_ms);
                 ai2.init(m2->data.data, pso_cfg, round_ms);
                 rank_table_lock.unlock();

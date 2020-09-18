@@ -783,9 +783,10 @@ namespace ai_zzz
                 ++v.Wide[WideCount];
             }
         }
+        int side_roof = std::max({map.top[0], map.top[1], map.top[2], map.top[width_m1], map.top[width_m1 - 1], map.top[width_m1 - 2]});
         auto& p = config_->param;
         result.value = (0.
-            - t_map.roof * p.roof
+            - side_roof * p.roof
             - ColTrans * p.col_trans
             - RowTrans * p.row_trans
             - v.HoleCount * p.hole_count
