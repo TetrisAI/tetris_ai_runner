@@ -1012,6 +1012,126 @@ namespace ai_zzz
         return map_danger_data_[t].data[0] & map.row[height - 4] | map_danger_data_[t].data[1] & map.row[height - 3] | map_danger_data_[t].data[2] & map.row[height - 2] | map_danger_data_[t].data[3] & map.row[height - 1];
     }
 
+    bool TOJ_PC::Status::operator < (Status const &other) const
+    {
+        return value < other.value;
+    }
+
+    std::string TOJ_PC::ai_name() const
+    {
+        return "ZZZ TOJ_PC v0.1";
+    }
+
+    void TOJ_PC::init(m_tetris::TetrisContext const *context, Config const *config) {
+        context_ = context;
+        config_ = config;
+        col_mask_ = context->full() & ~1;
+        row_mask_ = context->full();
+    }
+
+    TOJ_PC::Result TOJ_PC::eval(TetrisNodeEx const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &, size_t clear) const
+    {
+        const int width_m1 = map.width - 1;
+        int ColTrans = 2 * (map.height - map.roof);
+        int RowTrans = map.roof == map.height ? 0 : map.width;
+        for (int y = 0; y < map.roof; ++y)
+        {
+            if (!map.full(0, y))
+            {
+                ++ColTrans;
+            }
+            if (!map.full(width_m1, y))
+            {
+                ++ColTrans;
+            }
+            ColTrans += ZZZ_BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+            if (y != 0)
+            {
+                RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
+            }
+        }
+        RowTrans += ZZZ_BitCount(row_mask_ & ~map.row[0]);
+        RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+
+        Result result;
+        result.value = (map.roof > 4 ? 0 : 10000) - ColTrans * 3 - RowTrans * 2;
+        result.clear = clear;
+        result.roof = map.roof;
+        return result;
+    }
+
+    TOJ_PC::Status TOJ_PC::get(TetrisNodeEx &node, Result const &eval_result, size_t depth, Status const & status) const {
+
+        Status result = status;
+        if (eval_result.clear > 0 && node.is_check && node.is_last_rotate)
+        {
+            if (eval_result.clear == 1 && node.is_mini_ready)
+            {
+                node.type = TSpinType::TSpinMini;
+            }
+            else if (node.is_ready)
+            {
+                node.type = TSpinType::TSpin;
+            }
+            else
+            {
+                node.type = TSpinType::None;
+            }
+        }
+
+        switch (eval_result.clear)
+        {
+        case 0:
+            result.combo = 0;
+            if (status.under_attack > 0)
+            {
+                result.recv_attack += std::max(0, int(status.under_attack) - status.attack);
+                result.under_attack = 0;
+            }
+            break;
+        case 1:
+            if (node.type == TSpinType::TSpinMini)
+            {
+                result.attack += status.b2b ? 2 : 1;
+            }
+            else if (node.type == TSpinType::TSpin)
+            {
+                result.attack += status.b2b ? 3 : 2;
+            }
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
+            result.b2b = node.type != TSpinType::None;
+            break;
+        case 2:
+            if (node.type != TSpinType::None)
+            {
+                result.attack += status.b2b ? 5 : 4;
+            }
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 1;
+            result.b2b = node.type != TSpinType::None;
+            break;
+        case 3:
+            if (node.type != TSpinType::None)
+            {
+                result.attack += status.b2b ? 8 : 6;
+            }
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
+            result.b2b = node.type != TSpinType::None;
+            break;
+        case 4:
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
+            result.b2b = true;
+            break;
+        }
+        if (eval_result.roof == 0 && result.recv_attack == 0) {
+            result.like += 100;
+            result.pc = true;
+        }
+        if (eval_result.roof > 4) {
+            result.like -= 1;
+        }
+        result.value = eval_result.value + result.like * 1e9;
+        return result;
+    }
 
     bool TOJ_v08::Status::operator < (Status const &other) const
     {
@@ -1798,6 +1918,40 @@ namespace ai_zzz
             }
         }
         result.value = (result.value - lower1 - lower2 - lower3) / 4;
+        //double
+        //    upper1 = -max_val,
+        //    upper2 = -max_val,
+        //    upper3 = -max_val;
+        //for (size_t i = 0; i < status_length; ++i)
+        //{
+        //    double v = status[i] == nullptr ? -max_val : status[i]->value;
+        //    result.value += v;
+        //    if (v > upper1)
+        //    {
+        //        if (upper1 > upper2)
+        //        {
+        //            if (upper2 > upper3)
+        //            {
+        //                upper3 = upper2;
+        //            }
+        //            upper2 = upper1;
+        //        }
+        //        upper1 = v;
+        //    }
+        //    else if (v > upper2)
+        //    {
+        //        if (upper2 > upper3)
+        //        {
+        //            upper3 = upper2;
+        //        }
+        //        upper2 = v;
+        //    }
+        //    else if (v > upper3)
+        //    {
+        //        upper3 = v;
+        //    }
+        //}
+        //result.value = (upper1 + upper2 + upper3) / 3;
         return result;
     }
 

@@ -89,6 +89,50 @@ namespace ai_zzz
         int col_mask_, row_mask_;
     };
 
+    class TOJ_PC
+    {
+    public:
+        typedef search_tspin::Search::TSpinType TSpinType;
+        typedef search_tspin::Search::TetrisNodeWithTSpinType TetrisNodeEx;
+        struct Config
+        {
+            int const *table;
+            int table_max;
+        };
+        struct Result
+        {
+            double value;
+            int clear;
+            int roof;
+        };
+        struct Status
+        {
+            int under_attack;
+            int recv_attack;
+            int attack;
+            int like;
+            int combo;
+            bool b2b;
+            bool pc;
+            double value;
+            bool operator < (Status const &) const;
+        };
+    public:
+        void init(m_tetris::TetrisContext const *context, Config const *config);
+        std::string ai_name() const;
+        double ratio() const
+        {
+            return 0.5;
+        }
+        Result eval(TetrisNodeEx const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
+        Status get(TetrisNodeEx &node, Result const &eval_result, size_t depth, Status const & status) const;
+
+    private:
+        m_tetris::TetrisContext const *context_;
+        Config const *config_;
+        int col_mask_, row_mask_;
+    };
+
     class TOJ_v08
     {
     public:

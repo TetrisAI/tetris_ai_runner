@@ -90,11 +90,26 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     return 0;
 }
 #define USE_V08 0
+#define USE_THREAD 0
+#define USE_PC 0
+
 #if !USE_V08
+#if USE_THREAD
+m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::TOJ, search_tspin::Search> srs_ai;
+#else
 m_tetris::TetrisEngine<rule_toj::TetrisRule, ai_zzz::TOJ, search_tspin::Search> srs_ai;
+#endif
+#else
+#if USE_THREAD
+m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::TOJ_v08, search_tspin::Search> srs_ai;
 #else
 m_tetris::TetrisEngine<rule_toj::TetrisRule, ai_zzz::TOJ_v08, search_tspin::Search> srs_ai;
 #endif
+#endif
+#if USE_PC
+std::unique_ptr<m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::TOJ_PC, search_tspin::Search>> srs_pc;
+#endif
+std::mutex srs_ai_lock;
 
 extern "C" DECLSPEC_EXPORT int __cdecl AIDllVersion()
 {
@@ -131,12 +146,20 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
 {
     static char result_buffer[8][1024];
     char *result = result_buffer[player];
+    std::unique_lock<std::mutex> lock(srs_ai_lock);
 
     if (field_w != 10 || field_h != 22 || !srs_ai.prepare(10, 40))
     {
         *result = '\0';
         return result;
     }
+#if USE_PC
+    if (!srs_pc || srs_pc->context() != srs_ai.context())
+    {
+        srs_pc.reset(new m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::TOJ_PC, search_tspin::Search>(srs_ai.context()));
+        memset(srs_pc->status(), 0, sizeof *srs_pc->status());
+    }
+#endif
     m_tetris::TetrisMap map(10, 40);
     for (size_t d = 0, s = 22; d < 23; ++d, --s)
     {
@@ -163,6 +186,9 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     srs_ai.search_config()->allow_d = true;
     srs_ai.search_config()->is_20g = false;
     srs_ai.search_config()->last_rotate = false;
+#if USE_PC
+    *srs_pc->search_config() = *srs_ai.search_config();
+#endif
     struct ComboTable {
         int table[24] = {0};
         int table_max = 0;
@@ -179,9 +205,15 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     }
     srs_ai.ai_config()->table = table.table;
     srs_ai.ai_config()->table_max = table.table_max;
+#if USE_PC
+    srs_pc->ai_config()->table = table.table;
+    srs_pc->ai_config()->table_max = table.table_max;
+#endif
 #if !USE_V08
     srs_ai.ai_config()->safe = srs_ai.ai()->get_safe(map, active);
-    srs_ai.ai_config()->param = { 36.118271157, 202.203495764, 200.737909778, 170.781301529, 277.040476787, 247.783175303, 3.729165582, -55.949272093, -30.745551429, 11.519702458, 3.400517468, 112.960485307, 171.678755503, -0.004778355, -0.111297405, -22.246305463, -7.869832591, -56.390368723, -70.581632887, -63.004355360, -1.839383519, 1.285416709, -0.143928932, -3.284161895, 5.967192336, 3.808250892, 3.238022919, 83.284536559, 0.309568618 };
+    // srs_ai.ai_config()->param = { 36.118271157, 202.203495764, 200.737909778, 170.781301529, 277.040476787, 247.783175303, 3.729165582, -55.949272093, -30.745551429, 11.519702458, 3.400517468, 112.960485307, 171.678755503, -0.004778355, -0.111297405, -22.246305463, -7.869832591, -56.390368723, -70.581632887, -63.004355360, -1.839383519, 1.285416709, -0.143928932, -3.284161895, 5.967192336, 3.808250892, 3.238022919, 83.284536559, 0.309568618 };
+    srs_ai.ai_config()->param = //{4.600790788, 5.865165532, 10.943513259, 11.402543448, 8.787367305, 6.202614337, 0.183264578, -1.362862366, 3.939729891, -0.597601153, -0.248941400, 1.717604221, 3.637612163, 0.000257959, 0.000104248, -0.669123969, -0.216842974, -0.193402755, -0.214689284, -0.236555962, 0.272615690, -0.001002146, -0.211351774, -0.145112274, 0.121859768, 0.273616130, -0.348412638, 0.560328536, 0.587007113};
+                                  { 7.515657878, 8.935096177, 12.642182646, 14.836003330, 2.861475242, 7.469191146, 0.178973314, -1.116745524, 5.685049114, -3.864463091, -0.011806805, 0.044238520, 5.668265120, -0.006557154, -0.008514093, -1.448260982, -0.576208162, -0.600823713, -0.619377823, -0.579445135, -0.165943804, 0.017723732, -0.332514951, -0.468443633, -0.146389674, -0.187466601, -0.817549852, 0.844481336, 0.241944051 };
     srs_ai.status()->death = 0;
     srs_ai.status()->combo = combo;
     if (srs_ai.status()->under_attack != upcomeAtt)
@@ -196,6 +228,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     srs_ai.status()->value = 0;
     ai_zzz::TOJ::Status::init_t_value(map, srs_ai.status()->t2_value, srs_ai.status()->t3_value);
 #else
+    srs_ai.memory_limit(256ull << 20);
     srs_ai.status()->max_combo = 0;
     srs_ai.status()->max_attack = 0;
     srs_ai.status()->death = 0;
@@ -210,12 +243,39 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     srs_ai.status()->like = 0;
     srs_ai.status()->value = 0;
 #endif
+#if USE_PC
+    srs_pc->memory_limit(768ull << 20);
+    srs_pc->status()->attack = 0;
+    srs_pc->status()->b2b = !!b2b;
+    srs_pc->status()->combo = combo;
+    srs_pc->status()->like = 0;
+    srs_pc->status()->pc = false;
+    srs_pc->status()->recv_attack = 0;
+    if (srs_pc->status()->under_attack != upcomeAtt)
+    {
+        srs_pc->update();
+    }
+    srs_pc->status()->under_attack = upcomeAtt;
+    srs_pc->status()->value = 0;
+#endif
+
     m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
     m_tetris::TetrisNode const *node = srs_ai.get(status);
     static double const base_time = std::pow(100, 1.0 / 8);
     if (canhold)
     {
+#if USE_PC
+        srs_pc->run_hold(map, node, hold, curCanHold, next, maxDepth, time_t(0));
+#endif
         auto run_result = srs_ai.run_hold(map, node, hold, curCanHold, next, maxDepth, time_t(std::pow(base_time, level)));
+#if USE_PC
+        auto pc_result = srs_pc->run_hold(map, node, hold, curCanHold, next, maxDepth, time_t(0));
+        if (pc_result.status.pc)
+        {
+            run_result.change_hold = pc_result.change_hold;
+            run_result.target = pc_result.target;
+        }
+#endif
         if (run_result.change_hold)
         {
             result++[0] = 'v';
@@ -240,10 +300,21 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     }
     else
     {
-        auto target = srs_ai.run(map, node, next, maxDepth, time_t(std::pow(base_time, level))).target;
-        if (target != nullptr)
+#if USE_PC
+        srs_pc->run(map, node, next, maxDepth, time_t(0));
+#endif
+        auto run_result = srs_ai.run(map, node, next, maxDepth, time_t(std::pow(base_time, level)));
+#if USE_PC
+        auto pc_result = srs_pc->run(map, node, next, maxDepth, time_t(0));
+        if (pc_result.status.pc)
         {
-            std::vector<char> ai_path = srs_ai.make_path(node, target, map);
+            run_result.change_hold = pc_result.change_hold;
+            run_result.target = pc_result.target;
+        }
+#endif
+        if (run_result.target != nullptr)
+        {
+            std::vector<char> ai_path = srs_ai.make_path(node, run_result.target, map);
             std::memcpy(result, ai_path.data(), ai_path.size());
             result += ai_path.size();
         }
