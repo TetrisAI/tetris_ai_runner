@@ -236,6 +236,7 @@ namespace ai_zzz
         {
             double value;
             int8_t clear;
+            int8_t top_out;
             int16_t count;
             int16_t t2_value;
             int16_t t3_value;

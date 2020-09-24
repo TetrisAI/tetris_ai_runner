@@ -798,6 +798,7 @@ namespace ai_zzz
             );
         result.count = t_map.count;
         result.clear = int8_t(clear);
+        result.top_out = node->row >= 20;
         result.map = &map;
         return result;
     }
@@ -945,7 +946,7 @@ namespace ai_zzz
             break;
         }
         safe -= result.map_rise;
-        if (safe < 0)
+        if (safe < 0 || eval_result.top_out)
         {
             result.death = 1;
             safe = 0;
