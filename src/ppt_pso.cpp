@@ -172,6 +172,7 @@ struct test_ai
     int total_attack;
     int total_receive;
     int now_frame;
+    int framecnt;
 
     test_ai(m_tetris::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ, search_tspin::Search>& global_ai, int const* _combo_table, int _combo_table_max)
         : ai(global_ai.context())
@@ -199,6 +200,7 @@ struct test_ai
         total_attack = 0;
         total_receive = 0;
         now_frame = 0;
+        framecnt = 0;
     }
     m_tetris::TetrisNode const* node() const
     {
@@ -244,25 +246,36 @@ struct test_ai
         char current = next.front();
         auto node = ai.context()->generate(current);
         auto result = ai.run_hold(map, node, hold, true, next.data() + 1, next_length, 20);
-        std::vector<char> ai_path = ai.make_path(node, result.target, map);
-        for (char move : ai_path) {
-            if (move != 'Z' && move != 'C') now_frame++;
-            if (move == 'V') break;
-        }
 
         if (result.target == nullptr || result.target->low >= 20)
         {
             dead = true;
             return;
         }
+        std::vector<char> ai_path;
+
         if (result.change_hold)
         {
+
             if (hold == ' ')
             {
+
                 next.erase(next.begin());
+                ai_path = ai.make_path(ai.context()->generate(next[0]), result.target, map);
+            }
+            else {
+                ai_path = ai.make_path(ai.context()->generate(hold), result.target, map);
             }
             hold = current;
         }
+        else {
+            ai_path = ai.make_path(node, result.target, map);
+        }
+        for (char move : ai_path) {
+            if (move != 'Z' && move != 'C') now_frame++;
+            if (move == 'V') break;
+        }
+
         int attack = 0;
         auto get_combo_attack = [&](int c)
         {
@@ -276,10 +289,11 @@ struct test_ai
             combo = 0;
             break;
         case 1:
-            now_frame += 36;
+            if (map.count != 0) now_frame += 36;
+            else now_frame += 1;
             if (result.target.type == ai_zzz::TOJ::TSpinType::TSpinMini)
             {
-                attack += 1 + b2b;
+                attack += 0 + b2b;
                 b2b = 1;
             }
             else if (result.target.type == ai_zzz::TOJ::TSpinType::TSpin)
@@ -294,7 +308,8 @@ struct test_ai
             attack += get_combo_attack(++combo);
             break;
         case 2:
-            now_frame += 41;
+            if (map.count != 0) now_frame += 41;
+            else now_frame += 1;
             if (result.target.type != ai_zzz::TOJ::TSpinType::None)
             {
                 attack += 4 + b2b;
@@ -308,7 +323,8 @@ struct test_ai
             attack += get_combo_attack(++combo);
             break;
         case 3:
-            now_frame += 41;
+            if (map.count != 0) now_frame += 41;
+            else now_frame += 1;
             if (result.target.type != ai_zzz::TOJ::TSpinType::None)
             {
                 attack += 6 + b2b;
@@ -322,7 +338,9 @@ struct test_ai
             attack += get_combo_attack(++combo);
             break;
         case 4:
-            now_frame += 46;
+
+            if (map.count != 0) now_frame += 46;
+            else now_frame += 1;
             b2b = 1;
             attack += get_combo_attack(++combo) + 4;
             break;
@@ -333,7 +351,10 @@ struct test_ai
         }
         ++total_block;
         total_attack += attack;
-        send_attack = attack;
+        if (attack > 0) {
+            send_attack = attack;
+        }
+        
         
     }
 
@@ -385,7 +406,17 @@ struct test_ai
     {
         if(line > 0)
         {
-           recv_attack += line;
+            if (line <= send_attack)
+            {
+                send_attack -= line;
+            }
+            else
+            {
+                line -= send_attack;
+                send_attack = 0;
+                recv_attack += line;
+            }
+           
         }
     }
 
@@ -425,6 +456,7 @@ struct test_ai
                 eventlist.push(p1e);
                 eventlist.push(p1n);
                 eventlist.push(p1u);
+                ai1.framecnt = p1e.frame;
                 
             }
         else if (now.p2_start) {
@@ -445,7 +477,7 @@ struct test_ai
                 eventlist.push(p2e);
                 eventlist.push(p2n);
                 eventlist.push(p2u);
-
+                ai2.framecnt = p2e.frame;
                 
             }
             else if (now.p1_end) {
@@ -456,11 +488,14 @@ struct test_ai
             }
             else if (now.p1_up) {
                 ai2.under_attack(ai1.send_attack);
+                ai1.send_attack = 0;
+
             }
             else if (now.p2_up) {
                 ai1.under_attack(ai2.send_attack);
+                ai2.send_attack = 0;
             }
-            if (round > 10) {
+            if (round > 6 && (now.p1_start || now.p2_start)) {
                 if (out_put)
                 {
                     out_put(ai1, ai2);
@@ -764,10 +799,10 @@ int main(int argc, char const *argv[])
                     out[0] = '\0';
                     int up1 = ai1.recv_attack;
                     int up2 = ai2.recv_attack;
-                    snprintf(out, sizeof out, "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d UP = %2d NAME = %s\n"
-                                              "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d UP = %2d NAME = %s\n",
-                        ai1.hold, ai1.next[1], ai1.next[2], ai1.next[3], ai1.next[4], ai1.next[5], ai1.next[6], ai1.combo, ai1.b2b, up1, m1->data.name,
-                        ai2.hold, ai2.next[1], ai2.next[2], ai2.next[3], ai2.next[4], ai2.next[5], ai2.next[6], ai2.combo, ai2.b2b, up2, m2->data.name);
+                    snprintf(out, sizeof out, "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d UP = %2d frame=%d NAME = %s\n"
+                                              "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d UP = %2d frame=%d NAME = %s\n",
+                        ai1.hold, ai1.next[1], ai1.next[2], ai1.next[3], ai1.next[4], ai1.next[5], ai1.next[6], ai1.combo, ai1.b2b, up1, ai1.framecnt, m1->data.name,
+                        ai2.hold, ai2.next[1], ai2.next[2], ai2.next[3], ai2.next[4], ai2.next[5], ai2.next[6], ai2.combo, ai2.b2b, up2, ai2.framecnt, m2->data.name);
                     m_tetris::TetrisMap map_copy1 = ai1.map;
                     m_tetris::TetrisMap map_copy2 = ai2.map;
                     ai1.node()->attach(ai1.ai.context().get(), map_copy1);
