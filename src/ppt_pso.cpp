@@ -225,9 +225,11 @@ struct test_ai
     {
         ai.search_config()->allow_rotate_move = true;
         ai.search_config()->allow_180 = false;
-        ai.search_config()->allow_d = false;
+        ai.search_config()->allow_d = true;
         ai.search_config()->is_20g = false;
         ai.search_config()->last_rotate = false;
+        ai.search_config()->allow_D = false;
+        ai.search_config()->allow_LR = false;
         ai.ai_config()->table = combo_table;
         ai.ai_config()->table_max = combo_table_max;
         ai.ai_config()->safe = ai.ai()->get_safe(map, next.front());
@@ -271,7 +273,9 @@ struct test_ai
         else {
             ai_path = ai.make_path(node, result.target, map);
         }
+
         for (char move : ai_path) {
+            //printf("%c", move);
             if (move != 'Z' && move != 'C') now_frame++;
             if (move == 'V') break;
         }

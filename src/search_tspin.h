@@ -19,6 +19,8 @@ namespace search_tspin
             bool allow_rotate_move = false;
             bool allow_180 = true;
             bool allow_d = true;
+            bool allow_D = true;
+            bool allow_LR = true;
             bool is_20g = false;
             bool last_rotate = false;
         };
