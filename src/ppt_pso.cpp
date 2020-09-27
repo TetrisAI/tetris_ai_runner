@@ -351,7 +351,7 @@ struct test_ai
         }
         if (map.count == 0)
         {
-            attack += 6;
+            attack += 10;
         }
         ++total_block;
         total_attack += attack;
@@ -797,8 +797,8 @@ int main(int argc, char const *argv[])
                     SetConsoleCursorPosition(hConsole, coordScreen);
 
                     char out[81920] = "";
-                    char box_0[3] = "  ";
-                    char box_1[3] = "[]";
+                    char box_0[3] = "¡õ";
+                    char box_1[3] = "¡ö";
 
                     out[0] = '\0';
                     int up1 = ai1.recv_attack;
@@ -849,8 +849,8 @@ int main(int argc, char const *argv[])
                     char box_1[3] = "[]";
 
                     out[0] = '\0';
-                    int up1 = std::accumulate(ai1.recv_attack.begin(), ai1.recv_attack.end(), 0);
-                    int up2 = std::accumulate(ai2.recv_attack.begin(), ai2.recv_attack.end(), 0);
+                    int up1 = ai1.recv_attack;
+                    int up2 = ai2.recv_attack;
                     snprintf(out, sizeof out, "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d UP = %2d NAME = %s\n"
                                               "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d UP = %2d NAME = %s\n",
                         ai1.hold, ai1.next[1], ai1.next[2], ai1.next[3], ai1.next[4], ai1.next[5], ai1.next[6], ai1.combo, ai1.b2b, up1, m1->data.name,

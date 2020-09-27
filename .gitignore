@@ -50,3 +50,7 @@ Icon
 *.lastbuildstate
 *.TMP
 *.ilk
+/.vs/tetris_ai_runner/v16
+/Debug
+/Release
+/ppt_pso.exe
