@@ -132,7 +132,8 @@ void pso_logic(pso_config const &config, pso_data const &best, pso_data &item, s
     }
 }
 
-struct pptevent {
+struct pptevent
+{
     bool p1_start = false;
     bool p1_end= false;
     bool p1_up= false;
@@ -142,12 +143,9 @@ struct pptevent {
     bool p2_up= false;
 
     int frame = 0;
-    pptevent() {
-        p1_start = p1_end = p1_up = false;
-        p2_start = p2_end = p2_up = false;
-        frame = 0;
-    }
-    bool operator < (const pptevent p2event) const {
+
+    bool operator < (pptevent const & p2event) const
+    {
         return frame > p2event.frame;
     }
 };
@@ -194,7 +192,7 @@ struct test_ai
         hold = ' ';
         b2b = false;
         dead = false;
-        next_length = 6;
+        next_length = 5;
         total_block = 0;
         total_clear = 0;
         total_attack = 0;
@@ -408,7 +406,7 @@ struct test_ai
     }
     void under_attack(int line)
     {
-        if(line > 0)
+        if (line > 0)
         {
             if (line <= send_attack)
             {
@@ -442,7 +440,8 @@ struct test_ai
             pptevent now = eventlist.top();
             eventlist.pop();
             
-            if (now.p1_start) {
+            if (now.p1_start)
+            {
                 ai1.prepare();
 
                 ai1.run();
@@ -463,8 +462,9 @@ struct test_ai
                 ai1.framecnt = p1e.frame;
                 
             }
-        else if (now.p2_start) {
-            ai2.prepare();
+            else if (now.p2_start)
+            {
+                ai2.prepare();
 
                 ai2.run();
                 if (ai1.dead || ai2.dead)
@@ -484,28 +484,33 @@ struct test_ai
                 ai2.framecnt = p2e.frame;
                 
             }
-            else if (now.p1_end) {
+            else if (now.p1_end)
+            {
                 ai1.deal_garbage();
             }
-            else if (now.p2_end) {
+            else if (now.p2_end)
+            {
                 ai2.deal_garbage();
             }
-            else if (now.p1_up) {
+            else if (now.p1_up)
+            {
                 ai2.under_attack(ai1.send_attack);
                 ai1.send_attack = 0;
 
             }
-            else if (now.p2_up) {
+            else if (now.p2_up)
+            {
                 ai1.under_attack(ai2.send_attack);
                 ai2.send_attack = 0;
             }
-            if (round > 6 && (now.p1_start || now.p2_start)) {
+            if (round > 6 && (now.p1_start || now.p2_start))
+            {
                 if (out_put)
                 {
                     out_put(ai1, ai2);
                 }
             }
-            if (round > 720 * 6)
+            if (round > 3600 * 6)
             {
                 return;
             }
@@ -724,6 +729,7 @@ int main(int argc, char const *argv[])
     while (rank_table.size() < node_count)
     {
         NodeData init_node = rank_table.at(std::uniform_int_distribution<size_t>(0, rank_table.size() - 1)(mt))->data;
+        // memset(&init_node.data, 0, sizeof init_node.data);
 
         strncpy(init_node.name, ("init_" + std::to_string(rank_table.size())).c_str(), sizeof init_node.name);
         pso_logic(pso_cfg, init_node.data, init_node.data, mt);
@@ -731,8 +737,8 @@ int main(int argc, char const *argv[])
     }
 
     std::vector<std::thread> threads;
-    int combo_table[] = { 0,0,0,1,1,2,2,3,3,4,4,4,5 };
-    int combo_table_max = 13;
+    int combo_table[] = { 0,0,0,1,1,2,2,3,3,4,4,5 };
+    int combo_table_max = 12;
     m_tetris::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ, search_tspin::Search> global_ai;
     global_ai.prepare(10, 40);
 
@@ -797,8 +803,8 @@ int main(int argc, char const *argv[])
                     SetConsoleCursorPosition(hConsole, coordScreen);
 
                     char out[81920] = "";
-                    char box_0[3] = "¡õ";
-                    char box_1[3] = "¡ö";
+                    char box_0[3] = "  ";
+                    char box_1[3] = "[]";
 
                     out[0] = '\0';
                     int up1 = ai1.recv_attack;
@@ -994,10 +1000,10 @@ int main(int argc, char const *argv[])
     {
         rank_table_lock.lock();
         printf(
-            "[99]name         = %s\n"
+            "[-1]name         = %s\n"
             "[  ]rank         = %d\n"
             "[  ]score        = %f\n"
-            "[  ]best         = %f\n"
+            "[-2]best         = %f\n"
             "[  ]match        = %d\n"
             "[ 0]base         = %8.3f, %8.3f, %8.3f\n"
             "[ 1]roof         = %8.3f, %8.3f, %8.3f\n"
@@ -1092,13 +1098,17 @@ int main(int argc, char const *argv[])
     {
         if (token.size() >= 3 && token.size() <= 5 && edit != nullptr)
         {
-            size_t index = std::atoi(token[1].c_str());
+            int index = std::atoi(token[1].c_str());
             rank_table_lock.lock();
-            if (index == 99 && token[2].size() < 64)
+            if (index == -1 && token[2].size() < 64)
             {
                 memcpy(edit->data.name, token[2].c_str(), token[2].size() + 1);
             }
-            else if (index < sizeof(ai_zzz::TOJ::Param) / sizeof(double))
+	    else if (index == -2)
+            {
+                edit->data.best = std::atof(token[2].c_str());
+            }
+            else if (index >= 0 && size_t(index) < sizeof(ai_zzz::TOJ::Param) / sizeof(double))
             {
                 edit->data.data.x[index] = std::atof(token[2].c_str());
                 if (token.size() >= 4)

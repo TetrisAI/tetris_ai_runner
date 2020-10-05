@@ -357,7 +357,7 @@ struct test_ai
 
     static void match(test_ai& ai1, test_ai& ai2, std::function<void(test_ai const &, test_ai const &)> out_put, size_t match_round)
     {
-        int round = 0;
+        size_t round = 0;
         for (; ; )
         {
             ++round;
@@ -755,7 +755,7 @@ int main(int argc, char const *argv[])
                 //     std::swap(round_ms_min, round_ms_max);
                 // }
                 // size_t round_ms = std::uniform_int_distribution<size_t>(round_ms_min, round_ms_max)(mt);
-                size_t round_ms = 10;
+                size_t round_ms = 20;
                 size_t round_count = 3600;
                 ai1.init(m1->data.data, pso_cfg, round_ms);
                 ai2.init(m2->data.data, pso_cfg, round_ms);
