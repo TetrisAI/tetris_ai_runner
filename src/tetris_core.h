@@ -1771,14 +1771,14 @@ namespace m_tetris
             bool complete = true;
             size_t next_length = context->max_length;
             double ratio = Core::template get_ratio<TetrisTreeNode>(*context->ai);
-            while (context->max_length >= context->width_cache.size())
+            while (next_length > context->width_cache.size())
             {
-                context->width_cache.emplace_back(std::pow(context->width_cache.size(), ratio));
+                context->width_cache.emplace_back(std::pow(context->width_cache.size() + 2, ratio));
             }
-            while (next_length > 0)
+            double div_ratio = *std::max_element(context->width_cache.begin(), context->width_cache.end()) / 2;
+            while (next_length-- > 0)
             {
-                size_t level_prune_hold = std::max<size_t>(1, size_t(context->width_cache[next_length] * context->width));
-                --next_length;
+                size_t level_prune_hold = std::max<size_t>(1, size_t(context->width_cache[next_length] * context->width / div_ratio));
                 auto wait = &context->wait[next_length + 1];
                 if (wait->empty())
                 {

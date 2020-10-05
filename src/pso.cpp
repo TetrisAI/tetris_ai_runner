@@ -357,7 +357,7 @@ struct test_ai
 
     static void match(test_ai& ai1, test_ai& ai2, std::function<void(test_ai const &, test_ai const &)> out_put, size_t match_round)
     {
-        int round = 0;
+        size_t round = 0;
         for (; ; )
         {
             ++round;
