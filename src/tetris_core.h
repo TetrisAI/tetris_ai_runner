@@ -1775,10 +1775,10 @@ namespace m_tetris
             {
                 context->width_cache.emplace_back(std::pow(context->width_cache.size() + 2, ratio));
             }
-            double div_ratio = *std::max_element(context->width_cache.begin(), context->width_cache.end()) / 2;
+            double div_ratio = 2 / *std::max_element(context->width_cache.begin(), context->width_cache.end());
             while (next_length-- > 0)
             {
-                size_t level_prune_hold = std::max<size_t>(1, size_t(context->width_cache[next_length] * context->width / div_ratio));
+                size_t level_prune_hold = std::max<size_t>(1, size_t(context->width_cache[next_length] * context->width * div_ratio));
                 auto wait = &context->wait[next_length + 1];
                 if (wait->empty())
                 {
