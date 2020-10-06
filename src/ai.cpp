@@ -209,6 +209,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     srs_pc->ai_config()->table = table.table;
     srs_pc->ai_config()->table_max = table.table_max;
 #endif
+    srs_ai.memory_limit(256ull << 20);
 #if !USE_V08
     srs_ai.ai_config()->safe = srs_ai.ai()->get_safe(map, active);
     // srs_ai.ai_config()->param = { 36.118271157, 202.203495764, 200.737909778, 170.781301529, 277.040476787, 247.783175303, 3.729165582, -55.949272093, -30.745551429, 11.519702458, 3.400517468, 112.960485307, 171.678755503, -0.004778355, -0.111297405, -22.246305463, -7.869832591, -56.390368723, -70.581632887, -63.004355360, -1.839383519, 1.285416709, -0.143928932, -3.284161895, 5.967192336, 3.808250892, 3.238022919, 83.284536559, 0.309568618 };
@@ -228,11 +229,11 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     srs_ai.status()->value = 0;
     ai_zzz::TOJ::Status::init_t_value(map, srs_ai.status()->t2_value, srs_ai.status()->t3_value);
 #else
-    srs_ai.memory_limit(256ull << 20);
     srs_ai.status()->max_combo = 0;
     srs_ai.status()->max_attack = 0;
     srs_ai.status()->death = 0;
     srs_ai.status()->combo = combo;
+    srs_ai.status()->attack = 0;
     if (srs_ai.status()->under_attack != upcomeAtt)
     {
         srs_ai.update();
@@ -284,7 +285,6 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
                 std::vector<char> ai_path = srs_ai.make_path(srs_ai.context()->generate(run_result.target->status.t), run_result.target, map);
                 std::memcpy(result, ai_path.data(), ai_path.size());
                 result += ai_path.size();
-                result++[0] = 'V';
             }
         }
         else
@@ -295,7 +295,6 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
                 std::memcpy(result, ai_path.data(), ai_path.size());
                 result += ai_path.size();
             }
-            result++[0] = 'V';
         }
     }
     else
@@ -318,9 +317,9 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
             std::memcpy(result, ai_path.data(), ai_path.size());
             result += ai_path.size();
         }
-        result++[0] = 'V';
     }
-    result[1] = '\0';
+    result++[0] = 'V';
+    result[0] = '\0';
     return result_buffer[player];
 }
 
