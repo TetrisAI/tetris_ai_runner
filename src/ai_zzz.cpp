@@ -303,7 +303,7 @@ namespace ai_zzz
 
             Status result = status;
             result.land_point += eval_result.land_point;
-            double length_rate = 10. / depth;
+            double length_rate = 10. / (depth + 1);
             switch (eval_result.clear)
             {
             case 0:
@@ -323,7 +323,7 @@ namespace ai_zzz
                 break;
             }
             result.value = (0.
-                + result.land_point / depth
+                + result.land_point / (depth + 1)
                 + eval_result.map
                 - result.rubbish * (eval_result.danger > 0 ? -100 : 640)
                 + result.attack * 100
@@ -1055,7 +1055,7 @@ namespace ai_zzz
         RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
 
         Result result;
-        result.value = (map.roof > 4 ? 0 : 10000) - ColTrans * 3 - RowTrans * 2;
+        result.value = (map.roof > 4 ? 0 : 10000) - ColTrans * 7 - RowTrans * 3;
         result.clear = clear;
         result.roof = map.roof;
         return result;
@@ -1539,7 +1539,7 @@ namespace ai_zzz
             }
             break;
         }
-        double rate = (1. / depth) + 3;
+        double rate = (1. / (depth + 1)) + 3;
         result.max_combo = std::max(result.combo, result.max_combo);
         result.max_attack = std::max(result.attack, result.max_attack);
         result.value += ((0.

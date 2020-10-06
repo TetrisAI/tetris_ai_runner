@@ -122,7 +122,7 @@ namespace ai_zzz
         std::string ai_name() const;
         double ratio() const
         {
-            return 0.5;
+            return 1;
         }
         Result eval(TetrisNodeEx const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
         Status get(TetrisNodeEx &node, Result const &eval_result, size_t depth, Status const & status) const;
