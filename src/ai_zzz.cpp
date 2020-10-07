@@ -1055,7 +1055,7 @@ namespace ai_zzz
         RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
 
         Result result;
-        result.value = (map.roof > 4 ? 0 : 10000) - ColTrans * 7 - RowTrans * 3;
+        result.value = (map.roof > 4 ? 0 : 10000) - ColTrans * 3 - RowTrans * 2;
         result.clear = clear;
         result.roof = map.roof;
         return result;

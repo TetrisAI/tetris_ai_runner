@@ -946,7 +946,6 @@ namespace search_tspin
                         {
                             node_search_.push_back(node_test);
                         }
-                        }
                     }
                 }
                 //R
