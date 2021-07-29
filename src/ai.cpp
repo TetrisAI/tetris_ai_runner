@@ -124,7 +124,7 @@ extern "C" DECLSPEC_EXPORT int __cdecl AIDllVersion()
 extern "C" DECLSPEC_EXPORT char *__cdecl AIName(int level)
 {
     static char name[200];
-    strcpy_s(name, srs_ai.ai_name().c_str());
+    strcpy(name, srs_ai.ai_name().c_str());
     return name;
 }
 
