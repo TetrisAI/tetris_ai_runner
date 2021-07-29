@@ -1,6 +1,11 @@
-
+#ifdef _WIN32
 #define DECLSPEC_EXPORT __declspec(dllexport)
 #define WINAPI __stdcall
+#else
+#define DECLSPEC_EXPORT
+#define WINAPI
+#define __cdecl
+#endif
 
 #include <ctime>
 #include "tetris_core.h"
@@ -27,7 +32,7 @@ m_tetris::TetrisEngine<rule_st::TetrisRule, ai_zzz::Dig, search_path::Search> te
 
 extern "C" void attach_init()
 {
-    ege::mtsrand(unsigned int(time(nullptr)));
+    ege::mtsrand((unsigned int)(time(nullptr)));
 }
 
 //返回AI名字，会显示在界面上

@@ -42,6 +42,7 @@ namespace zzz
         using base_t::bst_upper_bound_;
         using base_t::bst_equal_range_;
         using base_t::bst_rotate_;
+        typedef typename base_t::key_t key_t;
 
 
     public:
