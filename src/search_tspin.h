@@ -60,11 +60,11 @@ namespace search_tspin
             {
                 return node == other.node && last == other.last && type == other.type && flags == other.flags;
             }
-            bool operator == (nullptr_t)
+            bool operator == (std::nullptr_t)
             {
                 return node == nullptr;
             }
-            bool operator != (nullptr_t)
+            bool operator != (std::nullptr_t)
             {
                 return node != nullptr;
             }
