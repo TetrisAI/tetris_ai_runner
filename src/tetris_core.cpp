@@ -190,6 +190,7 @@ namespace m_tetris
 
     void TetrisNodeMark::init(size_t size)
     {
+        version_ = 0;
         data_.clear();
         data_.resize(size);
     }
@@ -238,9 +239,9 @@ namespace m_tetris
         {
             return false;
         }
+        mark.version = version_;
         mark.data.first = node;
         mark.data.second = op;
-        mark.version = version_;
         return true;
     }
 
@@ -257,6 +258,7 @@ namespace m_tetris
 
     void TetrisNodeMarkFiltered::init(size_t size)
     {
+        version_ = 0;
         data_.clear();
         data_.resize(size);
     }
@@ -796,7 +798,7 @@ namespace m_tetris_rule_tools
 
     bool move_left(TetrisNode &node, TetrisContext const *context)
     {
-        if((node.data[0] & 1) || (node.data[1] & 1) || (node.data[2] & 1) || (node.data[3] & 1))
+        if(((node.data[0] | node.data[1] | node.data[2] | node.data[3]) & 1) != 0)
         {
             return false;
         }
@@ -812,7 +814,7 @@ namespace m_tetris_rule_tools
     bool move_right(TetrisNode &node, TetrisContext const *context)
     {
         const int check = context->width() == 32 ? 0x80000000 : (1 << (context->width() - 1));
-        if((node.data[0] & check) || (node.data[1] & check) || (node.data[2] & check) || (node.data[3] & check))
+        if(((node.data[0] | node.data[1] | node.data[2] | node.data[3]) & check) != 0)
         {
             return false;
         }

@@ -1566,6 +1566,372 @@ namespace ai_zzz
         return map_danger_data_[t].data[0] & map.row[height - 4] | map_danger_data_[t].data[1] & map.row[height - 3] | map_danger_data_[t].data[2] & map.row[height - 2] | map_danger_data_[t].data[3] & map.row[height - 1];
     }
 
+
+
+    bool Botris_PC::Status::operator < (Status const &other) const
+    {
+        return value < other.value;
+    }
+
+    std::string Botris_PC::ai_name() const
+    {
+        return "ZZZ Botris_PC v0.1";
+    }
+
+    void Botris_PC::init(m_tetris::TetrisContext const *context, Config const *config) {
+        context_ = context;
+        config_ = config;
+        col_mask_ = context->full() & ~1;
+        row_mask_ = context->full();
+    }
+
+    Botris_PC::Result Botris_PC::eval(TetrisNodeEx const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &, size_t clear) const
+    {
+        const int width_m1 = map.width - 1;
+        int ColTrans = 2 * (map.height - map.roof);
+        int RowTrans = map.roof == map.height ? 0 : map.width;
+        for (int y = 0; y < map.roof; ++y)
+        {
+            if (!map.full(0, y))
+            {
+                ++ColTrans;
+            }
+            if (!map.full(width_m1, y))
+            {
+                ++ColTrans;
+            }
+            ColTrans += ZZZ_BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+            if (y != 0)
+            {
+                RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
+            }
+        }
+        RowTrans += ZZZ_BitCount(row_mask_ & ~map.row[0]);
+        RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+
+        Result result;
+        result.value = (map.roof > 4 ? 0 : 10000) - ColTrans * 3 - RowTrans * 2;
+        result.clear = clear;
+        result.roof = map.roof;
+        return result;
+    }
+
+    Botris_PC::Status Botris_PC::get(TetrisNodeEx &node, Result const &eval_result, size_t depth, Status const & status) const {
+
+        Status result = status;
+        switch (eval_result.clear)
+        {
+        case 0:
+            result.combo = 0;
+            if (status.under_attack > 0)
+            {
+                result.recv_attack += std::max(0, int(status.under_attack) - status.attack);
+                result.under_attack = 0;
+            }
+            break;
+        case 1:
+            if (node.type == ASpinType::ASpin)
+            {
+                result.attack += status.b2b ? 3 : 2;
+            }
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
+            result.b2b = node.type != ASpinType::None;
+            break;
+        case 2:
+            if (node.type != ASpinType::None)
+            {
+                result.attack += status.b2b ? 5 : 4;
+            }
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 1;
+            result.b2b = node.type != ASpinType::None;
+            break;
+        case 3:
+            if (node.type != ASpinType::None)
+            {
+                result.attack += status.b2b ? 8 : 6;
+            }
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
+            result.b2b = node.type != ASpinType::None;
+            break;
+        case 4:
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
+            result.b2b = true;
+            break;
+        }
+        if (eval_result.roof == 0 && result.recv_attack == 0) {
+            result.like += 100;
+            result.pc = true;
+        }
+        if (eval_result.roof > 4) {
+            result.like -= 1;
+        }
+        result.value = eval_result.value + result.like * 1e9;
+        return result;
+    }
+
+    bool Botris::Status::operator < (Status const &other) const
+    {
+        return value < other.value;
+    }
+
+    int8_t Botris::get_safe(m_tetris::TetrisMap const &m, char t) const {
+        int safe = 0;
+        while (map_in_danger_(m, context_->convert(t), safe + 1) == 0)
+        {
+            ++safe;
+        }
+        return safe;
+    }
+
+    void Botris::init(m_tetris::TetrisContext const *context, Config const *config)
+    {
+        context_ = context;
+        config_ = config;
+        col_mask_ = context->full() & ~1;
+        row_mask_ = context->full();
+        full_count_ = context->width() * 24;
+        map_danger_data_.resize(context->type_max());
+        for (size_t i = 0; i < context->type_max(); ++i)
+        {
+            TetrisMap map(context->width(), context->height());
+            TetrisNode const *node = context->generate(i);
+            node->attach(context, map);
+            std::memcpy(map_danger_data_[i].data, &map.row[18], sizeof map_danger_data_[i].data);
+            for (int y = 0; y < 3; ++y)
+            {
+                map_danger_data_[i].data[y + 1] |= map_danger_data_[i].data[y];
+            }
+        }
+    }
+
+    std::string Botris::ai_name() const
+    {
+        return "ZZZ Botris v0.8";
+    }
+
+    Botris::Result Botris::eval(TetrisNodeEx const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
+    {
+        const int width_m1 = map.width - 1;
+        int ColTrans = 2 * (map.height - map.roof);
+        int RowTrans = map.roof == map.height ? 0 : map.width;
+        for (int y = 0; y < map.roof; ++y)
+        {
+            if (!map.full(0, y))
+            {
+                ++ColTrans;
+            }
+            if (!map.full(width_m1, y))
+            {
+                ++ColTrans;
+            }
+            ColTrans += ZZZ_BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+            if (y != 0)
+            {
+                RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
+            }
+        }
+        RowTrans += ZZZ_BitCount(row_mask_ & ~map.row[0]);
+        RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+        struct
+        {
+            int HoleCount;
+            int HoleLine;
+
+            int HoleDepth;
+            int WellDepth;
+
+            int HoleNum[32];
+            int WellNum[32];
+
+            int LineCoverBits;
+            int HolePosyIndex;
+        } v;
+        std::memset(&v, 0, sizeof v);
+        struct
+        {
+            int ClearWidth;
+        } a[40];
+
+        for (int y = map.roof - 1; y >= 0; --y)
+        {
+            v.LineCoverBits |= map.row[y];
+            int LineHole = v.LineCoverBits ^ map.row[y];
+            if (LineHole != 0)
+            {
+                ++v.HoleLine;
+                a[v.HolePosyIndex].ClearWidth = 0;
+                for (int hy = y + 1; hy < map.roof; ++hy)
+                {
+                    uint32_t CheckLine = LineHole & map.row[hy];
+                    if (CheckLine == 0)
+                    {
+                        break;
+                    }
+                    a[v.HolePosyIndex].ClearWidth += (hy + 1) * ZZZ_BitCount(CheckLine);
+                }
+                ++v.HolePosyIndex;
+            }
+            for (int x = 1; x < width_m1; ++x)
+            {
+                if ((LineHole >> x) & 1)
+                {
+                    v.HoleDepth += ++v.HoleNum[x];
+                }
+                else
+                {
+                    v.HoleNum[x] = 0;
+                }
+                if (((v.LineCoverBits >> (x - 1)) & 7) == 5)
+                {
+                    v.WellDepth += ++v.WellNum[x];
+                }
+            }
+            if (LineHole & 1)
+            {
+                v.HoleDepth += ++v.HoleNum[0];
+            }
+            else
+            {
+                v.HoleNum[0] = 0;
+            }
+            if ((v.LineCoverBits & 3) == 2)
+            {
+                v.WellDepth += ++v.WellNum[0];
+            }
+            if ((LineHole >> width_m1) & 1)
+            {
+                v.HoleDepth += ++v.HoleNum[width_m1];
+            }
+            else
+            {
+                v.HoleNum[width_m1] = 0;
+            }
+            if (((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
+            {
+                v.WellDepth += ++v.WellNum[width_m1];
+            }
+        }
+
+        Result result;
+        result.value = (0.
+            - map.roof * 128
+            - ColTrans * 160
+            - RowTrans * 160
+            - v.HoleCount * 80
+            - v.HoleLine * 380
+            - v.WellDepth * 100
+            - v.HoleDepth * 40
+            );
+        double rate = 32, mul = 1.0 / 4;
+        for (int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
+        {
+            result.value -= a[i].ClearWidth * rate;
+        }
+        result.count = map.count + v.HoleCount;
+        result.clear = clear;
+        result.map = &map;
+        return result;
+    }
+
+    Botris::Status Botris::get(TetrisNodeEx &node, Result const &eval_result, size_t depth, Status const &status, TetrisContext::Env const &env) const
+    {
+        Status result = status;
+        result.value = eval_result.value;
+        int safe = node->row >= 20 ? -1 : env.length > 0 ? get_safe(*eval_result.map, *env.next) : eval_result.map->roof;
+        if (safe <= 0)
+        {
+            result.value -= 99999;
+        }
+        switch (eval_result.clear)
+        {
+        case 0:
+            if (status.combo > 0 && status.combo < 3)
+            {
+                result.like -= 2;
+            }
+            result.combo = 0;
+            if (status.under_attack > 0)
+            {
+                result.map_rise += std::max(0, int(status.under_attack) - status.attack);
+                if (result.map_rise >= safe)
+                {
+                    result.death += result.map_rise - safe;
+                }
+                result.under_attack = 0;
+            }
+            break;
+        case 1:
+            if (node.type == ASpinType::ASpin)
+            {
+                result.like += 8;
+                result.attack += status.b2b ? 3 : 2;
+            }
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
+            result.b2b = node.type != ASpinType::None;
+            break;
+        case 2:
+            if (node.type != ASpinType::None)
+            {
+                result.attack += status.b2b ? 5 : 4;
+            }
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 1;
+            result.b2b = node.type != ASpinType::None;
+            break;
+        case 3:
+            if (node.type != ASpinType::None)
+            {
+                result.attack += status.b2b ? 8 : 6;
+            }
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
+            result.b2b = node.type != ASpinType::None;
+            break;
+        case 4:
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
+            result.b2b = true;
+            break;
+        }
+        if (result.combo < 5)
+        {
+            result.like -= 1.5 * result.combo;
+        }
+        if (eval_result.count == 0 && result.map_rise == 0)
+        {
+            result.like += 20;
+            result.attack += 6;
+        }
+        if (status.b2b && !result.b2b)
+        {
+            result.like -= 8;
+        }
+        if (env.hold == 'I' && eval_result.clear == 0)
+        {
+            result.like += 2;
+        }
+        double rate = (1. / (depth + 1)) + 3;
+        result.max_combo = std::max(result.combo, result.max_combo);
+        result.max_attack = std::max(result.attack, result.max_attack);
+        result.value += ((0.
+            + result.max_attack * 40
+            + result.attack * 256 * rate
+            + (result.b2b ? 512 : 0)
+            + result.like * 64
+            ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_))
+            + result.max_combo * (result.max_combo - 1) * 40
+            - result.death * 999999999.0
+            );
+        return result;
+    }
+
+    size_t Botris::map_in_danger_(m_tetris::TetrisMap const &map, size_t t, size_t up) const
+    {
+        if (up >= 20)
+        {
+            return 1;
+        }
+        size_t height = 22 - up;
+        return map_danger_data_[t].data[0] & map.row[height - 4] | map_danger_data_[t].data[1] & map.row[height - 3] | map_danger_data_[t].data[2] & map.row[height - 2] | map_danger_data_[t].data[3] & map.row[height - 1];
+    }
+
     bool C2::Status::operator < (Status const &other) const
     {
         return value < other.value;

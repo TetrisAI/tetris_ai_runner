@@ -14,6 +14,7 @@
 #include "search_simulate.h"
 #include "search_cautious.h"
 #include "search_tspin.h"
+#include "search_aspin.h"
 #include "ai_ax.h"
 #include "ai_zzz.h"
 #include "ai_tag.h"
@@ -35,7 +36,7 @@ extern "C" void attach_init()
     ege::mtsrand((unsigned int)(time(nullptr)));
 }
 
-//·µ»ØAIÃû×Ö£¬»áÏÔÊ¾ÔÚ½çÃæÉÏ
+//ï¿½ï¿½ï¿½ï¿½AIï¿½ï¿½ï¿½Ö£ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½Ú½ï¿½ï¿½ï¿½ï¿½ï¿½
 extern "C" DECLSPEC_EXPORT char const *WINAPI Name()
 {
     static std::string name = tetris_ai.ai_name();
@@ -44,23 +45,23 @@ extern "C" DECLSPEC_EXPORT char const *WINAPI Name()
 
 /*
  ***********************************************************************************************
- * ÓÃÓÚ¶ànext°æ±¾µÄST...ÎÒ×Ô¼ºMOD¹ýµÄ...²ÎÓë±ÈÈühttp://misakamm.com/blog/504Çë²ÎÕÕdemo.cppµÄAIPath
+ * ï¿½ï¿½ï¿½Ú¶ï¿½nextï¿½æ±¾ï¿½ï¿½ST...ï¿½ï¿½ï¿½Ô¼ï¿½MODï¿½ï¿½ï¿½ï¿½...ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½http://misakamm.com/blog/504ï¿½ï¿½ï¿½ï¿½ï¿½demo.cppï¿½ï¿½AIPath
  ***********************************************************************************************
- * path ÓÃÓÚ½ÓÊÕ²Ù×÷¹ý³Ì²¢·µ»Ø£¬²Ù×÷×Ö·û¼¯£º
- *      'l': ×óÒÆÒ»¸ñ
- *      'r': ÓÒÒÆÒ»¸ñ
- *      'd': ÏÂÒÆÒ»¸ñ
- *      'L': ×óÒÆµ½Í·
- *      'R': ÓÒÒÆµ½Í·
- *      'D': ÏÂÒÆµ½µ×£¨µ«²»Õ³ÉÏ£¬¿É¼ÌÐøÒÆ¶¯£©
- *      'z': ÄæÊ±ÕëÐý×ª
- *      'c': Ë³Ê±ÕëÐý×ª
- * ×Ö·û´®Ä©Î²Òª¼Ó'\0'£¬±íÊ¾ÂäµØ²Ù×÷£¨»òÓ²½µÂä£©
+ * path ï¿½ï¿½ï¿½Ú½ï¿½ï¿½Õ²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì²ï¿½ï¿½ï¿½ï¿½Ø£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½
+ *      'l': ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½
+ *      'r': ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½
+ *      'd': ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½
+ *      'L': ï¿½ï¿½ï¿½Æµï¿½Í·
+ *      'R': ï¿½ï¿½ï¿½Æµï¿½Í·
+ *      'D': ï¿½ï¿½ï¿½Æµï¿½ï¿½×£ï¿½ï¿½ï¿½ï¿½ï¿½Õ³ï¿½Ï£ï¿½ï¿½É¼ï¿½ï¿½ï¿½ï¿½Æ¶ï¿½ï¿½ï¿½
+ *      'z': ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½×ª
+ *      'c': Ë³Ê±ï¿½ï¿½ï¿½ï¿½×ª
+ * ï¿½Ö·ï¿½ï¿½ï¿½Ä©Î²Òªï¿½ï¿½'\0'ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½Ø²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó²ï¿½ï¿½ï¿½ä£©
  *
- * ±¾º¯ÊýÖ§³ÖÈÎÒâÂ·¾¶²Ù×÷£¬Èô²»ÐèÒª´Ëº¯ÊýÖ»ÏëÊ¹ÓÃÉÏÃæÒ»¸öµÄ»°£¬ÔòÉ¾µô±¾º¯Êý¼´¿É
+ * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö§ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½Ëºï¿½ï¿½ï¿½Ö»ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ä»ï¿½ï¿½ï¿½ï¿½ï¿½É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
  *
  ***********************************************************************************************
- * ½«´ËÎÄ¼þ(ai.cpp)´Ó¹¤³ÌÅÅ³ý,Ôö¼Ódemo.cpp½øÀ´¾Í¿ÉÒÔÁË.Èç¹ûÖ±½ÓÊ¹ÓÃ±ê×¼µÄSTµ÷ÓÃ...»á·¢ÉúÎ´¶¨ÒåµÄÐÐÎª!
+ * ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½(ai.cpp)ï¿½Ó¹ï¿½ï¿½ï¿½ï¿½Å³ï¿½,ï¿½ï¿½ï¿½ï¿½demo.cppï¿½ï¿½ï¿½ï¿½ï¿½Í¿ï¿½ï¿½ï¿½ï¿½ï¿½.ï¿½ï¿½ï¿½Ö±ï¿½ï¿½Ê¹ï¿½Ã±ï¿½×¼ï¿½ï¿½STï¿½ï¿½ï¿½ï¿½...ï¿½á·¢ï¿½ï¿½Î´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª!
  ***********************************************************************************************
  */
 extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char const *nextPiece, char path[])
@@ -94,9 +95,9 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     }
     return 0;
 }
-#define USE_V08 0
-#define USE_THREAD 0
-#define USE_PC 0
+#define USE_V08 1
+#define USE_THREAD 1
+#define USE_PC 1
 
 #if !USE_V08
 #if USE_THREAD
@@ -319,6 +320,165 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
         if (run_result.target != nullptr)
         {
             std::vector<char> ai_path = srs_ai.make_path(node, run_result.target, map);
+            std::memcpy(result, ai_path.data(), ai_path.size());
+            result += ai_path.size();
+        }
+    }
+    result++[0] = 'V';
+    result[0] = '\0';
+    return result_buffer[player];
+}
+
+m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::Botris, search_aspin::Search> botris_ai;
+std::unique_ptr<m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::Botris_PC, search_aspin::Search>> botris_pc;
+
+
+extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI(int overfield[], int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, int level, int player)
+{
+    int row[40];
+    std::memset(row, 0, sizeof row);
+    for (size_t d = 0, s = 22; d < 23; ++d, --s)
+    {
+        row[d] = field[s];
+    }
+    for (size_t d = 23, s = 0; s < 8; ++d, ++s)
+    {
+        row[d] = overfield[s];
+    }
+    return BotrisAI2(row, field_w, field_h,  b2b, combo, next,  hold, curCanHold,  active, x, y, spin, canhold, can180spin, upcomeAtt, comboTable[],  maxDepth,  level,  player);
+}
+
+extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI2(int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, int level, int player)
+{
+    static char result_buffer[8][1024];
+    char *result = result_buffer[player];
+    std::unique_lock<std::mutex> lock(srs_ai_lock);
+
+    if (field_w != 10 || field_h != 22 || !botris_ai.prepare(10, 40))
+    {
+        *result = '\0';
+        return result;
+    }
+    if (!botris_pc || botris_pc->context() != botris_ai.context())
+    {
+        botris_pc.reset(new m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::Botris_PC, search_aspin::Search>(botris_ai.context()));
+        memset(botris_pc->status(), 0, sizeof *botris_pc->status());
+    }
+    m_tetris::TetrisMap map(10, 40);
+    for (size_t d = 0; d < 40; ++d)
+    {
+        map.row[d] = field[d];
+    }
+    for (int my = 0; my < map.height; ++my)
+    {
+        for (int mx = 0; mx < map.width; ++mx)
+        {
+            if (map.full(mx, my))
+            {
+                map.top[mx] = map.roof = my + 1;
+                map.row[my] |= 1 << mx;
+                ++map.count;
+            }
+        }
+    }
+    botris_ai.search_config()->allow_rotate_move = false;
+    botris_ai.search_config()->allow_180 = can180spin;
+    botris_ai.search_config()->allow_d = true;
+    botris_ai.search_config()->is_20g = false;
+    *botris_pc->search_config() = *botris_ai.search_config();
+    struct ComboTable {
+        int table[24] = {0};
+        int table_max = 0;
+    };
+    static ComboTable table;
+    if (table.table_max == 0) {
+        size_t max = 0;
+        while (comboTable[max] != -1)
+        {
+            table.table[max] = comboTable[max];
+            ++max;
+        }
+        table.table_max = max - 1;
+    }
+    botris_ai.ai_config()->table = table.table;
+    botris_ai.ai_config()->table_max = table.table_max;
+    botris_pc->ai_config()->table = table.table;
+    botris_pc->ai_config()->table_max = table.table_max;
+    botris_ai.memory_limit(1024ull << 20);
+    botris_ai.status()->max_combo = 0;
+    botris_ai.status()->max_attack = 0;
+    botris_ai.status()->death = 0;
+    botris_ai.status()->combo = combo;
+    botris_ai.status()->attack = 0;
+    if (botris_ai.status()->under_attack != upcomeAtt)
+    {
+        botris_ai.update();
+    }
+    botris_ai.status()->under_attack = upcomeAtt;
+    botris_ai.status()->map_rise = 0;
+    botris_ai.status()->b2b = !!b2b;
+    botris_ai.status()->like = 0;
+    botris_ai.status()->value = 0;
+    botris_pc->memory_limit(768ull << 20);
+    botris_pc->status()->attack = 0;
+    botris_pc->status()->b2b = !!b2b;
+    botris_pc->status()->combo = combo;
+    botris_pc->status()->like = 0;
+    botris_pc->status()->pc = false;
+    botris_pc->status()->recv_attack = 0;
+    if (botris_pc->status()->under_attack != upcomeAtt)
+    {
+        botris_pc->update();
+    }
+    botris_pc->status()->under_attack = upcomeAtt;
+    botris_pc->status()->value = 0;
+
+    m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
+    m_tetris::TetrisNode const *node = botris_ai.get(status);
+    static double const base_time = std::pow(100, 1.0 / 8);
+    if (canhold)
+    {
+        botris_pc->run_hold(map, node, hold, curCanHold, next, maxDepth, time_t(0));
+        auto run_result = botris_ai.run_hold(map, node, hold, curCanHold, next, maxDepth, time_t(std::pow(base_time, level)));
+        auto pc_result = botris_pc->run_hold(map, node, hold, curCanHold, next, maxDepth, time_t(0));
+        if (pc_result.status.pc)
+        {
+            run_result.change_hold = pc_result.change_hold;
+            run_result.target = pc_result.target;
+        }
+        if (run_result.change_hold)
+        {
+            result++[0] = 'v';
+            if (run_result.target != nullptr)
+            {
+                std::vector<char> ai_path = botris_ai.make_path(botris_ai.context()->generate(run_result.target->status.t), run_result.target, map);
+                std::memcpy(result, ai_path.data(), ai_path.size());
+                result += ai_path.size();
+            }
+        }
+        else
+        {
+            if (run_result.target != nullptr)
+            {
+                std::vector<char> ai_path = botris_ai.make_path(node, run_result.target, map);
+                std::memcpy(result, ai_path.data(), ai_path.size());
+                result += ai_path.size();
+            }
+        }
+    }
+    else
+    {
+        botris_pc->run(map, node, next, maxDepth, time_t(0));
+        auto run_result = botris_ai.run(map, node, next, maxDepth, time_t(std::pow(base_time, level)));
+        auto pc_result = botris_pc->run(map, node, next, maxDepth, time_t(0));
+        if (pc_result.status.pc)
+        {
+            run_result.change_hold = pc_result.change_hold;
+            run_result.target = pc_result.target;
+        }
+        if (run_result.target != nullptr)
+        {
+            std::vector<char> ai_path = botris_ai.make_path(node, run_result.target, map);
             std::memcpy(result, ai_path.data(), ai_path.size());
             result += ai_path.size();
         }

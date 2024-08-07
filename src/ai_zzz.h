@@ -1,6 +1,7 @@
 ﻿
 #include "tetris_core.h"
 #include "search_tspin.h"
+#include "search_aspin.h"
 #include <array>
 
 namespace ai_zzz
@@ -133,6 +134,51 @@ namespace ai_zzz
         int col_mask_, row_mask_;
     };
 
+
+    class Botris_PC
+    {
+    public:
+        typedef search_aspin::Search::ASpinType ASpinType;
+        typedef search_aspin::Search::TetrisNodeWithASpinType TetrisNodeEx;
+        struct Config
+        {
+            int const *table;
+            int table_max;
+        };
+        struct Result
+        {
+            double value;
+            int clear;
+            int roof;
+        };
+        struct Status
+        {
+            int under_attack;
+            int recv_attack;
+            int attack;
+            int like;
+            int combo;
+            bool b2b;
+            bool pc;
+            double value;
+            bool operator < (Status const &) const;
+        };
+    public:
+        void init(m_tetris::TetrisContext const *context, Config const *config);
+        std::string ai_name() const;
+        double ratio() const
+        {
+            return 0.5;
+        }
+        Result eval(TetrisNodeEx const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
+        Status get(TetrisNodeEx &node, Result const &eval_result, size_t depth, Status const & status) const;
+
+    private:
+        m_tetris::TetrisContext const *context_;
+        Config const *config_;
+        int col_mask_, row_mask_;
+    };
+
     class TOJ_v08
     {
     public:
@@ -188,6 +234,62 @@ namespace ai_zzz
         std::vector<MapInDangerData> map_danger_data_;
         size_t map_in_danger_(m_tetris::TetrisMap const &map, size_t t, size_t up) const;
     };
+
+
+    class Botris
+    {
+    public:
+        typedef search_aspin::Search::ASpinType ASpinType;
+        typedef search_aspin::Search::TetrisNodeWithASpinType TetrisNodeEx;
+        struct Config
+        {
+            int const *table;
+            int table_max;
+        };
+        struct Result
+        {
+            double value;
+            int clear;
+            int count;
+            m_tetris::TetrisMap const* map;
+        };
+        struct Status
+        {
+            int max_combo;
+            int max_attack;
+            int death;
+            int combo;
+            int attack;
+            int under_attack;
+            int map_rise;
+            bool b2b;
+            double like;
+            double value;
+            bool operator < (Status const &) const;
+        };
+    public:
+        int8_t get_safe(m_tetris::TetrisMap const &m, char t) const;
+        void init(m_tetris::TetrisContext const *context, Config const *config);
+        std::string ai_name() const;
+        double ratio() const
+        {
+            return 1.5;
+        }
+        Result eval(TetrisNodeEx const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const;
+        Status get(TetrisNodeEx &node, Result const &eval_result, size_t depth, Status const & status, m_tetris::TetrisContext::Env const &env) const;
+    private:
+        m_tetris::TetrisContext const *context_;
+        Config const *config_;
+        int col_mask_, row_mask_;
+        int full_count_;
+        struct MapInDangerData
+        {
+            int data[4];
+        };
+        std::vector<MapInDangerData> map_danger_data_;
+        size_t map_in_danger_(m_tetris::TetrisMap const &map, size_t t, size_t up) const;
+    };
+
 
     class TOJ
     {

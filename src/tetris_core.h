@@ -2097,7 +2097,7 @@ namespace m_tetris
             else
             {
                 auto best = root_->get_best(&local_context_);
-                return best.first != nullptr ? RunResult(best, best.first == nullptr ? false : best.first->is_hold) : RunResult(false);
+                return best.first != nullptr ? RunResult(best, best.first != nullptr && best.first->is_hold) : RunResult(false);
             }
         }
         //根据run的结果得到一个操作路径
@@ -2117,7 +2117,7 @@ namespace m_tetris
         template<class container_t>
         void search(TetrisNode const *node, TetrisMap const &map, container_t &result)
         {
-            auto const *land_point = search_.search(map, node);
+            auto const *land_point = search_.search(map, node, 0);
             result.assign(land_point->begin(), land_point->end());
         }
     };
@@ -2191,7 +2191,8 @@ namespace m_tetris
         {
             std::unique_lock<std::mutex> lock(mutex_);
             while (running_) {
-                if (cv_.wait_for(lock, std::chrono::seconds(1), [&] {
+                if (cv_.wait_for(lock, std::chrono::seconds(1), [&]
+                {
                     return !running_ || (backgrond_ && std::chrono::high_resolution_clock::now() < stop_);
                 }))
                 {
@@ -2205,12 +2206,12 @@ namespace m_tetris
 
         void start_work(bool with_hold)
         {
+            with_hold_ = with_hold;
             if (!running_)
             {
                 running_ = true;
                 worker_ = std::move(std::thread(&TetrisThreadEngine::work_thread_func, this));
             }
-            with_hold_ = with_hold;
             stop_ = std::chrono::high_resolution_clock::now() + std::chrono::seconds(10);
             cv_.notify_all();
         }
