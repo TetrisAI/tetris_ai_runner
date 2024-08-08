@@ -67,6 +67,7 @@
     <ClCompile Include="src\rule_asrs.cpp">
       <Filter>rules\asrs</Filter>
     </ClCompile>
+    <ClCompile Include="src\search_aspin.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\rule_srs.h">
@@ -145,6 +146,7 @@
     <ClInclude Include="src\rule_asrs.h">
       <Filter>rules\asrs</Filter>
     </ClInclude>
+    <ClInclude Include="src\search_aspin.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="rules">

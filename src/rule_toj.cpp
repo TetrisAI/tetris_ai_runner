@@ -18,7 +18,7 @@ namespace rule_toj
     {
         TetrisBlockStatus status =
         {
-            T, 3, 21, 0
+            T, 3, 20, 0
         };
         return status;
     }
