@@ -1880,7 +1880,7 @@ namespace ai_zzz
         case 3:
             if (node.type != ASpinType::None)
             {
-                result.attack += status.b2b ? 8 : 6;
+                result.attack += status.b2b ? 7 : 6;
             }
             result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
             result.b2b = node.type != ASpinType::None;
