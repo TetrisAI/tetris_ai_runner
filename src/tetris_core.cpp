@@ -188,14 +188,16 @@ namespace m_tetris
         }
     }
 
-    void TetrisNodeMark::init(size_t size)
+    template<bool Filtered>
+    void TetrisNodeMarkTemplate<Filtered>::init(size_t size)
     {
         version_ = 0;
         data_.clear();
         data_.resize(size);
     }
 
-    void TetrisNodeMark::clear()
+    template<bool Filtered>
+    void TetrisNodeMarkTemplate<Filtered>::clear()
     {
         if(++version_ == std::numeric_limits<size_t>::max())
         {
@@ -207,21 +209,24 @@ namespace m_tetris
         }
     }
 
-    std::pair<TetrisNode const *, char> TetrisNodeMark::get(size_t index)
+    template<bool Filtered>
+    std::pair<TetrisNode const *, char> TetrisNodeMarkTemplate<Filtered>::get(size_t index)
     {
         Mark &mark = data_[index];
         return mark.version == version_ ? mark.data : std::pair<TetrisNode const *, char>{ nullptr, ' ' };
     }
 
-    std::pair<TetrisNode const *, char> TetrisNodeMark::get(TetrisNode const *key)
+    template<bool Filtered>
+    std::pair<TetrisNode const *, char> TetrisNodeMarkTemplate<Filtered>::get(TetrisNode const *key)
     {
-        Mark &mark = data_[key->index];
+        Mark &mark = data_[Filtered ? key->index_filtered : key->index];
         return mark.version == version_ ? mark.data : std::pair<TetrisNode const *, char>{ nullptr, ' ' };
     }
 
-    bool TetrisNodeMark::set(TetrisNode const *key, TetrisNode const *node, char op)
+    template<bool Filtered>
+    bool TetrisNodeMarkTemplate<Filtered>::set(TetrisNode const *key, TetrisNode const *node, char op)
     {
-        Mark &mark = data_[key->index];
+        Mark &mark = data_[Filtered ? key->index_filtered : key->index];
         if(mark.version == version_)
         {
             return false;
@@ -232,9 +237,10 @@ namespace m_tetris
         return true;
     }
 
-    bool TetrisNodeMark::cover_if(TetrisNode const *key, TetrisNode const *node, char ck, char op)
+    template<bool Filtered>
+    bool TetrisNodeMarkTemplate<Filtered>::cover_if(TetrisNode const *key, TetrisNode const *node, char ck, char op)
     {
-        Mark &mark = data_[key->index];
+        Mark &mark = data_[Filtered ? key->index_filtered : key->index];
         if (mark.version == version_ && mark.data.second != ck)
         {
             return false;
@@ -245,77 +251,10 @@ namespace m_tetris
         return true;
     }
 
-    bool TetrisNodeMark::mark(TetrisNode const *key)
+    template<bool Filtered>
+    bool TetrisNodeMarkTemplate<Filtered>::mark(TetrisNode const *key)
     {
-        Mark &mark = data_[key->index];
-        if(mark.version == version_)
-        {
-            return false;
-        }
-        mark.version = version_;
-        return true;
-    }
-
-    void TetrisNodeMarkFiltered::init(size_t size)
-    {
-        version_ = 0;
-        data_.clear();
-        data_.resize(size);
-    }
-
-    void TetrisNodeMarkFiltered::clear()
-    {
-        if(++version_ == std::numeric_limits<size_t>::max())
-        {
-            version_ = 1;
-            for(auto it = data_.begin(); it != data_.end(); ++it)
-            {
-                it->version = 0;
-            }
-        }
-    }
-
-    std::pair<TetrisNode const *, char> TetrisNodeMarkFiltered::get(size_t index)
-    {
-        Mark &mark = data_[index];
-        return mark.version == version_ ? mark.data : std::pair<TetrisNode const *, char>{ nullptr, ' ' };
-    }
-
-    std::pair<TetrisNode const *, char> TetrisNodeMarkFiltered::get(TetrisNode const *key)
-    {
-        Mark &mark = data_[key->index_filtered];
-        return mark.version == version_ ? mark.data : std::pair<TetrisNode const *, char>{ nullptr, ' ' };
-    }
-
-    bool TetrisNodeMarkFiltered::set(TetrisNode const *key, TetrisNode const *node, char op)
-    {
-        Mark &mark = data_[key->index_filtered];
-        if(mark.version == version_)
-        {
-            return false;
-        }
-        mark.version = version_;
-        mark.data.first = node;
-        mark.data.second = op;
-        return true;
-    }
-
-    bool TetrisNodeMarkFiltered::cover_if(TetrisNode const *key, TetrisNode const *node, char ck, char op)
-    {
-        Mark &mark = data_[key->index_filtered];
-        if (mark.version == version_ && mark.data.second != ck)
-        {
-            return false;
-        }
-        mark.data.first = node;
-        mark.data.second = op;
-        mark.version = version_;
-        return true;
-    }
-
-    bool TetrisNodeMarkFiltered::mark(TetrisNode const *key)
-    {
-        Mark &mark = data_[key->index_filtered];
+        Mark &mark = data_[Filtered ? key->index_filtered : key->index];
         if(mark.version == version_)
         {
             return false;
@@ -434,7 +373,6 @@ namespace m_tetris
                 node.move_down_multi[0] = &node;
                 if(node.move_down)
                 {
-                    node.move_down_multi[1] = node.move_down;
                     TetrisNode copy =
                     {
                         node.move_down->status, node.move_down->op, {node.move_down->data[0], node.move_down->data[1], node.move_down->data[2], node.move_down->data[3]}, {node.move_down->top[0], node.move_down->top[1], node.move_down->top[2], node.move_down->top[3]}, {node.move_down->bottom[0], node.move_down->bottom[1], node.move_down->bottom[2], node.move_down->bottom[3]}, node.move_down->row, node.move_down->height, node.move_down->col, node.move_down->width, node.move_down->low
@@ -718,6 +656,9 @@ namespace m_tetris
         node = new_node;
         return true;
     }
+
+    template class TetrisNodeMarkTemplate<true>;
+    template class TetrisNodeMarkTemplate<false>;
 }
 
 namespace m_tetris_rule_tools
@@ -870,5 +811,4 @@ namespace m_tetris_rule_tools
         --node.status.y;
         return true;
     }
-
 }

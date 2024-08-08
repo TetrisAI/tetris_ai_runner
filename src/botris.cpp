@@ -676,8 +676,8 @@ int main(int argc, char const *argv[])
                     out[0] = '\0';
                     int up1 = std::accumulate(ai1.recv_attack.begin(), ai1.recv_attack.end(), 0);
                     int up2 = std::accumulate(ai2.recv_attack.begin(), ai2.recv_attack.end(), 0);
-                    snprintf(out, sizeof out, "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d APP = %1.1f UP = %2d NAME = %s\n"
-                                              "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d APP = %1.1f UP = %2d NAME = %s\n",
+                    snprintf(out, sizeof out, "HOLD = %c NEXT = %c%c%c%c%c%c COMBO =%2d B2B = %d APP = %1.2f UP = %2d NAME = %s\n"
+                                              "HOLD = %c NEXT = %c%c%c%c%c%c COMBO =%2d B2B = %d APP = %1.2f UP = %2d NAME = %s\n",
                          ai1.hold, ai1.next[1], ai1.next[2], ai1.next[3], ai1.next[4], ai1.next[5], ai1.next[6], ai1.combo, ai1.b2b, 1. * ai1.total_attack / ai1.round, up1, m1->data.name,
                          ai2.hold, ai2.next[1], ai2.next[2], ai2.next[3], ai2.next[4], ai2.next[5], ai2.next[6], ai2.combo, ai2.b2b, 1. * ai2.total_attack / ai2.round, up2, m2->data.name);
                     m_tetris::TetrisMap map_copy1 = ai1.map;
@@ -727,8 +727,8 @@ int main(int argc, char const *argv[])
                     out[0] = '\0';
                     int up1 = std::accumulate(ai1.recv_attack.begin(), ai1.recv_attack.end(), 0);
                     int up2 = std::accumulate(ai2.recv_attack.begin(), ai2.recv_attack.end(), 0);
-                    snprintf(out, sizeof out, "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d APP = %1.1f UP = %2d NAME = %s\n"
-                                              "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d APP = %1.1f UP = %2d NAME = %s\n",
+                    snprintf(out, sizeof out, "HOLD = %c NEXT = %c%c%c%c%c%c COMBO =%2d B2B = %d APP = %1.2f UP = %2d NAME = %s\n"
+                                              "HOLD = %c NEXT = %c%c%c%c%c%c COMBO =%2d B2B = %d APP = %1.2f UP = %2d NAME = %s\n",
                            ai1.hold, ai1.next[1], ai1.next[2], ai1.next[3], ai1.next[4], ai1.next[5], ai1.next[6], ai1.combo, ai1.b2b, 1. * ai1.total_attack / ai1.round, up1, m1->data.name,
                            ai2.hold, ai2.next[1], ai2.next[2], ai2.next[3], ai2.next[4], ai2.next[5], ai2.next[6], ai2.combo, ai2.b2b, 1. * ai2.total_attack / ai2.round, up2, m2->data.name);
                     m_tetris::TetrisMap map_copy1 = ai1.map;

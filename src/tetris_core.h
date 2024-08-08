@@ -210,8 +210,16 @@ namespace m_tetris
 
         TetrisNode const *move_left;
         TetrisNode const *move_right;
-        TetrisNode const *move_down;
         TetrisNode const *move_up;
+        union
+        {
+            struct
+            {
+                TetrisNode const *self;
+                TetrisNode const *move_down;
+            };
+            TetrisNode const *move_down_multi[max_height];
+        };
 
         //踢墙序列,依次尝试
         //遇到nullptr,表示序列结束
@@ -230,8 +238,6 @@ namespace m_tetris
             TetrisNode const *rotate_opposite;
             TetrisNode const *wall_kick_opposite[max_wall_kick];
         };
-
-        TetrisNode const *move_down_multi[max_height];
 
         //检查当前块是否能够合并入场景
         bool check(TetrisMap const &map) const;
@@ -252,7 +258,8 @@ namespace m_tetris
     };
 
     //节点标记.广搜的时候使用
-    class TetrisNodeMark
+    template<bool Filtered>
+    class TetrisNodeMarkTemplate
     {
     private:
         struct Mark
@@ -276,30 +283,8 @@ namespace m_tetris
         bool mark(TetrisNode const *key);
     };
 
-    //节点标记.过滤了位置相同的节点
-    class TetrisNodeMarkFiltered
-    {
-    private:
-        struct Mark
-        {
-            Mark() : version(0)
-            {
-            }
-            size_t version;
-            std::pair<TetrisNode const *, char> data;
-        };
-        size_t version_;
-        std::vector<Mark> data_;
-
-    public:
-        void init(size_t size);
-        void clear();
-        std::pair<TetrisNode const *, char> get(size_t index);
-        std::pair<TetrisNode const *, char> get(TetrisNode const *key);
-        bool set(TetrisNode const *key, TetrisNode const *node, char op);
-        bool cover_if(TetrisNode const *key, TetrisNode const *node, char ck, char op);
-        bool mark(TetrisNode const *key);
-    };
+    using TetrisNodeMark = TetrisNodeMarkTemplate<false>;
+    using TetrisNodeMarkFiltered = TetrisNodeMarkTemplate<true>;
 
     template<class TetrisRule, class AI, class Search>
     struct TetrisContextBuilder;
@@ -934,7 +919,7 @@ namespace m_tetris
             };
             typedef TetrisNext<TetrisAI, typename TetrisAIHasIterate<TetrisAI>::type> next_t;
         public:
-            Context(std::deque<TetrisTreeNode> *_node_storage) : version(), is_complete(), is_open_hold(), node_storage(_node_storage), free_list(nullptr), width(), total(), avg()
+            Context(std::deque<TetrisTreeNode> *_node_storage) : version(), is_complete(), is_open_hold(), node_storage(_node_storage), free_list(nullptr), free_count(0), width(), total(), avg()
             {
             }
         public:
@@ -957,6 +942,7 @@ namespace m_tetris
             size_t width;
             std::deque<TetrisTreeNode> *node_storage;
             TetrisTreeNode* free_list;
+            size_t free_count;
             std::vector<Status const *> iterate_cache;
             TetrisNode virtual_flag;
             TetrisNode const *current;
@@ -974,6 +960,7 @@ namespace m_tetris
                     node = free_list;
                     free_list = free_list->parent;
                     node->version = version - 1;
+                    --free_count;
                 }
                 else
                 {
@@ -991,12 +978,13 @@ namespace m_tetris
                 }
                 node->children = nullptr;
                 node->node_flag.clear();
+                node->flag = 0;
                 node->node = ' ';
                 node->hold = ' ';
                 node->level = 1;
-                node->flag = 0;
                 node->parent = free_list;
                 free_list = node;
+                ++free_count;
             }
         };
         struct TetrisNodeFlag
@@ -1092,20 +1080,17 @@ namespace m_tetris
         {
             struct
             {
+                uint8_t flag;
                 char node;
                 char hold;
                 uint8_t level;
-                uint8_t flag;
             };
             struct
             {
-                char : 8;
-                char : 8;
-                uint8_t : 8;
-                          uint8_t is_dead : 1;
-                          uint8_t is_hold : 1;
-                          uint8_t is_hold_lock : 1;
-                          uint8_t is_virtual : 1;
+                uint8_t is_dead : 1;
+                uint8_t is_hold : 1;
+                uint8_t is_hold_lock : 1;
+                uint8_t is_virtual : 1;
             };
         };
         size_t version;
@@ -1989,7 +1974,7 @@ namespace m_tetris
         }
         uint64_t memory_usage() const
         {
-            return shared_context_->node_storage_.size() * sizeof(TetrisNode) + local_context_.node_storage->size() * sizeof(TreeNode);
+            return shared_context_->node_storage_.size() * sizeof(TetrisNode) + (local_context_.node_storage->size() - local_context_.free_count) * sizeof(TreeNode);
         }
         //AI名称
         std::string ai_name() const
