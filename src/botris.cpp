@@ -15,7 +15,7 @@
 #include "tetris_core.h"
 #include "search_aspin.h"
 #include "ai_zzz.h"
-#include "rule_srs.h"
+#include "rule_botris.h"
 #include "sb_tree.h"
 #include "integer_utils.h"
 
@@ -69,7 +69,7 @@ namespace zzz
     }
 }
 
-using Engine = m_tetris::TetrisEngine<rule_srs::TetrisRule, ai_zzz::Botris, search_aspin::Search>;
+using Engine = m_tetris::TetrisEngine<rule_botris::TetrisRule, ai_zzz::Botris, search_aspin::Search>;
 
 struct test_ai
 {

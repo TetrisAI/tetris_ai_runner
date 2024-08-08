@@ -20,6 +20,7 @@ add_library(${PROJECT_NAME} SHARED
     src/search_tag.cpp
     src/search_aspin.cpp
     src/search_tspin.cpp
+    src/rule_botris.cpp
     src/random.cpp
     src/rule_c2.cpp
     src/rule_qq.cpp
@@ -51,6 +52,7 @@ add_library(${PROJECT_NAME} SHARED
     src/search_tag.cpp
     src/search_tspin.cpp
     src/search_aspin.cpp
+    src/rule_botris.cpp
     src/random.cpp
     src/rule_c2.cpp
     src/rule_qq.cpp
@@ -83,7 +85,7 @@ add_executable(${PROJECT_NAME}
     src/botris.cpp
     src/integer_utils.cpp
     src/random.cpp
-    src/rule_srs.cpp
+    src/rule_botris.cpp
     src/search_aspin.cpp
     src/tetris_core.cpp
 )

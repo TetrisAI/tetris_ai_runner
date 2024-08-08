@@ -25,6 +25,7 @@
 #include "rule_srs.h"
 #include "rule_toj.h"
 #include "rule_c2.h"
+#include "rule_botris.h"
 #include "random.h"
 
 m_tetris::TetrisEngine<rule_st::TetrisRule, ai_zzz::Dig, search_path::Search> tetris_ai;
@@ -348,7 +349,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI2(int field[], int field_w, int
     }
     if (!botris_pc || botris_pc->context() != botris_ai.context())
     {
-        botris_pc.reset(new m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::Botris_PC, search_aspin::Search>(botris_ai.context()));
+        botris_pc.reset(new m_tetris::TetrisThreadEngine<rule_botris::TetrisRule, ai_zzz::Botris_PC, search_aspin::Search>(botris_ai.context()));
         memset(botris_pc->status(), 0, sizeof *botris_pc->status());
     }
     m_tetris::TetrisMap map(10, 40);
