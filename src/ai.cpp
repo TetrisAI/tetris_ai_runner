@@ -25,6 +25,7 @@
 #include "rule_srs.h"
 #include "rule_toj.h"
 #include "rule_c2.h"
+#include "rule_botris.h"
 #include "random.h"
 
 m_tetris::TetrisEngine<rule_st::TetrisRule, ai_zzz::Dig, search_path::Search> tetris_ai;
@@ -329,24 +330,8 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     return result_buffer[player];
 }
 
-m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::Botris, search_aspin::Search> botris_ai;
-std::unique_ptr<m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::Botris_PC, search_aspin::Search>> botris_pc;
-
-
-extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI(int overfield[], int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, int level, int player)
-{
-    int row[40];
-    std::memset(row, 0, sizeof row);
-    for (size_t d = 0, s = 22; d < 23; ++d, --s)
-    {
-        row[d] = field[s];
-    }
-    for (size_t d = 23, s = 0; s < 8; ++d, ++s)
-    {
-        row[d] = overfield[s];
-    }
-    return BotrisAI2(row, field_w, field_h,  b2b, combo, next,  hold, curCanHold,  active, x, y, spin, canhold, can180spin, upcomeAtt, comboTable[],  maxDepth,  level,  player);
-}
+m_tetris::TetrisThreadEngine<rule_botris::TetrisRule, ai_zzz::Botris, search_aspin::Search> botris_ai;
+std::unique_ptr<m_tetris::TetrisThreadEngine<rule_botris::TetrisRule, ai_zzz::Botris_PC, search_aspin::Search>> botris_pc;
 
 extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI2(int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, int level, int player)
 {
@@ -361,7 +346,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI2(int field[], int field_w, int
     }
     if (!botris_pc || botris_pc->context() != botris_ai.context())
     {
-        botris_pc.reset(new m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::Botris_PC, search_aspin::Search>(botris_ai.context()));
+        botris_pc.reset(new m_tetris::TetrisThreadEngine<rule_botris::TetrisRule, ai_zzz::Botris_PC, search_aspin::Search>(botris_ai.context()));
         memset(botris_pc->status(), 0, sizeof *botris_pc->status());
     }
     m_tetris::TetrisMap map(10, 40);
@@ -486,6 +471,21 @@ extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI2(int field[], int field_w, int
     result++[0] = 'V';
     result[0] = '\0';
     return result_buffer[player];
+}
+
+extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI(int overfield[], int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, int level, int player)
+{
+    int row[40];
+    std::memset(row, 0, sizeof row);
+    for (size_t d = 0, s = 22; d < 23; ++d, --s)
+    {
+        row[d] = field[s];
+    }
+    for (size_t d = 23, s = 0; s < 8; ++d, ++s)
+    {
+        row[d] = overfield[s];
+    }
+    return BotrisAI2(row, field_w, field_h,  b2b, combo, next,  hold, curCanHold,  active, x, y, spin, canhold, can180spin, upcomeAtt, comboTable,  maxDepth,  level,  player);
 }
 
 class QQTetrisSearch
