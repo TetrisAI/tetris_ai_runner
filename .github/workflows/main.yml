@@ -55,13 +55,13 @@ jobs:
           name: ${{ env.PROJECT_NAME }}_${{ needs.get-info.outputs.branchName }}_${{ needs.get-info.outputs.commitHash }}_${{ GITHUB.RUN_NUMBER }}_Linux_${{ matrix.config }}
           path: "${{ env.OUTPUT_FOLDER }}/*.so"
       - name: Prepare for release
-        if: ${{ (startsWith(github.ref, 'refs/tags/pre') || startsWith(github.ref, 'refs/tags/v')) && matrix.config == 'release'}}
+        if: ${{ (startsWith(github.ref, 'refs/tags/pre') || startsWith(github.ref, 'refs/tags/v')) && matrix.config == 'Release'}}
         shell: bash
         run: |
           mkdir -p ${{ env.RELEASE_FOLDER }}
           cp ${{ env.OUTPUT_FOLDER }}/*.so ${{ env.RELEASE_FOLDER }}
       - name: Upload release
-        if: ${{ (startsWith(github.ref, 'refs/tags/pre') || startsWith(github.ref, 'refs/tags/v')) && matrix.config == 'release'}}
+        if: ${{ (startsWith(github.ref, 'refs/tags/pre') || startsWith(github.ref, 'refs/tags/v')) && matrix.config == 'Release'}}
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
@@ -95,13 +95,13 @@ jobs:
           name: ${{ env.PROJECT_NAME }}_${{ needs.get-info.outputs.branchName }}_${{ needs.get-info.outputs.commitHash }}_${{ GITHUB.RUN_NUMBER }}_Windows_${{ matrix.config }}
           path: "${{ env.OUTPUT_FOLDER }}/${{ matrix.config }}/*.dll"
       - name: Prepare for release
-        if: ${{ (startsWith(github.ref, 'refs/tags/pre') || startsWith(github.ref, 'refs/tags/v')) && matrix.config == 'release'}}
+        if: ${{ (startsWith(github.ref, 'refs/tags/pre') || startsWith(github.ref, 'refs/tags/v')) && matrix.config == 'Release'}}
         shell: bash
         run: |
           mkdir -p ${{ env.RELEASE_FOLDER }}
           cp ${{ env.OUTPUT_FOLDER }}/${{ matrix.config }}/*.dll ${{ env.RELEASE_FOLDER }}
       - name: Upload release
-        if: ${{ (startsWith(github.ref, 'refs/tags/pre') || startsWith(github.ref, 'refs/tags/v')) && matrix.config == 'release'}}
+        if: ${{ (startsWith(github.ref, 'refs/tags/pre') || startsWith(github.ref, 'refs/tags/v')) && matrix.config == 'Release'}}
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
