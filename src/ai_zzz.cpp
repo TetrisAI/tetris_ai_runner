@@ -1907,17 +1907,18 @@ namespace ai_zzz
         {
             result.like += 2;
         }
+        double rate = (1. / (depth + 1)) + 3;
         result.max_combo = std::max(result.combo, result.max_combo);
         result.max_attack = std::max(result.attack, result.max_attack);
         result.value += ((0.
-            + result.max_attack * 40
-            + result.attack * 256
-            + (result.b2b ? 512 : 0)
+            + result.max_attack * 64
+            + result.attack * 128 * rate
+            + (result.b2b ? 514 : 0)
             + result.like * 64
-            ) * (1.0 * (std::min<int>(std::max<int>(safe, 1), 14) + 6) / 20)
+            ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_))
             + result.max_combo * (result.max_combo - 1) * 40
             - result.death * 999999999.0
-            );
+        );
         return result;
     }
 

@@ -128,8 +128,6 @@ struct test_ai
     }
     void prepare()
     {
-        next.assign(10, 'O');
-        return;
         while(next.size() <= next_length)
         {
             for (size_t i = 0; i < ai.context()->type_max(); ++i)

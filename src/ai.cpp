@@ -2,7 +2,7 @@
 #define DECLSPEC_EXPORT __declspec(dllexport)
 #define WINAPI __stdcall
 #else
-#define DECLSPEC_EXPORT
+#define DECLSPEC_EXPORT __attribute__((visibility("default")))
 #define WINAPI
 #define __cdecl
 #endif
