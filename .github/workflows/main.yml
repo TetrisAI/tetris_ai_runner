@@ -53,7 +53,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.PROJECT_NAME }}_${{ needs.get-info.outputs.branchName }}_${{ needs.get-info.outputs.commitHash }}_${{ GITHUB.RUN_NUMBER }}_Linux_${{ matrix.config }}
-          path: "${{ env.OUTPUT_FOLDER }}"
+          path: "${{ env.OUTPUT_FOLDER }}/*.so"
       - name: Prepare for release
         if: ${{ (startsWith(github.ref, 'refs/tags/pre') || startsWith(github.ref, 'refs/tags/v')) && matrix.config == 'release'}}
         shell: bash
@@ -93,7 +93,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.PROJECT_NAME }}_${{ needs.get-info.outputs.branchName }}_${{ needs.get-info.outputs.commitHash }}_${{ GITHUB.RUN_NUMBER }}_Windows_${{ matrix.config }}
-          path: "${{ env.OUTPUT_FOLDER }}/${{ matrix.config }}"
+          path: "${{ env.OUTPUT_FOLDER }}/${{ matrix.config }}/*.dll"
       - name: Prepare for release
         if: ${{ (startsWith(github.ref, 'refs/tags/pre') || startsWith(github.ref, 'refs/tags/v')) && matrix.config == 'release'}}
         shell: bash
