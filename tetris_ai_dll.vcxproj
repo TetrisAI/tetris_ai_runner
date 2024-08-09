@@ -29,6 +29,7 @@
     <ClInclude Include="src\chash_set.h" />
     <ClInclude Include="src\integer_utils.h" />
     <ClInclude Include="src\rule_asrs.h" />
+    <ClInclude Include="src\rule_botris.h" />
     <ClInclude Include="src\search_aspin.h" />
     <ClInclude Include="src\search_path.h" />
     <ClInclude Include="src\search_simple.h" />
@@ -56,6 +57,7 @@
     <ClCompile Include="src\dllmain.c" />
     <ClCompile Include="src\integer_utils.cpp" />
     <ClCompile Include="src\rule_asrs.cpp" />
+    <ClCompile Include="src\rule_botris.cpp" />
     <ClCompile Include="src\search_aspin.cpp" />
     <ClCompile Include="src\search_path.cpp" />
     <ClCompile Include="src\search_simple.cpp" />

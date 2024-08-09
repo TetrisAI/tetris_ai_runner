@@ -68,6 +68,9 @@
       <Filter>rules\asrs</Filter>
     </ClCompile>
     <ClCompile Include="src\search_aspin.cpp" />
+    <ClCompile Include="src\rule_botris.cpp">
+      <Filter>rules\botris</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\rule_srs.h">
@@ -147,6 +150,9 @@
       <Filter>rules\asrs</Filter>
     </ClInclude>
     <ClInclude Include="src\search_aspin.h" />
+    <ClInclude Include="src\rule_botris.h">
+      <Filter>rules\botris</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="rules">
@@ -217,6 +223,9 @@
     </Filter>
     <Filter Include="rules\asrs">
       <UniqueIdentifier>{5864e945-6fe6-4921-873a-12cc8a4ce444}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="rules\botris">
+      <UniqueIdentifier>{21f7a0ad-0726-4fe1-b279-2877c1aab6bc}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

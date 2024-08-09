@@ -330,8 +330,8 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     return result_buffer[player];
 }
 
-m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::Botris, search_aspin::Search> botris_ai;
-std::unique_ptr<m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::Botris_PC, search_aspin::Search>> botris_pc;
+m_tetris::TetrisThreadEngine<rule_botris::TetrisRule, ai_zzz::Botris, search_aspin::Search> botris_ai;
+std::unique_ptr<m_tetris::TetrisThreadEngine<rule_botris::TetrisRule, ai_zzz::Botris_PC, search_aspin::Search>> botris_pc;
 
 
 
