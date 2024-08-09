@@ -89,4 +89,15 @@ add_executable(${PROJECT_NAME}
     src/search_aspin.cpp
     src/tetris_core.cpp
 )
+
+project(cmd_tris)
+add_executable(${PROJECT_NAME}
+        src/ai_zzz.cpp
+        src/cmd_tris.cpp
+        src/integer_utils.cpp
+        src/random.cpp
+        src/rule_botris.cpp
+        src/search_aspin.cpp
+        src/tetris_core.cpp
+)
 target_include_directories(${PROJECT_NAME} PRIVATE src)
