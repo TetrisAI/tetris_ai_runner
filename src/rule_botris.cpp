@@ -42,14 +42,56 @@ namespace rule_botris
 #define T(a, b, c, d) (((a) ? 1 : 0) | ((b) ? 2 : 0) | ((c) ? 4 : 0) | ((d) ? 8 : 0))
         TetrisOpertion op_O1 =
         {
-            create_node<'O', 0, 0, 0,
-            T(1, 1, 0, 0),
-            T(1, 1, 0, 0),
+            create_node<'O', 1, 0, 0,
+            T(0, 1, 1, 0),
+            T(0, 1, 1, 0),
             T(0, 0, 0, 0),
             T(0, 0, 0, 0)>,
+            rotate_template<1>,
+            rotate_template<3>,
             nullptr,
+            {4, {{+1, +0}, {+0, -1}, {-1, +0}, {-1, +1}}},
+            {4, {{-1, +0}, {+0, -1}, {+1, +0}, {+1, -1}}},
+        };
+        TetrisOpertion op_O2 =
+        {
+            create_node<'O', 1, 0, 0,
+            T(0, 0, 0, 0),
+            T(0, 0, 1, 1),
+            T(0, 0, 1, 1),
+            T(0, 0, 0, 0)>,
+            rotate_template<2>,
+            rotate_template<0>,
             nullptr,
+            {4, {{-1, +0}, {+0, -1}, {+1, +0}, {+1, -1}}},
+            {4, {{-1, +0}, {+0, +1}, {+1, +0}, {+1, +1}}},
+        };
+        TetrisOpertion op_O3 =
+        {
+            create_node<'O', 1, 0, 0,
+            T(0, 0, 0, 0),
+            T(0, 0, 0, 0),
+            T(0, 1, 1, 0),
+            T(0, 1, 1, 0)>,
+            rotate_template<3>,
+            rotate_template<1>,
             nullptr,
+            {4, {{-1, +0}, {+0, +1}, {+1, +0}, {+1, +1}}},
+            {4, {{+1, +0}, {+0, +1}, {-1, +0}, {+1, -1}}},
+        };
+
+        TetrisOpertion op_O4 =
+        {
+            create_node<'O', 1, 0, 0,
+            T(0, 0, 0, 0),
+            T(1, 1, 0, 0),
+            T(1, 1, 0, 0),
+            T(0, 0, 0, 0)>,
+            rotate_template<0>,
+            rotate_template<2>,
+            nullptr,
+            {4, {{+1, +0}, {+0, +1}, {-1, +0}, {+1, -1}}},
+            {4, {{+1, +0}, {+0, -1}, {-1, +0}, {-1, +1}}},
         };
         TetrisOpertion op_I1 =
         {
@@ -365,6 +407,9 @@ namespace rule_botris
         };
 #undef T
         info.insert(std::make_pair(std::make_pair('O', 0), op_O1));
+        info.insert(std::make_pair(std::make_pair('O', 1), op_O2));
+        info.insert(std::make_pair(std::make_pair('O', 2), op_O3));
+        info.insert(std::make_pair(std::make_pair('O', 3), op_O4));
         info.insert(std::make_pair(std::make_pair('I', 0), op_I1));
         info.insert(std::make_pair(std::make_pair('I', 1), op_I2));
         info.insert(std::make_pair(std::make_pair('I', 2), op_I3));
