@@ -1,0 +1,110 @@
+name: Tetris AI DLL CI
+
+permissions: write-all
+
+on:
+  push:
+    branches: [ botris, ci-*, master ]
+    tags: [ pre*, v* ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  get-info:
+    runs-on: ubuntu-latest
+    outputs:
+      branchName: ${{ steps.git-info.outputs.branchName }}
+      commitHash: ${{ steps.git-info.outputs.commitHash }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get git info
+        id: git-info
+        shell: bash
+        run: |
+          BRANCH_NAME=$(git branch --show-current)
+          COMMIT_HASH=$(git rev-parse --short ${{ GITHUB.SHA }})
+          echo "branchName=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          echo "commitHash=$COMMIT_HASH" >> $GITHUB_OUTPUT
+
+  build-linux:
+    runs-on: ubuntu-24.04
+    needs: get-info
+    env:
+      OUTPUT_FOLDER: ./build
+      PROJECT_NAME: tetris_ai
+      RELEASE_FOLDER: ./release
+    strategy:
+      matrix:
+        config: [ Debug, Release ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+      - name: Setup CMake
+        uses: lukka/get-cmake@latest
+      - name: CMake Configure and Build
+        env:
+          CC: gcc-14
+          CXX: g++-14
+        run: |
+          cmake -S "${{ github.workspace }}" -B "${{ github.workspace }}/${{ env.OUTPUT_FOLDER }}" -DCMAKE_BUILD_TYPE=${{ matrix.config }}
+          cmake --build "${{ github.workspace }}/${{ env.OUTPUT_FOLDER }}" --target ${{ env.PROJECT_NAME }}
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PROJECT_NAME }}_${{ needs.get-info.outputs.branchName }}_${{ needs.get-info.outputs.commitHash }}_${{ GITHUB.RUN_NUMBER }}_Linux_${{ matrix.config }}
+          path: "${{ env.OUTPUT_FOLDER }}/*.so"
+      - name: Prepare for release
+        if: ${{ (startsWith(github.ref, 'refs/tags/pre') || startsWith(github.ref, 'refs/tags/v')) && matrix.config == 'Release'}}
+        shell: bash
+        run: |
+          mkdir -p ${{ env.RELEASE_FOLDER }}
+          cp ${{ env.OUTPUT_FOLDER }}/*.so ${{ env.RELEASE_FOLDER }}
+      - name: Upload release
+        if: ${{ (startsWith(github.ref, 'refs/tags/pre') || startsWith(github.ref, 'refs/tags/v')) && matrix.config == 'Release'}}
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifacts: |
+            ${{ env.RELEASE_FOLDER }}/*
+          prerelease: ${{ startsWith(github.ref, 'refs/tags/pre') }}
+
+  build-windows:
+    runs-on: windows-latest
+    needs: get-info
+    env:
+      OUTPUT_FOLDER: ./build
+      PROJECT_NAME: tetris_ai
+      RELEASE_FOLDER: ./release
+    strategy:
+      matrix:
+        config: [ Debug, Release ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+      - name: Setup CMake
+        uses: lukka/get-cmake@latest
+      - name: CMake Configure and Build
+        run: |
+          cmake -S "${{ github.workspace }}" -B "${{ github.workspace }}/${{ env.OUTPUT_FOLDER }}"
+          cmake --build "${{ github.workspace }}/${{ env.OUTPUT_FOLDER }}" --config ${{ matrix.config }} --target ${{ env.PROJECT_NAME }}
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PROJECT_NAME }}_${{ needs.get-info.outputs.branchName }}_${{ needs.get-info.outputs.commitHash }}_${{ GITHUB.RUN_NUMBER }}_Windows_${{ matrix.config }}
+          path: "${{ env.OUTPUT_FOLDER }}/${{ matrix.config }}/*.dll"
+      - name: Prepare for release
+        if: ${{ (startsWith(github.ref, 'refs/tags/pre') || startsWith(github.ref, 'refs/tags/v')) && matrix.config == 'Release'}}
+        shell: bash
+        run: |
+          mkdir -p ${{ env.RELEASE_FOLDER }}
+          cp ${{ env.OUTPUT_FOLDER }}/${{ matrix.config }}/*.dll ${{ env.RELEASE_FOLDER }}
+      - name: Upload release
+        if: ${{ (startsWith(github.ref, 'refs/tags/pre') || startsWith(github.ref, 'refs/tags/v')) && matrix.config == 'Release'}}
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifacts: |
+            ${{ env.RELEASE_FOLDER }}/*
+          prerelease: ${{ startsWith(github.ref, 'refs/tags/pre') }}
