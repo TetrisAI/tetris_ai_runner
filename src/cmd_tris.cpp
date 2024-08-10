@@ -151,6 +151,7 @@ struct test_ai
         ai.status()->death = 0;
         ai.status()->combo = combo;
         ai.status()->attack = 0;
+        ai.status()->clear = 0;
         if (ai.status()->under_attack != upcomeAtt)
         {
             ai.update();

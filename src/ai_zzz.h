@@ -260,6 +260,7 @@ namespace ai_zzz
             int death;
             int combo;
             int attack;
+            int clear;
             int under_attack;
             int map_rise;
             bool b2b;

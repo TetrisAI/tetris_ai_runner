@@ -1837,6 +1837,7 @@ namespace ai_zzz
     {
         Status result = status;
         result.value = eval_result.value;
+        result.clear += eval_result.clear;
         int safe = node->row >= 20 ? -1 : env.length > 0 ? get_safe(*eval_result.map, *env.next) : eval_result.map->roof;
         if (safe <= 0)
         {
@@ -1912,7 +1913,7 @@ namespace ai_zzz
         result.max_attack = std::max(result.attack, result.max_attack);
         result.value += ((0.
             + result.max_attack * 64
-            + result.attack * 128 * rate
+            + result.attack * 128 * rate / std::max<int>(1, result.clear)
             + (result.b2b ? 514 : 0)
             + result.like * 64
             ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_))

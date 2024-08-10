@@ -398,6 +398,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI2(int field[], int field_w, int
     botris_ai.status()->death = 0;
     botris_ai.status()->combo = combo;
     botris_ai.status()->attack = 0;
+    botris_ai.status()->clear = 0;
     if (botris_ai.status()->under_attack != upcomeAtt)
     {
         botris_ai.update();
