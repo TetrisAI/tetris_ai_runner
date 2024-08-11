@@ -263,7 +263,7 @@ namespace ai_zzz
             int clear;
             int under_attack;
             int map_rise;
-            bool b2b;
+            int b2b;
             double like;
             double value;
             bool operator < (Status const &) const;

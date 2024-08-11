@@ -119,6 +119,29 @@ struct test_ai
         total_clear = 0;
         total_attack = 0;
         total_receive = 0;
+
+        // hold = 'S';
+        // char next_arr[] = " TZSJOLJ";
+        // next.assign(next_arr, next_arr + 8);
+        // map.row[5] = 0b0000000001;
+        // map.row[4] = 0b0000000001;
+        // map.row[3] = 0b0011000001;
+        // map.row[2] = 0b1110001111;
+        // map.row[1] = 0b1111001111;
+        // map.row[0] = 0b1111000111;
+        // map.roof = 0;
+        // map.count = 0;
+        // for (int my = 0; my < map.height; ++my)
+        // {
+        //     for (int mx = 0; mx < map.width; ++mx)
+        //     {
+        //         if (map.full(mx, my))
+        //         {
+        //             map.top[mx] = map.roof = my + 1;
+        //             ++map.count;
+        //         }
+        //     }
+        // }
     }
     m_tetris::TetrisNode const *node() const
     {

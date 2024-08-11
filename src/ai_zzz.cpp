@@ -1843,6 +1843,7 @@ namespace ai_zzz
         {
             result.value -= 99999;
         }
+        int attack = 0;
         switch (eval_result.clear)
         {
         case 0:
@@ -1865,29 +1866,29 @@ namespace ai_zzz
             if (node.type == ASpinType::ASpin)
             {
                 result.like += 8;
-                result.attack += status.b2b ? 3 : 2;
+                attack += status.b2b ? 3 : 2;
             }
-            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
+            attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
             result.b2b = node.type != ASpinType::None;
             break;
         case 2:
             if (node.type != ASpinType::None)
             {
-                result.attack += status.b2b ? 5 : 4;
+                attack += status.b2b ? 5 : 4;
             }
-            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 1;
+            attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 1;
             result.b2b = node.type != ASpinType::None;
             break;
         case 3:
             if (node.type != ASpinType::None)
             {
-                result.attack += status.b2b ? 7 : 6;
+                attack += status.b2b ? 7 : 6;
             }
-            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
+            attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
             result.b2b = node.type != ASpinType::None;
             break;
         case 4:
-            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
+            attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
             result.b2b = true;
             break;
         }
@@ -1897,18 +1898,15 @@ namespace ai_zzz
         }
         if (eval_result.count == 0 && result.map_rise == 0)
         {
-            result.like += 20;
-            result.attack += 6;
-        }
-        if (status.b2b && !result.b2b)
-        {
             result.like -= 8;
+            attack = 10;
         }
         if (env.hold == 'I' && eval_result.clear == 0)
         {
             result.like += 2;
         }
         double rate = (1. / (depth + 1)) + 3;
+        result.attack += attack;
         result.max_combo = std::max(result.combo, result.max_combo);
         result.max_attack = std::max(result.attack, result.max_attack);
         result.value += ((0.
