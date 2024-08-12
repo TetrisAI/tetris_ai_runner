@@ -78,12 +78,11 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
         {
             if (board[x + add] == '1')
             {
-                map.top[x] = map.roof = y + 1;
                 map.row[y] |= 1 << x;
-                ++map.count;
             }
         }
     }
+    map.prepare();
     m_tetris::TetrisBlockStatus status(curPiece, curX - 1, curY - 1, curR - 1);
     std::string next(nextPiece);
     m_tetris::TetrisNode const *node = tetris_ai.get(status);
@@ -176,18 +175,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     {
         map.row[d] = overfield[s];
     }
-    for (int my = 0; my < map.height; ++my)
-    {
-        for (int mx = 0; mx < map.width; ++mx)
-        {
-            if (map.full(mx, my))
-            {
-                map.top[mx] = map.roof = my + 1;
-                map.row[my] |= 1 << mx;
-                ++map.count;
-            }
-        }
-    }
+    map.prepare();
     srs_ai.search_config()->allow_rotate_move = false;
     srs_ai.search_config()->allow_180 = can180spin;
     srs_ai.search_config()->allow_d = true;
@@ -355,18 +343,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI3(int field[], int field_w, int
     {
         map.row[d] = field[d];
     }
-    for (int my = 0; my < map.height; ++my)
-    {
-        for (int mx = 0; mx < map.width; ++mx)
-        {
-            if (map.full(mx, my))
-            {
-                map.top[mx] = map.roof = my + 1;
-                map.row[my] |= 1 << mx;
-                ++map.count;
-            }
-        }
-    }
+    map.prepare();
     botris_ai.search_config()->allow_rotate_move = false;
     botris_ai.search_config()->allow_180 = can180spin;
     botris_ai.search_config()->allow_d = true;
@@ -559,18 +536,7 @@ extern "C" DECLSPEC_EXPORT int __cdecl QQTetrisAI(int boardW, int boardH, int bo
     }
     m_tetris::TetrisMap map(boardW, boardH);
     std::memcpy(map.row, board, boardH * sizeof(int));
-    for (int my = 0; my < map.height; ++my)
-    {
-        for (int mx = 0; mx < map.width; ++mx)
-        {
-            if (map.full(mx, my))
-            {
-                map.top[mx] = map.roof = my + 1;
-                map.row[my] |= 1 << mx;
-                ++map.count;
-            }
-        }
-    }
+    map.prepare();
     m_tetris::TetrisBlockStatus status(nextPiece[0], curX, curY, (4 - curR) % 4);
     size_t next_length = std::strlen(nextPiece) - 1;
     if (level < 10)
@@ -677,18 +643,7 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
     }
     m_tetris::TetrisMap map(boardW, boardH);
     std::memcpy(map.row, board, boardH * sizeof(int));
-    for (int my = 0; my < map.height; ++my)
-    {
-        for (int mx = 0; mx < map.width; ++mx)
-        {
-            if (map.full(mx, my))
-            {
-                map.top[mx] = map.roof = my + 1;
-                map.row[my] |= 1 << mx;
-                ++map.count;
-            }
-        }
-    }
+    map.prepare();
     c2_ai.memory_limit(1ull << 30);
     c2_ai.search_config()->fast_move_down = true;
     c2_ai.ai_config()->p =

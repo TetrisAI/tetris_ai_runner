@@ -19,45 +19,43 @@ namespace m_tetris
 
     void TetrisNode::build_snap(TetrisMap const &map, TetrisContext const *context, TetrisMapSnap &snap) const
     {
+        uint32_t el = map.empty_line();
         for(int r = 0; r < 4; ++r)
         {
             auto block = context->get_block(status.t, r);
-            if(block->count > 0)
+            if(block->count == 0)
             {
+                memset(snap.row[r], 0, sizeof snap.row[r]);
+            }
+            else
+            {
+                memset(&snap.row[r][map.height], 0, sizeof(uint32_t) * (max_height - map.height));
                 uint32_t i = 0;
                 if(block->data[0].x == 0 && block->data[0].y == 0)
                 {
-                    std::memcpy(snap.row[r], map.row, sizeof(uint32_t) * map.roof);
+                    for(int y = 0, ey = map.height; y < ey; ++y)
+                    {
+                        snap.row[r][y] = map.row[y];
+                    }
                     i = 1;
+                }
+                else
+                {
+                    for(int y = 0, ey = map.height; y < ey; ++y)
+                    {
+                        snap.row[r][y] = el;
+                    }
                 }
                 for(; i < block->count; ++i)
                 {
                     int bx = block->data[i].x, by = block->data[i].y;
-                    if(bx > 0)
+                    for (int y = 0, ey = map.height - by; y < ey; ++y)
                     {
-                        uint32_t wall = 1U << (context->width() - bx);
-                        int y = 0, e1 = map.roof - by, e2 = map.height - by;
-                        while(y < e1)
-                        {
-                            snap.row[r][y] |= map.row[y + by] >> bx | wall;
-                            ++y;
-                        }
-                        while(y < e2)
-                        {
-                            snap.row[r][y] |= wall;
-                            ++y;
-                        }
+                        snap.row[r][y] &= map.row[y + by] >> bx;
                     }
-                    else
+                    for (int y = map.height - by; y < map.height; ++y)
                     {
-                        for(int y = 0, ey = map.roof - by; y < ey; ++y)
-                        {
-                            snap.row[r][y] |= map.row[y + by] >> bx;
-                        }
-                    }
-                    if(by > 0)
-                    {
-                        snap.row[r][map.height - by] = context->full();
+                        snap.row[r][y] = 0;
                     }
                 }
             }
@@ -69,13 +67,13 @@ namespace m_tetris
         switch(height)
         {
         case 4:
-            map.row[row + 3] |= data[3];
+            map.row[row + 3] &= ~data[3];
         case 3:
-            map.row[row + 2] |= data[2];
+            map.row[row + 2] &= ~data[2];
         case 2:
-            map.row[row + 1] |= data[1];
+            map.row[row + 1] &= ~data[1];
         case 1:
-            map.row[row] |= data[0];
+            map.row[row] &= ~data[0];
         }
         int clear = 0;
         for(int i = height; i > 0; --i)
@@ -83,7 +81,7 @@ namespace m_tetris
             if(map.row[row + i - 1] == context->full())
             {
                 memmove(&map.row[row + i - 1], &map.row[row + i], (map.height - i) * sizeof(int));
-                map.row[map.height - 1] = 0;
+                map.row[map.height - 1] = map.empty_line();
                 ++clear;
             }
         }
@@ -276,7 +274,6 @@ namespace m_tetris
         width_ = width;
         height_ = height;
         type_max_ = 0;
-        full_ = width == 32 ? 0xFFFFFFFFU : (1 << width) - 1;
         std::vector<TetrisBlockStatus> check;
         for(auto cit = generate_.begin(); cit != generate_.end(); ++cit)
         {
@@ -509,21 +506,6 @@ namespace m_tetris
 #undef WALL_KICK
         }
         return true;
-    }
-
-    int32_t TetrisContext::width() const
-    {
-        return width_;
-    }
-
-    int32_t TetrisContext::height() const
-    {
-        return height_;
-    }
-
-    uint32_t TetrisContext::full() const
-    {
-        return full_;
     }
 
     size_t TetrisContext::type_max() const

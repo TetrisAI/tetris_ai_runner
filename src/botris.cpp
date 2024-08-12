@@ -120,28 +120,19 @@ struct test_ai
         total_attack = 0;
         total_receive = 0;
 
-        // hold = 'S';
-        // char next_arr[] = " TZSJOLJ";
-        // next.assign(next_arr, next_arr + 8);
-        // map.row[5] = 0b0000000001;
-        // map.row[4] = 0b0000000001;
-        // map.row[3] = 0b0011000001;
-        // map.row[2] = 0b1110001111;
-        // map.row[1] = 0b1111001111;
-        // map.row[0] = 0b1111000111;
-        // map.roof = 0;
-        // map.count = 0;
-        // for (int my = 0; my < map.height; ++my)
-        // {
-        //     for (int mx = 0; mx < map.width; ++mx)
-        //     {
-        //         if (map.full(mx, my))
-        //         {
-        //             map.top[mx] = map.roof = my + 1;
-        //             ++map.count;
-        //         }
-        //     }
-        // }
+        //combo = 10;
+        //hold = 'T';
+        //char next_arr[] = " TTTTTTT";
+        //next.assign(next_arr, next_arr + 8);
+        //map.row[18] = 0b1111101100;
+        //map.row[17] = 0b1111111100;
+        //map.row[16] = 0b1111111100;
+        //map.row[15] = 0b1111111100;
+        //map.row[14] = 0b1111111100;
+        //map.row[13] = 0b1111111000;
+        //map.row[12] = 0b1111111101;
+        //map.row[11] = 0b1111111111;
+        map.prepare();
     }
     m_tetris::TetrisNode const *node() const
     {
@@ -413,24 +404,12 @@ struct test_ai
             {
                 map.row[y] = map.row[y - line];
             }
-            uint32_t row = ai.context()->full() & ~(1 << std::uniform_int_distribution<uint32_t>(0, ai.context()->width() - 1)(r_garbage));
+            uint32_t row = 1 << std::uniform_int_distribution<uint32_t>(0, ai.context()->width() - 1)(r_garbage);
             for (int y = 0; y < line; ++y)
             {
                 map.row[y] = row;
             }
-            map.roof = 0;
-            map.count = 0;
-            for (int my = 0; my < map.height; ++my)
-            {
-                for (int mx = 0; mx < map.width; ++mx)
-                {
-                    if (map.full(mx, my))
-                    {
-                        map.top[mx] = map.roof = my + 1;
-                        ++map.count;
-                    }
-                }
-            }
+            map.prepare_internal();
         }
     }
     void under_attack(int line)
@@ -598,7 +577,7 @@ int main(int argc, char const *argv[])
             node_count = arg_count;
         }
     }
-    std::atomic<bool> view{false};
+    std::atomic<bool> view{true};
     std::atomic<uint32_t> view_index{0};
 
     std::recursive_mutex rank_table_lock;

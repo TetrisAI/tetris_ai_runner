@@ -45,10 +45,12 @@ namespace m_tetris
         int32_t roof;
         //场景的方块数
         int32_t count;
+        //
+        uint32_t line;
         //判定[x,y]坐标是否有方块
         inline bool full(size_t x, size_t y) const
         {
-            return (row[y] >> x) & 1;
+            return ((row[y] >> x) & 1) == 0;
         }
         TetrisMap()
         {
@@ -58,6 +60,7 @@ namespace m_tetris
             std::memset(this, 0, sizeof *this);
             width = w;
             height = h;
+            line = width == 32 ? 0xFFFFFFFF : (1 << width) - 1;
         }
         TetrisMap(TetrisMap const &other)
         {
@@ -79,6 +82,43 @@ namespace m_tetris
         {
             return std::memcmp(this, &other, sizeof *this) != 0;
         }
+        uint32_t empty_line() const
+        {
+            return line;
+        }
+        void prepare_internal()
+        {
+            roof = 0;
+            count = 0;
+            for (int my = 0; my < height; ++my)
+            {
+                for (int mx = 0; mx < width; ++mx)
+                {
+                    if (full(mx, my))
+                    {
+                        top[mx] = roof = my + 1;
+                        ++count;
+                    }
+                }
+            }
+        }
+        void prepare()
+        {
+            roof = 0;
+            count = 0;
+            for (int my = 0; my < height; ++my)
+            {
+                row[my] = ~row[my] & empty_line();
+                for (int mx = 0; mx < width; ++mx)
+                {
+                    if (full(mx, my))
+                    {
+                        top[mx] = roof = my + 1;
+                        ++count;
+                    }
+                }
+            }
+        }
     };
 
     struct TetrisNodeBlockLocate
@@ -97,10 +137,6 @@ namespace m_tetris
     struct TetrisMapSnap
     {
         uint32_t row[4][max_height];
-        TetrisMapSnap()
-        {
-            std::memset(row, 0, sizeof row);
-        }
     };
 
     //方块状态
@@ -311,8 +347,6 @@ namespace m_tetris
 
         //宽,高什么的...
         int32_t width_, height_;
-        //满行
-        uint32_t full_;
 
         //一些用于加速的数据...
         std::map<char, std::vector<TetrisNode const *>> place_cache_;
@@ -333,9 +367,9 @@ namespace m_tetris
         //初始化
         bool prepare(int32_t width, int32_t height);
 
-        int32_t width() const;
-        int32_t height() const;
-        uint32_t full() const;
+        int32_t width() const { return width_; }
+        int32_t height() const { return height_; }
+        uint32_t full() const { return 0; }
         size_t type_max() const;
         size_t node_max() const;
         size_t convert(char type) const;
@@ -2326,24 +2360,26 @@ namespace m_tetris
 
     inline bool TetrisNode::check(TetrisMap const &map) const
     {
+        uint32_t l = 0;
         switch (height)
         {
         default:
             assert(0);
         case 4:
-            return ((map.row[row] & data[0]) | (map.row[row + 1] & data[1]) | (map.row[row + 2] & data[2]) | (map.row[row + 3] & data[3])) == 0;
+            l |= (map.row[row + 3] & data[3]) ^ data[3];
         case 3:
-            return ((map.row[row] & data[0]) | (map.row[row + 1] & data[1]) | (map.row[row + 2] & data[2])) == 0;
+            l |= (map.row[row + 2] & data[2]) ^ data[2];
         case 2:
-            return ((map.row[row] & data[0]) | (map.row[row + 1] & data[1])) == 0;
+            l |= (map.row[row + 1] & data[1]) ^ data[1];
         case 1:
-            return ((map.row[row] & data[0])) == 0;
+            l |= (map.row[row + 0] & data[0]) ^ data[0];
         }
+        return l == 0;
     }
 
     inline bool TetrisNode::check(TetrisMapSnap const &snap) const
     {
-        return ((snap.row[status.r][row] >> col) & 1) == 0;
+        return (snap.row[status.r][row] >> col) & 1;
     }
 
 

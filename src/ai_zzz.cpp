@@ -1687,8 +1687,8 @@ namespace ai_zzz
     {
         context_ = context;
         config_ = config;
-        col_mask_ = context->full() & ~1;
-        row_mask_ = context->full();
+        col_mask_ = (context->width() == 32 ? 0xFFFFFFFFU : (1 << context->width()) - 1) & ~1;
+        row_mask_ = (context->width() == 32 ? 0xFFFFFFFFU : (1 << context->width()) - 1);
         full_count_ = context->width() * 24;
         map_danger_data_.resize(context->type_max());
         for (size_t i = 0; i < context->type_max(); ++i)
@@ -1714,24 +1714,25 @@ namespace ai_zzz
         const int width_m1 = map.width - 1;
         int ColTrans = 2 * (map.height - map.roof);
         int RowTrans = map.roof == map.height ? 0 : map.width;
-        for (int y = 0; y < map.roof; ++y)
+        if (map.roof > 0)
         {
-            if (!map.full(0, y))
+            for (int y = 0; y < map.roof; ++y)
             {
-                ++ColTrans;
+                uint64_t row = map.row[y];
+                ColTrans += ZZZ_BitCount(row ^ (row << 1));
+                if (y != 0)
+                {
+                    RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
+                }
             }
-            if (!map.full(width_m1, y))
-            {
-                ++ColTrans;
-            }
-            ColTrans += ZZZ_BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
-            if (y != 0)
-            {
-                RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
-            }
+            RowTrans += ZZZ_BitCount(map.row[0]);
+            RowTrans += map.roof == map.height ? ZZZ_BitCount(map.empty_line() & ~map.row[map.roof - 1]) : map.width - ZZZ_BitCount(map.row[map.roof - 1]);
         }
-        RowTrans += ZZZ_BitCount(row_mask_ & ~map.row[0]);
-        RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+        else
+        {
+            RowTrans += map.width;
+        }
+
         struct
         {
             int HoleCount;
@@ -1754,15 +1755,15 @@ namespace ai_zzz
 
         for (int y = map.roof - 1; y >= 0; --y)
         {
-            v.LineCoverBits |= map.row[y];
-            int LineHole = v.LineCoverBits ^ map.row[y];
+            v.LineCoverBits |= ~map.row[y];
+            int LineHole = (v.LineCoverBits ^ map.row[y]) & map.empty_line();
             if (LineHole != 0)
             {
                 ++v.HoleLine;
                 a[v.HolePosyIndex].ClearWidth = 0;
                 for (int hy = y + 1; hy < map.roof; ++hy)
                 {
-                    uint32_t CheckLine = LineHole & map.row[hy];
+                    uint32_t CheckLine = LineHole & ~map.row[hy];
                     if (CheckLine == 0)
                     {
                         break;
