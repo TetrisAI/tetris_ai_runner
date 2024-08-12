@@ -1892,9 +1892,9 @@ namespace ai_zzz
             result.b2b = true;
             break;
         }
-        if (result.combo < 5)
+        if (result.combo < 6)
         {
-            result.like -= 1.5 * result.combo;
+            result.like -= 3 * result.combo;
         }
         if (eval_result.count == 0 && result.map_rise == 0)
         {
@@ -1911,7 +1911,7 @@ namespace ai_zzz
         result.max_attack = std::max(result.attack, result.max_attack);
         result.value += ((0.
             + result.max_attack * 64
-            + result.attack * 128 * rate / std::max<int>(1, result.clear)
+            + result.attack * 128 * rate
             + (result.b2b ? 514 : 0)
             + result.like * 64
             ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_))

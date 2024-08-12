@@ -334,12 +334,10 @@ m_tetris::TetrisThreadEngine<rule_botris::TetrisRule, ai_zzz::Botris, search_asp
 std::unique_ptr<m_tetris::TetrisThreadEngine<rule_botris::TetrisRule, ai_zzz::Botris_PC, search_aspin::Search>> botris_pc;
 
 
-
-
-extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI2(int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, int level, int player)
+extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI3(int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, int duration)
 {
-    static char result_buffer[8][1024];
-    char *result = result_buffer[player];
+    static char result_buffer[1024];
+    char *result = result_buffer;
     std::unique_lock<std::mutex> lock(srs_ai_lock);
 
     if (field_w != 10 || field_h != 22 || !botris_ai.prepare(10, 40))
@@ -424,11 +422,10 @@ extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI2(int field[], int field_w, int
 
     m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
     m_tetris::TetrisNode const *node = botris_ai.get(status);
-    static double const base_time = std::pow(100, 1.0 / 8);
     if (canhold)
     {
         botris_pc->run_hold(map, node, hold, curCanHold, next, maxDepth, time_t(0));
-        auto run_result = botris_ai.run_hold(map, node, hold, curCanHold, next, maxDepth, time_t(std::pow(base_time, level)));
+        auto run_result = botris_ai.run_hold(map, node, hold, curCanHold, next, maxDepth, time_t(duration));
         auto pc_result = botris_pc->run_hold(map, node, hold, curCanHold, next, maxDepth, time_t(0));
         if (pc_result.status.pc)
         {
@@ -458,7 +455,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI2(int field[], int field_w, int
     else
     {
         botris_pc->run(map, node, next, maxDepth, time_t(0));
-        auto run_result = botris_ai.run(map, node, next, maxDepth, time_t(std::pow(base_time, level)));
+        auto run_result = botris_ai.run(map, node, next, maxDepth, time_t(duration));
         auto pc_result = botris_pc->run(map, node, next, maxDepth, time_t(0));
         if (pc_result.status.pc)
         {
@@ -474,7 +471,13 @@ extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI2(int field[], int field_w, int
     }
     result++[0] = 'V';
     result[0] = '\0';
-    return result_buffer[player];
+    return result_buffer;
+}
+
+extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI2(int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, int level, int player)
+{
+    static double const base_time = std::pow(100, 1.0 / 8);
+    return BotrisAI3(field, field_w, field_h, b2b, combo, next, hold, curCanHold, active, x, y, spin, canhold, can180spin, upcomeAtt, comboTable, maxDepth, int(std::pow(base_time, level)));
 }
 
 extern "C" DECLSPEC_EXPORT char* __cdecl BotrisAI(int overfield[], int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, int level, int player)
