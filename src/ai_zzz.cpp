@@ -1590,24 +1590,24 @@ namespace ai_zzz
         const int width_m1 = map.width - 1;
         int ColTrans = 2 * (map.height - map.roof);
         int RowTrans = map.roof == map.height ? 0 : map.width;
-        for (int y = 0; y < map.roof; ++y)
+        if (map.roof > 0)
         {
-            if (!map.full(0, y))
+            for (int y = 0; y < map.roof; ++y)
             {
-                ++ColTrans;
+                uint64_t row = map.row[y];
+                ColTrans += ZZZ_BitCount(row ^ (row << 1));
+                if (y != 0)
+                {
+                    RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
+                }
             }
-            if (!map.full(width_m1, y))
-            {
-                ++ColTrans;
-            }
-            ColTrans += ZZZ_BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
-            if (y != 0)
-            {
-                RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
-            }
+            RowTrans += ZZZ_BitCount(map.row[0]);
+            RowTrans += map.roof == map.height ? ZZZ_BitCount(map.empty_line() & ~map.row[map.roof - 1]) : map.width - ZZZ_BitCount(map.row[map.roof - 1]);
         }
-        RowTrans += ZZZ_BitCount(row_mask_ & ~map.row[0]);
-        RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+        else
+        {
+            RowTrans += map.width;
+        }
 
         Result result;
         result.value = (map.roof > 4 ? 0 : 10000) - ColTrans * 3 - RowTrans * 2;
@@ -1619,6 +1619,7 @@ namespace ai_zzz
     Botris_PC::Status Botris_PC::get(TetrisNodeEx &node, Result const &eval_result, size_t depth, Status const & status) const {
 
         Status result = status;
+        int attack = 0;
         switch (eval_result.clear)
         {
         case 0:
@@ -1632,36 +1633,38 @@ namespace ai_zzz
         case 1:
             if (node.type == ASpinType::ASpin)
             {
-                result.attack += status.b2b ? 3 : 2;
+                attack += status.b2b ? 3 : 2;
             }
-            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
+            attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
             result.b2b = node.type != ASpinType::None;
             break;
         case 2:
             if (node.type != ASpinType::None)
             {
-                result.attack += status.b2b ? 5 : 4;
+                attack += status.b2b ? 5 : 4;
             }
-            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 1;
+            attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 1;
             result.b2b = node.type != ASpinType::None;
             break;
         case 3:
             if (node.type != ASpinType::None)
             {
-                result.attack += status.b2b ? 8 : 6;
+                attack += status.b2b ? 7 : 6;
             }
-            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
+            attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
             result.b2b = node.type != ASpinType::None;
             break;
         case 4:
-            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
+            attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
             result.b2b = true;
             break;
         }
         if (eval_result.roof == 0 && result.recv_attack == 0) {
             result.like += 100;
             result.pc = true;
+            attack = 10;
         }
+        result.attack += attack;
         if (eval_result.roof > 4) {
             result.like -= 1;
         }

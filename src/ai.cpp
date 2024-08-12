@@ -404,7 +404,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI3(int field[], int field_w, int
         botris_pc->run_hold(map, node, hold, curCanHold, next, maxDepth, time_t(0));
         auto run_result = botris_ai.run_hold(map, node, hold, curCanHold, next, maxDepth, time_t(duration));
         auto pc_result = botris_pc->run_hold(map, node, hold, curCanHold, next, maxDepth, time_t(0));
-        if (pc_result.status.pc)
+        if (pc_result.status.pc && pc_result.status.attack > run_result.status.attack)
         {
             run_result.change_hold = pc_result.change_hold;
             run_result.target = pc_result.target;
