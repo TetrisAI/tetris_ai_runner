@@ -452,7 +452,7 @@ namespace zzz
             {
                 set_size_(node, get_size_(node) + 1);
                 where = node;
-                if(is_left = predicate(key, node))
+                if((is_left = predicate(key, node)))
                 {
                     node = get_left_(node);
                 }
@@ -648,14 +648,14 @@ namespace zzz
                     assert(false);
                 }
                 std::string fork =
-                    !is_nil_(get_left_(node)) && !is_nil_(get_right_(node)) ? "©Ï" :
+                    !is_nil_(get_left_(node)) && !is_nil_(get_right_(node)) ? "ï¿½ï¿½" :
                     is_nil_(get_left_(node)) && is_nil_(get_right_(node)) ? "* " :
-                    !is_nil_(get_right_(node)) ? "©¿" : "©·";
-                std::string next_left = type == 0 ? "" : type == 1 ? "©§" : "  ";
-                std::string next_right = type == 0 ? "" : type == 1 ? "  " : "©§";
-                print_tree(get_right_(node), level + 1, head + next_right, "©³", 1);
+                    !is_nil_(get_right_(node)) ? "ï¿½ï¿½" : "ï¿½ï¿½";
+                std::string next_left = type == 0 ? "" : type == 1 ? "ï¿½ï¿½" : "  ";
+                std::string next_right = type == 0 ? "" : type == 1 ? "  " : "ï¿½ï¿½";
+                print_tree(get_right_(node), level + 1, head + next_right, "ï¿½ï¿½", 1);
                 printf("%s%d\n", (head + with + fork).c_str(), sbt_get_index_(node));
-                print_tree(get_left_(node), level + 1, head + next_left, "©»", 2);
+                print_tree(get_left_(node), level + 1, head + next_left, "ï¿½ï¿½", 2);
             }
         }
     };

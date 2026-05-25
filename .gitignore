@@ -57,3 +57,5 @@ Icon
 /ppt_pso.exe
 /build
 /.vscode
+/.vs
+/x64/Release
