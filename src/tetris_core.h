@@ -45,10 +45,12 @@ namespace m_tetris
         int32_t roof;
         //场景的方块数
         int32_t count;
+        //
+        uint32_t line;
         //判定[x,y]坐标是否有方块
         inline bool full(size_t x, size_t y) const
         {
-            return (row[y] >> x) & 1;
+            return ((row[y] >> x) & 1) == 0;
         }
         TetrisMap()
         {
@@ -58,12 +60,14 @@ namespace m_tetris
             std::memset(this, 0, sizeof *this);
             width = w;
             height = h;
+            line = width == 32 ? 0xFFFFFFFF : (1 << width) - 1;
+            clear();
         }
         TetrisMap(TetrisMap const &other)
         {
             std::memcpy(this, &other, sizeof *this);
         }
-        TetrisMap &operator = (TetrisMap const &other)
+        TetrisMap &operator=(TetrisMap const &other)
         {
             if (this != &other)
             {
@@ -71,13 +75,60 @@ namespace m_tetris
             }
             return *this;
         }
-        bool operator == (TetrisMap const &other)
+        bool operator==(TetrisMap const &other)
         {
             return std::memcmp(this, &other, sizeof *this) == 0;
         }
-        bool operator != (TetrisMap const &other)
+        bool operator!=(TetrisMap const &other)
         {
             return std::memcmp(this, &other, sizeof *this) != 0;
+        }
+        uint32_t empty_line() const
+        {
+            return line;
+        }
+        void clear()
+        {
+            for (int y = 0; y < height; ++y)
+            {
+                row[y] = line;
+            }
+            std::memset(top, 0, sizeof top);
+            roof = 0;
+            count = 0;
+        }
+        void prepare_internal()
+        {
+            roof = 0;
+            count = 0;
+            for (int my = 0; my < height; ++my)
+            {
+                for (int mx = 0; mx < width; ++mx)
+                {
+                    if (full(mx, my))
+                    {
+                        top[mx] = roof = my + 1;
+                        ++count;
+                    }
+                }
+            }
+        }
+        void prepare()
+        {
+            roof = 0;
+            count = 0;
+            for (int my = 0; my < height; ++my)
+            {
+                row[my] = ~row[my] & empty_line();
+                for (int mx = 0; mx < width; ++mx)
+                {
+                    if (full(mx, my))
+                    {
+                        top[mx] = roof = my + 1;
+                        ++count;
+                    }
+                }
+            }
         }
     };
 
@@ -97,10 +148,6 @@ namespace m_tetris
     struct TetrisMapSnap
     {
         uint32_t row[4][max_height];
-        TetrisMapSnap()
-        {
-            std::memset(row, 0, sizeof row);
-        }
     };
 
     //方块状态
@@ -162,13 +209,13 @@ namespace m_tetris
     struct TetrisOpertion
     {
         //创建一个方块
-        TetrisNode(*create)(size_t w, size_t h, TetrisOpertion const &op);
+        TetrisNode (*create)(size_t w, size_t h, TetrisOpertion const &op);
         //顺时针旋转(右旋)
-        bool(*rotate_clockwise)(TetrisNode &node, TetrisContext const *context);
+        bool (*rotate_clockwise)(TetrisNode &node, TetrisContext const *context);
         //逆时针旋转(左旋)
-        bool(*rotate_counterclockwise)(TetrisNode &node, TetrisContext const *context);
+        bool (*rotate_counterclockwise)(TetrisNode &node, TetrisContext const *context);
         //转动180°
-        bool(*rotate_opposite)(TetrisNode &node, TetrisContext const *context);
+        bool (*rotate_opposite)(TetrisNode &node, TetrisContext const *context);
         //顺时针旋转踢墙
         TetrisWallKickOpertion wall_kick_clockwise;
         //逆时针旋转踢墙
@@ -294,6 +341,7 @@ namespace m_tetris
     {
         template<class TetrisRule, class AI, class Search>
         friend class TetrisEngine;
+
     private:
         TetrisContext()
         {
@@ -307,12 +355,12 @@ namespace m_tetris
 
         //规则信息
         std::map<std::pair<char, unsigned char>, TetrisOpertion> opertion_;
-        std::map<char, TetrisBlockStatus(*)(TetrisContext const *)> generate_;
+        std::map<char, TetrisBlockStatus (*)(TetrisContext const *)> generate_;
 
         //宽,高什么的...
         int32_t width_, height_;
         //满行
-        uint32_t full_;
+        uint32_t row_mask_;
 
         //一些用于加速的数据...
         std::map<char, std::vector<TetrisNode const *>> place_cache_;
@@ -333,9 +381,22 @@ namespace m_tetris
         //初始化
         bool prepare(int32_t width, int32_t height);
 
-        int32_t width() const;
-        int32_t height() const;
-        uint32_t full() const;
+        int32_t width() const
+        {
+            return width_;
+        }
+        int32_t height() const
+        {
+            return height_;
+        }
+        uint32_t full() const
+        {
+            return 0;
+        }
+        uint32_t row_mask() const
+        {
+            return row_mask_;
+        }
         size_t type_max() const;
         size_t node_max() const;
         size_t convert(char type) const;
@@ -354,21 +415,21 @@ namespace m_tetris
     struct TetrisAIInfo
     {
     private:
-        template <typename T>
+        template<typename T>
         struct function_traits_eval : public function_traits_eval<decltype(&T::eval)>
         {
         };
-        template <typename ClassType, typename ReturnType, typename... Args>
-        struct function_traits_eval<ReturnType(ClassType::*)(Args...) const>
+        template<typename ClassType, typename ReturnType, typename... Args>
+        struct function_traits_eval<ReturnType (ClassType::*)(Args...) const>
         {
             typedef ReturnType result_type;
         };
-        template <typename T>
+        template<typename T>
         struct function_traits_get : public function_traits_get<decltype(&T::get)>
         {
         };
-        template <typename ClassType, typename ReturnType, typename... Args>
-        struct function_traits_get<ReturnType(ClassType::*)(Args...) const>
+        template<typename ClassType, typename ReturnType, typename... Args>
+        struct function_traits_get<ReturnType (ClassType::*)(Args...) const>
         {
             enum
             {
@@ -376,6 +437,7 @@ namespace m_tetris
             };
             typedef ReturnType result_type;
         };
+
     public:
         typedef typename function_traits_eval<TetrisAI>::result_type Result;
         typedef typename function_traits_get<TetrisAI>::result_type Status;
@@ -392,7 +454,7 @@ namespace m_tetris
         struct CallInit
         {
             template<class... Params>
-            CallInit(CallType &type, Params const &... params)
+            CallInit(CallType &type, Params const &...params)
             {
             }
         };
@@ -400,7 +462,7 @@ namespace m_tetris
         struct CallInit<CallType, std::true_type>
         {
             template<class... Params>
-            CallInit(CallType &type, Params const &... params)
+            CallInit(CallType &type, Params const &...params)
             {
                 type.init(params...);
             }
@@ -412,12 +474,16 @@ namespace m_tetris
         struct Derived : Type, Fallback
         {
         };
-        template<typename U, U> struct Check;
-        template<typename U> static std::false_type func(Check<int Fallback::*, &U::init> *);
-        template<typename U> static std::true_type func(...);
+        template<typename U, U>
+        struct Check;
+        template<typename U>
+        static std::false_type func(Check<int Fallback::*, &U::init> *);
+        template<typename U>
+        static std::true_type func(...);
+
     public:
         template<class... Params>
-        TetrisCallInit(Type &type, Params const &... params)
+        TetrisCallInit(Type &type, Params const &...params)
         {
             CallInit<Type, decltype(func<Derived>(nullptr))>(type, params...);
         }
@@ -426,12 +492,12 @@ namespace m_tetris
     template<class AI, class Node>
     struct TetrisCallAI
     {
-        template <typename T>
+        template<typename T>
         struct eval_function_traits : public eval_function_traits<decltype(&AI::eval)>
         {
         };
-        template <typename ClassType, typename ReturnType, typename... Args>
-        struct eval_function_traits<ReturnType(ClassType::*)(Args...) const>
+        template<typename ClassType, typename ReturnType, typename... Args>
+        struct eval_function_traits<ReturnType (ClassType::*)(Args...) const>
         {
             enum
             {
@@ -448,12 +514,12 @@ namespace m_tetris
         typedef typename eval_function_traits<AI>::template arg<0u>::type EvalOtherNode;
         typedef typename eval_function_traits<AI>::result_type eval_result_type;
 
-        template <typename T>
+        template<typename T>
         struct get_function_traits : public get_function_traits<decltype(&AI::get)>
         {
         };
-        template <typename ClassType, typename ReturnType, typename... Args>
-        struct get_function_traits<ReturnType(ClassType::*)(Args...) const>
+        template<typename ClassType, typename ReturnType, typename... Args>
+        struct get_function_traits<ReturnType (ClassType::*)(Args...) const>
         {
             enum
             {
@@ -474,7 +540,7 @@ namespace m_tetris
         struct CallEval
         {
             template<class Return, class TetrisNodeEx, class... Params>
-            static Return eval(CallAI const &ai, TetrisNode const *node, Params const &... params)
+            static Return eval(CallAI const &ai, TetrisNode const *node, Params const &...params)
             {
                 typename std::remove_reference<EvalOtherNode>::type node_ex(node);
                 return ai.eval(node_ex, params...);
@@ -484,7 +550,7 @@ namespace m_tetris
         struct CallEval<CallAI, T, T>
         {
             template<class Return, class TetrisNodeEx, class... Params>
-            static Return eval(CallAI const &ai, TetrisNodeEx &node, Params const &... params)
+            static Return eval(CallAI const &ai, TetrisNodeEx &node, Params const &...params)
             {
                 return ai.eval(node, params...);
             }
@@ -493,7 +559,7 @@ namespace m_tetris
         struct CallGet
         {
             template<class Return, class TetrisNodeEx, class... Params>
-            static Return get(CallAI const &ai, TetrisNode const *node, Params const &... params)
+            static Return get(CallAI const &ai, TetrisNode const *node, Params const &...params)
             {
                 typename std::remove_reference<EvalOtherNode>::type node_ex(node);
                 return ai.get(node_ex, params...);
@@ -503,21 +569,22 @@ namespace m_tetris
         struct CallGet<CallAI, T, T>
         {
             template<class Return, class TetrisNodeEx, class... Params>
-            static Return get(CallAI const &ai, TetrisNodeEx &node, Params const &... params)
+            static Return get(CallAI const &ai, TetrisNodeEx &node, Params const &...params)
             {
                 return ai.get(node, params...);
             }
         };
+
     public:
         template<class... Params>
-        static auto eval(AI const &ai, Node &node, Params const &... params)->eval_result_type
+        static auto eval(AI const &ai, Node &node, Params const &...params) -> eval_result_type
         {
             typedef typename std::remove_reference<typename std::remove_const<Node>::type>::type NodeLeft;
             typedef typename std::remove_reference<typename std::remove_const<EvalOtherNode>::type>::type NodeRight;
             return CallEval<AI, NodeLeft, NodeRight>::template eval<eval_result_type, Node>(ai, node, params...);
         }
         template<class... Params>
-        static auto get(AI const &ai, Node &node, Params const &... params)->get_result_type
+        static auto get(AI const &ai, Node &node, Params const &...params) -> get_result_type
         {
             typedef typename std::remove_reference<typename std::remove_const<Node>::type>::type NodeLeft;
             typedef typename std::remove_reference<typename std::remove_const<GetOtherNode>::type>::type NodeRight;
@@ -551,9 +618,13 @@ namespace m_tetris
         struct Derived : Rule, Fallback
         {
         };
-        template<typename U, U> struct Check;
-        template<typename U> static std::false_type func(Check<int Fallback::*, &U::init> *);
-        template<typename U> static std::true_type func(...);
+        template<typename U, U>
+        struct Check;
+        template<typename U>
+        static std::false_type func(Check<int Fallback::*, &U::init> *);
+        template<typename U>
+        static std::true_type func(...);
+
     public:
         static bool init(int w, int h)
         {
@@ -571,9 +642,13 @@ namespace m_tetris
         struct Derived : TetrisAI, Fallback
         {
         };
-        template<typename U, U> struct Check;
-        template<typename U> static std::false_type func(Check<int Fallback::*, &U::ratio> *);
-        template<typename U> static std::true_type func(...);
+        template<typename U, U>
+        struct Check;
+        template<typename U>
+        static std::false_type func(Check<int Fallback::*, &U::ratio> *);
+        template<typename U>
+        static std::true_type func(...);
+
     public:
         typedef decltype(func<Derived>(nullptr)) type;
     };
@@ -588,9 +663,13 @@ namespace m_tetris
         struct Derived : TetrisAI, Fallback
         {
         };
-        template<typename U, U> struct Check;
-        template<typename U> static std::false_type func(Check<int Fallback::*, &U::iterate> *);
-        template<typename U> static std::true_type func(...);
+        template<typename U, U>
+        struct Check;
+        template<typename U>
+        static std::false_type func(Check<int Fallback::*, &U::iterate> *);
+        template<typename U>
+        static std::true_type func(...);
+
     public:
         typedef decltype(func<Derived>(nullptr)) type;
     };
@@ -605,11 +684,13 @@ namespace m_tetris
         struct Derived : Type, Fallback
         {
         };
-        template<typename U, U> struct Check;
+        template<typename U, U>
+        struct Check;
         template<typename U>
         static std::false_type func(Check<int Fallback::*, &U::Config> *);
         template<typename U>
         static std::true_type func(...);
+
     public:
         typedef decltype(func<Derived>(nullptr)) type;
     };
@@ -650,6 +731,7 @@ namespace m_tetris
                 {
                     return &ai_config_;
                 }
+
             private:
                 AIConfigType ai_config_;
             };
@@ -686,10 +768,12 @@ namespace m_tetris
                 {
                     return &status_config_;
                 }
+
             private:
                 SearchConfigType status_config_;
             };
         };
+
     public:
         template<class TreeNode>
         class LocalContext : public TreeContext, public AIConfig<TetrisAI, typename TetrisHasConfig<TetrisAI>::type>::AIConfigHolder, public SearchConfig<TetrisSearch, typename TetrisHasConfig<TetrisSearch>::type>::SearchConfigHolder
@@ -725,6 +809,7 @@ namespace m_tetris
                 TetrisCallInit<TetrisSearch>(search, shared_context);
             }
         };
+
     public:
         template<class TreeNode>
         static void init_ai(TetrisAI &ai, LocalContext<TreeNode> const *local_context, TetrisContext const *shared_context)
@@ -742,12 +827,12 @@ namespace m_tetris
     struct TetrisCore
     {
     private:
-        template <typename TemplateElement>
+        template<typename TemplateElement>
         struct element_traits
         {
             typedef void Element;
         };
-        template <typename TemplateElement>
+        template<typename TemplateElement>
         struct element_traits<std::vector<TemplateElement> const *>
         {
             typedef TemplateElement Element;
@@ -757,6 +842,7 @@ namespace m_tetris
         typedef typename element_traits<decltype(TetrisSearch().search(TetrisMap(), nullptr, 0))>::Element LandPoint;
         typedef typename TetrisAIInfo<TetrisAI>::Result Result;
         typedef typename TetrisAIInfo<TetrisAI>::Status Status;
+
     private:
         template<class TreeNode, class>
         struct TetrisGetRatio
@@ -825,6 +911,7 @@ namespace m_tetris
                 node->status.set(TetrisCallAI<TetrisAI, LandPoint>::get(*context->ai, node->identity, node->result));
             }
         };
+
     public:
         template<class TreeNode>
         using EnableNextC = typename TetrisSelectGet<TreeNode, false, TetrisAIInfo<TetrisAI>::arity>::enable_next_c;
@@ -883,7 +970,7 @@ namespace m_tetris
                 {
                     return vp;
                 }
-                bool operator == (TetrisNext const &other) const
+                bool operator==(TetrisNext const &other) const
                 {
                     return node == other.node && vp == other.vp;
                 }
@@ -907,7 +994,7 @@ namespace m_tetris
                 {
                     return false;
                 }
-                bool operator == (TetrisNext const &other) const
+                bool operator==(TetrisNext const &other) const
                 {
                     return node == other.node;
                 }
@@ -918,10 +1005,12 @@ namespace m_tetris
                 char node;
             };
             typedef TetrisNext<TetrisAI, typename TetrisAIHasIterate<TetrisAI>::type> next_t;
+
         public:
             Context(std::deque<TetrisTreeNode> *_node_storage) : version(), is_complete(), is_open_hold(), node_storage(_node_storage), free_list(nullptr), free_count(0), width(), total(), avg()
             {
             }
+
         public:
             typedef std::priority_queue<TetrisTreeNode *, std::vector<TetrisTreeNode *>, ValueHeapCompare> value_heap_t;
             typedef chash_map<TetrisBlockStatus, TetrisTreeNode *, TetrisBlockStatusHash, TetrisBlockStatusEqual> children_map_t;
@@ -941,7 +1030,7 @@ namespace m_tetris
             size_t max_length;
             size_t width;
             std::deque<TetrisTreeNode> *node_storage;
-            TetrisTreeNode* free_list;
+            TetrisTreeNode *free_list;
             size_t free_count;
             std::vector<Status const *> iterate_cache;
             TetrisNode virtual_flag;
@@ -951,6 +1040,7 @@ namespace m_tetris
             std::vector<double> width_cache;
             double total;
             double avg;
+
         public:
             TetrisTreeNode *alloc(TetrisTreeNode *parent)
             {
@@ -1530,7 +1620,7 @@ namespace m_tetris
             else if (node_flag.check(&context->virtual_flag))
             {
                 node_flag.set(&context->virtual_flag);
-                auto  &old = context->old;
+                auto &old = context->old;
                 for (auto it = children; it != nullptr; it = it->children_next)
                 {
                     old.emplace(it->identity->status, it);
@@ -1589,9 +1679,8 @@ namespace m_tetris
             if (EnableEnv)
             {
                 TetrisContext::Env result =
-                {
-                    nullptr, 0, tree_node->identity->status.t, tree_node->is_hold ? node : hold
-                };
+                    {
+                        nullptr, 0, tree_node->identity->status.t, tree_node->is_hold ? node : hold};
                 result.length = std::distance(next, context->next.cend());
                 if (result.length == 0)
                 {
@@ -1606,10 +1695,8 @@ namespace m_tetris
             }
             else
             {
-                return
-                {
-                    nullptr, 0, ' ', ' ', false
-                };
+                return {
+                    nullptr, 0, ' ', ' ', false};
             }
         }
         template<bool EnableHold>
@@ -1981,19 +2068,19 @@ namespace m_tetris
         {
             return ai_.ai_name();
         }
-        auto ai_config() const->decltype(local_context_.ai_config())
+        auto ai_config() const -> decltype(local_context_.ai_config())
         {
             return local_context_.ai_config();
         }
-        auto ai_config()->decltype(local_context_.ai_config())
+        auto ai_config() -> decltype(local_context_.ai_config())
         {
             return local_context_.ai_config();
         }
-        auto search_config() const->decltype(local_context_.search_config())
+        auto search_config() const -> decltype(local_context_.search_config())
         {
             return local_context_.search_config();
         }
-        auto search_config()->decltype(local_context_.search_config())
+        auto search_config() -> decltype(local_context_.search_config())
         {
             return local_context_.search_config();
         }
@@ -2113,14 +2200,16 @@ namespace m_tetris
     private:
         typedef TetrisEngine<TetrisRule, TetrisAI, TetrisSearch> Engine;
 
-        template<class T, class U> struct ValueHolder
+        template<class T, class U>
+        struct ValueHolder
         {
             T value;
             T const *get() const
             {
                 return &value;
             }
-            T *get() {
+            T *get()
+            {
                 return &value;
             }
             void assign(T *ptr) const
@@ -2128,7 +2217,8 @@ namespace m_tetris
                 *ptr = value;
             }
         };
-        template<class U> struct ValueHolder<void, U>
+        template<class U>
+        struct ValueHolder<void, U>
         {
             void const *get() const
             {
@@ -2156,10 +2246,11 @@ namespace m_tetris
         bool backgrond_;
         bool running_;
 
-        struct PauseBackground {
-            TetrisThreadEngine* self;
+        struct PauseBackground
+        {
+            TetrisThreadEngine *self;
 
-            PauseBackground(TetrisThreadEngine* _self) : self(_self)
+            PauseBackground(TetrisThreadEngine *_self) : self(_self)
             {
                 self->backgrond_ = false;
                 self->mutex_.lock();
@@ -2175,11 +2266,10 @@ namespace m_tetris
         void work_thread_func()
         {
             std::unique_lock<std::mutex> lock(mutex_);
-            while (running_) {
+            while (running_)
+            {
                 if (cv_.wait_for(lock, std::chrono::seconds(1), [&]
-                {
-                    return !running_ || (backgrond_ && std::chrono::high_resolution_clock::now() < stop_);
-                }))
+                                 { return !running_ || (backgrond_ && std::chrono::high_resolution_clock::now() < stop_); }))
                 {
                     if (with_hold_ ? engine_.run_hold() : engine_.run())
                     {
@@ -2214,7 +2304,8 @@ namespace m_tetris
         }
         ~TetrisThreadEngine()
         {
-            if (running_) {
+            if (running_)
+            {
                 running_ = false;
                 cv_.notify_all();
                 worker_.join();
@@ -2252,19 +2343,19 @@ namespace m_tetris
         {
             return engine_.ai_name();
         }
-        auto ai_config() const->decltype(engine_.ai_config())
+        auto ai_config() const -> decltype(engine_.ai_config())
         {
             return ai_config_.get();
         }
-        auto ai_config()->decltype(engine_.ai_config())
+        auto ai_config() -> decltype(engine_.ai_config())
         {
             return ai_config_.get();
         }
-        auto search_config() const->decltype(engine_.search_config())
+        auto search_config() const -> decltype(engine_.search_config())
         {
             return search_config_.get();
         }
-        auto search_config()->decltype(engine_.search_config())
+        auto search_config() -> decltype(engine_.search_config())
         {
             return search_config_.get();
         }
@@ -2323,29 +2414,29 @@ namespace m_tetris
         }
     };
 
-
     inline bool TetrisNode::check(TetrisMap const &map) const
     {
+        uint32_t l = 0;
         switch (height)
         {
         default:
             assert(0);
         case 4:
-            return ((map.row[row] & data[0]) | (map.row[row + 1] & data[1]) | (map.row[row + 2] & data[2]) | (map.row[row + 3] & data[3])) == 0;
+            l |= (map.row[row + 3] & data[3]) ^ data[3];
         case 3:
-            return ((map.row[row] & data[0]) | (map.row[row + 1] & data[1]) | (map.row[row + 2] & data[2])) == 0;
+            l |= (map.row[row + 2] & data[2]) ^ data[2];
         case 2:
-            return ((map.row[row] & data[0]) | (map.row[row + 1] & data[1])) == 0;
+            l |= (map.row[row + 1] & data[1]) ^ data[1];
         case 1:
-            return ((map.row[row] & data[0])) == 0;
+            l |= (map.row[row + 0] & data[0]) ^ data[0];
         }
+        return l == 0;
     }
 
     inline bool TetrisNode::check(TetrisMapSnap const &snap) const
     {
-        return ((snap.row[status.r][row] >> col) & 1) == 0;
+        return (snap.row[status.r][row] >> col) & 1;
     }
-
 
     inline bool TetrisNode::open(TetrisMap const &map) const
     {
@@ -2368,7 +2459,6 @@ namespace m_tetris
 namespace m_tetris_rule_tools
 {
     using namespace m_tetris;
-
 
     //创建一个节点(只支持4x4矩阵,这里包含了矩阵收缩)
     TetrisNode create_node(size_t w, size_t h, char T, int8_t X, int8_t Y, uint8_t R, uint32_t line1, uint32_t line2, uint32_t line3, uint32_t line4, TetrisOpertion const &op);

@@ -26,24 +26,26 @@
 #include <unistd.h>
 #endif
 
-
 namespace zzz
 {
-    template<size_t N> struct is_key_char
+    template<size_t N>
+    struct is_key_char
     {
         bool operator()(char c, char const *arr)
         {
             return arr[N - 2] == c || is_key_char<N - 1>()(c, arr);
         }
     };
-    template<> struct is_key_char<1U>
+    template<>
+    struct is_key_char<1U>
     {
         bool operator()(char c, char const *arr)
         {
             return false;
         }
     };
-    template<size_t N> void split(std::vector<std::string> &out, std::string const &in, char const (&arr)[N])
+    template<size_t N>
+    void split(std::vector<std::string> &out, std::string const &in, char const (&arr)[N])
     {
         out.clear();
         std::string temp;
@@ -95,9 +97,7 @@ struct test_ai
     int total_receive;
 
     test_ai(Engine &global_ai, int const *_combo_table, int _combo_table_max)
-        : ai(global_ai.context())
-        , combo_table(_combo_table)
-        , combo_table_max(_combo_table_max)
+        : ai(global_ai.context()), combo_table(_combo_table), combo_table_max(_combo_table_max)
     {
     }
 
@@ -128,7 +128,7 @@ struct test_ai
     }
     void prepare()
     {
-        while(next.size() <= next_length)
+        while (next.size() <= next_length)
         {
             for (size_t i = 0; i < ai.context()->type_max(); ++i)
             {
@@ -137,7 +137,7 @@ struct test_ai
             std::shuffle(next.end() - ai.context()->type_max(), next.end(), r_next);
         }
     }
-    void run(std::function<void(test_ai&)> view_func)
+    void run(std::function<void(test_ai &)> view_func)
     {
         ai.search_config()->allow_rotate_move = true;
         ai.search_config()->allow_180 = true;
@@ -184,7 +184,14 @@ struct test_ai
         {
         default:
             break;
-        case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
             under_attack(c - '0');
             break;
         case 'L':
@@ -198,7 +205,7 @@ struct test_ai
             {
                 curr = curr->move_right;
             }
-          break;
+            break;
         case 'd':
             if (curr->move_down != nullptr && curr->move_down->check(map))
             {
@@ -220,7 +227,8 @@ struct test_ai
                 curr = curr->move_right;
             }
             break;
-        case 'z': case 'Z':
+        case 'z':
+        case 'Z':
             for (auto wall_kick_node : curr->wall_kick_counterclockwise)
             {
                 if (wall_kick_node)
@@ -237,7 +245,8 @@ struct test_ai
                 }
             }
             break;
-        case 'x': case 'X':
+        case 'x':
+        case 'X':
             for (auto wall_kick_node : curr->wall_kick_opposite)
             {
                 if (wall_kick_node)
@@ -254,21 +263,22 @@ struct test_ai
                 }
             }
             break;
-        case 'c': case 'C':
+        case 'c':
+        case 'C':
             for (auto wall_kick_node : curr->wall_kick_clockwise)
             {
-              if (wall_kick_node)
-              {
-                  if (wall_kick_node->check(map))
-                  {
-                      curr = wall_kick_node;
-                      break;
-                  }
-              }
-              else
-              {
-                  break;
-              }
+                if (wall_kick_node)
+                {
+                    if (wall_kick_node->check(map))
+                    {
+                        curr = wall_kick_node;
+                        break;
+                    }
+                }
+                else
+                {
+                    break;
+                }
             }
             break;
         case 'v':
@@ -313,7 +323,7 @@ struct test_ai
             prepare();
             int clear = curr->attach(ai.context().get(), map);
             total_clear += clear;
-            auto& m = map;
+            auto &m = map;
             n = curr;
             bool immovable = (!n->move_up || !n->move_up->check(m)) && (!n->move_down || !n->move_down->check(m)) && (!n->move_left || !n->move_left->check(m)) && (!n->move_right || !n->move_right->check(m));
             switch (clear)
@@ -398,7 +408,7 @@ struct test_ai
                 {
                     map.row[y] = map.row[y - line];
                 }
-                uint32_t row = ai.context()->full() & ~(1 << std::uniform_int_distribution<uint32_t>(0, ai.context()->width() - 1)(r_garbage));
+                uint32_t row = 1 << std::uniform_int_distribution<uint32_t>(0, ai.context()->width() - 1)(r_garbage);
                 for (int y = 0; y < line; ++y)
                 {
                     map.row[y] = row;
@@ -423,13 +433,12 @@ struct test_ai
     }
     void under_attack(int line)
     {
-        if(line > 0)
+        if (line > 0)
         {
             recv_attack.emplace_back(line);
         }
     }
 };
-
 
 double elo_init()
 {
@@ -447,7 +456,6 @@ double elo_calc(double const &self_score, double const &other_score, double cons
 {
     return self_score + elo_get_k(curr, max) * (win - elo_rate(self_score, other_score));
 }
-
 
 struct BaseNode
 {
@@ -542,20 +550,20 @@ int main(int argc, char const *argv[])
 
     std::mt19937 mt;
 
-    int combo_table[] = { 0, 0, 1, 1, 1, 2, 2, 3, 3, 4 };
+    int combo_table[] = {0, 0, 1, 1, 1, 2, 2, 3, 3, 4};
     int combo_table_max = 10;
     Engine global_ai;
     global_ai.prepare(10, 40);
 
-    for (; ; )
+    for (;;)
     {
         test_ai ai1(global_ai, combo_table, combo_table_max);
-        for (; ; )
+        for (;;)
         {
 #if _MSC_VER
             auto view_func = [](test_ai const &ai1)
             {
-                COORD coordScreen = { 0, 0 };
+                COORD coordScreen = {0, 0};
                 DWORD cCharsWritten;
                 CONSOLE_SCREEN_BUFFER_INFO csbi;
                 DWORD dwConSize;
@@ -594,7 +602,7 @@ int main(int argc, char const *argv[])
                 out[0] = '\0';
                 int up1 = std::accumulate(ai1.recv_attack.begin(), ai1.recv_attack.end(), 0);
                 snprintf(out, sizeof out, "HOLD = %c NEXT = %c%c%c%c%c%c COMBO =%2d B2B = %d APP = %1.2f UP = %2d\n",
-                     ai1.hold, ai1.next[1], ai1.next[2], ai1.next[3], ai1.next[4], ai1.next[5], ai1.next[6], ai1.combo, ai1.b2b, 1. * ai1.total_attack / ai1.round, up1);
+                         ai1.hold, ai1.next[1], ai1.next[2], ai1.next[3], ai1.next[4], ai1.next[5], ai1.next[6], ai1.combo, ai1.b2b, 1. * ai1.total_attack / ai1.round, up1);
                 m_tetris::TetrisMap map_copy1 = ai1.map;
                 if (ai1.node() != nullptr)
                 {
@@ -622,7 +630,7 @@ int main(int argc, char const *argv[])
                 out[0] = '\0';
                 int up1 = std::accumulate(ai1.recv_attack.begin(), ai1.recv_attack.end(), 0);
                 snprintf(out, sizeof out, "HOLD = %c NEXT = %c%c%c%c%c%c COMBO =%2d B2B = %d APP = %1.2f UP = %2d\n",
-                       ai1.hold, ai1.next[1], ai1.next[2], ai1.next[3], ai1.next[4], ai1.next[5], ai1.next[6], ai1.combo, ai1.b2b, 1. * ai1.total_attack / ai1.round, up1);
+                         ai1.hold, ai1.next[1], ai1.next[2], ai1.next[3], ai1.next[4], ai1.next[5], ai1.next[6], ai1.combo, ai1.b2b, 1. * ai1.total_attack / ai1.round, up1);
                 m_tetris::TetrisMap map_copy1 = ai1.map;
                 if (ai1.node() != nullptr)
                 {
@@ -643,7 +651,7 @@ int main(int argc, char const *argv[])
 #endif
             ai1.init(0);
             ai1.prepare();
-            for (; ; )
+            for (;;)
             {
                 ai1.run(view_func);
 

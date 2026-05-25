@@ -1,0 +1,61 @@
+---
+Language:        Cpp
+BasedOnStyle:    LLVM
+Standard:        c++14
+
+IndentWidth:     4
+TabWidth:        4
+UseTab:          Never
+ContinuationIndentWidth: 4
+NamespaceIndentation: All
+IndentCaseLabels: false
+AccessModifierOffset: -4
+
+ColumnLimit:     0
+
+BreakBeforeBraces: Allman
+
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Empty
+
+PointerAlignment: Right
+ReferenceAlignment: Right
+DerivePointerAlignment: false
+
+SpaceBeforeParens: ControlStatements
+SpaceAfterCStyleCast: false
+SpaceAfterTemplateKeyword: false
+SpaceBeforeAssignmentOperators: true
+SpaceInEmptyParentheses: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceBeforeCpp11BracedList: false
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
+
+SortIncludes: false
+IncludeBlocks: Preserve
+
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+FixNamespaceComments: false
+AlignTrailingComments: false
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignOperands:   true
+AllowAllParametersOfDeclarationOnNextLine: true
+BinPackArguments: true
+BinPackParameters: true
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: BeforeColon
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+Cpp11BracedListStyle: true
+ReflowComments:  false

@@ -25,24 +25,26 @@
 #include <unistd.h>
 #endif
 
-
 namespace zzz
 {
-    template<size_t N> struct is_key_char
+    template<size_t N>
+    struct is_key_char
     {
         bool operator()(char c, char const *arr)
         {
             return arr[N - 2] == c || is_key_char<N - 1>()(c, arr);
         }
     };
-    template<> struct is_key_char<1U>
+    template<>
+    struct is_key_char<1U>
     {
         bool operator()(char c, char const *arr)
         {
             return false;
         }
     };
-    template<size_t N> void split(std::vector<std::string> &out, std::string const &in, char const (&arr)[N])
+    template<size_t N>
+    void split(std::vector<std::string> &out, std::string const &in, char const (&arr)[N])
     {
         out.clear();
         std::string temp;
@@ -96,10 +98,9 @@ struct pso_config
     double c1, c2, w, d;
 };
 
-
 void pso_init(pso_config const &config, pso_data &item, std::mt19937 &mt)
 {
-    for(size_t i = 0; i < config.config.size(); ++i)
+    for (size_t i = 0; i < config.config.size(); ++i)
     {
         auto &cfg = config.config[i];
         item.x[i] = std::uniform_real_distribution<double>(cfg.x_min, cfg.x_max)(mt);
@@ -109,7 +110,7 @@ void pso_init(pso_config const &config, pso_data &item, std::mt19937 &mt)
 }
 void pso_logic(pso_config const &config, pso_data const &best, pso_data &item, std::mt19937 &mt)
 {
-    for(size_t i = 0; i < config.config.size(); ++i)
+    for (size_t i = 0; i < config.config.size(); ++i)
     {
         auto &cfg = config.config[i];
         if (std::abs(item.v[i]) <= config.d && std::abs(best.p[i] - item.p[i]) <= std::abs(best.p[i] * config.d))
@@ -117,15 +118,12 @@ void pso_logic(pso_config const &config, pso_data const &best, pso_data &item, s
             item.v[i] = std::uniform_real_distribution<double>(-cfg.v_max, cfg.v_max)(mt);
         }
         item.x[i] += item.v[i];
-        item.v[i] = item.v[i] * config.w
-            + std::uniform_real_distribution<double>(0, config.c1)(mt) * (item.p[i] - item.x[i])
-            + std::uniform_real_distribution<double>(0, config.c2)(mt) * (best.p[i] - item.x[i])
-            ;
-        if(item.v[i] > cfg.v_max)
+        item.v[i] = item.v[i] * config.w + std::uniform_real_distribution<double>(0, config.c1)(mt) * (item.p[i] - item.x[i]) + std::uniform_real_distribution<double>(0, config.c2)(mt) * (best.p[i] - item.x[i]);
+        if (item.v[i] > cfg.v_max)
         {
             item.v[i] = cfg.v_max;
         }
-        if(item.v[i] < -cfg.v_max)
+        if (item.v[i] < -cfg.v_max)
         {
             item.v[i] = -cfg.v_max;
         }
@@ -135,16 +133,16 @@ void pso_logic(pso_config const &config, pso_data const &best, pso_data &item, s
 struct pptevent
 {
     bool p1_start = false;
-    bool p1_end= false;
-    bool p1_up= false;
+    bool p1_end = false;
+    bool p1_up = false;
 
-    bool p2_start= false;
-    bool p2_end= false;
-    bool p2_up= false;
+    bool p2_start = false;
+    bool p2_end = false;
+    bool p2_up = false;
 
     int frame = 0;
 
-    bool operator < (pptevent const & p2event) const
+    bool operator<(pptevent const &p2event) const
     {
         return frame > p2event.frame;
     }
@@ -172,14 +170,12 @@ struct test_ai
     int now_frame;
     int framecnt;
 
-    test_ai(m_tetris::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ, search_tspin::Search>& global_ai, int const* _combo_table, int _combo_table_max)
-        : ai(global_ai.context())
-        , combo_table(_combo_table)
-        , combo_table_max(_combo_table_max)
+    test_ai(m_tetris::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ, search_tspin::Search> &global_ai, int const *_combo_table, int _combo_table_max)
+        : ai(global_ai.context()), combo_table(_combo_table), combo_table_max(_combo_table_max)
     {
     }
 
-    void init(pso_data const& data, pso_config const& config)
+    void init(pso_data const &data, pso_config const &config)
     {
         map = m_tetris::TetrisMap(10, 40);
         ai.ai_config()->param = data.param;
@@ -200,17 +196,17 @@ struct test_ai
         now_frame = 0;
         framecnt = 0;
     }
-    m_tetris::TetrisNode const* node() const
+    m_tetris::TetrisNode const *node() const
     {
         return ai.context()->generate(next.front());
     }
     void prepare()
     {
-        if(!next.empty())
+        if (!next.empty())
         {
             next.erase(next.begin());
         }
-        while(next.size() <= next_length)
+        while (next.size() <= next_length)
         {
             for (size_t i = 0; i < ai.context()->type_max(); ++i)
             {
@@ -256,26 +252,29 @@ struct test_ai
 
         if (result.change_hold)
         {
-
             if (hold == ' ')
             {
-
                 next.erase(next.begin());
                 ai_path = ai.make_path(ai.context()->generate(next[0]), result.target, map);
             }
-            else {
+            else
+            {
                 ai_path = ai.make_path(ai.context()->generate(hold), result.target, map);
             }
             hold = current;
         }
-        else {
+        else
+        {
             ai_path = ai.make_path(node, result.target, map);
         }
 
-        for (char move : ai_path) {
+        for (char move : ai_path)
+        {
             //printf("%c", move);
-            if (move != 'Z' && move != 'C') now_frame++;
-            if (move == 'V') break;
+            if (move != 'Z' && move != 'C')
+                now_frame++;
+            if (move == 'V')
+                break;
         }
 
         int attack = 0;
@@ -291,8 +290,10 @@ struct test_ai
             combo = 0;
             break;
         case 1:
-            if (map.count != 0) now_frame += 36;
-            else now_frame += 1;
+            if (map.count != 0)
+                now_frame += 36;
+            else
+                now_frame += 1;
             if (result.target.type == ai_zzz::TOJ::TSpinType::TSpinMini)
             {
                 attack += 0 + b2b;
@@ -310,8 +311,10 @@ struct test_ai
             attack += get_combo_attack(++combo);
             break;
         case 2:
-            if (map.count != 0) now_frame += 41;
-            else now_frame += 1;
+            if (map.count != 0)
+                now_frame += 41;
+            else
+                now_frame += 1;
             if (result.target.type != ai_zzz::TOJ::TSpinType::None)
             {
                 attack += 4 + b2b;
@@ -325,8 +328,10 @@ struct test_ai
             attack += get_combo_attack(++combo);
             break;
         case 3:
-            if (map.count != 0) now_frame += 41;
-            else now_frame += 1;
+            if (map.count != 0)
+                now_frame += 41;
+            else
+                now_frame += 1;
             if (result.target.type != ai_zzz::TOJ::TSpinType::None)
             {
                 attack += 6 + b2b;
@@ -341,8 +346,10 @@ struct test_ai
             break;
         case 4:
 
-            if (map.count != 0) now_frame += 46;
-            else now_frame += 1;
+            if (map.count != 0)
+                now_frame += 46;
+            else
+                now_frame += 1;
             b2b = 1;
             attack += get_combo_attack(++combo) + 4;
             break;
@@ -353,14 +360,14 @@ struct test_ai
         }
         ++total_block;
         total_attack += attack;
-        if (attack > 0) {
+        if (attack > 0)
+        {
             send_attack = attack;
         }
-        
-        
     }
 
-    void deal_garbage() {
+    void deal_garbage()
+    {
         if (recv_attack != 0)
         {
             if (send_attack > 0)
@@ -383,12 +390,12 @@ struct test_ai
             {
                 map.row[y] = map.row[y - line];
             }
-            uint32_t row = ai.context()->full() & ~(1 << std::uniform_int_distribution<uint32_t>(0, ai.context()->width() - 1)(r_garbage));
+            uint32_t row = 1 << std::uniform_int_distribution<uint32_t>(0, ai.context()->width() - 1)(r_garbage);
             for (int y = 0; y < line; ++y)
             {
                 map.row[y] = row;
                 if (std::uniform_int_distribution<uint32_t>(0, 9)(r_garbage) >= 7)
-                    row = ai.context()->full() & ~(1 << std::uniform_int_distribution<uint32_t>(0, ai.context()->width() - 1)(r_garbage));
+                    row = 1 << std::uniform_int_distribution<uint32_t>(0, ai.context()->width() - 1)(r_garbage);
             }
             map.count = 0;
             for (int my = 0; my < map.height; ++my)
@@ -418,11 +425,10 @@ struct test_ai
                 send_attack = 0;
                 recv_attack += line;
             }
-           
         }
     }
 
-    static void match(test_ai& ai1, test_ai& ai2, std::function<void(test_ai const &, test_ai const &)> out_put)
+    static void match(test_ai &ai1, test_ai &ai2, std::function<void(test_ai const &, test_ai const &)> out_put)
     {
         int round = 0;
         std::priority_queue<pptevent> eventlist;
@@ -439,7 +445,7 @@ struct test_ai
             ++round;
             pptevent now = eventlist.top();
             eventlist.pop();
-            
+
             if (now.p1_start)
             {
                 ai1.prepare();
@@ -460,7 +466,6 @@ struct test_ai
                 eventlist.push(p1n);
                 eventlist.push(p1u);
                 ai1.framecnt = p1e.frame;
-                
             }
             else if (now.p2_start)
             {
@@ -482,7 +487,6 @@ struct test_ai
                 eventlist.push(p2n);
                 eventlist.push(p2u);
                 ai2.framecnt = p2e.frame;
-                
             }
             else if (now.p1_end)
             {
@@ -496,7 +500,6 @@ struct test_ai
             {
                 ai2.under_attack(ai1.send_attack);
                 ai1.send_attack = 0;
-
             }
             else if (now.p2_up)
             {
@@ -514,11 +517,9 @@ struct test_ai
             {
                 return;
             }
-
         }
     }
 };
-
 
 double elo_init()
 {
@@ -536,7 +537,6 @@ double elo_calc(double const &self_score, double const &other_score, double cons
 {
     return self_score + elo_get_k(curr, max) * (win - elo_rate(self_score, other_score));
 }
-
 
 struct BaseNode
 {
@@ -665,18 +665,21 @@ int main(int argc, char const *argv[])
         ifs.close();
     }
     pso_config pso_cfg =
-    {
-        {}, 1, 1, 0.5, 0.01,
-    };
+        {
+            {},
+            1,
+            1,
+            0.5,
+            0.01,
+        };
     size_t elo_max_match = 256;
     size_t elo_min_match = 128;
 
     auto v = [&pso_cfg](double v, double r, double s)
     {
         pso_config_element d =
-        {
-            v - r, v + r, s
-        };
+            {
+                v - r, v + r, s};
         pso_cfg.config.emplace_back(d);
     };
     std::mt19937 mt;
@@ -684,35 +687,35 @@ int main(int argc, char const *argv[])
     {
         ai_zzz::TOJ::Param p;
 
-        v(p.base       ,  100,   2);
-        v(p.roof       , 1000,   8);
-        v(p.col_trans  , 1000,   8);
-        v(p.row_trans  , 1000,   8);
-        v(p.hole_count , 1000,   8);
-        v(p.hole_line  , 1000,   8);
-        v(p.clear_width, 1000,   2);
-        v(p.wide_2     , 1000,   8);
-        v(p.wide_3     , 1000,   8);
-        v(p.wide_4     , 1000,   8);
-        v(p.safe       , 1000,   8);
-        v(p.b2b        , 1000,   8);
-        v(p.attack     , 1000,   8);
-        v(p.hold_t     ,  100,   2);
-        v(p.hold_i     ,  100,   2);
-        v(p.waste_t    ,  100,   2);
-        v(p.waste_i    ,  100,   2);
-        v(p.clear_1    ,  100,   2);
-        v(p.clear_2    ,  100,   2);
-        v(p.clear_3    ,  100,   2);
-        v(p.clear_4    ,  100,   2);
-        v(p.t2_slot    ,  100, 0.5);
-        v(p.t3_slot    ,  100, 0.5);
-        v(p.tspin_mini ,  100,   2);
-        v(p.tspin_1    ,  100,   2);
-        v(p.tspin_2    ,  100,   2);
-        v(p.tspin_3    ,  100,   2);
-        v(p.combo      ,  100,   2);
-        v(p.ratio      ,   10, 0.5);
+        v(p.base, 100, 2);
+        v(p.roof, 1000, 8);
+        v(p.col_trans, 1000, 8);
+        v(p.row_trans, 1000, 8);
+        v(p.hole_count, 1000, 8);
+        v(p.hole_line, 1000, 8);
+        v(p.clear_width, 1000, 2);
+        v(p.wide_2, 1000, 8);
+        v(p.wide_3, 1000, 8);
+        v(p.wide_4, 1000, 8);
+        v(p.safe, 1000, 8);
+        v(p.b2b, 1000, 8);
+        v(p.attack, 1000, 8);
+        v(p.hold_t, 100, 2);
+        v(p.hold_i, 100, 2);
+        v(p.waste_t, 100, 2);
+        v(p.waste_i, 100, 2);
+        v(p.clear_1, 100, 2);
+        v(p.clear_2, 100, 2);
+        v(p.clear_3, 100, 2);
+        v(p.clear_4, 100, 2);
+        v(p.t2_slot, 100, 0.5);
+        v(p.t3_slot, 100, 0.5);
+        v(p.tspin_mini, 100, 2);
+        v(p.tspin_1, 100, 2);
+        v(p.tspin_2, 100, 2);
+        v(p.tspin_3, 100, 2);
+        v(p.combo, 100, 2);
+        v(p.ratio, 10, 0.5);
 
         if (rank_table.empty())
         {
@@ -723,7 +726,7 @@ int main(int argc, char const *argv[])
             init_node.data.param = p;
             init_node.data.p = init_node.data.x;
             rank_table.insert(new Node(init_node));
-	}
+        }
     }
 
     while (rank_table.size() < node_count)
@@ -737,7 +740,7 @@ int main(int argc, char const *argv[])
     }
 
     std::vector<std::thread> threads;
-    int combo_table[] = { 0,0,0,1,1,2,2,3,3,4,4,5 };
+    int combo_table[] = {0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5};
     int combo_table_max = 12;
     m_tetris::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ, search_tspin::Search> global_ai;
     global_ai.prepare(10, 40);
@@ -745,7 +748,7 @@ int main(int argc, char const *argv[])
     for (size_t i = 1; i <= count; ++i)
     {
         threads.emplace_back([&, i]()
-        {
+                             {
             uint32_t index = i + 1;
             auto rand_match = [&](auto &mt, size_t max)
             {
@@ -992,8 +995,7 @@ int main(int argc, char const *argv[])
                     do_pso_logic(m2);
                 }
                 rank_table_lock.unlock();
-            }
-        });
+            } });
     }
     Node *edit = nullptr;
     auto print_config = [&rank_table, &rank_table_lock](Node *node)
@@ -1033,48 +1035,14 @@ int main(int argc, char const *argv[])
             "[25]tspin_2      = %8.3f, %8.3f, %8.3f\n"
             "[26]tspin_3      = %8.3f, %8.3f, %8.3f\n"
             "[27]combo        = %8.3f, %8.3f, %8.3f\n"
-            "[28]ratio        = %8.3f, %8.3f, %8.3f\n"
-            , node->data.name
-            , rank_table.rank(double(node->data.score))
-            , node->data.score
-            , node->data.best
-            , node->data.match
-            , node->data.data.x[ 0], node->data.data.p[ 0], node->data.data.v[ 0]
-            , node->data.data.x[ 1], node->data.data.p[ 1], node->data.data.v[ 1]
-            , node->data.data.x[ 2], node->data.data.p[ 2], node->data.data.v[ 2]
-            , node->data.data.x[ 3], node->data.data.p[ 3], node->data.data.v[ 3]
-            , node->data.data.x[ 4], node->data.data.p[ 4], node->data.data.v[ 4]
-            , node->data.data.x[ 5], node->data.data.p[ 5], node->data.data.v[ 5]
-            , node->data.data.x[ 6], node->data.data.p[ 6], node->data.data.v[ 6]
-            , node->data.data.x[ 7], node->data.data.p[ 7], node->data.data.v[ 7]
-            , node->data.data.x[ 8], node->data.data.p[ 8], node->data.data.v[ 8]
-            , node->data.data.x[ 9], node->data.data.p[ 9], node->data.data.v[ 9]
-            , node->data.data.x[10], node->data.data.p[10], node->data.data.v[10]
-            , node->data.data.x[11], node->data.data.p[11], node->data.data.v[11]
-            , node->data.data.x[12], node->data.data.p[12], node->data.data.v[12]
-            , node->data.data.x[13], node->data.data.p[13], node->data.data.v[13]
-            , node->data.data.x[14], node->data.data.p[14], node->data.data.v[14]
-            , node->data.data.x[15], node->data.data.p[15], node->data.data.v[15]
-            , node->data.data.x[16], node->data.data.p[16], node->data.data.v[16]
-            , node->data.data.x[17], node->data.data.p[17], node->data.data.v[17]
-            , node->data.data.x[18], node->data.data.p[18], node->data.data.v[18]
-            , node->data.data.x[19], node->data.data.p[19], node->data.data.v[19]
-            , node->data.data.x[20], node->data.data.p[20], node->data.data.v[20]
-            , node->data.data.x[21], node->data.data.p[21], node->data.data.v[21]
-            , node->data.data.x[22], node->data.data.p[22], node->data.data.v[22]
-            , node->data.data.x[23], node->data.data.p[23], node->data.data.v[23]
-            , node->data.data.x[24], node->data.data.p[24], node->data.data.v[24]
-            , node->data.data.x[25], node->data.data.p[25], node->data.data.v[25]
-            , node->data.data.x[26], node->data.data.p[26], node->data.data.v[26]
-            , node->data.data.x[27], node->data.data.p[27], node->data.data.v[27]
-            , node->data.data.x[28], node->data.data.p[28], node->data.data.v[28]
-        );
+            "[28]ratio        = %8.3f, %8.3f, %8.3f\n",
+            node->data.name, rank_table.rank(double(node->data.score)), node->data.score, node->data.best, node->data.match, node->data.data.x[0], node->data.data.p[0], node->data.data.v[0], node->data.data.x[1], node->data.data.p[1], node->data.data.v[1], node->data.data.x[2], node->data.data.p[2], node->data.data.v[2], node->data.data.x[3], node->data.data.p[3], node->data.data.v[3], node->data.data.x[4], node->data.data.p[4], node->data.data.v[4], node->data.data.x[5], node->data.data.p[5], node->data.data.v[5], node->data.data.x[6], node->data.data.p[6], node->data.data.v[6], node->data.data.x[7], node->data.data.p[7], node->data.data.v[7], node->data.data.x[8], node->data.data.p[8], node->data.data.v[8], node->data.data.x[9], node->data.data.p[9], node->data.data.v[9], node->data.data.x[10], node->data.data.p[10], node->data.data.v[10], node->data.data.x[11], node->data.data.p[11], node->data.data.v[11], node->data.data.x[12], node->data.data.p[12], node->data.data.v[12], node->data.data.x[13], node->data.data.p[13], node->data.data.v[13], node->data.data.x[14], node->data.data.p[14], node->data.data.v[14], node->data.data.x[15], node->data.data.p[15], node->data.data.v[15], node->data.data.x[16], node->data.data.p[16], node->data.data.v[16], node->data.data.x[17], node->data.data.p[17], node->data.data.v[17], node->data.data.x[18], node->data.data.p[18], node->data.data.v[18], node->data.data.x[19], node->data.data.p[19], node->data.data.v[19], node->data.data.x[20], node->data.data.p[20], node->data.data.v[20], node->data.data.x[21], node->data.data.p[21], node->data.data.v[21], node->data.data.x[22], node->data.data.p[22], node->data.data.v[22], node->data.data.x[23], node->data.data.p[23], node->data.data.v[23], node->data.data.x[24], node->data.data.p[24], node->data.data.v[24], node->data.data.x[25], node->data.data.p[25], node->data.data.v[25], node->data.data.x[26], node->data.data.p[26], node->data.data.v[26], node->data.data.x[27], node->data.data.p[27], node->data.data.v[27], node->data.data.x[28], node->data.data.p[28], node->data.data.v[28]);
         rank_table_lock.unlock();
     };
 
     std::map<std::string, std::function<bool(std::vector<std::string> const &)>> command_map;
     command_map.insert(std::make_pair("select", [&edit, &print_config, &rank_table, &rank_table_lock](std::vector<std::string> const &token)
-    {
+                                      {
         if (token.size() == 2)
         {
             size_t index = std::atoi(token[1].c_str()) - 1;
@@ -1092,10 +1060,9 @@ int main(int argc, char const *argv[])
             print_config(edit);
             rank_table_lock.unlock();
         }
-        return true;
-    }));
+        return true; }));
     command_map.insert(std::make_pair("set", [&edit, &print_config, &rank_table, &rank_table_lock](std::vector<std::string> const &token)
-    {
+                                      {
         if (token.size() >= 3 && token.size() <= 5 && edit != nullptr)
         {
             int index = std::atoi(token[1].c_str());
@@ -1123,10 +1090,9 @@ int main(int argc, char const *argv[])
             print_config(edit);
             rank_table_lock.unlock();
         }
-        return true;
-    }));
+        return true; }));
     command_map.insert(std::make_pair("copy", [&edit, &print_config, &rank_table, &rank_table_lock](std::vector<std::string> const &token)
-    {
+                                      {
         if (token.size() == 2 && token[1].size() < 64 && edit != nullptr)
         {
             rank_table_lock.lock();
@@ -1140,10 +1106,9 @@ int main(int argc, char const *argv[])
             edit = node;
             rank_table_lock.unlock();
         }
-        return true;
-    }));
+        return true; }));
     command_map.insert(std::make_pair("rank", [&rank_table, &rank_table_lock](std::vector<std::string> const &token)
-    {
+                                      {
         rank_table_lock.lock();
         size_t begin = 0, end = rank_table.size();
         if (token.size() == 2)
@@ -1162,15 +1127,13 @@ int main(int argc, char const *argv[])
             printf("rank = %3d elo = %4.1f best = %4.1f match = %3zd gen = %5zd name = %s\n", i + 1, node->data.score, node->data.best, node->data.match, node->data.gen, node->data.name);
         }
         rank_table_lock.unlock();
-        return true;
-    }));
+        return true; }));
     command_map.insert(std::make_pair("view", [&view](std::vector<std::string> const &token)
-    {
+                                      {
         view = true;
-        return true;
-    }));
+        return true; }));
     command_map.insert(std::make_pair("best", [&rank_table, &rank_table_lock](std::vector<std::string> const &token)
-    {
+                                      {
         if (token.size() != 2)
         {
             return true;
@@ -1295,10 +1258,9 @@ int main(int argc, char const *argv[])
             );
         }
         rank_table_lock.unlock();
-        return true;
-    }));
+        return true; }));
     command_map.insert(std::make_pair("save", [&file, &rank_table, &rank_table_lock](std::vector<std::string> const &token)
-    {
+                                      {
         rank_table_lock.lock();
         std::ofstream ofs(file, std::ios::out | std::ios::binary);
         for (size_t i = 0; i < rank_table.size(); ++i)
@@ -1309,10 +1271,9 @@ int main(int argc, char const *argv[])
         ofs.close();
         printf("%d node(s) saved\n", rank_table.size());
         rank_table_lock.unlock();
-        return true;
-    }));
+        return true; }));
     command_map.insert(std::make_pair("exit", [&file, &rank_table, &rank_table_lock](std::vector<std::string> const &token)
-    {
+                                      {
         rank_table_lock.lock();
         std::ofstream ofs(file, std::ios::out | std::ios::binary);
         for (size_t i = 0; i < rank_table.size(); ++i)
@@ -1323,10 +1284,9 @@ int main(int argc, char const *argv[])
         ofs.close();
         rank_table_lock.unlock();
         exit(0);
-        return true;
-    }));
+        return true; }));
     command_map.insert(std::make_pair("help", [](std::vector<std::string> const &token)
-    {
+                                      {
         printf(
             "help                 - ...\n"
             "view                 - view a match (press enter to stop)\n"
@@ -1340,8 +1300,7 @@ int main(int argc, char const *argv[])
             "save                 - ...\n"
             "exit                 - save & exit\n"
         );
-        return true;
-    }));
+        return true; }));
     std::string line, last;
     while (true)
     {

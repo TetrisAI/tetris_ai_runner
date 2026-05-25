@@ -4,6 +4,9 @@ project(tetris_ai)
 enable_language(CXX)
 enable_language(C)
 set(CMAKE_CXX_STANDARD 14)
+if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -flto)
+endif()
 
 add_library(${PROJECT_NAME} SHARED
     src/ai.cpp
