@@ -178,7 +178,7 @@ struct tetris_game
 
 int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[]);
 
-//ÕâÊÇÒ»¸ö¼ÓÔØdll²âÊÔÊı¾İµÄ¿ØÖÆÌ¨,ÓÅÏÈµ÷ÓÃAIPath,ÕÒ²»µ½Ôòµ÷ÓÃAI
+//åˆ›å»ºä¸€ä¸ªè¯»å–ä¸¤ä¸ªdllå¯¹æˆ˜æ•°æ®çš„æ§åˆ¶å°ï¼Œå…ˆè°ƒç”¨AIPathï¼Œå†å°è¯•è°ƒç”¨æ—§ç‰ˆAI
 int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
 {
     ege::mtsrand(unsigned int(time(nullptr)));
@@ -197,11 +197,11 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
     unsigned long long attack[2];
 
     char out[81920] = "";
-    char box_0[3] = "¡õ";
-    char box_1[3] = "¡ö";
+    char box_0[3] = "â–¡";
+    char box_1[3] = "â– ";
 
-    CONSOLE_CURSOR_INFO cursorInfo = {1, FALSE}; // ¹â±êĞÅÏ¢
-    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo); // ÉèÖÃ¹â±êÒş²Ø
+    CONSOLE_CURSOR_INFO cursorInfo = {1, FALSE}; // å…‰æ ‡ä¿¡æ¯
+    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo); // è®¾ç½®å…‰æ ‡ä¿¡æ¯
 
     while (true)
     {
@@ -243,7 +243,7 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
 #pragma warning(push)
 #pragma warning(disable : 4996)
             wchar_t BUFFER[1024];
-            std::swprintf(BUFFER, L"[%s][±È·Ö%d:%d][Ğ§ÂÊ%f:%f]", (attack_0 == -1 ? attack_1 == -1 ? TEXT("Æ½¾Ö") : argv[2] : argv[1]), win[0], win[1], attack[0] / total, attack[1] / total);
+            std::swprintf(BUFFER, L"[%s][æ¯”åˆ†%d:%d][æ•ˆç‡%f:%f]", (attack_0 == -1 ? attack_1 == -1 ? TEXT("å¹³å±€") : argv[2] : argv[1]), win[0], win[1], attack[0] / total, attack[1] / total);
             SetWindowText(GetConsoleWindow(), BUFFER);
 #pragma warning(pop)
             new_seed = ege::mtirand();
@@ -269,7 +269,7 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
 
 m_tetris2::TetrisEngine2<rule_st::TetrisRule, ai_zzz::Dig, search_simple::Search> tetris_ai;
 
-//ÕâÊÇÒ»¸ö¼ÓÔØdll²âÊÔÊı¾İµÄ¿ØÖÆÌ¨,ÓÅÏÈµ÷ÓÃAIPath,ÕÒ²»µ½Ôòµ÷ÓÃAI
+//åˆ›å»ºä¸€ä¸ªè¯»å–ä¸¤ä¸ªdllå¯¹æˆ˜æ•°æ®çš„æ§åˆ¶å°ï¼Œå…ˆè°ƒç”¨AIPathï¼Œå†å°è¯•è°ƒç”¨æ—§ç‰ˆAI
 int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
 {
     attach_init();

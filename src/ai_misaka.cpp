@@ -289,12 +289,12 @@ namespace ai_misaka
             return 14;
         }();
 
-        // ²â¸ß¶È
+        // æµ‹é«˜åº¦
         //int last_min_y[32] = {0};
         int min_y[32] = {0};
         int emptys[32] = {0};
         int maxy_index = 31, maxy_cnt = 0;
-        int maxy_flat_cnt = 0; // ×î³¤Æ½Ì¨
+        int maxy_flat_cnt = 0; // æœ€é•¿å¹³å°
         int miny_val = 31;
         int total_hole = 0;
         int beg_y = -5;
@@ -304,7 +304,7 @@ namespace ai_misaka
         {
             //while ( last_pool.row[beg_y] == 0 ) ++beg_y;
             //for ( int x = 0; x < pool_w; ++x) {
-            //    for ( int y = beg_y, ey = pool_h + 1; y <= ey; ++y) { // ÒªÓĞµ×ĞĞ±£»¤£¨pool.h£©£¬·ñÔò»á¹Ò
+            //    for ( int y = beg_y, ey = pool_h + 1; y <= ey; ++y) { // è¦æœ‰åº•è¡Œä¿æŠ¤ï¼ˆpool.hï¼‰ï¼Œå¦åˆ™ä¼šæŒ‚
             //        if ( last_pool.row[y] & ( 1 << x ) ) {
             //            last_min_y[x] = y;
             //            break;
@@ -317,7 +317,7 @@ namespace ai_misaka
             for (int x = 0; x < pool_w; ++x)
             {
                 for (int y = beg_y, ey = pool_h + 1; y <= ey; ++y)
-                { // ÒªÓĞµ×ĞĞ±£»¤£¨pool.h£©£¬·ñÔò»á¹Ò
+                { // è¦æœ‰åº•è¡Œä¿æŠ¤ï¼ˆpool.hï¼‰ï¼Œå¦åˆ™ä¼šæŒ‚
                     if (pool.row[y] & (1 << x))
                     {
                         min_y[x] = y;
@@ -397,17 +397,17 @@ namespace ai_misaka
                 }
             }
         }
-        // ¶´µÄÊıÁ¿
-        int x_holes[32] = {0}; // Ë®Æ½·½Ïò¶´µÄÊıÁ¿
-        int y_holes[32] = {0}; // ´¹Ö±·½Ïò¶´µÄÊıÁ¿
-        int x_op_holes[32] = {0}; // Ë®Æ½·½Ïò¶´µÄÊıÁ¿
+        // æ´çš„æ•°é‡
+        int x_holes[32] = {0}; // æ°´å¹³æ–¹å‘æ´çš„æ•°é‡
+        int y_holes[32] = {0}; // å‚ç›´æ–¹å‘æ´çš„æ•°é‡
+        int x_op_holes[32] = {0}; // æ°´å¹³æ–¹å‘æ´çš„æ•°é‡
         //int last_pool_hole_score;
         int pool_hole_score;
         int pool_total_cell = 0;
         //{   // last_pool
-        //    int x_holes[32] = {0}; // Ë®Æ½·½Ïò¶´µÄÊıÁ¿
-        //    int x_op_holes[32] = {0}; // Ë®Æ½·½Ïò¶´µÄÊıÁ¿
-        //    int first_hole_y[32] = {0}; // ´¹Ö±·½Ïò×î½üµÄ¶´µÄy
+        //    int x_holes[32] = {0}; // æ°´å¹³æ–¹å‘æ´çš„æ•°é‡
+        //    int x_op_holes[32] = {0}; // æ°´å¹³æ–¹å‘æ´çš„æ•°é‡
+        //    int first_hole_y[32] = {0}; // å‚ç›´æ–¹å‘æœ€è¿‘çš„æ´çš„y
         //    int hole_score = 0;
         //    const GameField& _pool = last_pool;
         //    for ( int x = 0; x < pool_w; ++x) {
@@ -488,8 +488,8 @@ namespace ai_misaka
         //    last_pool_hole_score = hole_score;
         //}
         { // pool
-            int first_hole_y[32] = {0}; // ´¹Ö±·½Ïò×î½üµÄ¶´µÄy
-            int x_renholes[32] = {0}; // ´¹Ö±Á¬Ğø¶´µÄÊıÁ¿
+            int first_hole_y[32] = {0}; // å‚ç›´æ–¹å‘æœ€è¿‘çš„æ´çš„y
+            int x_renholes[32] = {0}; // å‚ç›´è¿ç»­æ´çš„æ•°é‡
             double hole_score = 0;
             const auto &_pool = pool;
             for (int x = 0; x < pool_w; ++x)
@@ -677,7 +677,7 @@ namespace ai_misaka
         }
         score += pool_hole_score;
 #ifdef XP_RELEASE
-        // È«Ïû
+        // å…¨æ¶ˆ
         if (0) //&& pool.getPCAttack() > 8 )
         {
             if (beg_y > pool_h)
@@ -755,7 +755,7 @@ namespace ai_misaka
             }
         }
 #endif
-        // ¸ß¶È²î
+        // é«˜åº¦å·®
         {
             //int n_maxy_index = maxy_index;
             //if ( maxy_cnt != 0 ) n_maxy_index = -9;
@@ -776,7 +776,7 @@ namespace ai_misaka
                     score += absv * ai_param.h_factor;
             }
         }
-        // Æ½µØ
+        // å¹³åœ°
         /*
         {
         int last = -1, len = 0;
@@ -796,10 +796,10 @@ namespace ai_misaka
         }
         }
         */
-        int center = 10; // °ÚÂ¥¾¯½äÏß
+        int center = 10; // æ‘†æ¥¼è­¦æˆ’çº¿
         double warning_factor = 1;
         int h_variance_score = 0;
-        // Ëã·½²î
+        // ç®—æ–¹å·®
         {
             int avg = 0;
             {
@@ -829,7 +829,7 @@ namespace ai_misaka
                         warning_factor = 0.0 + (double)avg / pool_w / center / 1;
                     }
                 }
-                // Æ«²îÖµ
+                // åå·®å€¼
                 {
                     int dif_sum = 0;
                     for (int x = 0; x < pool_w; ++x)
@@ -839,7 +839,7 @@ namespace ai_misaka
                     score += ai_param.dif_factor * dif_sum / pool_w / pool_w;
                 }
             }
-            // ¹¥»÷¼ÆËã
+            // æ”»å‡»è®¡ç®—
             {
                 int s = 0;
                 int t_att = total_clear_att;
@@ -858,7 +858,7 @@ namespace ai_misaka
                 }
                 int cs = 0;
                 if (cur_num == GEMTYPE_T && wallkick_spin && clears > 0 && ai_param.tspin > 0)
-                { // TÏû¸½¼Ó·Ö£¬Òª±ÈT1/T2ĞÎ×´»ù±¾·Ö´óÒ»
+                { // Tæ¶ˆé™„åŠ åˆ†ï¼Œè¦æ¯”T1/T2å½¢çŠ¶åŸºæœ¬åˆ†å¤§ä¸€
                     s -= ai_param.hold_t;
                     if (clears >= 3)
                     {
@@ -902,7 +902,7 @@ namespace ai_misaka
                 score += s;
             }
             //if ( clears ) {
-            //    int center = 10; // °ÚÂ¥¾¯½äÏß
+            //    int center = 10; // æ‘†æ¥¼è­¦æˆ’çº¿
             //    double factor = 1;
             //    if ( avg < pool_w * center ) {
             //        factor = (double)avg / pool_w / center;
@@ -968,9 +968,9 @@ namespace ai_misaka
             //}
         }
 
-        // ÌØÊâĞÎ×´ÅĞ¶¨
+        // ç‰¹æ®Šå½¢çŠ¶åˆ¤å®š
 
-        // ¼ÆËã¿É¹¥»÷£¨TetrisºÍT2£©
+        // è®¡ç®—å¯æ”»å‡»ï¼ˆTetriså’ŒT2ï¼‰
         //int t2_x[32] = {0};
         if (maxy_cnt == 0)
         {
@@ -979,10 +979,10 @@ namespace ai_misaka
             //}
             int ybeg = 0;
             if (softdropEnable() && maxy_index > 0 && maxy_index < pool_w - 1 && ai_param.tspin > 0)
-            { // T1/T2»ù±¾ĞÎ×´·Ö
+            { // T1/T2åŸºæœ¬å½¢çŠ¶åˆ†
                 ybeg = std::max(min_y[maxy_index - 1], min_y[maxy_index + 1]);
                 if (min_y[maxy_index - 1] == min_y[maxy_index + 1] && x_holes[ybeg] == 0 && x_holes[ybeg - 1] == 0 && x_op_holes[ybeg] == 0 && x_op_holes[ybeg - 1] == 0)
-                { // T×¼±¸
+                { // Tå‡†å¤‡
                     int cnt = 0;
                     if (maxy_index > 1 && min_y[maxy_index - 2] >= min_y[maxy_index - 1] - 2)
                         ++cnt;
@@ -992,10 +992,10 @@ namespace ai_misaka
                     {
                         score -= int(warning_factor * ai_param.tspin);
                         if ((~pool.row[ybeg] & pool.m_w_mask) == (1 << maxy_index))
-                        { // T1»ù´¡
+                        { // T1åŸºç¡€
                             score -= int(warning_factor * ai_param.tspin);
                             if ((~pool.row[ybeg - 1] & pool.m_w_mask) == (7 << (maxy_index - 1)))
-                            { // ¿ÉT2ÍêÃÀ¿Ó
+                            { // å¯T2å®Œç¾å‘
                                 score -= int(warning_factor * (ai_param.tspin * cnt));
                             }
                         }
@@ -1004,15 +1004,15 @@ namespace ai_misaka
                 else if (ybeg <= 6 && ybeg - t_dis > 1 || ybeg > 6)
                 {
                     int row_data = pool.row[ybeg - 1];
-                    if ((row_data & (1 << (maxy_index - 1))) == 0 && (row_data & (1 << (maxy_index + 1))) == 0 // ¿ÓµÄ×óÓÒÎª¿Õ
-                        && x_holes[ybeg] == 0 && x_holes[ybeg - 1] == 0 // ÆäËüÎ»ÖÃÎŞ¶´
+                    if ((row_data & (1 << (maxy_index - 1))) == 0 && (row_data & (1 << (maxy_index + 1))) == 0 // å‘çš„å·¦å³ä¸ºç©º
+                        && x_holes[ybeg] == 0 && x_holes[ybeg - 1] == 0 // å…¶å®ƒä½ç½®æ— æ´
                         && x_op_holes[ybeg] == 0 && x_op_holes[ybeg - 1] <= 1)
                     {
-                        // T¿ÓĞÎ×´
+                        // Tå‘å½¢çŠ¶
                         if ((pool.row[ybeg] & (1 << (maxy_index - 1))) && (pool.row[ybeg] & (1 << (maxy_index + 1))))
-                        { // ¿ÓµÄÏÂÃæÁ½¿é´æÔÚ
+                        { // å‘çš„ä¸‹é¢ä¸¤å—å­˜åœ¨
                             if (!!(pool.row[ybeg - 2] & (1 << (maxy_index - 1))) + !!(pool.row[ybeg - 2] & (1 << (maxy_index + 1))) == 1)
-                            { // ¿ÓµÄÉÏÃæµÄ¿é´æÔÚ
+                            { // å‘çš„ä¸Šé¢çš„å—å­˜åœ¨
                                 double s = 0;
                                 //t2_x[maxy_index] = ybeg;
                                 double factor = ybeg > 6 ? 0.5 : 1 - t_dis / 6.0 * 0.5;
@@ -1020,10 +1020,10 @@ namespace ai_misaka
                                     factor = ybeg > 6 ? 1.0 / 5 : 1 / (1 + t_dis / 3.0);
                                 s += ai_param.open_hole;
                                 if ((~pool.row[ybeg] & pool.m_w_mask) == (1 << maxy_index))
-                                { // ¿ÉT1
+                                { // å¯T1
                                     s += ai_param.tspin + ai_param.tspin * 1 * factor;
                                     if ((~row_data & pool.m_w_mask) == (7 << (maxy_index - 1)))
-                                    { // ¿ÉT2ÍêÃÀ¿Ó
+                                    { // å¯T2å®Œç¾å‘
                                         s += ai_param.tspin * 3 * factor;
                                         // s -= ai_param.tspin * 3 / factor / 1;
                                     }
@@ -1064,7 +1064,7 @@ namespace ai_misaka
                 readatt = 4;
             //score -= readatt * ai_param.readyatt;
         }
-        // T3 ĞÎ×´ÅĞ¶¨
+        // T3 å½¢çŠ¶åˆ¤å®š
         //3001
         //2000
         // 1101
@@ -1086,7 +1086,7 @@ namespace ai_misaka
                 {
                     if ((pool.row[y + 1] & (1 << x)) == 0 || (pool.row[y + 1] & (1 << x)) == 0)
                     {
-                        continue; // ÉÏÏÂÎŞ¶´
+                        continue; // ä¸Šä¸‹æ— æ´
                     }
                     int row_y[5];
                     for (int i = 0; i < 5; ++i)
@@ -1094,11 +1094,11 @@ namespace ai_misaka
                         row_y[i] = ((pool.row[y - 3 + i] | (3 << pool_w)) << 2) | 3;
                     }
                     if (((row_y[3] >> (x + 1)) & (7)) == 1 /*100*/)
-                    { // ÉÏÍ¼Çé¿ö
+                    { // ä¸Šå›¾æƒ…å†µ
                         if (x == pool_w - 2)
                             continue;
-                        //if ( t2_x[x+1] == y ) continue; // ÅÅ³ıT2¿Ó
-                        // ËùÓĞ¿ÕµÄµØ·½ÏÈÆ¥Åä
+                        //if ( t2_x[x+1] == y ) continue; // æ’é™¤T2å‘
+                        // æ‰€æœ‰ç©ºçš„åœ°æ–¹å…ˆåŒ¹é…
                         if (((row_y[2] >> (x + 1)) & (7)) != 3 /*110*/
                             //|| ( (row_y[4] >> (x + 1)) & ( 15 ) ) != 11 /*1101*/
                             || ((row_y[4] >> (x + 1)) & (13)) != 9 /*1011mask=1001*/
@@ -1114,10 +1114,10 @@ namespace ai_misaka
                         }
                         if ((row_y[0] & (1 << (x))) == 0 && (row_y[1] & (1 << (x))))
                         {
-                            continue; // ¸ß´¦×ª½Ç
+                            continue; // é«˜å¤„è½¬è§’
                         }
                         if (min_y[x + 1] > y)
-                        { // ¶´ÅĞ¶¨
+                        { // æ´åˆ¤å®š
                             if (x_holes[y - 1] > 0 || x_holes[y + 1] > 0 || x_holes[y] > 1 || x_op_holes[y - 1] > 0 || x_op_holes[y + 1] > 0 || x_op_holes[y] > 0)
                             {
                                 continue;
@@ -1149,7 +1149,7 @@ namespace ai_misaka
                             int e = ~(pool.row[y + 1] | (1 << x)) & pool.m_w_mask;
                             e &= (e - 1);
                             if (e == 0)
-                            { // ×îµ×Ö»Ê£Ò»¿Õ
+                            { // æœ€åº•åªå‰©ä¸€ç©º
                                 //++full;
                             }
                             else
@@ -1162,7 +1162,7 @@ namespace ai_misaka
                             int e = ~(pool.row[y] | (1 << (x + 2))) & pool.m_w_mask;
                             e &= (e - 1);
                             if ((e & (e - 1)) == 0)
-                            { // µ×¶şÖ»Ê£Á½¿Õ
+                            { // åº•äºŒåªå‰©ä¸¤ç©º
                                 //++full;
                             }
                             else
@@ -1180,7 +1180,7 @@ namespace ai_misaka
                             int e = ~pool.row[y - 1] & pool.m_w_mask;
                             e &= (e - 1);
                             if (e == 0)
-                            { // µ×ÈıÖ»Ê£Ò»¿Õ
+                            { // åº•ä¸‰åªå‰©ä¸€ç©º
                                 //++full;
                             }
                             else
@@ -1201,11 +1201,11 @@ namespace ai_misaka
                         }
                     }
                     else if (((row_y[3] >> (x + 1)) & (7)) == 4 /*001*/)
-                    { // ¾µÏñÇé¿ö
+                    { // é•œåƒæƒ…å†µ
                         if (x == 1)
                             continue;
-                        //if ( t2_x[x-1] == y ) continue; // ÅÅ³ıT2¿Ó
-                        // ËùÓĞ¿ÕµÄµØ·½ÏÈÆ¥Åä
+                        //if ( t2_x[x-1] == y ) continue; // æ’é™¤T2å‘
+                        // æ‰€æœ‰ç©ºçš„åœ°æ–¹å…ˆåŒ¹é…
                         if (((row_y[2] >> (x + 1)) & (7)) != 6 /*011*/
                             //|| ( (row_y[4] >> (x)) & ( 15 ) ) != 13 /*1011*/
                             || ((row_y[4] >> (x)) & (11)) != 9 /*1101mask=1001*/
@@ -1221,10 +1221,10 @@ namespace ai_misaka
                         }
                         if ((row_y[0] & (1 << (x + 4))) == 0 && (row_y[1] & (1 << (x + 4))))
                         {
-                            continue; // ¸ß´¦×ª½Ç
+                            continue; // é«˜å¤„è½¬è§’
                         }
                         if (min_y[x - 1] > y)
-                        { // ¶´ÅĞ¶¨
+                        { // æ´åˆ¤å®š
                             if (x_holes[y - 1] > 0 || x_holes[y + 1] > 0 || x_holes[y] > 1 || x_op_holes[y - 1] > 0 || x_op_holes[y + 1] > 0 || x_op_holes[y] > 0)
                             {
                                 continue;
@@ -1256,7 +1256,7 @@ namespace ai_misaka
                             int e = ~(pool.row[y + 1] | (1 << x)) & pool.m_w_mask;
                             e &= (e - 1);
                             if (e == 0)
-                            { // ×îµ×Ö»Ê£Ò»¿Õ
+                            { // æœ€åº•åªå‰©ä¸€ç©º
                                 //++full;
                             }
                             else
@@ -1269,7 +1269,7 @@ namespace ai_misaka
                             int e = ~(pool.row[y] | (1 << x - 2)) & pool.m_w_mask;
                             e &= (e - 1);
                             if ((e & (e - 1)) == 0)
-                            { // µ×¶şÖ»Ê£Á½¿Õ
+                            { // åº•äºŒåªå‰©ä¸¤ç©º
                                 //++full;
                             }
                             else
@@ -1287,7 +1287,7 @@ namespace ai_misaka
                             int e = ~pool.row[y - 1] & pool.m_w_mask;
                             e &= (e - 1);
                             if (e == 0)
-                            { // µ×ÈıÖ»Ê£Ò»¿Õ
+                            { // åº•ä¸‰åªå‰©ä¸€ç©º
                                 //++full;
                             }
                             else
@@ -1310,7 +1310,7 @@ namespace ai_misaka
                 }
             }
         }
-        // 4WĞÎ×´ÅĞ¶¨
+        // 4Wå½¢çŠ¶åˆ¤å®š
         if (USE4W)
             if (ai_param.strategy_4w > 0 && total_clears < 1) //&& lastCombo < 1 && pool.combo < 1 )
             {
@@ -1353,10 +1353,10 @@ namespace ai_misaka
                     break;
                 }
                 if (maxy_4w <= pool_h - 4)
-                { // Èç¹ûÓĞ³¬¹ı4¹¥»÷ĞĞ¾Í²»´î
+                { // å¦‚æœæœ‰è¶…è¿‡4æ”»å‡»è¡Œå°±ä¸æ­
                     maxy_4w = -10;
                 }
-                //if ( maxy_4w - maxy_4w_combo > 15 ) { // Èç¹ûÓĞ³¬¹ı10Ô¤±¸ĞĞ¾Í²»´î
+                //if ( maxy_4w - maxy_4w_combo > 15 ) { // å¦‚æœæœ‰è¶…è¿‡10é¢„å¤‡è¡Œå°±ä¸æ­
                 //    maxy_4w = -10;
                 //}
                 if (maxy_4w - maxy_4w_combo < 9 && pool_hole_score > ai_param.hole * (maxy_4w - maxy_4w_combo) / 2)
@@ -1411,7 +1411,7 @@ namespace ai_misaka
                     }
                 }
             }
-        // ÀÛ»ı·Ö
+        // ç´¯ç§¯åˆ†
 #undef USE4W
 #undef XP_RELEASE
 #pragma warning(pop)

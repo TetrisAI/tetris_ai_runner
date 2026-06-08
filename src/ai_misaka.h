@@ -12,27 +12,27 @@ namespace ai_misaka
         using EvalSpinType = TSpinType;
         struct Config
         {
-            int miny_factor; // ×î¸ß¸ß¶È·Ö
-            int hole; // -¶´·Ö
-            int open_hole; // -¿ª·Å¶´£¬¿ÉÄÜ²å¿é
-            int v_transitions; // -Ë®Æ½×ª»»ÏµÊı
-            int tspin3; // T3»ù±¾·Ö
+            int miny_factor; // æœ€é«˜é«˜åº¦åˆ†
+            int hole; // -æ´åˆ†
+            int open_hole; // -å¼€æ”¾æ´ï¼Œå¯èƒ½æ’å—
+            int v_transitions; // -æ°´å¹³è½¬æ¢ç³»æ•°
+            int tspin3; // T3åŸºæœ¬åˆ†
 
-            int clear_efficient; // ÏûĞĞĞ§ÂÊÏµÊı
-            int upcomeAtt; // -Ô¤±¸¹¥»÷»ù±¾ÏµÊı
-            int h_factor; // -¸ß¶È²îÏµÊı
-            int hole_dis_factor2; // -¶´¾àÀëÏµÊı
-            int hole_dis; // -¶´µÄ¾àÀë·Ö
-                          //int flat_factor; // Æ½Ö±ÏµÊı
+            int clear_efficient; // æ¶ˆè¡Œæ•ˆç‡ç³»æ•°
+            int upcomeAtt; // -é¢„å¤‡æ”»å‡»åŸºæœ¬ç³»æ•°
+            int h_factor; // -é«˜åº¦å·®ç³»æ•°
+            int hole_dis_factor2; // -æ´è·ç¦»ç³»æ•°
+            int hole_dis; // -æ´çš„è·ç¦»åˆ†
+                          //int flat_factor; // å¹³ç›´ç³»æ•°
 
-            int hole_dis_factor; // -¶´¾àÀëÏµÊı
-            int tspin; // tspinÏµÊı
-            int hold_t; // hold TºÍIÏµÊı
-            int hold_i; // hold TºÍIÏµÊı
-            int clear_useless_factor; // ÎŞĞ§ĞĞÏµÊı
-                                      //int ready_combo; // Á¬»÷Ô¤±¸·Öx
+            int hole_dis_factor; // -æ´è·ç¦»ç³»æ•°
+            int tspin; // tspinç³»æ•°
+            int hold_t; // hold Tå’ŒIç³»æ•°
+            int hold_i; // hold Tå’ŒIç³»æ•°
+            int clear_useless_factor; // æ— æ•ˆè¡Œç³»æ•°
+                                      //int ready_combo; // è¿å‡»é¢„å¤‡åˆ†x
 
-            int dif_factor; //Æ«²îÖµ
+            int dif_factor; //åå·®å€¼
             int strategy_4w;
             int const *table;
             int table_max;
