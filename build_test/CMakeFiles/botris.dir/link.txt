@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/botris.dir/src/ai_zzz.cpp.o CMakeFiles/botris.dir/src/botris.cpp.o CMakeFiles/botris.dir/src/integer_utils.cpp.o CMakeFiles/botris.dir/src/random.cpp.o CMakeFiles/botris.dir/src/rule_botris.cpp.o -o botris  libtetris_core.a 

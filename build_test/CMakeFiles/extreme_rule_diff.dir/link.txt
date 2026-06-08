@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/extreme_rule_diff.dir/src/integer_utils.cpp.o CMakeFiles/extreme_rule_diff.dir/src/random.cpp.o CMakeFiles/extreme_rule_diff.dir/src/rule_extreme.cpp.o CMakeFiles/extreme_rule_diff.dir/tests/extreme_rule_diff.cpp.o -o extreme_rule_diff  libtetris_oracle.a libtetris_core.a 

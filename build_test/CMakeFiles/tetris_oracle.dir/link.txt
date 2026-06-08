@@ -1,0 +1,2 @@
+/usr/bin/ar qc libtetris_oracle.a CMakeFiles/tetris_oracle.dir/oracle/search_simple.cpp.o CMakeFiles/tetris_oracle.dir/oracle/search_path.cpp.o CMakeFiles/tetris_oracle.dir/oracle/search_simulate.cpp.o CMakeFiles/tetris_oracle.dir/oracle/search_tag.cpp.o CMakeFiles/tetris_oracle.dir/oracle/search_aspin.cpp.o CMakeFiles/tetris_oracle.dir/oracle/search_cautious.cpp.o CMakeFiles/tetris_oracle.dir/oracle/search_tspin.cpp.o
+/usr/bin/ranlib libtetris_oracle.a

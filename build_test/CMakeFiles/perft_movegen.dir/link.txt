@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/perft_movegen.dir/tests/perft_movegen.cpp.o -o perft_movegen  libtetris_core.a 

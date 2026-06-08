@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/simulate_diff.dir/src/ai_zzz.cpp.o CMakeFiles/simulate_diff.dir/src/integer_utils.cpp.o CMakeFiles/simulate_diff.dir/src/random.cpp.o CMakeFiles/simulate_diff.dir/src/rule_srs.cpp.o CMakeFiles/simulate_diff.dir/tests/simulate_diff.cpp.o -o simulate_diff  libtetris_oracle.a libtetris_core.a 

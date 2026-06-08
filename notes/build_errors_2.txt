@@ -1,0 +1,111 @@
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /workspace/ws_bvkNUUFx/tetris_ai_runner/build
+[  2%] Built target typed_dispatch_test
+[  3%] Building CXX object CMakeFiles/tetris_core.dir/core/tetris_core.cpp.o
+In file included from /workspace/ws_bvkNUUFx/tetris_ai_runner/src/bb_eval_bridge.h:38,
+                 from /workspace/ws_bvkNUUFx/tetris_ai_runner/core/tetris_core.h:566,
+                 from /workspace/ws_bvkNUUFx/tetris_ai_runner/core/tetris_core.cpp:4:
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_aspin.h:60:57: error: expected ‘)’ before ‘const’
+   60 |             TetrisNodeWithASpinType(m_tetris::TetrisNode const *_node) : node(_node), type(None)
+      |                                    ~                    ^~~~~~
+      |                                                         )
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_aspin.h:63:23: error: ‘TetrisNode’ in namespace ‘m_tetris::m_tetris’ does not name a type
+   63 |             m_tetris::TetrisNode const *node;
+      |                       ^~~~~~~~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_aspin.h:66:32: error: ‘TetrisNode’ in namespace ‘m_tetris::m_tetris’ does not name a type
+   66 |             operator m_tetris::TetrisNode const *() const
+      |                                ^~~~~~~~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_aspin.h:70:23: error: ‘TetrisNode’ in namespace ‘m_tetris::m_tetris’ does not name a type
+   70 |             m_tetris::TetrisNode const *operator->() const
+      |                       ^~~~~~~~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_aspin.h: In member function ‘bool m_tetris::search_aspin::Search::TetrisNodeWithASpinType::operator==(const m_tetris::search_aspin::Search::TetrisNodeWithASpinType&)’:
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_aspin.h:76:24: error: ‘node’ was not declared in this scope
+   76 |                 return node == other.node && type == other.type;
+      |                        ^~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_aspin.h:76:38: error: ‘const struct m_tetris::search_aspin::Search::TetrisNodeWithASpinType’ has no member named ‘node’
+   76 |                 return node == other.node && type == other.type;
+      |                                      ^~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_aspin.h: In member function ‘bool m_tetris::search_aspin::Search::TetrisNodeWithASpinType::operator==(std::nullptr_t)’:
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_aspin.h:80:24: error: ‘node’ was not declared in this scope
+   80 |                 return node == nullptr;
+      |                        ^~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_aspin.h: In member function ‘bool m_tetris::search_aspin::Search::TetrisNodeWithASpinType::operator!=(std::nullptr_t)’:
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_aspin.h:84:24: error: ‘node’ was not declared in this scope
+   84 |                 return node != nullptr;
+      |                        ^~~~
+In file included from /workspace/ws_bvkNUUFx/tetris_ai_runner/src/bb_eval_bridge.h:39:
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_tspin.h: At global scope:
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_tspin.h:61:57: error: expected ‘)’ before ‘const’
+   61 |             TetrisNodeWithTSpinType(m_tetris::TetrisNode const *_node) : node(_node), last(), type(None), flags()
+      |                                    ~                    ^~~~~~
+      |                                                         )
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_tspin.h:64:23: error: ‘TetrisNode’ in namespace ‘m_tetris::m_tetris’ does not name a type
+   64 |             m_tetris::TetrisNode const *node;
+      |                       ^~~~~~~~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_tspin.h:65:23: error: ‘TetrisNode’ in namespace ‘m_tetris::m_tetris’ does not name a type
+   65 |             m_tetris::TetrisNode const *last;
+      |                       ^~~~~~~~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_tspin.h:78:32: error: ‘TetrisNode’ in namespace ‘m_tetris::m_tetris’ does not name a type
+   78 |             operator m_tetris::TetrisNode const *() const
+      |                                ^~~~~~~~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_tspin.h:82:23: error: ‘TetrisNode’ in namespace ‘m_tetris::m_tetris’ does not name a type
+   82 |             m_tetris::TetrisNode const *operator->() const
+      |                       ^~~~~~~~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_tspin.h: In member function ‘bool m_tetris::search_tspin::Search::TetrisNodeWithTSpinType::operator==(const m_tetris::search_tspin::Search::TetrisNodeWithTSpinType&)’:
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_tspin.h:88:24: error: ‘node’ was not declared in this scope
+   88 |                 return node == other.node && last == other.last && type == other.type && flags == other.flags;
+      |                        ^~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_tspin.h:88:38: error: ‘const struct m_tetris::search_tspin::Search::TetrisNodeWithTSpinType’ has no member named ‘node’
+   88 |                 return node == other.node && last == other.last && type == other.type && flags == other.flags;
+      |                                      ^~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_tspin.h:88:46: error: ‘last’ was not declared in this scope; did you mean ‘std::chrono::last’?
+   88 |                 return node == other.node && last == other.last && type == other.type && flags == other.flags;
+      |                                              ^~~~
+      |                                              std::chrono::last
+In file included from /workspace/ws_bvkNUUFx/tetris_ai_runner/core/tetris_core.h:18:
+/usr/include/c++/12/chrono:133:32: note: ‘std::chrono::last’ declared here
+  133 |     inline constexpr last_spec last{};
+      |                                ^~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_tspin.h:88:60: error: ‘const struct m_tetris::search_tspin::Search::TetrisNodeWithTSpinType’ has no member named ‘last’
+   88 |                 return node == other.node && last == other.last && type == other.type && flags == other.flags;
+      |                                                            ^~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_tspin.h: In member function ‘bool m_tetris::search_tspin::Search::TetrisNodeWithTSpinType::operator==(std::nullptr_t)’:
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_tspin.h:92:24: error: ‘node’ was not declared in this scope
+   92 |                 return node == nullptr;
+      |                        ^~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_tspin.h: In member function ‘bool m_tetris::search_tspin::Search::TetrisNodeWithTSpinType::operator!=(std::nullptr_t)’:
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/search_tspin.h:96:24: error: ‘node’ was not declared in this scope
+   96 |                 return node != nullptr;
+      |                        ^~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/core/tetris_core.h: In static member function ‘static void m_tetris::TetrisCore<TetrisAI, TetrisSearch>::eval(typename TreeNode::Context*, m_tetris::TetrisMap&, LandPoint&, TreeNode*)’:
+/workspace/ws_bvkNUUFx/tetris_ai_runner/core/tetris_core.h:874:33: error: ‘BBCallEval’ was not declared in this scope; did you mean ‘m_tetris::m_tetris::BBCallEval’?
+  874 |             tree_node->result = BBCallEval<TetrisAI, typename SearchRuleSpecOf<TetrisSearch>::type>::eval(*context->ai, tree_node->identity, new_map, map, clear);
+      |                                 ^~~~~~~~~~
+      |                                 m_tetris::m_tetris::BBCallEval
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/bb_eval_bridge.h:174:12: note: ‘m_tetris::m_tetris::BBCallEval’ declared here
+  174 |     struct BBCallEval
+      |            ^~~~~~~~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/core/tetris_core.h:874:52: error: expected primary-expression before ‘,’ token
+  874 |             tree_node->result = BBCallEval<TetrisAI, typename SearchRuleSpecOf<TetrisSearch>::type>::eval(*context->ai, tree_node->identity, new_map, map, clear);
+      |                                                    ^
+/workspace/ws_bvkNUUFx/tetris_ai_runner/core/tetris_core.h:874:63: error: expected nested-name-specifier before ‘SearchRuleSpecOf’
+  874 |             tree_node->result = BBCallEval<TetrisAI, typename SearchRuleSpecOf<TetrisSearch>::type>::eval(*context->ai, tree_node->identity, new_map, map, clear);
+      |                                                               ^~~~~~~~~~~~~~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/core/tetris_core.h:874:63: error: expected ‘(’ before ‘SearchRuleSpecOf’
+/workspace/ws_bvkNUUFx/tetris_ai_runner/core/tetris_core.h: In member function ‘bool m_tetris::TetrisEngine<TetrisRule, AI, Search>::prepare(int, int)’:
+/workspace/ws_bvkNUUFx/tetris_ai_runner/core/tetris_core.h:2015:52: error: ‘flatten_rulespec’ is not a member of ‘m_tetris::m_tetris’; did you mean ‘m_tetris::flatten_rulespec’?
+ 2015 |             shared_context_->opertion_ = m_tetris::flatten_rulespec<typename TetrisRule::rule_spec>();
+      |                                                    ^~~~~~~~~~~~~~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/core/tetris_core.h:581:56: note: ‘m_tetris::flatten_rulespec’ declared here
+  581 |     std::map<std::pair<char, uint8_t>, TetrisOpertion> flatten_rulespec();
+      |                                                        ^~~~~~~~~~~~~~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/core/tetris_core.h:2015:99: error: expected ‘(’ before ‘>’ token
+ 2015 |             shared_context_->opertion_ = m_tetris::flatten_rulespec<typename TetrisRule::rule_spec>();
+      |                                                                                                   ^
+/workspace/ws_bvkNUUFx/tetris_ai_runner/core/tetris_core.h:2015:101: error: expected primary-expression before ‘)’ token
+ 2015 |             shared_context_->opertion_ = m_tetris::flatten_rulespec<typename TetrisRule::rule_spec>();
+      |                                                                                                     ^
+make[2]: *** [CMakeFiles/tetris_core.dir/build.make:76: CMakeFiles/tetris_core.dir/core/tetris_core.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:125: CMakeFiles/tetris_core.dir/all] Error 2
+make: *** [Makefile:101: all] Error 2

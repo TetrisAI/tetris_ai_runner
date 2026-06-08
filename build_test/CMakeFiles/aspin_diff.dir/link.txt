@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/aspin_diff.dir/src/ai_zzz.cpp.o CMakeFiles/aspin_diff.dir/src/integer_utils.cpp.o CMakeFiles/aspin_diff.dir/src/random.cpp.o CMakeFiles/aspin_diff.dir/src/rule_srs.cpp.o CMakeFiles/aspin_diff.dir/tests/aspin_diff.cpp.o -o aspin_diff  libtetris_oracle.a libtetris_core.a 

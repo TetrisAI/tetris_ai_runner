@@ -58,7 +58,6 @@
     <ClCompile Include="src\integer_utils.cpp" />
     <ClCompile Include="src\rule_asrs.cpp" />
     <ClCompile Include="src\rule_botris.cpp" />
-    <ClCompile Include="src\search_aspin.cpp" />
     <ClCompile Include="src\search_path.cpp" />
     <ClCompile Include="src\search_simple.cpp" />
     <ClCompile Include="src\search_simulate.cpp" />

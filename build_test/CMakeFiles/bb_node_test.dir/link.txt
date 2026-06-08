@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/bb_node_test.dir/src/integer_utils.cpp.o CMakeFiles/bb_node_test.dir/src/random.cpp.o CMakeFiles/bb_node_test.dir/src/rule_srs.cpp.o CMakeFiles/bb_node_test.dir/tests/bb_node_test.cpp.o -o bb_node_test  libtetris_core.a 

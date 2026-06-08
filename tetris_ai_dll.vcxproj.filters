@@ -67,7 +67,6 @@
     <ClCompile Include="src\rule_asrs.cpp">
       <Filter>rules\asrs</Filter>
     </ClCompile>
-    <ClCompile Include="src\search_aspin.cpp" />
     <ClCompile Include="src\rule_botris.cpp">
       <Filter>rules\botris</Filter>
     </ClCompile>

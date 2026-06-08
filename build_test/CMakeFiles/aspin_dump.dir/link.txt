@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/aspin_dump.dir/src/ai_zzz.cpp.o CMakeFiles/aspin_dump.dir/src/integer_utils.cpp.o CMakeFiles/aspin_dump.dir/src/random.cpp.o CMakeFiles/aspin_dump.dir/src/rule_botris.cpp.o CMakeFiles/aspin_dump.dir/tools/aspin_dump.cpp.o -o aspin_dump  libtetris_core.a 

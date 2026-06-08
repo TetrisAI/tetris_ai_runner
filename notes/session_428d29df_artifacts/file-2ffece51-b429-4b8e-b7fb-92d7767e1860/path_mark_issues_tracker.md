@@ -1,0 +1,146 @@
+# PathMark 全景问题追踪
+
+> 目的: 把当前已识别的所有 PathMark 相关设计问题/优化机会汇总, 避免散落在
+> 多个 commit notes / handoff 文档里被遗忘. 每条都包含: 现状 / 问题 / 收益 /
+> 状态.
+>
+> 上下文: bitboard 化的 PathMark 是 oracle TetrisNodeMark 的位板等价物, 当前
+> 在 path/simulate/tag 三个 strategy 共用. simple 不用 PathMark.
+> tag 的 t_path_mark_/path_mark_ 拆分 + PathMarkBit 引入是最近的演进起点.
+
+---
+
+## P0 — 已完成
+
+### P0-1. PathMarkBit 用一维 bitset + memset, 不再走 version_
+**现状**: `bb::Helpers<RuleSpec>::PathMarkBit` 已改成 `std::uint64_t bits_[kWords]`
++ `memset` clear. 仅承载 1 bit/cell 的"已访问"信息.
+**位置**: `src/bb_state.h:298-332`.
+**收益**: 内存 ~12.5KB → ~200B (64x), 完整 fit L1 cache; clear 还是 O(1) 级.
+**状态**: ✅ 已落地.
+
+### P0-2. tag::t_mark_ 不需要按 T piece 分桶
+**现状**: `t_mark_` 类型 = `bb::PathMark` (单桶), `search_t_native` 入口直接
+`t_mark_.clear()`. 不再有 `PathMarkPathT` 这种 kPieceCount 倍内存的设计.
+**位置**: `src/search_tag.h:88` + 入口 clear.
+**理由**: `search_t_native` 仅对 `SpinHook::active_for_piece<T> == true` 的
+piece 实例化 (TSpinHook 下只对 'T'), 物理上单 piece 写入. oracle 的"跨调用
+同 piece 残留可见"语义靠 `mark_bbox` 不写 prev/op 的 stale 行为单独保证,
+跟 piece 分桶正交.
+**状态**: ✅ 已落地.
+
+### P0-3. tag PathMark 双档化 (PathMarkBit + PathMark)
+**现状**: tag::ExtrasMixin 三个字段:
+- `search_mark_` (PathMarkBit, L1) — 1g/20g 非 T BFS;
+- `t_mark_` (PathMark, L3 + entry-stale) — search_t_native;
+- `make_path_mark_` (PathMark, L3) — make_path_none.
+
+PathMarkMixin 已从 tag::Context 移除.
+**状态**: ✅ 已落地, **但还未对拍验证** (P1 待办的 build/diff 任务).
+
+---
+
+## P1 — 接下来落地
+
+### P1-1. PathMark 容量按"实际可能 piece 集合"收紧
+**现状**: 所有档位 `kR = bb::Helpers<RuleSpec>::kMaxR` (全 piece max).
+**问题**: 字段类型上声明的 r 范围比实际承载的 piece 集合宽. 例如 tag::t_mark_
+仅承载 active_for_piece<T>=true 的 piece (TSpinHook 下只 'T'), search_mark_
+只承载非 T-spin piece, 用全集 max 是过度表达.
+**收益**: 类型自洽, 编译期挡住误用 (例如把非 T BFS 状态喂给 t_mark_); 加新
+规则 (5-cell, SZ-spin) 时容量自动随集合收缩. SRS-7 + TSpinHook 下 byte 数
+**没有节省** (因为 L/J/T 的 rcount 都是 4, 取 max 还是 4).
+**实施**: bb_state.h 给 PathMark/PathMarkBit 加 `template<int RBound = kMaxR>`,
+旧名字保留为默认实例; 加 `MaxRotationIf<Spec, ops, Pred>` 编译期工具; tag
+ExtrasMixin 用 SpinPred/NonSpinPred 算 kSearchR/kTSearchR.
+**详细方案**: `path_mark_per_piece_capacity.md`.
+**状态**: ⏳ 调研完, 等 P0 对拍通过后开工.
+
+### P1-2. tag PathMark 双档化的对拍验证
+**现状**: 代码已改, 未跑 tag_node_diff.
+**方法**: build/ 重编 + 跑 oracle vs bitboard byte-equal 对拍.
+**状态**: ⏳ 进行中.
+
+---
+
+## P2 — PathMark 多档化全局推广 (跨 strategy)
+
+### P2-1. PathStrategy 1g make_path PathMark 是否过度配置
+**现状**: `PathStrategy::Context` 用 `PathMarkMixin` (= `bb::PathMark`, L3 全档),
+1g make_path 走 `MakePath1gDedup` (set + cover_if 都不调, 只 set/get).
+**问题**: `MakePath1gDedup::try_admit` 只调 `set_bbox` 写 prev+op, build_path
+反向链 `get_bbox` 同时读 prev+op. 似乎都需要, 不冗余. **需要 subagent
+盘点确认**: 1g neighbors 是否真要 prev+op, 还是只 prev (op 仅末段写一次)?
+**收益**: 若 op 字段不需要 per-cell, 内存可降 ~15KB.
+**状态**: ❓ 待确认.
+
+### P2-2. PathStrategy 20g make_path PathMark 是否过度配置
+**现状**: `MakePath20gDedup` 同样写 prev+op. 但 20g neighbor 入队前已 drop,
+build_path 反向链是否需要 op?
+**位置**: `src/search_path.h:620-650, 944-960`.
+**状态**: ❓ 待确认.
+
+### P2-3. PathStrategy run_piece_20g 自有 Run20gMarkSlot 是另一种 PathMark 变体
+**现状**: `Run20gMarkSlot` 直接 vector<{visited, op, parent_r, parent_xb, parent_yb}>,
+不走 `bb::PathMark` 体系.
+**位置**: `src/search_path.h:239-300`.
+**问题**: 这是一个手写的 L3 等价实现 (visited+op+prev), 与 `bb::PathMark` 重复.
+应该统一到 PathMark 多档体系, 减少代码面.
+**收益**: 类型一致 + 利用 PathMark 的 version_ 墓碑 O(1) clear (当前 vector
+是 ctor-zero, 每次调用 `Run20gMarkSlot{0,...}` 重建 vector ~12.5KB allocation).
+**状态**: ❓ 待评估迁移.
+
+### P2-4. SimulateStrategy PathMark 档位
+**现状**: `SimulateStrategy::Context` 用 `PathMarkMixin` (L3 全档), 1g/20g
+make_path 都走 `MakePath1gDedup` (set+get).
+**问题**: 同 P2-1, 需要确认 op 字段是否真需要.
+**位置**: `src/search_simulate.h:100-103, 449-509`.
+**状态**: ❓ 待确认.
+
+### P2-5. SimpleStrategy 不用 PathMark, 是否需要?
+**现状**: simple 用栈数组 + 循环做 rotation BFS, 不走 PathMark.
+**位置**: `src/search_simple.h:325-380`.
+**评估**: simple 只关心 rotation 维度 (BFS 内只 4-7 个 r 节点), 不需要
+per-cell 标记. 当前设计合理, **不动**.
+**状态**: ✅ 不动.
+
+### P2-6. SimulateStrategy 20g neighbor 入队前不 drop, 但 dedup 用 1g 同款
+**现状**: `MakePath1gDedup` 被 simulate 1g 和 20g 共用; 20g 不 drop, 与 path
+20g (drop 后入队) 行为不同.
+**问题**: 这条不属于 PathMark 档位本身, 但属于"PathMark 接口契约"的边界
+情况, 值得在档位划分时一并审视 — 20g simulate 是否应该用专属 dedup?
+**状态**: ❓ 待确认.
+
+---
+
+## P3 — 长期边界 / 健壮性
+
+### P3-1. NoSpinHook 下 t_mark_ 是死字段 (浪费 ~50B)
+**现状**: TagStrategy 当前唯一 SpinHook 是 TSpinHook, 但模板上允许 NoSpinHook.
+NoSpinHook 下 `active_for_piece<T>` 全 false, t_mark_ 永不被 search_t_native
+读写, 但仍占 ~50B (Pred 兜底 kR=1).
+**问题**: 非 P0, 但 P1-1 落地后值得用 `if constexpr` + 空类型替代死字段.
+**状态**: 🟢 备查.
+
+### P3-2. PathMark::clear() 中 version_ 溢出回 1 路径未触达
+**现状**: `version_` 是 uint64, 实际不会溢出 (一秒生成数千万次 BFS 也得跑
+~5800 年). 但溢出回 1 + 全表清零的 fallback 占 ~5 行代码.
+**问题**: 是否应当用 `[[unlikely]]` + 注释明确"never reachable in practice"?
+或干脆删掉, 让 wrap-around 自然撞到旧 version 后由 cell_ver_=0 兜底 (但
+0 是初始值, 会撞).
+**状态**: 🟢 备查 (低优先级).
+
+### P3-3. PathMarkBit kBits=0 兜底
+**现状**: 当 kR=0 时 kBits=0, kWords=0, `bits_[0]` 是 zero-size array, 编译期
+错误. 已用 `MaxRotationIf` 兜底成 1, 但 PathMarkBit 自己内部没有同等防御.
+**问题**: 若有人直接 `PathMarkBitT<0>` 实例化会爆炸. 加 static_assert 或者
+内部用 `(kBits + 63 + 1) / 64` 强制 ≥ 1 word.
+**状态**: 🟢 备查 (P1-1 落地时一并加 static_assert).
+
+---
+
+## 当前推进顺序
+1. **P1-2 对拍** — 验证 P0-1/P0-2/P0-3 byte-equal. 通过 → single commit 提交.
+2. **P1-1 容量收紧** — 在对拍稳定基础上做.
+3. **P2 系列** — 全局推广. 由 subagent 盘点 P2-1/P2-2/P2-4 后批量改造.
+4. **P3 系列** — 顺手做或留 TODO 注释.

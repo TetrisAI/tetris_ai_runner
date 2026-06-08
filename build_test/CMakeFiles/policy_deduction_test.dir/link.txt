@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/policy_deduction_test.dir/src/ai_zzz.cpp.o CMakeFiles/policy_deduction_test.dir/src/integer_utils.cpp.o CMakeFiles/policy_deduction_test.dir/src/random.cpp.o CMakeFiles/policy_deduction_test.dir/src/rule_srs.cpp.o CMakeFiles/policy_deduction_test.dir/tests/policy_deduction_test.cpp.o -o policy_deduction_test  libtetris_oracle.a libtetris_core.a 

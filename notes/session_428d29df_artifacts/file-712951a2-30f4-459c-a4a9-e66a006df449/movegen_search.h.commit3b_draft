@@ -1,0 +1,188 @@
+
+#pragma once
+
+//==========================================================================
+// MoveGenSearch: 上层 AI 与位板 MoveGen 之间的 adapter.
+//
+// 设计目标:
+//   - 把所有上层 AI / 调参工具对 search 引擎的依赖收敛到唯一类型,
+//     消费者只看 MoveGenSearch, 不再直接依赖 search_tspin::Search.
+//   - 内部实现走位板原生 MoveGen<RuleSpec, T> 路径, 与 "消除 TetrisContext"
+//     同向: search 阶段不再依赖 TetrisNode 指针图 (rotate_*/move_*/wall_kick_*).
+//   - 类型层与 search_tspin::Search 严格一致, AI typedef 不需修改.
+//
+// 当前实现状态 (commit 3b):
+//   - search() 走位板原生: TetrisMap → Map<W,H>, 按 piece switch 7 份
+//     MoveGen<RuleSpec, T, kMini>, LandingPos → TetrisNodeWithTSpinType
+//     (context_->get(status) 反查 TetrisNode*, last_* 同步反查回 last 字段).
+//   - make_path() 仍委托 search_tspin::Search (后续 commit 4 重写).
+//==========================================================================
+
+#include "search_tspin.h"
+#include "tetris_core.h"
+#include "tetris_movegen.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <vector>
+
+namespace m_tetris
+{
+    template<class RuleSpec>
+    class MoveGenSearch
+    {
+    public:
+        //=== 编译期校验 ===
+        static_assert(static_cast<int>(RuleSpec::width) > 0,
+                      "MoveGenSearch: RuleSpec must expose static constexpr width > 0");
+        static_assert(static_cast<int>(RuleSpec::height) > 0,
+                      "MoveGenSearch: RuleSpec must expose static constexpr height > 0");
+
+        static constexpr int kW = static_cast<int>(RuleSpec::width);
+        static constexpr int kH = static_cast<int>(RuleSpec::height);
+
+        //=== 公开类型: 与 search_tspin::Search 严格一致, 单纯 using 别名. ===
+        using TSpinType = ::search_tspin::Search::TSpinType;
+        using Config = ::search_tspin::Search::Config;
+        using TetrisNodeWithTSpinType = ::search_tspin::Search::TetrisNodeWithTSpinType;
+
+        //=== 公开方法: 与 search_tspin::Search 同形签名. ===
+        void init(TetrisContext const *context, Config const *config)
+        {
+            context_ = context;
+            config_ = config;
+            //make_path 仍走老引擎委托, 同步 init.
+            impl_.init(context, config);
+        }
+
+        std::vector<TetrisNodeWithTSpinType> const *
+        search(TetrisMap const &map, TetrisNode const *node, std::size_t depth)
+        {
+            land_point_cache_.clear();
+            if (!node || !node->check(map))
+            {
+                return &land_point_cache_;
+            }
+            //20g 模式: 入口直接 drop, 与 search_tspin::Search::search 一致.
+            if (config_ && config_->is_20g)
+            {
+                node = node->drop(map);
+            }
+            //把 master TetrisMap (1=空) 翻成位板 Map<W,H> (1=占).
+            map_t board = build_board(map);
+            //按 piece type 分发. kMini 仅对 'T' 有意义.
+            char t = node->status.t;
+            switch (t)
+            {
+            case 'O': run_piece<'O', false>(board, depth); break;
+            case 'I': run_piece<'I', false>(board, depth); break;
+            case 'L': run_piece<'L', false>(board, depth); break;
+            case 'J': run_piece<'J', false>(board, depth); break;
+            case 'S': run_piece<'S', false>(board, depth); break;
+            case 'Z': run_piece<'Z', false>(board, depth); break;
+            case 'T': run_piece<'T', true>(board, depth); break;
+            default:
+                //非 SRS 7 piece: 退化到老引擎结果, 保证非 SRS 规则下不挂.
+                return impl_.search(map, node, depth);
+            }
+            return &land_point_cache_;
+        }
+
+        std::vector<char>
+        make_path(TetrisNode const *node,
+                  TetrisNodeWithTSpinType const &land_point,
+                  TetrisMap const &map)
+        {
+            //commit 4 之前, make_path 继续委托老引擎, 走它的 BFS 反向回溯.
+            //land_point 与老引擎 search 输出完全等价 (oracle_diff 守门),
+            //  因此委托结果与原版语义一致.
+            return impl_.make_path(node, land_point, map);
+        }
+
+    private:
+        using map_t = Map<kW, kH>;
+
+        //master TetrisMap.row[y]: 低 W 位中 1=空, 0=占含墙外.
+        //  位板 map_t: 1=占. 转换 = ~row[y] 的低 W 位.
+        static map_t build_board(TetrisMap const &m)
+        {
+            map_t out{};
+            using row_t = typename map_t::row_t;
+            constexpr row_t row_mask = map_t::row_full;
+            int h = m.height < kH ? m.height : kH;
+            for (int y = 0; y < h; ++y)
+            {
+                std::uint32_t inv = ~m.row[y];
+                row_t r = static_cast<row_t>(inv & static_cast<std::uint32_t>(row_mask));
+                out.set_row(y, r);
+            }
+            return out;
+        }
+
+        //跑某个 piece 的位板 BFS, 把每条 LandingPos 翻译成 TetrisNodeWithTSpinType
+        //并塞进 land_point_cache_.
+        template<char T, bool EnableMini>
+        void run_piece(map_t const &board, std::size_t depth)
+        {
+            //spawn 位置: master rule_srs / rule_toj 都用 (3, 21, r=0) 作为 status 起点.
+            //  但 MoveGen 的 spawn_x/spawn_y 是 *bbox 左下* 坐标, 而 status.x/y 是
+            //  master "4x4 矩阵的 top-left", 两者差一个 origin 偏移. 修正: master
+            //  spawn (3, 21) + 0-rot origin -> bbox 坐标.
+            //  origin = piece_cells<Spec, T, 0>.origin (来自 cells_impl 归一化).
+            //  master spawn_x = bbox_x - origin.x, spawn_y = bbox_y + origin.y
+            //  ⇒ bbox_x = master_spawn_x + origin.x, bbox_y = master_spawn_y - origin.y.
+            constexpr int origin_x_r0 = shape::piece_cells<RuleSpec, T, 0>.origin.x;
+            constexpr int origin_y_r0 = shape::piece_cells<RuleSpec, T, 0>.origin.y;
+            int spawn_bbox_x = 3 + origin_x_r0;
+            int spawn_bbox_y = 21 - origin_y_r0;
+
+            auto collect = [&](LandingPos lp) {
+                TetrisBlockStatus status;
+                status.t = T;
+                status.x = lp.x;
+                status.y = lp.y;
+                status.r = lp.r;
+                TetrisNode const *n = context_->get(status);
+                if (!n)
+                    return; // 理论不会发生 (canonical r 已对齐); 保底丢弃.
+                TetrisNodeWithTSpinType node_ex(n);
+                node_ex.is_check = true;
+                if constexpr (EnableMini)
+                {
+                    node_ex.is_ready = (lp.spin != 0);
+                    node_ex.is_mini_ready = (lp.spin == 1);
+                    bool spawn_rotate_seed =
+                        (lp.has_last_rot == 0 && depth == 0 && config_ && config_->last_rotate);
+                    node_ex.is_last_rotate = (lp.has_last_rot != 0) || spawn_rotate_seed;
+                    if (lp.has_last_rot)
+                    {
+                        TetrisBlockStatus last_status;
+                        last_status.t = T;
+                        last_status.x = lp.last_x;
+                        last_status.y = lp.last_y;
+                        last_status.r = lp.last_r;
+                        node_ex.last = context_->get(last_status);
+                    }
+                    else
+                    {
+                        node_ex.last = nullptr;
+                    }
+                }
+                else
+                {
+                    //非 T piece: 老 search 不写 spin flags, ctor 已置 0; 保留默认.
+                    (void)depth;
+                }
+                land_point_cache_.push_back(node_ex);
+            };
+            movegen::MoveGen<RuleSpec, T, EnableMini>::generate(
+                board, spawn_bbox_x, spawn_bbox_y, collect);
+        }
+
+        TetrisContext const *context_ = nullptr;
+        Config const *config_ = nullptr;
+        std::vector<TetrisNodeWithTSpinType> land_point_cache_;
+        //make_path 仍委托老引擎.
+        ::search_tspin::Search impl_;
+    };
+}

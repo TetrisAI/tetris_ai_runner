@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/cmd_tris.dir/src/ai_zzz.cpp.o CMakeFiles/cmd_tris.dir/src/cmd_tris.cpp.o CMakeFiles/cmd_tris.dir/src/integer_utils.cpp.o CMakeFiles/cmd_tris.dir/src/random.cpp.o CMakeFiles/cmd_tris.dir/src/rule_botris.cpp.o -o cmd_tris  libtetris_core.a 

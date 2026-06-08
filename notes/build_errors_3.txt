@@ -1,0 +1,109 @@
+[  2%] Built target typed_dispatch_test
+[  3%] Building CXX object CMakeFiles/tetris_core.dir/core/tetris_core.cpp.o
+[  3%] Linking CXX static library libtetris_core.a
+[  3%] Built target tetris_core
+[  4%] Building CXX object CMakeFiles/top_pso.dir/src/ai_zzz.cpp.o
+[  5%] Building CXX object CMakeFiles/tetris_oracle.dir/oracle/search_simple.cpp.o
+/workspace/ws_bvkNUUFx/tetris_ai_runner/oracle/search_simple.cpp:2:9: warning: #pragma once in main file
+    2 | #pragma once
+      |         ^~~~
+[  5%] Building CXX object CMakeFiles/tetris_ai.dir/src/ai.cpp.o
+[  6%] Building CXX object CMakeFiles/tetris_ai_runner.dir/src/ai.cpp.o
+[  7%] Building CXX object CMakeFiles/tetris_oracle.dir/oracle/search_path.cpp.o
+[  7%] Building CXX object CMakeFiles/top_pso.dir/src/integer_utils.cpp.o
+[  8%] Building CXX object CMakeFiles/top_pso.dir/src/random.cpp.o
+[  9%] Building CXX object CMakeFiles/top_pso.dir/src/rule_srs.cpp.o
+[  9%] Building CXX object CMakeFiles/tetris_oracle.dir/oracle/search_simulate.cpp.o
+/workspace/ws_bvkNUUFx/tetris_ai_runner/oracle/search_simulate.cpp:2:9: warning: #pragma once in main file
+    2 | #pragma once
+      |         ^~~~
+[  9%] Building CXX object CMakeFiles/top_pso.dir/src/ppt_pso.cpp.o
+[ 10%] Building CXX object CMakeFiles/tetris_oracle.dir/oracle/search_tag.cpp.o
+[ 11%] Building CXX object CMakeFiles/tetris_oracle.dir/oracle/search_aspin.cpp.o
+[ 11%] Building CXX object CMakeFiles/tetris_oracle.dir/oracle/search_cautious.cpp.o
+[ 12%] Building CXX object CMakeFiles/tetris_oracle.dir/oracle/search_tspin.cpp.o
+In file included from /workspace/ws_bvkNUUFx/tetris_ai_runner/core/tetris_core.h:575,
+                 from /workspace/ws_bvkNUUFx/tetris_ai_runner/oracle/../src/search_tspin.h:22,
+                 from /workspace/ws_bvkNUUFx/tetris_ai_runner/oracle/search_tspin.h:4,
+                 from /workspace/ws_bvkNUUFx/tetris_ai_runner/oracle/search_tspin.cpp:1:
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/bb_eval_bridge.h:71:23: error: ‘search_tspin’ does not name a type
+   71 |     using TSpinType = search_tspin::Search::TSpinType;
+      |                       ^~~~~~~~~~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/bb_eval_bridge.h:85:28: error: ‘TSpinType’ was not declared in this scope; did you mean ‘ASpinType’?
+   85 |         BBNode<Spec, T, R, TSpinType> node,
+      |                            ^~~~~~~~~
+      |                            ASpinType
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/bb_eval_bridge.h:85:37: error: template argument 4 is invalid
+   85 |         BBNode<Spec, T, R, TSpinType> node,
+      |                                     ^
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/bb_eval_bridge.h:86:9: error: ‘TSpinType’ has not been declared
+   86 |         TSpinType spin,
+      |         ^~~~~~~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/bb_eval_bridge.h: In static member function ‘static auto m_tetris::BBCallEval<AI, Spec>::call_eval_typed(const AI&, const LP&, const m_tetris::TetrisMap&, const m_tetris::TetrisMap&, size_t)’:
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/bb_eval_bridge.h:218:36: error: ‘TSpinType’ was not declared in this scope; did you mean ‘ASpinType’?
+  218 |                 BBNode<Spec, T, R, TSpinType> node;
+      |                                    ^~~~~~~~~
+      |                                    ASpinType
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/bb_eval_bridge.h:218:45: error: template argument 4 is invalid
+  218 |                 BBNode<Spec, T, R, TSpinType> node;
+      |                                             ^
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/bb_eval_bridge.h:219:22: error: request for member ‘x’ in ‘node’, which is of non-class type ‘int’
+  219 |                 node.x    = static_cast<int8_t>(np->status.x);
+      |                      ^
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/bb_eval_bridge.h:220:22: error: request for member ‘y’ in ‘node’, which is of non-class type ‘int’
+  220 |                 node.y    = static_cast<int8_t>(np->status.y);
+      |                      ^
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/bb_eval_bridge.h:221:22: error: request for member ‘spin’ in ‘node’, which is of non-class type ‘int’
+  221 |                 node.spin = static_cast<TSpinType>(spin_u8);
+      |                      ^~~~
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/bb_eval_bridge.h:221:41: error: ‘TSpinType’ does not name a type; did you mean ‘ASpinType’?
+  221 |                 node.spin = static_cast<TSpinType>(spin_u8);
+      |                                         ^~~~~~~~~
+      |                                         ASpinType
+/workspace/ws_bvkNUUFx/tetris_ai_runner/src/bb_eval_bridge.h:222:58: error: request for member ‘spin’ in ‘node’, which is of non-class type ‘int’
+  222 |                 return ai.template eval<T, R>(node, node.spin, after, src_map, (int)clear);
+      |                                                          ^~~~
+make[2]: *** [CMakeFiles/tetris_oracle.dir/build.make:160: CMakeFiles/tetris_oracle.dir/oracle/search_tspin.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:151: CMakeFiles/tetris_oracle.dir/all] Error 2
+make[1]: *** Waiting for unfinished jobs....
+[ 12%] Building CXX object CMakeFiles/tetris_ai_runner.dir/src/ai_ax.cpp.o
+[ 13%] Building CXX object CMakeFiles/tetris_ai.dir/src/ai_ax.cpp.o
+[ 14%] Building CXX object CMakeFiles/tetris_ai.dir/src/ai_farter.cpp.o
+[ 15%] Building CXX object CMakeFiles/tetris_ai_runner.dir/src/ai_farter.cpp.o
+[ 16%] Building CXX object CMakeFiles/tetris_ai_runner.dir/src/ai_misaka.cpp.o
+[ 17%] Linking CXX executable top_pso
+[ 17%] Built target top_pso
+[ 17%] Building CXX object CMakeFiles/tetris_ai_runner.dir/src/ai_tag.cpp.o
+[ 18%] Building CXX object CMakeFiles/tetris_ai.dir/src/ai_misaka.cpp.o
+[ 18%] Building CXX object CMakeFiles/tetris_ai.dir/src/ai_tag.cpp.o
+[ 19%] Building C object CMakeFiles/tetris_ai_runner.dir/src/dllmain.c.o
+[ 20%] Building C object CMakeFiles/tetris_ai.dir/src/dllmain.c.o
+[ 21%] Building CXX object CMakeFiles/tetris_ai_runner.dir/src/integer_utils.cpp.o
+[ 21%] Building CXX object CMakeFiles/tetris_ai_runner.dir/src/rule_asrs.cpp.o
+[ 22%] Building CXX object CMakeFiles/tetris_ai.dir/src/integer_utils.cpp.o
+[ 23%] Building CXX object CMakeFiles/tetris_ai_runner.dir/src/rule_botris.cpp.o
+[ 23%] Building CXX object CMakeFiles/tetris_ai.dir/src/rule_asrs.cpp.o
+[ 24%] Building CXX object CMakeFiles/tetris_ai.dir/src/rule_botris.cpp.o
+[ 25%] Building CXX object CMakeFiles/tetris_ai_runner.dir/src/random.cpp.o
+[ 26%] Building CXX object CMakeFiles/tetris_ai.dir/src/random.cpp.o
+[ 26%] Building CXX object CMakeFiles/tetris_ai_runner.dir/src/rule_c2.cpp.o
+[ 27%] Building CXX object CMakeFiles/tetris_ai_runner.dir/src/rule_qq.cpp.o
+[ 27%] Building CXX object CMakeFiles/tetris_ai.dir/src/rule_c2.cpp.o
+[ 28%] Building CXX object CMakeFiles/tetris_ai.dir/src/rule_qq.cpp.o
+[ 29%] Building CXX object CMakeFiles/tetris_ai_runner.dir/src/rule_srsx.cpp.o
+[ 30%] Building CXX object CMakeFiles/tetris_ai.dir/src/rule_srsx.cpp.o
+[ 30%] Building CXX object CMakeFiles/tetris_ai.dir/src/rule_st.cpp.o
+[ 31%] Building CXX object CMakeFiles/tetris_ai_runner.dir/src/rule_st.cpp.o
+[ 31%] Building CXX object CMakeFiles/tetris_ai_runner.dir/src/rule_tag.cpp.o
+[ 32%] Building CXX object CMakeFiles/tetris_ai.dir/src/rule_tag.cpp.o
+[ 33%] Building CXX object CMakeFiles/tetris_ai.dir/src/rule_toj.cpp.o
+[ 34%] Building CXX object CMakeFiles/tetris_ai_runner.dir/src/rule_toj.cpp.o
+[ 34%] Building CXX object CMakeFiles/tetris_ai.dir/src/ai_zzz.cpp.o
+[ 35%] Building CXX object CMakeFiles/tetris_ai.dir/src/rule_srs.cpp.o
+[ 36%] Building CXX object CMakeFiles/tetris_ai_runner.dir/src/ai_zzz.cpp.o
+[ 36%] Building CXX object CMakeFiles/tetris_ai_runner.dir/src/rule_srs.cpp.o
+[ 37%] Linking CXX shared library libtetris_ai_runner.so
+[ 38%] Linking CXX shared library libtetris_ai.so
+[ 38%] Built target tetris_ai_runner
+[ 38%] Built target tetris_ai
+make: *** [Makefile:101: all] Error 2

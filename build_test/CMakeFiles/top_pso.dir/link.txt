@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/top_pso.dir/src/ai_zzz.cpp.o CMakeFiles/top_pso.dir/src/integer_utils.cpp.o CMakeFiles/top_pso.dir/src/random.cpp.o CMakeFiles/top_pso.dir/src/rule_srs.cpp.o CMakeFiles/top_pso.dir/src/ppt_pso.cpp.o -o top_pso  libtetris_core.a 
