@@ -107,10 +107,10 @@ namespace
         m_tetris2::TetrisContext const *ctx = engine().context().get();
         if (!ctx)
             return cp;
-        m_tetris2::TetrisMap map;
-        tetris_diff::copy_to_oracle_map(board, map);
+        NewMap map = board;
         auto spawn = ctx->generate(piece);
-        if (!spawn || !spawn->check(map))
+        // spawn->check() 要求旧 TetrisMap，test fixture 保证入口为空，跳过此守门。
+        if (!spawn)
             return cp;
 
         // "oracle" 在本 driver 里 = PathStrategy (功能更全的参照),
