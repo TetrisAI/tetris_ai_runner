@@ -14,10 +14,13 @@
 
 #include "tetris_core.h"
 #include "search_aspin.h"
+#include "search_path.h"
 #include "ai_zzz.h"
 #include "rule_botris.h"
 #include "sb_tree.h"
 #include "integer_utils.h"
+#include "tetris_engine2.h"
+#include "bb_sim.h"
 
 #if _MSC_VER
 #define NOMINMAX
@@ -71,13 +74,18 @@ namespace zzz
     }
 }
 
-using Engine = m_tetris::TetrisEngine<rule_botris::TetrisRule, ai_zzz::Botris, search_aspin::Search>;
+using Engine = m_tetris2::TetrisEngine2<rule_botris::TetrisRule, ai_zzz::Botris, aspin::Search>;
 
 struct test_ai
 {
+    using Spec = rule_botris::TetrisRule::rule_spec;
+    using H = m_tetris2::bb::Helpers<Spec>;
+
     Engine ai;
-    m_tetris::TetrisMap map;
-    m_tetris::TetrisNode const *curr;
+    m_tetris2::TetrisMap map;
+    m_tetris2::bb::BBState cs{};
+    bool has_curr;
+    std::array<H::map_t, H::kMaxR> usable_arr{};
     std::mt19937 r_next, r_garbage;
     size_t next_length;
     size_t run_ms;
@@ -103,7 +111,7 @@ struct test_ai
 
     void init(size_t round_ms)
     {
-        map = m_tetris::TetrisMap(10, 40);
+        map = m_tetris2::TetrisMap(10, 40);
         r_next.seed(std::random_device()());
         r_garbage.seed(r_next());
         next.clear();
@@ -120,21 +128,37 @@ struct test_ai
         total_clear = 0;
         total_attack = 0;
         total_receive = 0;
-        curr = nullptr;
+        has_curr = false;
     }
-    m_tetris::TetrisNode const *node() const
+    void rebuild_current_usable()
     {
-        return curr;
+        auto board = m_tetris2::bb::build_board_for_search<Spec>(map);
+        H::build_usable_for_piece(static_cast<char>(cs.t), board, usable_arr);
+    }
+    void reset_current(char current)
+    {
+        auto sp = Spec::spawn(current, ai.width(), ai.height());
+        cs = H::state_from_status(current, 0, sp.first, sp.second);
+        rebuild_current_usable();
+        has_curr = true;
+    }
+    m_tetris2::BBLandPoint lp() const
+    {
+        if (!has_curr)
+        {
+            return {};
+        }
+        return m_tetris2::BBLandPoint(cs);
     }
     void prepare()
     {
         while (next.size() <= next_length)
         {
-            for (size_t i = 0; i < ai.context()->type_max(); ++i)
+            for (size_t i = 0; i < ai.type_max(); ++i)
             {
-                next.push_back(ai.context()->convert(i));
+                next.push_back(ai.convert(i));
             }
-            std::shuffle(next.end() - ai.context()->type_max(), next.end(), r_next);
+            std::shuffle(next.end() - ai.type_max(), next.end(), r_next);
         }
     }
     void run(std::function<void(test_ai &)> view_func)
@@ -164,9 +188,9 @@ struct test_ai
 
         ++round;
         char current = next.front();
-        if (curr == nullptr)
+        if (!has_curr)
         {
-            curr = ai.context()->generate(current);
+            reset_current(current);
         }
         view_func(*this);
         char c;
@@ -179,7 +203,6 @@ struct test_ai
         {
             return combo_table[std::min(combo_table_max - 1, c)];
         };
-        static m_tetris::TetrisNode const *n = nullptr;
         switch (c)
         {
         default:
@@ -195,137 +218,70 @@ struct test_ai
             under_attack(c - '0');
             break;
         case 'L':
-            while (curr->move_left != nullptr && curr->move_left->check(map))
-            {
-                curr = curr->move_left;
-            }
-            break;
         case 'R':
-            while (curr->move_right != nullptr && curr->move_right->check(map))
-            {
-                curr = curr->move_right;
-            }
-            break;
         case 'd':
-            if (curr->move_down != nullptr && curr->move_down->check(map))
-            {
-                curr = curr->move_down;
-            }
-            break;
         case 'D':
-            curr = curr->drop(map);
-            break;
         case 'l':
-            if (curr->move_left != nullptr && curr->move_left->check(map))
-            {
-                curr = curr->move_left;
-            }
-            break;
         case 'r':
-            if (curr->move_right != nullptr && curr->move_right->check(map))
-            {
-                curr = curr->move_right;
-            }
+        {
+            m_tetris2::bb::sim_path_bb<H>(cs, usable_arr, &c, &c + 1);
             break;
+        }
         case 'z':
         case 'Z':
-            for (auto wall_kick_node : curr->wall_kick_counterclockwise)
-            {
-                if (wall_kick_node)
-                {
-                    if (wall_kick_node->check(map))
-                    {
-                        curr = wall_kick_node;
-                        break;
-                    }
-                }
-                else
-                {
-                    break;
-                }
-            }
+        {
+            char move = 'z';
+            m_tetris2::bb::sim_path_bb<H>(cs, usable_arr, &move, &move + 1);
             break;
+        }
         case 'x':
         case 'X':
-            for (auto wall_kick_node : curr->wall_kick_opposite)
-            {
-                if (wall_kick_node)
-                {
-                    if (wall_kick_node->check(map))
-                    {
-                        curr = wall_kick_node;
-                        break;
-                    }
-                }
-                else
-                {
-                    break;
-                }
-            }
+        {
+            char move = 'x';
+            m_tetris2::bb::sim_path_bb<H>(cs, usable_arr, &move, &move + 1);
             break;
+        }
         case 'c':
         case 'C':
-            for (auto wall_kick_node : curr->wall_kick_clockwise)
-            {
-                if (wall_kick_node)
-                {
-                    if (wall_kick_node->check(map))
-                    {
-                        curr = wall_kick_node;
-                        break;
-                    }
-                }
-                else
-                {
-                    break;
-                }
-            }
+        {
+            char move = 'c';
+            m_tetris2::bb::sim_path_bb<H>(cs, usable_arr, &move, &move + 1);
             break;
+        }
         case 'v':
             if (hold == ' ')
             {
                 next.erase(next.begin());
                 hold = current;
                 current = next.front();
-                curr = ai.context()->generate(current);
+                reset_current(current);
                 prepare();
             }
             else
             {
                 next.front() = hold;
                 hold = current;
-                curr = ai.context()->generate(current);
+                reset_current(current);
             }
             break;
-        // case 'o':
-        //     static int k = 0;
-        //     n = curr;
-        //     k = 0;
-        //     break;
-        // case 'k':
-        //     if (n->wall_kick_counterclockwise[k] != nullptr)
-        //     {
-        //         curr = n->wall_kick_counterclockwise[k];
-        //     }
-        //     else
-        //     {
-        //         k = 0;
-        //         curr = n->wall_kick_counterclockwise[k];
-        //     }
-        //     ++k;
-        //     break;
-        // case 'm':
-        //     curr = n;
-        //     break;
         case 'V':
-            curr = curr->drop(map);
+        {
+            if (auto dropped = H::drop_bb_state(cs, usable_arr))
+            {
+                cs = *dropped;
+            }
             next.erase(next.begin());
             prepare();
-            int clear = curr->attach(ai.context().get(), map);
+            int clear = ai.attach(m_tetris2::BBLandPoint{cs}, map);
             total_clear += clear;
-            auto &m = map;
-            n = curr;
-            bool immovable = (!n->move_up || !n->move_up->check(m)) && (!n->move_down || !n->move_down->check(m)) && (!n->move_left || !n->move_left->check(m)) && (!n->move_right || !n->move_right->check(m));
+            auto &s = cs;
+            auto board = m_tetris2::bb::build_board_for_search<Spec>(map);
+            std::array<H::map_t, H::kMaxR> ua{};
+            H::build_usable_for_piece(static_cast<char>(s.t), board, ua);
+            bool immovable = !H::usable_at_bb(s.r, static_cast<int>(s.xb) - 1, static_cast<int>(s.yb), ua) &&
+                             !H::usable_at_bb(s.r, static_cast<int>(s.xb) + 1, static_cast<int>(s.yb), ua) &&
+                             !H::usable_at_bb(s.r, static_cast<int>(s.xb), static_cast<int>(s.yb) - 1, ua) &&
+                             !H::usable_at_bb(s.r, static_cast<int>(s.xb), static_cast<int>(s.yb) + 1, ua);
             switch (clear)
             {
             case 0:
@@ -408,7 +364,7 @@ struct test_ai
                 {
                     map.row[y] = map.row[y - line];
                 }
-                uint32_t row = 1 << std::uniform_int_distribution<uint32_t>(0, ai.context()->width() - 1)(r_garbage);
+                uint32_t row = 1 << std::uniform_int_distribution<uint32_t>(0, ai.width() - 1)(r_garbage);
                 for (int y = 0; y < line; ++y)
                 {
                     map.row[y] = row;
@@ -427,8 +383,9 @@ struct test_ai
                     }
                 }
             }
-            curr = nullptr;
+            has_curr = false;
             break;
+        }
         }
     }
     void under_attack(int line)
@@ -603,10 +560,10 @@ int main(int argc, char const *argv[])
                 int up1 = std::accumulate(ai1.recv_attack.begin(), ai1.recv_attack.end(), 0);
                 snprintf(out, sizeof out, "HOLD = %c NEXT = %c%c%c%c%c%c COMBO =%2d B2B = %d APP = %1.2f UP = %2d\n",
                          ai1.hold, ai1.next[1], ai1.next[2], ai1.next[3], ai1.next[4], ai1.next[5], ai1.next[6], ai1.combo, ai1.b2b, 1. * ai1.total_attack / ai1.round, up1);
-                m_tetris::TetrisMap map_copy1 = ai1.map;
-                if (ai1.node() != nullptr)
+                m_tetris2::TetrisMap map_copy1 = ai1.map;
+                if (ai1.lp() != nullptr)
                 {
-                    ai1.node()->attach(ai1.ai.context().get(), map_copy1);
+                    ai1.ai.attach(ai1.lp(), map_copy1);
                 }
                 for (int y = 21; y >= 0; --y)
                 {
@@ -631,10 +588,10 @@ int main(int argc, char const *argv[])
                 int up1 = std::accumulate(ai1.recv_attack.begin(), ai1.recv_attack.end(), 0);
                 snprintf(out, sizeof out, "HOLD = %c NEXT = %c%c%c%c%c%c COMBO =%2d B2B = %d APP = %1.2f UP = %2d\n",
                          ai1.hold, ai1.next[1], ai1.next[2], ai1.next[3], ai1.next[4], ai1.next[5], ai1.next[6], ai1.combo, ai1.b2b, 1. * ai1.total_attack / ai1.round, up1);
-                m_tetris::TetrisMap map_copy1 = ai1.map;
-                if (ai1.node() != nullptr)
+                m_tetris2::TetrisMap map_copy1 = ai1.map;
+                if (ai1.lp() != nullptr)
                 {
-                    ai1.node()->attach(ai1.ai.context().get(), map_copy1);
+                    ai1.ai.attach(ai1.lp(), map_copy1);
                 }
                 for (int y = 21; y >= 0; --y)
                 {

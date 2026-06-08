@@ -14,6 +14,8 @@
 
 #include "tetris_core.h"
 #include "search_tspin.h"
+#include "search_path.h"
+#include "movegen_searcher.h"
 #include "ai_zzz.h"
 #include "rule_srs.h"
 #include "sb_tree.h"
@@ -132,8 +134,8 @@ void pso_logic(pso_config const &config, pso_data const &best, pso_data &item, s
 
 struct test_ai
 {
-    m_tetris::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ, search_tspin::Search> ai;
-    m_tetris::TetrisMap map;
+    m_tetris2::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ, m_tetris2::movegen::Searcher<m_tetris2::PathStrategy, m_tetris2::TSpinHook, rule_srs::TetrisRule::rule_spec>> ai;
+    m_tetris2::TetrisMap map;
     std::mt19937 r_next, r_garbage;
     size_t next_length;
     size_t run_ms;
@@ -151,14 +153,14 @@ struct test_ai
     int total_attack;
     int total_receive;
 
-    test_ai(m_tetris::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ, search_tspin::Search> &global_ai, int const *_combo_table, int _combo_table_max)
+    test_ai(m_tetris2::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ, m_tetris2::movegen::Searcher<m_tetris2::PathStrategy, m_tetris2::TSpinHook, rule_srs::TetrisRule::rule_spec>> &global_ai, int const *_combo_table, int _combo_table_max)
         : ai(global_ai.context()), combo_table(_combo_table), combo_table_max(_combo_table_max)
     {
     }
 
     void init(pso_data const &data, pso_config const &config, size_t round_ms)
     {
-        map = m_tetris::TetrisMap(10, 40);
+        map = m_tetris2::TetrisMap(10, 40);
         ai.ai_config()->param = data.param;
         r_next.seed(std::random_device()());
         r_garbage.seed(r_next());
@@ -176,9 +178,11 @@ struct test_ai
         total_attack = 0;
         total_receive = 0;
     }
-    m_tetris::TetrisNode const *node() const
+    m_tetris2::BBLandPoint lp() const
     {
-        return ai.context()->generate(next.front());
+        auto sp = rule_srs::TetrisRule::rule_spec::spawn(next.front(), ai.width(), ai.height());
+        m_tetris2::TetrisBlockStatus spawn_status(next.front(), static_cast<int8_t>(sp.first), static_cast<int8_t>(sp.second), 0);
+        return m_tetris2::BBLandPoint(m_tetris2::bb::Helpers<rule_srs::TetrisRule::rule_spec>::state_from_status(spawn_status.t, spawn_status.r, spawn_status.x, spawn_status.y));
     }
     void prepare()
     {
@@ -188,11 +192,11 @@ struct test_ai
         }
         while (next.size() <= next_length)
         {
-            for (size_t i = 0; i < ai.context()->type_max(); ++i)
+            for (size_t i = 0; i < ai.type_max(); ++i)
             {
-                next.push_back(ai.context()->convert(i));
+                next.push_back(ai.convert(i));
             }
-            std::shuffle(next.end() - ai.context()->type_max(), next.end(), r_next);
+            std::shuffle(next.end() - ai.type_max(), next.end(), r_next);
         }
     }
     void run()
@@ -216,8 +220,10 @@ struct test_ai
         ai_zzz::TOJ::Status::init_t_value(map, ai.status()->t2_value, ai.status()->t3_value);
 
         char current = next.front();
-        auto result = ai.run_hold(map, ai.context()->generate(current), hold, true, next.data() + 1, next_length, run_ms);
-        if (result.target == nullptr || result.target->low >= 20)
+        auto sp_coord = rule_srs::TetrisRule::rule_spec::spawn(current, ai.width(), ai.height());
+        auto spawn_status = m_tetris2::TetrisBlockStatus(current, static_cast<int8_t>(sp_coord.first), static_cast<int8_t>(sp_coord.second), 0);
+        auto result = ai.run_hold(map, spawn_status, hold, true, next.data() + 1, next_length, run_ms);
+        if (result.target == nullptr || result.target.state.yb >= 20)
         {
             dead = true;
             return;
@@ -235,7 +241,7 @@ struct test_ai
         {
             return combo_table[std::min(combo_table_max - 1, c)];
         };
-        int clear = result.target->attach(ai.context().get(), map);
+        int clear = ai.attach(result.target, map);
         total_clear += clear;
         switch (clear)
         {
@@ -324,7 +330,7 @@ struct test_ai
             {
                 map.row[y] = map.row[y - line];
             }
-            uint32_t row = 1 << std::uniform_int_distribution<uint32_t>(0, ai.context()->width() - 1)(r_garbage);
+            uint32_t row = 1 << std::uniform_int_distribution<uint32_t>(0, ai.width() - 1)(r_garbage);
             for (int y = 0; y < line; ++y)
             {
                 map.row[y] = row;
@@ -602,7 +608,7 @@ int main(int argc, char const *argv[])
     std::vector<std::thread> threads;
     int combo_table[] = {0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 4, 5};
     int combo_table_max = 13;
-    m_tetris::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ, search_tspin::Search> global_ai;
+    m_tetris2::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ, m_tetris2::movegen::Searcher<m_tetris2::PathStrategy, m_tetris2::TSpinHook, rule_srs::TetrisRule::rule_spec>> global_ai;
     global_ai.prepare(10, 40);
 
     for (size_t i = 1; i <= count; ++i)
@@ -676,10 +682,10 @@ int main(int argc, char const *argv[])
                                               "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d UP = %2d NAME = %s\n",
                         ai1.hold, ai1.next[1], ai1.next[2], ai1.next[3], ai1.next[4], ai1.next[5], ai1.next[6], ai1.combo, ai1.b2b, up1, m1->data.name,
                         ai2.hold, ai2.next[1], ai2.next[2], ai2.next[3], ai2.next[4], ai2.next[5], ai2.next[6], ai2.combo, ai2.b2b, up2, m2->data.name);
-                    m_tetris::TetrisMap map_copy1 = ai1.map;
-                    m_tetris::TetrisMap map_copy2 = ai2.map;
-                    ai1.node()->attach(ai1.ai.context().get(), map_copy1);
-                    ai2.node()->attach(ai2.ai.context().get(), map_copy2);
+                    m_tetris2::TetrisMap map_copy1 = ai1.map;
+                    m_tetris2::TetrisMap map_copy2 = ai2.map;
+                    ai1.ai.attach(ai1.lp(), map_copy1);
+                    ai2.ai.attach(ai2.lp(), map_copy2);
                     for (int y = 21; y >= 0; --y)
                     {
                         for (int x = 0; x < 10; ++x)
@@ -724,10 +730,10 @@ int main(int argc, char const *argv[])
                                               "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d UP = %2d NAME = %s\n",
                         ai1.hold, ai1.next[1], ai1.next[2], ai1.next[3], ai1.next[4], ai1.next[5], ai1.next[6], ai1.combo, ai1.b2b, up1, m1->data.name,
                         ai2.hold, ai2.next[1], ai2.next[2], ai2.next[3], ai2.next[4], ai2.next[5], ai2.next[6], ai2.combo, ai2.b2b, up2, m2->data.name);
-                    m_tetris::TetrisMap map_copy1 = ai1.map;
-                    m_tetris::TetrisMap map_copy2 = ai2.map;
-                    ai1.node()->attach(ai1.ai.context().get(), map_copy1);
-                    ai2.node()->attach(ai1.ai.context().get(), map_copy2);
+                    m_tetris2::TetrisMap map_copy1 = ai1.map;
+                    m_tetris2::TetrisMap map_copy2 = ai2.map;
+                    ai1.ai.attach(ai1.lp(), map_copy1);
+                    ai2.ai.attach(ai2.lp(), map_copy2);
                     for (int y = 21; y >= 0; --y)
                     {
                         for (int x = 0; x < 10; ++x)

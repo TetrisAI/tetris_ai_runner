@@ -3,64 +3,83 @@
 #define WINAPI __stdcall
 
 #include <ctime>
-#include "tetris_core.h"
 #include "random.h"
 #include "search_simple.h"
-#include "ai_easy.h"
 #include "rule_st.h"
+#include "tetris_engine2.h"
 
 //for https://misakamm.com/blog/504
 
-m_tetris::TetrisEngine<rule_st::TetrisRule, ai_easy::AI, search_simple::Search> tetris_ai;
+// DemoAI: å…¥é—¨çº§æ¼”ç¤º AIï¼Œeval å®Œå…¨éšæœºï¼ˆä¸åŸ ai_easy::AI è¡Œä¸ºä¸€è‡´ï¼‰ã€‚
+namespace demo
+{
+    using namespace m_tetris2;
+
+    class AI
+    {
+    public:
+        void init(void const * /*cfg*/ = nullptr) {}
+        std::string ai_name() const
+        {
+            return "Demo Random AI";
+        }
+
+        // get()ï¼šä» eval ç»“æœä¸­æå–æœ€ä¼˜è½ç‚¹ scoreï¼Œç›´æ¥é€ä¼ 
+        double get(double const &eval_result, size_t /*depth*/) const
+        {
+            return eval_result;
+        }
+
+        // eval()ï¼šBBCallEval è°ƒç”¨çº¦å®šï¼Œæ¥å—ä»»æ„ BBNode ç±»å‹ï¼ˆåªéœ€ clear å‚æ•°ï¼‰
+        template<class Node, class Map>
+        double eval(Node const & /*node*/, Map const & /*after*/,
+                    Map const & /*before*/, int clear) const
+        {
+            return clear * 100 + ege::mtdrand() * 100;
+        }
+    };
+}
+
+m_tetris2::TetrisEngine2<rule_st::TetrisRule, demo::AI, search_simple::Search> tetris_ai;
 
 extern "C" void attach_init()
 {
     ege::mtsrand(unsigned int(time(nullptr)));
 }
 
-//·µ»ØAIÃû×Ö£¬»áÏÔÊ¾ÔÚ½çÃæÉÏ
+//è¾“å‡ºAIåå­—ï¼Œå°†æ˜¾ç¤ºåœ¨ç•Œé¢ä¸Š
 extern "C" DECLSPEC_EXPORT char const *WINAPI Name()
 {
     static std::string name = "Demo Random AI";
     return name.c_str();
 }
 
-namespace demo
-{
-    using namespace m_tetris;
-
-    double eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear)
-    {
-        return clear * 100 + ege::mtdrand() * 100;
-    }
-}
-
 /*
- * path ÓÃÓÚ½ÓÊÕ²Ù×÷¹ı³Ì²¢·µ»Ø£¬²Ù×÷×Ö·û¼¯£º
- *      'l': ×óÒÆÒ»¸ñ
- *      'r': ÓÒÒÆÒ»¸ñ
- *      'd': ÏÂÒÆÒ»¸ñ
- *      'L': ×óÒÆµ½Í·
- *      'R': ÓÒÒÆµ½Í·
- *      'D': ÏÂÒÆµ½µ×£¨µ«²»Õ³ÉÏ£¬¿É¼ÌĞøÒÆ¶¯£©
- *      'z': ÄæÊ±ÕëĞı×ª
- *      'c': Ë³Ê±ÕëĞı×ª
- * ×Ö·û´®Ä©Î²Òª¼Ó'\0'£¬±íÊ¾ÂäµØ²Ù×÷£¨»òÓ²½µÂä£©
+ * path æ˜¯æ¥æ”¶è·¯å¾„å­—ç¬¦ä¸²çš„å­—ç¬¦æ•°ç»„ï¼Œå­—ç¬¦å«ä¹‰ï¼š
+ *      'l': å‘å·¦ä¸€æ ¼
+ *      'r': å‘å³ä¸€æ ¼
+ *      'd': å‘ä¸‹ä¸€æ ¼
+ *      'L': ç§»åˆ°æœ€å·¦
+ *      'R': ç§»åˆ°æœ€å³
+ *      'D': ç§»åˆ°æœ€ä¸‹ï¼ˆè½¯é™åˆ°åº•ï¼Œå³å¯ç§»åŠ¨è·ç¦»ï¼‰
+ *      'z': é€†æ—¶é’ˆæ—‹è½¬
+ *      'c': é¡ºæ—¶é’ˆæ—‹è½¬
+ * å­—ç¬¦ä¸²æœ«å°¾è¦åŠ '\0'ï¼Œè¡¨ç¤ºè·¯å¾„ç»“æŸï¼ˆç¡¬é™è½ï¼‰
  *
- * ±¾º¯ÊıÖ§³ÖÈÎÒâÂ·¾¶²Ù×÷£¬Èô²»ĞèÒª´Ëº¯ÊıÖ»ÏëÊ¹ÓÃÉÏÃæÒ»¸öµÄ»°£¬ÔòÉ¾µô±¾º¯Êı¼´¿É
+ * å¦‚æœä¸æ”¯æŒè·¯å¾„è¾“å‡ºå¯å¿½ç•¥è¯¥å‚æ•°ï¼Œå¦‚æœåªä½¿ç”¨è¿™ä¸€ä¸ªå‡½æ•°çš„è¯å¯åˆ æ‰ä¸‹é¢ä¸¤ä¸ªå‡½æ•°
  */
 extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char nextPiece, char path[])
 {
-    if(!tetris_ai.prepare(boardW, boardH))
+    if (!tetris_ai.prepare(boardW, boardH))
     {
         return 0;
     }
-    m_tetris::TetrisMap map(boardW, boardH);
-    for(int y = 0, add = 0; y < boardH; ++y, add += boardW)
+    m_tetris2::TetrisMap map(boardW, boardH);
+    for (int y = 0, add = 0; y < boardH; ++y, add += boardW)
     {
-        for(int x = 0; x < boardW; ++x)
+        for (int x = 0; x < boardW; ++x)
         {
-            if(board[x + add] == '1')
+            if (board[x + add] == '1')
             {
                 map.top[x] = map.roof = y + 1;
                 map.row[y] |= 1 << x;
@@ -68,17 +87,16 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
             }
         }
     }
-    m_tetris::TetrisBlockStatus status(curPiece, curX - 1, curY - 1, curR - 1);
+    m_tetris2::TetrisBlockStatus status(curPiece, curX - 1, curY - 1, curR - 1);
     std::string next;
-    if(nextPiece != ' ')
+    if (nextPiece != ' ')
     {
         next += nextPiece;
     }
-    m_tetris::TetrisNode const *node = tetris_ai.get(status);
-    auto target = tetris_ai.run(map, node, next.data(), next.size(), 99).target;
-    if(target != nullptr)
+    auto target = tetris_ai.run(map, status, next.data(), next.size(), 99).target;
+    if (target != nullptr)
     {
-        std::vector<char> ai_path = tetris_ai.make_path(node, target, map);
+        std::vector<char> ai_path = tetris_ai.make_path(status, target, map);
         std::memcpy(path, ai_path.data(), ai_path.size());
         path[ai_path.size()] = '\0';
     }

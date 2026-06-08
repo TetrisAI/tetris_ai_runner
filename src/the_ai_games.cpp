@@ -4,14 +4,16 @@
 #include <string>
 #include <iostream>
 #include <functional>
+#include <array>
 #include "tetris_core.h"
 #include "search_tag.h"
 #include "ai_tag.h"
 #include "rule_tag.h"
 #include "random.h"
+#include "tetris_engine2.h"
 
-m_tetris::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games, search_tag::Search> bot_1;
-m_tetris::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games_enemy, search_tag::Search> bot_2;
+m_tetris2::TetrisEngine2<rule_tag::TetrisRule, ai_tag::the_ai_games, search_tag::Search> bot_1;
+m_tetris2::TetrisEngine2<rule_tag::TetrisRule, ai_tag::the_ai_games_enemy, search_tag::Search> bot_2;
 
 namespace zzz
 {
@@ -194,16 +196,8 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
                  std::cout << output;
                  return false;
              }
-             m_tetris::TetrisMap map1(field_width, field_height + 1), map2(field_width, field_height + 1);
-             m_tetris::TetrisBlockStatus status(this_piece, this_piece_pos_x, this_piece_pos_y + map1.height, 0);
-             m_tetris::TetrisNode const *node1 = bot_1.get(status);
-             m_tetris::TetrisNode const *node2 = bot_2.get(status);
-             if (node1 == nullptr)
-             {
-                 output += "no_moves\n";
-                 std::cout << output;
-                 return true;
-             }
+             m_tetris2::TetrisMap map1(field_width, field_height + 1), map2(field_width, field_height + 1);
+             m_tetris2::TetrisBlockStatus status(this_piece, this_piece_pos_x, this_piece_pos_y + map1.height, 0);
              for (int my = 0; my < field_height; ++my)
              {
                  for (int mx = 0; mx < field_width; ++mx)
@@ -224,78 +218,53 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
              }
              char next_arr[] = {next_piece, '?'};
              std::vector<char> ai_path;
-             ai_tag::the_ai_games::TetrisNodeEx target;
-             if (node1 != nullptr)
+             m_tetris2::BBLandPoint target;
+             int enemy_point_calc = 0;
+             int up[4];
+             bot_2.status()->combo = enemy_combo;
+             bot_2.status()->point = 0;
+             bot_2.ai_config()->point_ptr = &enemy_point_calc;
+             bot_2.ai_config()->up_ptr = up;
+             bot_2.run(map2, status, next_arr, 2, 20);
+             bot_1.status()->max_combo = combo;
+             bot_1.status()->combo = combo;
+             bot_1.status()->max_attack = 0;
+             bot_1.status()->attack = 0;
+             bot_1.status()->up[0] = (enemy_row_points % 4 + up[0]) / 4 + ((game_round + 0) % 20 == 0 ? 1 : 0);
+             bot_1.status()->up[1] = (enemy_row_points % 4 + up[1]) / 4 + ((game_round + 1) % 20 == 0 ? 1 : 0);
+             bot_1.status()->up[2] = (enemy_row_points % 4 + up[2]) / 4 + ((game_round + 2) % 20 == 0 ? 1 : 0);
+             bot_1.status()->land_point = 0;
+             bot_1.status()->value = 0;
+             target = bot_1.run(map1, status, next_arr, 2, std::max(50, std::atoi(params[2].c_str()) - 100)).target;
+             if (target == nullptr)
              {
-                 int enemy_point_calc = 0;
-                 int up[4];
-                 if (node2 != nullptr)
-                 {
-                     bot_2.status()->combo = enemy_combo;
-                     bot_2.status()->point = 0;
-                     bot_2.ai_config()->point_ptr = &enemy_point_calc;
-                     bot_2.ai_config()->up_ptr = up;
-                     bot_2.run(map2, node2, next_arr, 2, 20);
-                 }
-                 bot_1.status()->max_combo = combo;
-                 bot_1.status()->combo = combo;
-                 bot_1.status()->max_attack = 0;
-                 bot_1.status()->attack = 0;
-                 bot_1.status()->up[0] = (enemy_row_points % 4 + up[0]) / 4 + ((game_round + 0) % 20 == 0 ? 1 : 0);
-                 bot_1.status()->up[1] = (enemy_row_points % 4 + up[1]) / 4 + ((game_round + 1) % 20 == 0 ? 1 : 0);
-                 bot_1.status()->up[2] = (enemy_row_points % 4 + up[2]) / 4 + ((game_round + 2) % 20 == 0 ? 1 : 0);
-                 bot_1.status()->land_point = 0;
-                 bot_1.status()->value = 0;
-                 target = bot_1.run(map1, node1, next_arr, 2, std::max(50, std::atoi(params[2].c_str()) - 100)).target;
+                 output += "no_moves\n";
+                 std::cout << output;
+                 return true;
              }
-             if (target != nullptr)
-             {
-                 ai_path = bot_1.make_path(node1, target, map1);
-             }
+             ai_path = bot_1.make_path(status, target, map1);
+
              for (auto c : ai_path)
              {
                  switch (c)
                  {
                  case 'l':
+                 case 'L':
                      output += "left,";
-                     node1 = node1->move_left;
                      break;
                  case 'r':
+                 case 'R':
                      output += "right,";
-                     node1 = node1->move_right;
                      break;
                  case 'd':
-                     output += "down,";
-                     node1 = node1->move_down;
-                     break;
-                 case 'L':
-                     while (node1->move_left && node1->move_left->check(map1))
-                     {
-                         output += "left,";
-                         node1 = node1->move_left;
-                     }
-                     break;
-                 case 'R':
-                     while (node1->move_right && node1->move_right->check(map1))
-                     {
-                         output += "right,";
-                         node1 = node1->move_right;
-                     }
-                     break;
                  case 'D':
-                     while (node1->move_down && node1->move_down->check(map1))
-                     {
-                         output += "down,";
-                         node1 = node1->move_down;
-                     }
+                     output += "down,";
                      break;
                  case 'z':
                      output += "turnleft,";
-                     node1 = node1->rotate_counterclockwise;
                      break;
                  case 'c':
                      output += "turnright,";
-                     node1 = node1->rotate_clockwise;
                      break;
                  }
              }
@@ -368,9 +337,9 @@ int main()
 
 struct test_ai
 {
-    m_tetris::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games, search_tag::Search> ai;
-    m_tetris::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games_enemy, search_tag::Search> t;
-    m_tetris::TetrisMap map;
+    m_tetris2::TetrisEngine2<rule_tag::TetrisRule, ai_tag::the_ai_games, search_tag::Search> ai;
+    m_tetris2::TetrisEngine2<rule_tag::TetrisRule, ai_tag::the_ai_games_enemy, search_tag::Search> t;
+    m_tetris2::TetrisMap map;
     int point = 0, combo = 0;
     int win = 0, add_point;
     int attack;
@@ -380,7 +349,7 @@ struct test_ai
     {
         r1.reset(seed);
         r2.reset(seed);
-        map = m_tetris::TetrisMap(10, 21);
+        map = m_tetris2::TetrisMap(10, 21);
         ai.prepare(10, 21);
         ai.status()->max_combo = 0;
         ai.status()->combo = 0;
@@ -400,40 +369,53 @@ struct test_ai
     void reset()
     {
         r2.reset(r1.rand());
-        map = m_tetris::TetrisMap(10, 21);
+        map = m_tetris2::TetrisMap(10, 21);
         point = 0, combo = 0;
     }
-    m_tetris::TetrisNode const *node() const
+    m_tetris2::BBLandPoint lp() const
     {
-        return ai.context()->generate(next.front());
+        using Spec = rule_tag::TetrisRule::rule_spec;
+        auto sp = Spec::spawn(next.front(), ai.width(), ai.height());
+        auto cs = m_tetris2::bb::Helpers<Spec>::state_from_status(next.front(), 0, sp.first, sp.second);
+        return m_tetris2::BBLandPoint(cs);
     }
     bool prepare()
     {
+        using Spec = rule_tag::TetrisRule::rule_spec;
+        using H = m_tetris2::bb::Helpers<Spec>;
         if (!next.empty())
         {
             next.erase(next.begin());
         }
         while (next.size() <= 1)
         {
-            next.push_back(ai.context()->convert(static_cast<size_t>(r1.real() * 7)));
+            next.push_back(ai.convert(static_cast<size_t>(r1.real() * 7)));
         }
-        return !ai.context()->generate(next.front())->check(map) || map.roof >= map.height;
+        auto sp = Spec::spawn(next.front(), ai.width(), ai.height());
+        auto board = m_tetris2::bb::build_board_for_search<Spec>(map);
+        std::array<H::map_t, H::kMaxR> usable_arr{};
+        H::build_usable_for_piece(next.front(), board, usable_arr);
+        auto cs = H::state_from_status(next.front(), 0, sp.first, sp.second);
+        return !H::usable_at_bb(cs.r, cs.xb, cs.yb, usable_arr) || map.roof >= map.height;
     }
-    void run(int enemy_combo, int enemy_point, int round, m_tetris::TetrisMap const &enemy_map)
+    void run(int enemy_combo, int enemy_point, int round, m_tetris2::TetrisMap const &enemy_map)
     {
+        using Spec = rule_tag::TetrisRule::rule_spec;
         int up[4];
         char current = next.front();
+        auto sp = Spec::spawn(current, ai.width(), ai.height());
+        auto spawn_status = m_tetris2::TetrisBlockStatus(current, static_cast<int8_t>(sp.first), static_cast<int8_t>(sp.second), 0);
         add_point = 0;
         t.status()->combo = enemy_combo;
         t.ai_config()->up_ptr = up;
         next.push_back('?');
-        t.run(enemy_map, t.context()->generate(current), next.data() + 1, next.size() - 1, 20);
+        t.run(enemy_map, spawn_status, next.data() + 1, next.size() - 1, 20);
         ai.status()->up[0] = (enemy_point % 4 + up[0]) / 4 + ((round + 0) % 20 == 0 ? 1 : 0);
         ai.status()->up[1] = (enemy_point % 4 + up[1]) / 4 + ((round + 1) % 20 == 0 ? 1 : 0);
         ai.status()->up[2] = (enemy_point % 4 + up[2]) / 4 + ((round + 2) % 20 == 0 ? 1 : 0);
         ai.status()->up[3] = (enemy_point % 4 + up[3]) / 4 + ((round + 3) % 20 == 0 ? 1 : 0);
         ai.status()->combo = combo;
-        auto result = ai.run(map, ai.context()->generate(current), next.data() + 1, next.size() - 1, 10000);
+        auto result = ai.run(map, spawn_status, next.data() + 1, next.size() - 1, 10000);
         next.pop_back();
         size_t clear;
         int new_point = 0;
@@ -443,7 +425,7 @@ struct test_ai
         }
         else
         {
-            clear = result.target->attach(map);
+            clear = ai.attach(result.target, map);
         }
         if (clear > 0)
         {
@@ -489,7 +471,7 @@ struct test_ai
         int w = map.width, h = map.height;
         for (int y = h - 1; y >= line; --y)
         {
-            if (map.row[y - line] == ai.context()->full())
+            if (map.row[y - line] == ai.full())
             {
                 full = y - line + 1;
                 break;
@@ -498,10 +480,10 @@ struct test_ai
         }
         for (int y = full; y < line + full; ++y)
         {
-            uint32_t new_line = ai.context()->full();
+            uint32_t new_line = ai.full();
             if (hole != -1)
             {
-                new_line = 1 << static_cast<int>(r2.real() * ai.context()->width());
+                new_line = 1 << static_cast<int>(r2.real() * ai.width());
             }
             map.row[y] = new_line;
         }
@@ -545,8 +527,8 @@ void match(test_ai &ai1, test_ai &ai2, std::function<void(test_ai const &, test_
             out_put(ai1, ai2);
         }
 
-        m_tetris::TetrisMap map_copy1 = ai1.map;
-        m_tetris::TetrisMap map_copy2 = ai2.map;
+        m_tetris2::TetrisMap map_copy1 = ai1.map;
+        m_tetris2::TetrisMap map_copy2 = ai2.map;
         int point1 = ai1.point, combo1 = ai1.combo;
         int point2 = ai2.point, combo2 = ai2.combo;
 
@@ -670,7 +652,7 @@ struct SBTreeInterface
 int wmain(int argc, wchar_t const *argv[])
 {
     //ai_tag::the_ai_games a;
-    //m_tetris::TetrisMap map(10, 21);
+    //m_tetris2::TetrisMap map(10, 21);
     //map.roof = 3;
     //map.row[0] = 0B1111111101;
     //map.row[1] = 0B1111111000;
@@ -803,10 +785,10 @@ int wmain(int argc, wchar_t const *argv[])
 
                     out[0] = '\0';
                     snprintf(out, sizeof out, "score = %f point = %d combo = %d [%s]\nscore = %f point = %d combo = %d [%s]\n", m1s, ai1.point, ai1.combo, m1->data.name, m2s, ai2.point, ai2.combo, m2->data.name);
-                    m_tetris::TetrisMap map_copy1 = ai1.map;
-                    m_tetris::TetrisMap map_copy2 = ai2.map;
-                    ai1.node()->attach(map_copy1);
-                    ai2.node()->attach(map_copy2);
+                    m_tetris2::TetrisMap map_copy1 = ai1.map;
+                    m_tetris2::TetrisMap map_copy2 = ai2.map;
+                    ai1.ai.attach(ai1.lp(), map_copy1);
+                    ai2.ai.attach(ai2.lp(), map_copy2);
                     for(int y = 21; y >= 0; --y)
                     {
                         for(int x = 0; x < 10; ++x)
