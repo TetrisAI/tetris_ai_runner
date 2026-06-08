@@ -40,7 +40,7 @@ struct get_tag {
 };
 
 template <class iterator_t, class tag_t, class... args_t>
-void construct_one(iterator_t where, tag_t, args_t &&...args) {
+void construct_one(iterator_t where, tag_t, args_t&&... args) {
   typedef
       typename std::iterator_traits<iterator_t>::value_type iterator_value_t;
   ::new (std::addressof(*where))
@@ -87,10 +87,10 @@ class contiguous_hash {
   typedef typename config_t::allocator_type allocator_type;
   typedef typename config_t::offset_type offset_type;
   typedef typename config_t::hash_value_type hash_value_type;
-  typedef value_type &reference;
-  typedef value_type const &const_reference;
-  typedef value_type *pointer;
-  typedef value_type const *const_pointer;
+  typedef value_type& reference;
+  typedef value_type const& const_reference;
+  typedef value_type* pointer;
+  typedef value_type const* const_pointer;
 
   static constexpr offset_type offset_empty = offset_type(-1);
 
@@ -98,17 +98,17 @@ class contiguous_hash {
   struct hash_t {
     hash_value_type hash;
     hash_t() {}
-    hash_t(hash_t const &) = default;
+    hash_t(hash_t const&) = default;
     /* implicit */ hash_t(hash_value_type value) {
       hash = value & ~(hash_value_type(1) << (sizeof(hash_value_type) * 8 - 1));
     }
-    hash_t &operator=(hash_t const &) = default;
+    hash_t& operator=(hash_t const&) = default;
 
     template <class any_type>
-    any_type operator%(any_type const &value) const {
+    any_type operator%(any_type const& value) const {
       return hash % value;
     }
-    bool operator==(hash_t const &other) const { return hash == other.hash; }
+    bool operator==(hash_t const& other) const { return hash == other.hash; }
     bool operator!() const { return hash == ~hash_value_type(0); }
     operator bool() const { return hash != ~hash_value_type(0); }
     void clear() { hash = ~hash_value_type(0); }
@@ -123,17 +123,18 @@ class contiguous_hash {
                                   std::alignment_of<value_type>::value>::type
         value_pod;
 
-    value_type *value() { return reinterpret_cast<value_type *>(&value_pod); }
-    value_type const *value() const {
-      return reinterpret_cast<value_type const *>(&value_pod);
+    value_type* value() { return reinterpret_cast<value_type*>(&value_pod); }
+    value_type const* value() const {
+      return reinterpret_cast<value_type const*>(&value_pod);
     }
   };
 
-  typedef typename allocator_type::template rebind<offset_type>::other
+  typedef std::allocator_traits<allocator_type> traits_type;
+  typedef typename traits_type::template rebind_alloc<offset_type>
       bucket_allocator_t;
-  typedef typename allocator_type::template rebind<index_t>::other
+  typedef typename traits_type::template rebind_alloc<index_t>
       index_allocator_t;
-  typedef typename allocator_type::template rebind<value_t>::other
+  typedef typename traits_type::template rebind_alloc<value_t>
       value_allocator_t;
   struct root_t : public hasher,
                   public key_equal,
@@ -141,7 +142,7 @@ class contiguous_hash {
                   public index_allocator_t,
                   public value_allocator_t {
     template <class any_hasher, class any_key_equal, class any_allocator_type>
-    root_t(any_hasher &&hash, any_key_equal &&equal, any_allocator_type &&alloc)
+    root_t(any_hasher&& hash, any_key_equal&& equal, any_allocator_type&& alloc)
         : hasher(std::forward<any_hasher>(hash)),
           key_equal(std::forward<any_key_equal>(equal)),
           bucket_allocator_t(alloc),
@@ -170,28 +171,28 @@ class contiguous_hash {
     typename contiguous_hash::size_type free_count;
     offset_type free_list;
     float setting_load_factor;
-    offset_type *bucket;
-    index_t *index;
-    value_t *value;
+    offset_type* bucket;
+    index_t* index;
+    value_t* value;
   };
   template <class k_t, class v_t>
   struct get_key_select_t {
-    key_type const &operator()(key_type const &value) { return value; }
-    key_type const &operator()(value_type const &value) {
+    key_type const& operator()(key_type const& value) { return value; }
+    key_type const& operator()(value_type const& value) {
       return config_t::get_key(value);
     }
     template <class... args_t>
-    key_type const &operator()(key_type const &in, args_t &&...args) {
+    key_type const& operator()(key_type const& in, args_t&&... args) {
       return (*this)(in);
     }
   };
   template <class k_t>
   struct get_key_select_t<k_t, k_t> {
-    key_type const &operator()(key_type const &value) {
+    key_type const& operator()(key_type const& value) {
       return config_t::get_key(value);
     }
     template <class in_t, class... args_t>
-    key_type operator()(in_t const &in, args_t const &...args) {
+    key_type operator()(in_t const& in, args_t const&... args) {
       return key_type(in, args...);
     }
   };
@@ -207,11 +208,11 @@ class contiguous_hash {
     typedef typename contiguous_hash::pointer pointer;
 
    public:
-    iterator(size_type _offset, contiguous_hash const *_self)
+    iterator(size_type _offset, contiguous_hash const* _self)
         : offset(_offset), self(_self) {}
-    iterator(iterator const &) = default;
-    iterator &operator=(iterator const &) = default;
-    iterator &operator++() {
+    iterator(iterator const&) = default;
+    iterator& operator=(iterator const&) = default;
+    iterator& operator++() {
       offset = self->advance_next_(offset);
       return *this;
     }
@@ -222,10 +223,10 @@ class contiguous_hash {
     }
     reference operator*() const { return *self->root_.value[offset].value(); }
     pointer operator->() const { return self->root_.value[offset].value(); }
-    bool operator==(iterator const &other) const {
+    bool operator==(iterator const& other) const {
       return offset == other.offset && self == other.self;
     }
-    bool operator!=(iterator const &other) const {
+    bool operator!=(iterator const& other) const {
       return offset != other.offset || self != other.self;
     }
     size_type pos() const { return offset; }
@@ -233,7 +234,7 @@ class contiguous_hash {
    private:
     friend class contiguous_hash;
     size_type offset;
-    contiguous_hash const *self;
+    contiguous_hash const* self;
   };
   class const_iterator {
    public:
@@ -246,13 +247,13 @@ class contiguous_hash {
     typedef typename contiguous_hash::const_pointer const_pointer;
 
    public:
-    const_iterator(size_type _offset, contiguous_hash const *_self)
+    const_iterator(size_type _offset, contiguous_hash const* _self)
         : offset(_offset), self(_self) {}
-    const_iterator(const_iterator const &) = default;
-    const_iterator &operator=(const_iterator const &) = default;
-    /* implicit */ const_iterator(iterator const &it)
+    const_iterator(const_iterator const&) = default;
+    const_iterator& operator=(const_iterator const&) = default;
+    /* implicit */ const_iterator(iterator const& it)
         : offset(it.offset), self(it.self) {}
-    const_iterator &operator++() {
+    const_iterator& operator++() {
       offset = self->advance_next_(offset);
       return *this;
     }
@@ -267,10 +268,10 @@ class contiguous_hash {
     const_pointer operator->() const {
       return self->root_.value[offset].value();
     }
-    bool operator==(const_iterator const &other) const {
+    bool operator==(const_iterator const& other) const {
       return offset == other.offset && self == other.self;
     }
-    bool operator!=(const_iterator const &other) const {
+    bool operator!=(const_iterator const& other) const {
       return offset != other.offset || self != other.self;
     }
     size_type pos() const { return offset; }
@@ -278,7 +279,7 @@ class contiguous_hash {
    private:
     friend class contiguous_hash;
     size_type offset;
-    contiguous_hash const *self;
+    contiguous_hash const* self;
   };
   class local_iterator {
    public:
@@ -289,11 +290,11 @@ class contiguous_hash {
     typedef typename contiguous_hash::pointer pointer;
 
    public:
-    local_iterator(size_type _offset, contiguous_hash const *_self)
+    local_iterator(size_type _offset, contiguous_hash const* _self)
         : offset(_offset), self(_self) {}
-    local_iterator(local_iterator const &) = default;
-    local_iterator &operator=(local_iterator const &) = default;
-    local_iterator &operator++() {
+    local_iterator(local_iterator const&) = default;
+    local_iterator& operator=(local_iterator const&) = default;
+    local_iterator& operator++() {
       offset = self->local_advance_next_(offset);
       return *this;
     }
@@ -304,10 +305,10 @@ class contiguous_hash {
     }
     reference operator*() const { return *self->root_.value[offset].value(); }
     pointer operator->() const { return self->root_.value[offset].value(); }
-    bool operator==(local_iterator const &other) const {
+    bool operator==(local_iterator const& other) const {
       return offset == other.offset && self == other.self;
     }
-    bool operator!=(local_iterator const &other) const {
+    bool operator!=(local_iterator const& other) const {
       return offset != other.offset || self != other.self;
     }
     size_type pos() const { return offset; }
@@ -315,7 +316,7 @@ class contiguous_hash {
    private:
     friend class contiguous_hash;
     size_type offset;
-    contiguous_hash const *self;
+    contiguous_hash const* self;
   };
   class const_local_iterator {
    public:
@@ -328,13 +329,13 @@ class contiguous_hash {
     typedef typename contiguous_hash::const_pointer const_pointer;
 
    public:
-    const_local_iterator(size_type _offset, contiguous_hash const *_self)
+    const_local_iterator(size_type _offset, contiguous_hash const* _self)
         : offset(_offset), self(_self) {}
-    const_local_iterator(const_local_iterator const &) = default;
-    const_local_iterator &operator=(const_local_iterator const &) = default;
-    explicit const_local_iterator(local_iterator const &it)
+    const_local_iterator(const_local_iterator const&) = default;
+    const_local_iterator& operator=(const_local_iterator const&) = default;
+    explicit const_local_iterator(local_iterator const& it)
         : offset(it.offset), self(it.self) {}
-    const_local_iterator &operator++() {
+    const_local_iterator& operator++() {
       offset = self->local_advance_next_(offset);
       return *this;
     }
@@ -349,10 +350,10 @@ class contiguous_hash {
     const_pointer operator->() const {
       return self->root_.value[offset].value();
     }
-    bool operator==(const_local_iterator const &other) const {
+    bool operator==(const_local_iterator const& other) const {
       return offset == other.offset && self == other.self;
     }
-    bool operator!=(const_local_iterator const &other) const {
+    bool operator!=(const_local_iterator const& other) const {
       return offset != other.offset || self != other.self;
     }
     size_type pos() const { return offset; }
@@ -360,7 +361,7 @@ class contiguous_hash {
    private:
     friend class contiguous_hash;
     size_type offset;
-    contiguous_hash const *self;
+    contiguous_hash const* self;
   };
   typedef typename std::conditional<config_t::unique_type::value,
                                     std::pair<iterator, bool>, iterator>::type
@@ -385,32 +386,32 @@ class contiguous_hash {
   contiguous_hash() : root_(hasher(), key_equal(), allocator_type()) {}
   // empty
   explicit contiguous_hash(size_type bucket_count,
-                           hasher const &hash = hasher(),
-                           key_equal const &equal = key_equal(),
-                           allocator_type const &alloc = allocator_type())
+                           hasher const& hash = hasher(),
+                           key_equal const& equal = key_equal(),
+                           allocator_type const& alloc = allocator_type())
       : root_(hash, equal, alloc) {
     rehash(bucket_count);
   }
   // empty
-  explicit contiguous_hash(allocator_type const &alloc)
+  explicit contiguous_hash(allocator_type const& alloc)
       : root_(hasher(), key_equal(), alloc) {}
   // empty
-  contiguous_hash(size_type bucket_count, allocator_type const &alloc)
+  contiguous_hash(size_type bucket_count, allocator_type const& alloc)
       : root_(hasher(), key_equal(), alloc) {
     rehash(bucket_count);
   }
   // empty
-  contiguous_hash(size_type bucket_count, hasher const &hash,
-                  allocator_type const &alloc)
+  contiguous_hash(size_type bucket_count, hasher const& hash,
+                  allocator_type const& alloc)
       : root_(hash, key_equal(), alloc) {
     rehash(bucket_count);
   }
   // range
   template <class iterator_t>
   contiguous_hash(iterator_t begin, iterator_t end, size_type bucket_count = 8,
-                  hasher const &hash = hasher(),
-                  key_equal const &equal = key_equal(),
-                  allocator_type const &alloc = allocator_type())
+                  hasher const& hash = hasher(),
+                  key_equal const& equal = key_equal(),
+                  allocator_type const& alloc = allocator_type())
       : root_(hash, equal, alloc) {
     rehash(bucket_count);
     insert(begin, end);
@@ -418,7 +419,7 @@ class contiguous_hash {
   // range
   template <class iterator_t>
   contiguous_hash(iterator_t begin, iterator_t end, size_type bucket_count,
-                  allocator_type const &alloc)
+                  allocator_type const& alloc)
       : root_(hasher(), key_equal(), alloc) {
     rehash(bucket_count);
     insert(begin, end);
@@ -426,55 +427,55 @@ class contiguous_hash {
   // range
   template <class iterator_t>
   contiguous_hash(iterator_t begin, iterator_t end, size_type bucket_count,
-                  hasher const &hash, allocator_type const &alloc)
+                  hasher const& hash, allocator_type const& alloc)
       : root_(hash, key_equal(), alloc) {
     rehash(bucket_count);
     insert(begin, end);
   }
   // copy
-  contiguous_hash(contiguous_hash const &other)
+  contiguous_hash(contiguous_hash const& other)
       : root_(other.get_hasher(), other.get_key_equal(),
               other.get_value_allocator_()) {
     copy_all_<false>(&other.root_);
   }
   // copy
-  contiguous_hash(contiguous_hash const &other, allocator_type const &alloc)
+  contiguous_hash(contiguous_hash const& other, allocator_type const& alloc)
       : root_(other.get_hasher(), other.get_key_equal(), alloc) {
     copy_all_<false>(&other.root_);
   }
   // move
-  contiguous_hash(contiguous_hash &&other)
+  contiguous_hash(contiguous_hash&& other)
       : root_(hasher(), key_equal(), value_allocator_t()) {
     swap(other);
   }
   // move
-  contiguous_hash(contiguous_hash &&other, allocator_type const &alloc)
+  contiguous_hash(contiguous_hash&& other, allocator_type const& alloc)
       : root_(std::move(other.get_hasher()), std::move(other.get_key_equal()),
               alloc) {
     copy_all_<true>(&other.root_);
   }
   // initializer list
   contiguous_hash(std::initializer_list<value_type> il,
-                  size_type bucket_count = 8, hasher const &hash = hasher(),
-                  key_equal const &equal = key_equal(),
-                  allocator_type const &alloc = allocator_type())
+                  size_type bucket_count = 8, hasher const& hash = hasher(),
+                  key_equal const& equal = key_equal(),
+                  allocator_type const& alloc = allocator_type())
       : contiguous_hash(il.begin(), il.end(),
                         std::distance(il.begin(), il.end()), hash, equal,
                         alloc) {}
   // initializer list
   contiguous_hash(std::initializer_list<value_type> il, size_type bucket_count,
-                  allocator_type const &alloc)
+                  allocator_type const& alloc)
       : contiguous_hash(il.begin(), il.end(),
                         std::distance(il.begin(), il.end()), alloc) {}
   // initializer list
   contiguous_hash(std::initializer_list<value_type> il, size_type bucket_count,
-                  hasher const &hash, allocator_type const &alloc)
+                  hasher const& hash, allocator_type const& alloc)
       : contiguous_hash(il.begin(), il.end(),
                         std::distance(il.begin(), il.end()), hash, alloc) {}
   // destructor
   ~contiguous_hash() { dealloc_all_(); }
   // copy
-  contiguous_hash &operator=(contiguous_hash const &other) {
+  contiguous_hash& operator=(contiguous_hash const& other) {
     if (this == &other) {
       return *this;
     }
@@ -488,7 +489,7 @@ class contiguous_hash {
     return *this;
   }
   // move
-  contiguous_hash &operator=(contiguous_hash &&other) {
+  contiguous_hash& operator=(contiguous_hash&& other) {
     if (this == &other) {
       return *this;
     }
@@ -496,7 +497,7 @@ class contiguous_hash {
     return *this;
   }
   // initializer list
-  contiguous_hash &operator=(std::initializer_list<value_type> il) {
+  contiguous_hash& operator=(std::initializer_list<value_type> il) {
     clear();
     rehash(std::distance(il.begin(), il.end()));
     insert(il.begin(), il.end());
@@ -504,12 +505,12 @@ class contiguous_hash {
   }
 
   allocator_type get_allocator() const {
-    return *static_cast<value_allocator_t const *>(&root_);
+    return *static_cast<value_allocator_t const*>(&root_);
   }
-  hasher hash_function() const { return *static_cast<hasher const *>(&root_); }
-  key_equal key_eq() const { return *static_cast<key_equal const *>(&root_); }
+  hasher hash_function() const { return *static_cast<hasher const*>(&root_); }
+  key_equal key_eq() const { return *static_cast<key_equal const*>(&root_); }
 
-  void swap(contiguous_hash &other) { std::swap(root_, other.root_); }
+  void swap(contiguous_hash& other) { std::swap(root_, other.root_); }
 
   typedef std::pair<iterator, iterator> pair_ii_t;
   typedef std::pair<const_iterator, const_iterator> pair_cici_t;
@@ -517,26 +518,26 @@ class contiguous_hash {
   typedef std::pair<const_local_iterator, const_local_iterator> pair_clicli_t;
 
   // single element
-  insert_result_t insert(value_type const &value) {
+  insert_result_t insert(value_type const& value) {
     return result_<typename config_t::unique_type>(insert_value_(value));
   }
   // single element
   template <class in_value_t>
   typename std::enable_if<std::is_convertible<in_value_t, value_type>::value,
                           insert_result_t>::type
-  insert(in_value_t &&value) {
+  insert(in_value_t&& value) {
     return result_<typename config_t::unique_type>(
         insert_value_(std::forward<in_value_t>(value)));
   }
   // with hint
-  iterator insert(const_iterator hint, value_type const &value) {
+  iterator insert(const_iterator hint, value_type const& value) {
     return result_<typename config_t::unique_type>(insert_value_(value));
   }
   // with hint
   template <class in_value_t>
   typename std::enable_if<std::is_convertible<in_value_t, value_type>::value,
                           insert_result_t>::type
-  insert(const_iterator hint, in_value_t &&value) {
+  insert(const_iterator hint, in_value_t&& value) {
     return result_<typename config_t::unique_type>(
         insert_value_(std::forward<in_value_t>(value)));
   }
@@ -554,26 +555,26 @@ class contiguous_hash {
 
   // single element
   template <class... args_t>
-  insert_result_t emplace(args_t &&...args) {
+  insert_result_t emplace(args_t&&... args) {
     return result_<typename config_t::unique_type>(
         insert_value_(std::forward<args_t>(args)...));
   }
   // with hint
   template <class... args_t>
-  insert_result_t emplace_hint(const_iterator hint, args_t &&...args) {
+  insert_result_t emplace_hint(const_iterator hint, args_t&&... args) {
     return result_<typename config_t::unique_type>(
         insert_value_(std::forward<args_t>(args)...));
   }
 
   template <class in_key_t>
-  iterator find(in_key_t const &key) {
+  iterator find(in_key_t const& key) {
     if (root_.size == 0) {
       return end();
     }
     return iterator(find_value_(key), this);
   }
   template <class in_key_t>
-  const_iterator find(in_key_t const &key) const {
+  const_iterator find(in_key_t const& key) const {
     if (root_.size == 0) {
       return cend();
     }
@@ -586,7 +587,7 @@ class contiguous_hash {
                     config_t::unique_type::value &&
                     !std::is_same<key_type, value_type>::value,
                 void>::type>
-  mapped_type &at(in_key_t const &key) {
+  mapped_type& at(in_key_t const& key) {
     offset_type offset = root_.size;
     if (root_.size != 0) {
       offset = find_value_(key);
@@ -602,7 +603,7 @@ class contiguous_hash {
                     config_t::unique_type::value &&
                     !std::is_same<key_type, value_type>::value,
                 void>::type>
-  mapped_type const &at(in_key_t const &key) const {
+  mapped_type const& at(in_key_t const& key) const {
     offset_type offset = root_.size;
     if (root_.size != 0) {
       offset = find_value_(key);
@@ -619,7 +620,7 @@ class contiguous_hash {
                     config_t::unique_type::value &&
                     !std::is_same<key_type, value_type>::value,
                 void>::type>
-  mapped_type &operator[](in_key_t &&key) {
+  mapped_type& operator[](in_key_t&& key) {
     offset_type offset = root_.size;
     if (root_.size != 0) {
       offset = find_value_(key);
@@ -645,7 +646,7 @@ class contiguous_hash {
     remove_offset_(it.offset);
     return local_iterator(next, this);
   }
-  size_type erase(key_type const &key) {
+  size_type erase(key_type const& key) {
     if (root_.size == 0) {
       return 0;
     }
@@ -670,7 +671,7 @@ class contiguous_hash {
     return local_iterator(erase_begin.offset, this);
   }
 
-  size_type count(key_type const &key) const {
+  size_type count(key_type const& key) const {
     auto where = find(key);
     if (where == end()) {
       return 0;
@@ -687,7 +688,7 @@ class contiguous_hash {
                 std::is_convertible<in_key_t, key_type>::value &&
                     config_t::unique_type::value,
                 void>::type>
-  pair_ii_t equal_range(in_key_t const &key) {
+  pair_ii_t equal_range(in_key_t const& key) {
     auto where = find(key);
     if (where == end()) {
       return std::make_pair(end(), end());
@@ -700,7 +701,7 @@ class contiguous_hash {
                 std::is_convertible<in_key_t, key_type>::value &&
                     config_t::unique_type::value,
                 void>::type>
-  pair_cici_t equal_range(in_key_t const &key) const {
+  pair_cici_t equal_range(in_key_t const& key) const {
     auto where = find(key);
     if (where == cend()) {
       return std::make_pair(cend(), cend());
@@ -714,7 +715,7 @@ class contiguous_hash {
                 std::is_convertible<in_key_t, key_type>::value &&
                     !config_t::unique_type::value,
                 void>::type>
-  pair_lili_t equal_range(in_key_t const &key) {
+  pair_lili_t equal_range(in_key_t const& key) {
     auto where = find(key);
     if (where == end()) {
       return std::make_pair(local_iterator(offset_empty, this),
@@ -730,7 +731,7 @@ class contiguous_hash {
                 std::is_convertible<in_key_t, key_type>::value &&
                     !config_t::unique_type::value,
                 void>::type>
-  pair_clicli_t equal_range(in_key_t const &key) const {
+  pair_clicli_t equal_range(in_key_t const& key) const {
     auto where = find(key);
     if (where == end()) {
       return std::make_pair(const_local_iterator(offset_empty, this),
@@ -755,6 +756,7 @@ class contiguous_hash {
   bool empty() const { return root_.size == root_.free_count; }
   void clear() { clear_all_(); }
   size_type size() const { return root_.size - root_.free_count; }
+  size_type capacity() const { return root_.capacity; }
   size_type max_size() const { return offset_empty - 1; }
 
   local_iterator begin(size_type n) {
@@ -786,7 +788,7 @@ class contiguous_hash {
     return step;
   }
 
-  size_type bucket(key_type const &key) const {
+  size_type bucket(key_type const& key) const {
     if (root_.size == 0) {
       return 0;
     }
@@ -833,18 +835,18 @@ class contiguous_hash {
   root_t root_;
 
  protected:
-  hasher &get_hasher() { return root_; }
-  hasher const &get_hasher() const { return root_; }
+  hasher& get_hasher() { return root_; }
+  hasher const& get_hasher() const { return root_; }
 
-  key_equal &get_key_equal() { return root_; }
-  key_equal const &get_key_equal() const { return root_; }
+  key_equal& get_key_equal() { return root_; }
+  key_equal const& get_key_equal() const { return root_; }
 
-  bucket_allocator_t &get_bucket_allocator_() { return root_; }
-  bucket_allocator_t const &get_bucket_allocator_() const { return root_; }
-  index_allocator_t &get_index_allocator_() { return root_; }
-  index_allocator_t const &get_index_allocator_() const { return root_; }
-  value_allocator_t &get_value_allocator_() { return root_; }
-  value_allocator_t const &get_value_allocator_() const { return root_; }
+  bucket_allocator_t& get_bucket_allocator_() { return root_; }
+  bucket_allocator_t const& get_bucket_allocator_() const { return root_; }
+  index_allocator_t& get_index_allocator_() { return root_; }
+  index_allocator_t const& get_index_allocator_() const { return root_; }
+  value_allocator_t& get_value_allocator_() { return root_; }
+  value_allocator_t const& get_value_allocator_() const { return root_; }
 
   size_type advance_next_(size_type i) const {
     for (++i; i < root_.size; ++i) {
@@ -882,7 +884,7 @@ class contiguous_hash {
   }
 
   template <class iterator_t, class... args_t>
-  static void construct_one_(iterator_t where, args_t &&...args) {
+  static void construct_one_(iterator_t where, args_t&&... args) {
     contiguous_hash_detail::construct_one(
         where, typename contiguous_hash_detail::get_tag<iterator_t>::type(),
         std::forward<args_t>(args)...);
@@ -937,7 +939,7 @@ class contiguous_hash {
   }
 
   template <bool move>
-  void copy_all_(root_t const *other) {
+  void copy_all_(root_t const* other) {
     root_.bucket_count = 0;
     root_.capacity = 0;
     root_.size = 0;
@@ -1037,7 +1039,7 @@ class contiguous_hash {
 
   void rehash_(std::false_type, size_type size) {
     size = std::min(get_prime_(size), max_size());
-    offset_type *new_bucket = get_bucket_allocator_().allocate(size);
+    offset_type* new_bucket = get_bucket_allocator_().allocate(size);
     std::memset(new_bucket, 0xFFFFFFFF, sizeof(offset_type) * size);
 
     if (root_.bucket_count != 0) {
@@ -1081,8 +1083,8 @@ class contiguous_hash {
              sizeof(value_t);
     }
     size = std::min(size, max_size());
-    index_t *new_index = get_index_allocator_().allocate(size);
-    value_t *new_value = get_value_allocator_().allocate(size);
+    index_t* new_index = get_index_allocator_().allocate(size);
+    value_t* new_value = get_value_allocator_().allocate(size);
 
     std::memset(new_index + root_.capacity, 0xFFFFFFFF,
                 sizeof(index_t) * (size - root_.capacity));
@@ -1121,7 +1123,7 @@ class contiguous_hash {
   }
 
   template <class... args_t>
-  pair_posi_t insert_value_(args_t &&...args) {
+  pair_posi_t insert_value_(args_t&&... args) {
     check_grow_();
     return insert_value_uncheck_(typename config_t::unique_type(),
                                  std::forward<args_t>(args)...);
@@ -1133,7 +1135,7 @@ class contiguous_hash {
           !std::is_same<typename std::remove_reference<in_t>::type,
                         key_type>::value,
       pair_posi_t>::type
-  insert_value_uncheck_(std::true_type, in_t &&in, args_t &&...args) {
+  insert_value_uncheck_(std::true_type, in_t&& in, args_t&&... args) {
     key_type key = get_key_t()(in, args...);
     hash_t hash = get_hasher()(key);
     size_type bucket = hash % root_.bucket_count;
@@ -1169,7 +1171,7 @@ class contiguous_hash {
           std::is_same<typename std::remove_reference<in_t>::type,
                        key_type>::value,
       pair_posi_t>::type
-  insert_value_uncheck_(std::true_type, in_t &&in, args_t &&...args) {
+  insert_value_uncheck_(std::true_type, in_t&& in, args_t&&... args) {
     hash_t hash = get_hasher()(get_key_t()(in, args...));
     size_type bucket = hash % root_.bucket_count;
     for (size_type i = root_.bucket[bucket]; i != offset_empty;
@@ -1201,8 +1203,8 @@ class contiguous_hash {
   }
 
   template <class in_t, class... args_t>
-  pair_posi_t insert_value_uncheck_(std::false_type, in_t &&in,
-                                    args_t &&...args) {
+  pair_posi_t insert_value_uncheck_(std::false_type, in_t&& in,
+                                    args_t&&... args) {
     size_type offset =
         root_.free_list == offset_empty ? root_.size : root_.free_list;
     construct_one_(root_.value[offset].value(), std::forward<in_t>(in),
@@ -1244,7 +1246,7 @@ class contiguous_hash {
   }
 
   template <class in_key_t>
-  size_type find_value_(in_key_t const &key) const {
+  size_type find_value_(in_key_t const& key) const {
     hash_t hash = get_hasher()(key);
     size_type bucket = hash % root_.bucket_count;
 
@@ -1258,7 +1260,7 @@ class contiguous_hash {
     return root_.size;
   }
 
-  size_type remove_value_(std::true_type, key_type const &key) {
+  size_type remove_value_(std::true_type, key_type const& key) {
     size_type offset = find_value_(key);
     if (offset != root_.size) {
       remove_offset_(offset);
@@ -1268,7 +1270,7 @@ class contiguous_hash {
     }
   }
 
-  size_type remove_value_(std::false_type, key_type const &key) {
+  size_type remove_value_(std::false_type, key_type const& key) {
     size_type offset = find_value_(key);
     if (offset != root_.size) {
       hash_t hash = root_.index[offset].hash;

@@ -19,7 +19,7 @@ struct chash_set_config_t {
   typedef key_equal_t key_equal;
   typedef allocator_t allocator_type;
   typedef std::uintptr_t offset_type;
-  typedef typename std::result_of<hasher(key_type)>::type hash_value_type;
+  typedef std::invoke_result_t<hasher, key_type> hash_value_type;
   typedef unique_t unique_type;
   static float grow_proportion(std::size_t) { return 2; }
   template <class in_type>

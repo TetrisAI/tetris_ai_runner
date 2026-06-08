@@ -6,7 +6,7 @@
 #include "ai_misaka.h"
 #include <cstdint>
 
-using namespace m_tetris;
+using namespace m_tetris2;
 using namespace zzz;
 
 namespace ai_misaka
@@ -130,39 +130,12 @@ namespace ai_misaka
         return score > m.score;
     }
 
-    void misaka::init(m_tetris::TetrisContext const *context, Config const *config)
-    {
-        context_ = context;
-        config_ = config;
-    }
-
     std::string misaka::ai_name() const
     {
         return "Misakamm v0.1";
     }
 
-    misaka::Result misaka::eval(TetrisNodeEx &node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
-    {
-        if (clear > 0 && node.is_check && node.is_last_rotate)
-        {
-            if (clear == 1 && node.is_mini_ready)
-            {
-                node.type = TSpinType::TSpinMini;
-            }
-            else if (node.is_ready)
-            {
-                node.type = TSpinType::TSpin;
-            }
-            else
-            {
-                node.type = TSpinType::None;
-            }
-        }
-        return {
-            node, &map, &src_map, clear, node.type};
-    }
-
-    misaka::Status misaka::get(Result const &eval_result, size_t depth, Status const &status, TetrisContext::Env const &env) const
+    misaka::Status misaka::get(Result const &eval_result, size_t depth, Status const &status, AIEnv const &env) const
     {
 #pragma warning(push)
 #pragma warning(disable : 4244 4554)
@@ -170,30 +143,29 @@ namespace ai_misaka
 #define USE4W 1
         struct VirtualRow
         {
-            VirtualRow(uint32_t const *row, int max, uint32_t mask)
+            VirtualRow(m_tetris2::row_t const *row, int max, m_tetris2::row_t mask)
                 : row_(row), max_(max), mask_(mask)
             {
             }
-            uint32_t const *row_;
+            m_tetris2::row_t const *row_;
             int max_;
-            uint32_t mask_;
-            uint32_t operator[](int index) const
+            m_tetris2::row_t mask_;
+            m_tetris2::row_t operator[](int index) const
             {
                 index = 21 - index;
                 if (index < 0 || index >= max_)
                 {
-                    return uint32_t(-1);
+                    return m_tetris2::row_t(-1);
                 }
-                return ~row_[index] & mask_;
+                return row_[index] & mask_;
             }
         };
         struct VirtualPool
         {
-            VirtualPool(TetrisContext const *context, Result const &eval_result, size_t depth, char hold, Status const &status)
-                : context_(context), eval_result_(eval_result), depth_(depth), hold_(hold), status_(status), row(eval_result.map->row, context->height(), context->row_mask()), m_hold(hold), m_w_mask(context->row_mask()), combo(status.combo), b2b(status.b2b)
+            VirtualPool(int height, int row_mask, Result const &eval_result, size_t depth, char hold, Status const &status)
+                : eval_result_(eval_result), depth_(depth), hold_(hold), status_(status), row(eval_result.map_rows, height, row_mask), m_hold(hold), m_w_mask(row_mask), combo(status.combo), b2b(status.b2b)
             {
             }
-            TetrisContext const *context_;
             Result const &eval_result_;
             size_t depth_;
             char hold_;
@@ -201,7 +173,7 @@ namespace ai_misaka
 
             VirtualRow row;
             char m_hold;
-            uint32_t m_w_mask;
+            m_tetris2::row_t m_w_mask;
             int16_t combo;
             int8_t b2b;
 
@@ -218,7 +190,7 @@ namespace ai_misaka
                 return 6;
             }
 
-        } pool(context_, eval_result, depth, env.hold, status);
+        } pool(height_, row_mask_, eval_result, depth, env.hold, status);
         Config const &ai_param = *config_;
         char const GEMTYPE_T = 'T';
         char const GEMTYPE_I = 'I';
@@ -280,7 +252,7 @@ namespace ai_misaka
                 result.upcomeAtt = -status.upcomeAtt;
             }
         }
-        if (eval_result.map->count == 0 && result.upcomeAtt >= 0)
+        if (eval_result.map_count == 0 && result.upcomeAtt >= 0)
         {
             result.att += m_pc_att;
         }
@@ -299,7 +271,7 @@ namespace ai_misaka
         int &clearScore = result.clearScore;
         int &score = result.score;
         int curdepth = depth;
-        char cur_num = eval_result.node->status.t;
+        char cur_num = eval_result.t;
         int8_t wallkick_spin = eval_result.t_spin != TSpinType::None ? 2 : 0;
         int t_dis = [=]() -> int
         {

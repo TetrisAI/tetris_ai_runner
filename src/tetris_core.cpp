@@ -14,12 +14,12 @@
 //目前只是尝试使用7次评估的平均值作为结果
 //来研究vp的策略吧!
 
-namespace m_tetris
+namespace m_tetris2
 {
 
     void TetrisNode::build_snap(TetrisMap const &map, TetrisContext const *context, TetrisMapSnap &snap) const
     {
-        uint32_t el = map.empty_line();
+        row_t el = map.empty_line();
         for (int r = 0; r < 4; ++r)
         {
             auto block = context->get_block(status.t, r);
@@ -29,7 +29,7 @@ namespace m_tetris
             }
             else
             {
-                memset(&snap.row[r][map.height], 0, sizeof(uint32_t) * (max_height - map.height));
+                memset(&snap.row[r][map.height], 0, sizeof(row_t) * (max_height - map.height));
                 uint32_t i = 0;
                 if (block->data[0].x == 0 && block->data[0].y == 0)
                 {
@@ -261,249 +261,59 @@ namespace m_tetris
         return true;
     }
 
-    bool TetrisContext::prepare(int width, int height)
+    TetrisNode const *TetrisContext::generate(char type) const
     {
-        if (width > 32 || height > max_height || width < 4 || height < 4)
+        auto find = opertion_.find(std::make_pair(type, static_cast<unsigned char>(0)));
+        if (find == opertion_.end())
         {
-            return false;
+            return nullptr;
         }
-        place_cache_.clear();
-        node_index_.clear();
-        node_storage_.clear();
-        node_block_.clear();
-        width_ = width;
-        height_ = height;
-        type_max_ = 0;
-        row_mask_ = width == 32 ? 0xFFFFFFFFU : (1U << width) - 1;
-        std::vector<TetrisBlockStatus> check;
-        for (auto cit = generate_.begin(); cit != generate_.end(); ++cit)
+
+        thread_local TetrisNode node;
+        node = find->second.create(width_, height_, find->second);
+
+        int const key = int(type) + 128;
+        int dx = int(spawn_x_[key]) - int(node.status.x);
+        while (dx > 0)
         {
-            char type = cit->first;
-            index_to_type_[type_max_] = ::toupper(type);
-            type_to_index_[::tolower(type) + 128] = type_max_;
-            type_to_index_[::toupper(type) + 128] = type_max_;
-            ++type_max_;
-        }
-        node_block_.resize(type_max_ * 4);
-        for (size_t i = 0; i < type_max_; ++i)
-        {
-            node_storage_.emplace_back();
-            TetrisNode &node = node_storage_.back();
-            create(generate_[convert(i)](this), node);
-            check.push_back(node.status);
-            node_index_.emplace(node.status, &node);
-        }
-        struct IndexFilter
-        {
-            IndexFilter(TetrisNode const &node)
+            if (!m_tetris2_rule_tools::move_right(node, this))
             {
-                std::memcpy(data, node.data, sizeof node.data);
-                data[4] = node.row;
+                return nullptr;
             }
-            uint32_t data[5];
-            struct Less
-            {
-                bool operator()(IndexFilter const &left, IndexFilter const &right) const
-                {
-                    return std::memcmp(left.data, right.data, sizeof left.data) < 0;
-                }
-            };
-        };
-        std::map<IndexFilter, uint32_t, IndexFilter::Less> index_filter;
-        TetrisMap map(width, height);
-        size_t check_index = 0;
-        do
+            --dx;
+        }
+        while (dx < 0)
         {
-            for (size_t max_index = check.size(); check_index < max_index; ++check_index)
+            if (!m_tetris2_rule_tools::move_left(node, this))
             {
-                TetrisNode &node = *node_index_.find(check[check_index])->second;
-                node.index = check_index;
-                node.index_filtered = index_filter.insert(std::make_pair(node, uint32_t(check_index))).first->second;
-#define ROTATE(func)                                                                                                                                                                                                                                                                                                         \
-    /**/ /**/ /**/ /**/ do                                                                                                                                                                                                                                                                                                   \
-    /**/ /**/ /**/ /**/ {                                                                                                                                                                                                                                                                                                    \
-        /**/ /**/ /**/ /**/ /**/ TetrisNode copy =                                                                                                                                                                                                                                                                           \
-            /**/ /**/ /**/ /**/ /**/ {                                                                                                                                                                                                                                                                                       \
-                /**/ /**/ /**/ /**/ /**/ /**/ node.status, node.op, {node.data[0], node.data[1], node.data[2], node.data[3]}, {node.top[0], node.top[1], node.top[2], node.top[3]}, {node.bottom[0], node.bottom[1], node.bottom[2], node.bottom[3]}, node.row, node.height, node.col, node.width /**/ /**/ /**/ /**/ /**/}; \
-        /**/ /**/ /**/ /**/ /**/ if (copy.op.func != nullptr && copy.op.func(copy, this))                                                                                                                                                                                                                                    \
-        /**/ /**/ /**/ /**/ /**/ {                                                                                                                                                                                                                                                                                           \
-            /**/ /**/ /**/ /**/ /**/ /**/ auto find = node_index_.find(copy.status);                                                                                                                                                                                                                                         \
-            /**/ /**/ /**/ /**/ /**/ /**/ if (find == node_index_.end())                                                                                                                                                                                                                                                     \
-            /**/ /**/ /**/ /**/ /**/ /**/ {                                                                                                                                                                                                                                                                                  \
-                /**/ /**/ /**/ /**/ /**/ /**/ /**/ check.push_back(copy.status);                                                                                                                                                                                                                                             \
-                /**/ /**/ /**/ /**/ /**/ /**/ /**/ node_storage_.emplace_back(copy);                                                                                                                                                                                                                                         \
-                /**/ /**/ /**/ /**/ /**/ /**/ /**/ find = node_index_.emplace(copy.status, &node_storage_.back()).first;                                                                                                                                                                                                     \
-            /**/ /**/ /**/ /**/ /**/ /**/ }                                                                                                                                                                                                                                                                                  \
-            /**/ /**/ /**/ /**/ /**/ /**/ node.func = find->second;                                                                                                                                                                                                                                                          \
-        /**/ /**/ /**/ /**/ /**/ }                                                                                                                                                                                                                                                                                           \
-    /**/ /**/ /**/ /**/ } while (false) /**/ /**/ /**/ /**/
-                ROTATE(rotate_clockwise);
-                ROTATE(rotate_counterclockwise);
-                ROTATE(rotate_opposite);
-#undef ROTATE
-#define MOVE(func)                                                                                                                                                                                                                                                                                                           \
-    /**/ /**/ /**/ /**/ do                                                                                                                                                                                                                                                                                                   \
-    /**/ /**/ /**/ /**/ {                                                                                                                                                                                                                                                                                                    \
-        /**/ /**/ /**/ /**/ /**/ TetrisNode copy =                                                                                                                                                                                                                                                                           \
-            /**/ /**/ /**/ /**/ /**/ {                                                                                                                                                                                                                                                                                       \
-                /**/ /**/ /**/ /**/ /**/ /**/ node.status, node.op, {node.data[0], node.data[1], node.data[2], node.data[3]}, {node.top[0], node.top[1], node.top[2], node.top[3]}, {node.bottom[0], node.bottom[1], node.bottom[2], node.bottom[3]}, node.row, node.height, node.col, node.width /**/ /**/ /**/ /**/ /**/}; \
-        /**/ /**/ /**/ /**/ /**/ if (m_tetris_rule_tools::func(copy, this))                                                                                                                                                                                                                                                  \
-        /**/ /**/ /**/ /**/ /**/ {                                                                                                                                                                                                                                                                                           \
-            /**/ /**/ /**/ /**/ /**/ /**/ auto find = node_index_.find(copy.status);                                                                                                                                                                                                                                         \
-            /**/ /**/ /**/ /**/ /**/ /**/ if (find == node_index_.end())                                                                                                                                                                                                                                                     \
-            /**/ /**/ /**/ /**/ /**/ /**/ {                                                                                                                                                                                                                                                                                  \
-                /**/ /**/ /**/ /**/ /**/ /**/ /**/ check.push_back(copy.status);                                                                                                                                                                                                                                             \
-                /**/ /**/ /**/ /**/ /**/ /**/ /**/ node_storage_.emplace_back(copy);                                                                                                                                                                                                                                         \
-                /**/ /**/ /**/ /**/ /**/ /**/ /**/ find = node_index_.emplace(copy.status, &node_storage_.back()).first;                                                                                                                                                                                                     \
-            /**/ /**/ /**/ /**/ /**/ /**/ }                                                                                                                                                                                                                                                                                  \
-            /**/ /**/ /**/ /**/ /**/ /**/ node.func = find->second;                                                                                                                                                                                                                                                          \
-        /**/ /**/ /**/ /**/ /**/ }                                                                                                                                                                                                                                                                                           \
-    /**/ /**/ /**/ /**/ } while (false) /**/ /**/ /**/ /**/
-                MOVE(move_left);
-                MOVE(move_right);
-                MOVE(move_down);
-                MOVE(move_up);
-#undef MOVE
-                node.move_down_multi[0] = &node;
-                if (node.move_down)
-                {
-                    TetrisNode copy =
-                        {
-                            node.move_down->status, node.move_down->op, {node.move_down->data[0], node.move_down->data[1], node.move_down->data[2], node.move_down->data[3]}, {node.move_down->top[0], node.move_down->top[1], node.move_down->top[2], node.move_down->top[3]}, {node.move_down->bottom[0], node.move_down->bottom[1], node.move_down->bottom[2], node.move_down->bottom[3]}, node.move_down->row, node.move_down->height, node.move_down->col, node.move_down->width, node.move_down->low};
-                    int index = 2;
-                    while (m_tetris_rule_tools::move_down(copy, this))
-                    {
-                        auto find = node_index_.find(copy.status);
-                        if (find == node_index_.end())
-                        {
-                            check.push_back(copy.status);
-                            node_storage_.emplace_back(copy);
-                            find = node_index_.emplace(copy.status, &node_storage_.back()).first;
-                        }
-                        node.move_down_multi[index] = find->second;
-                        ++index;
-                    }
-                }
-                auto &block = node_block_[convert(node.status.t) * 4 + node.status.r];
-                if (block.count == 0)
-                {
-                    for (int x = node.col; x < node.col + node.width; ++x)
-                    {
-                        for (int y = 0; y < node.height; ++y)
-                        {
-                            if ((node.data[y] >> x) & 1)
-                            {
-                                auto &b = block.data[block.count++];
-                                b.x = x - node.col;
-                                b.y = y;
-                            }
-                        }
-                    }
-                }
+                return nullptr;
             }
-        } while (check.size() > check_index);
-        for (size_t i = 0; i < type_max_; ++i)
-        {
-            TetrisNode node_generate;
-            create(generate_[convert(i)](this), node_generate);
-            TetrisNode const *node = generate_cache_[i] = get(node_generate.status);
-            place_cache_.insert(std::make_pair(node->status.t, std::vector<TetrisNode const *>()));
-            std::vector<TetrisNode const *> *land_point = &place_cache_.find(node->status.t)->second;
-            TetrisNode const *rotate = node;
-            do
-            {
-                TetrisNode const *move = rotate;
-                while (move->move_left != nullptr)
-                {
-                    move = move->move_left;
-                }
-                do
-                {
-                    land_point->push_back(move);
-                    move = move->move_right;
-                } while (move != nullptr);
-                rotate = rotate->rotate_counterclockwise != nullptr ? rotate->rotate_counterclockwise : rotate->rotate_clockwise;
-            } while (rotate != nullptr && rotate != node);
-            rotate = node;
-            int low = map.height;
-            do
-            {
-                for (int y = 0; y < rotate->width; ++y)
-                {
-                    low = std::min(low, rotate->bottom[y]);
-                }
-                rotate = rotate->rotate_counterclockwise != nullptr ? rotate->rotate_counterclockwise : rotate->rotate_clockwise;
-            } while (rotate != nullptr && rotate != node);
-            auto set_column_data = [land_point](TetrisNode const *node, int low) -> void
-            {
-                do
-                {
-                    TetrisNode *set_node = const_cast<TetrisNode *>(node);
-                    set_node->low = low--;
-                    set_node->land_point = land_point;
-                    node = set_node->move_down;
-                } while (node != nullptr);
-            };
-            rotate = node;
-            do
-            {
-                TetrisNode const *move = rotate;
-                while (move->move_left != nullptr)
-                {
-                    move = move->move_left;
-                }
-                do
-                {
-                    set_column_data(move, low);
-                    move = move->move_right;
-                } while (move != nullptr);
-                rotate = rotate->rotate_counterclockwise;
-            } while (rotate != nullptr && rotate != node);
+            ++dx;
         }
-        for (auto it = node_index_.begin(); it != node_index_.end(); ++it)
+
+        int dy = int(spawn_y_[key]) - int(node.status.y);
+        while (dy > 0)
         {
-            TetrisNode &node = *it->second;
-#define WALL_KICK(func)                                                                                                                         \
-    /**/ /**/ /**/ do                                                                                                                           \
-    /**/ /**/ /**/ {                                                                                                                            \
-        /**/ /**/ /**/ /**/ size_t wall_kick_index = 0;                                                                                         \
-        /**/ /**/ /**/ /**/ if (node.op.rotate_##func != nullptr)                                                                               \
-        /**/ /**/ /**/ /**/ {                                                                                                                   \
-            /**/ /**/ /**/ /**/ /**/ if (node.rotate_##func != nullptr)                                                                         \
-            /**/ /**/ /**/ /**/ /**/ {                                                                                                          \
-                /**/ /**/ /**/ /**/ /**/ /**/ ++wall_kick_index;                                                                                \
-            /**/ /**/ /**/ /**/ /**/ }                                                                                                          \
-            /**/ /**/ /**/ /**/ /**/ TetrisNode copy = *generate(node.status.t);                                                                \
-            /**/ /**/ /**/ /**/ /**/ node.op.rotate_##func(copy, this);                                                                         \
-            /**/ /**/ /**/ /**/ /**/ TetrisBlockStatus status = copy.status;                                                                    \
-            /**/ /**/ /**/ /**/ /**/ for (size_t i = 0; i < node.op.wall_kick_##func.length; ++i)                                               \
-            /**/ /**/ /**/ /**/ /**/ {                                                                                                          \
-                /**/ /**/ /**/ /**/ /**/ /**/ TetrisWallKickOpertion::WallKickNode &n = node.op.wall_kick_##func.data[i];                       \
-                /**/ /**/ /**/ /**/ /**/ /**/ TetrisBlockStatus wall_kick_status(status.t, node.status.x + n.x, node.status.y + n.y, status.r); \
-                /**/ /**/ /**/ /**/ /**/ /**/ if (create(wall_kick_status, copy))                                                               \
-                /**/ /**/ /**/ /**/ /**/ /**/ {                                                                                                 \
-                    /**/ /**/ /**/ /**/ /**/ /**/ /**/ node.wall_kick_##func[wall_kick_index++] = get(copy.status);                             \
-                /**/ /**/ /**/ /**/ /**/ /**/ }                                                                                                 \
-            /**/ /**/ /**/ /**/ /**/ }                                                                                                          \
-        /**/ /**/ /**/ /**/ }                                                                                                                   \
-        /**/ /**/ /**/ /**/ node.wall_kick_##func[wall_kick_index++] = nullptr;                                                                 \
-    /**/ /**/ /**/ } while (false) /**/ /**/ /**/
-            WALL_KICK(clockwise);
-            WALL_KICK(counterclockwise);
-            WALL_KICK(opposite);
-#undef WALL_KICK
+            if (!m_tetris2_rule_tools::move_up(node, this))
+            {
+                return nullptr;
+            }
+            --dy;
         }
-        return true;
+        while (dy < 0)
+        {
+            if (!m_tetris2_rule_tools::move_down(node, this))
+            {
+                return nullptr;
+            }
+            ++dy;
+        }
+        return &node;
     }
 
     size_t TetrisContext::type_max() const
     {
         return type_max_;
-    }
-
-    size_t TetrisContext::node_max() const
-    {
-        return node_index_.size();
     }
 
     size_t TetrisContext::convert(char type) const
@@ -516,133 +326,53 @@ namespace m_tetris
         return index_to_type_[index];
     }
 
-    TetrisOpertion TetrisContext::get_opertion(char t, unsigned char r) const
+    TetrisOpertion const &TetrisContext::get_opertion(char t, unsigned char r) const
     {
         auto find = opertion_.find(std::make_pair(t, r));
-        if (find == opertion_.end())
-        {
-            TetrisOpertion empty = {};
-            return empty;
-        }
-        else
-        {
-            return find->second;
-        }
+        assert(find != opertion_.end());
+        return find->second;
     }
 
     TetrisNodeBlockLocate const *TetrisContext::get_block(char t, unsigned char r) const
     {
-        return &node_block_[convert(t) * 4 + r];
-    }
-
-    TetrisNode const *TetrisContext::get(TetrisBlockStatus const &status) const
-    {
-        auto find = node_index_.find(status);
-        if (find == node_index_.end())
+        thread_local TetrisNodeBlockLocate block;
+        block.count = 0;
+        TetrisOpertion const &op = get_opertion(t, r);
+        TetrisNode node = op.create(width_, height_, op);
+        for (int x = node.col; x < node.col + node.width; ++x)
         {
-            return nullptr;
-        }
-        else
-        {
-            return find->second;
-        }
-    }
-
-    TetrisNode const *TetrisContext::get(char t, int8_t x, int8_t y, uint8_t r) const
-    {
-        TetrisBlockStatus status =
+            for (int y = 0; y < node.height; ++y)
             {
-                t, x, y, r};
-        return get(status);
-    }
-
-    TetrisNode const *TetrisContext::generate(char type) const
-    {
-        return generate_cache_[convert(type)];
-    }
-
-    TetrisNode const *TetrisContext::generate(size_t index) const
-    {
-        return generate_cache_[index];
-    }
-
-    TetrisNode const *TetrisContext::generate() const
-    {
-        if (type_max_ == 7)
-        {
-            size_t index;
-            do
-            {
-                index = ege::mtirand() & 7;
-            } while (index >= 7);
-            return generate(index);
-        }
-        else
-        {
-            return generate(static_cast<size_t>(ege::mtdrand() * type_max_));
-        }
-    }
-
-    bool TetrisContext::create(TetrisBlockStatus const &status, TetrisNode &node) const
-    {
-        TetrisNode const *cache = get(status);
-        if (cache != nullptr)
-        {
-            node = *cache;
-            return true;
-        }
-        TetrisOpertion op = get_opertion(status.t, status.r);
-        TetrisNode new_node = op.create(width_, height_, op);
-        while (new_node.status.x > status.x)
-        {
-            if (!m_tetris_rule_tools::move_left(new_node, this))
-            {
-                return false;
+                if ((node.data[y] >> x) & row_t(1))
+                {
+                    auto &b = block.data[block.count++];
+                    b.x = static_cast<uint32_t>(x - node.col);
+                    b.y = static_cast<uint32_t>(y);
+                }
             }
         }
-        while (new_node.status.x < status.x)
-        {
-            if (!m_tetris_rule_tools::move_right(new_node, this))
-            {
-                return false;
-            }
-        }
-        while (new_node.status.y > status.y)
-        {
-            if (!m_tetris_rule_tools::move_down(new_node, this))
-            {
-                return false;
-            }
-        }
-        while (new_node.status.y < status.y)
-        {
-            if (!m_tetris_rule_tools::move_up(new_node, this))
-            {
-                return false;
-            }
-        }
-        node = new_node;
-        return true;
+        return &block;
     }
 
     template class TetrisNodeMarkTemplate<true>;
     template class TetrisNodeMarkTemplate<false>;
 }
 
-namespace m_tetris_rule_tools
+namespace m_tetris2_rule_tools
 {
     TetrisNode create_node(size_t w, size_t h, char T, int8_t X, int8_t Y, uint8_t R, uint32_t line1, uint32_t line2, uint32_t line3, uint32_t line4, TetrisOpertion const &op)
     {
+        (void)op;
         assert(X < 0 || X >= 4 || Y < 0 || Y >= 4 || (line1 || line2 || line3 || line3));
         TetrisBlockStatus status(T, X, int8_t(h - Y - 1), R);
         TetrisNode node =
             {
-                status, op, {line4, line3, line2, line1}, {}, {}, char(h - 4), char(4), char(0), char(4)};
+                status, {line4, line3, line2, line1}, {}, {}, char(h - 4), char(4), char(0), char(4)};
         while (node.data[0] == 0)
         {
             ++node.row;
             --node.height;
-            memmove(&node.data[0], &node.data[1], node.height * sizeof(int));
+            memmove(&node.data[0], &node.data[1], node.height * sizeof(node.data[0]));
             node.data[node.height] = 0;
         }
         while (node.data[node.height - 1] == 0)
@@ -700,7 +430,46 @@ namespace m_tetris_rule_tools
         TetrisBlockStatus status =
             {
                 node.status.t, node.status.x, node.status.y, R};
-        return context->create(status, node);
+        TetrisOpertion const &op = context->get_opertion(status.t, R);
+        TetrisNode rotated = op.create(context->width(), context->height(), op);
+        node = rotated;
+
+        int dx = int(status.x) - int(node.status.x);
+        while (dx > 0)
+        {
+            if (!move_right(node, context))
+            {
+                return false;
+            }
+            --dx;
+        }
+        while (dx < 0)
+        {
+            if (!move_left(node, context))
+            {
+                return false;
+            }
+            ++dx;
+        }
+
+        int dy = int(status.y) - int(node.status.y);
+        while (dy > 0)
+        {
+            if (!move_up(node, context))
+            {
+                return false;
+            }
+            --dy;
+        }
+        while (dy < 0)
+        {
+            if (!move_down(node, context))
+            {
+                return false;
+            }
+            ++dy;
+        }
+        return true;
     }
 
     bool move_left(TetrisNode &node, TetrisContext const *context)
@@ -720,7 +489,8 @@ namespace m_tetris_rule_tools
 
     bool move_right(TetrisNode &node, TetrisContext const *context)
     {
-        const int check = context->width() == 32 ? 0x80000000 : (1 << (context->width() - 1));
+        //C-A2: width 上限提升至 64; check mask 走 row_t 算术, 避免 1<<width 的 UB.
+        row_t check = context->width() >= int(sizeof(row_t) * 8) ? row_t(row_t(1) << (sizeof(row_t) * 8 - 1)) : row_t(row_t(1) << (context->width() - 1));
         if (((node.data[0] | node.data[1] | node.data[2] | node.data[3]) & check) != 0)
         {
             return false;
