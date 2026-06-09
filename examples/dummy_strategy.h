@@ -108,7 +108,15 @@ namespace m_tetris2
                     return &ctx.land_point_cache_;
                 if (piece_info_t::index_of(node->status.t) < 0)
                     return &ctx.land_point_cache_;
-                map_t board = Helpers::build_board(map);
+                map_t board{};
+                using row_t = typename map_t::row_t;
+                constexpr row_t row_mask = map_t::row_full;
+                int h = map.height < map_t::height ? map.height : map_t::height;
+                for (int y = 0; y < h; ++y)
+                {
+                    std::uint32_t occ = (~map.row[y]) & static_cast<std::uint32_t>(row_mask);
+                    board.set_row(y, static_cast<row_t>(occ));
+                }
                 std::array<map_t, kMaxR> usable_arr{};
                 Helpers::build_usable_for_piece(node->status.t, board, usable_arr);
 
@@ -122,7 +130,11 @@ namespace m_tetris2
                     TetrisNode const *spawn_rot = *cit;
                     if (!spawn_rot)
                         continue;
-                    bb::BBState rot_state = Helpers::state_from_node(spawn_rot);
+                    bb::BBState rot_state = Helpers::state_from_status(
+                        spawn_rot->status.t,
+                        static_cast<std::uint8_t>(spawn_rot->status.r),
+                        spawn_rot->status.x,
+                        spawn_rot->status.y);
                     auto sunk = Helpers::drop_bb_state(rot_state, usable_arr);
                     if (!sunk)
                         continue;

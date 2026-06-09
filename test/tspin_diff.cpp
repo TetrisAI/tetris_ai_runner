@@ -216,7 +216,9 @@ namespace
             if (e.index >= g_candidate_lps.size())
                 return std::string();
             auto board = m_tetris2::bb::build_board_for_search<NewSearcher::rule_spec>(new_map_copy);
-            auto spawn = m_tetris2::bb::state_from_node_for_search<NewSearcher::rule_spec>(new_spawn_copy);
+            auto spawn = Helpers::state_from_status(new_spawn_copy->status.t,
+                static_cast<std::uint8_t>(new_spawn_copy->status.r),
+                new_spawn_copy->status.x, new_spawn_copy->status.y);
             std::vector<char> v = new_search_obj().make_path(spawn, g_candidate_lps[e.index], board);
             return std::string(v.begin(), v.end());
         };

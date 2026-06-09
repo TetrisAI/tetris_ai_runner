@@ -33,8 +33,6 @@
 
 namespace m_tetris2
 {
-    struct TetrisNode;
-
     namespace bb
     {
         struct BBState
@@ -64,8 +62,6 @@ namespace m_tetris2
             }
         };
 
-        template<class RuleSpec>
-        BBState state_from_node_for_search(TetrisNode const *node);
     }
 }
 
@@ -1137,18 +1133,6 @@ namespace m_tetris2
             Map<RuleSpec::width, RuleSpec::height> const &map)
         {
             return map;
-        }
-
-        template<class RuleSpec>
-        inline BBState state_from_node_for_search(TetrisNode const *node)
-        {
-            if (!node)
-                return BBState{0, 0, 0, 0};
-            return Helpers<RuleSpec>::state_from_status(
-                node->status.t,
-                static_cast<std::uint8_t>(node->status.r),
-                node->status.x,
-                node->status.y);
         }
     } // namespace bb
 } // namespace m_tetris2

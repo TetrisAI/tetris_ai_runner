@@ -33,12 +33,30 @@ namespace
 
         m_tetris2::TetrisMap map(10, 40);
         m_tetris2::TetrisNode const *node = nullptr;
-        auto spawn = m_tetris2::bb::state_from_node_for_search<Backend::rule_spec>(node);
+        auto spawn = node == nullptr ? m_tetris2::bb::BBState{0, 0, 0, 0}
+            : m_tetris2::bb::Helpers<Backend::rule_spec>::state_from_status(
+                node->status.t,
+                static_cast<std::uint8_t>(node->status.r),
+                node->status.x,
+                node->status.y);
         std::vector<Backend::LandPoint> const *cache = backend.search(map, node, 0);
         (void)cache;
 
         Backend::LandPoint lp{};
-        auto board = m_tetris2::bb::build_board_for_search<Backend::rule_spec>(map);
+        auto board = [&]()
+        {
+            using map_t = m_tetris2::Map<Backend::rule_spec::width, Backend::rule_spec::height>;
+            map_t out{};
+            using row_t = typename map_t::row_t;
+            constexpr row_t row_mask = map_t::row_full;
+            int h = map.height < map_t::height ? map.height : map_t::height;
+            for (int y = 0; y < h; ++y)
+            {
+                std::uint32_t occ = (~map.row[y]) & static_cast<std::uint32_t>(row_mask);
+                out.set_row(y, static_cast<row_t>(occ));
+            }
+            return out;
+        }();
         std::vector<char> path = backend.make_path(spawn, lp, board);
         (void)path;
     }
