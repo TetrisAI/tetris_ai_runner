@@ -17,8 +17,8 @@ namespace ai_farteryhr
             BLK_OOB = -1,
         };
 
-        // FarteryhrMap 现在模板化，接受任意满足 Map<W,H> 接口的地图类型。
-        // MapT 语义：bit=1 = occupied（1=occupied），与 Map<W,H> 一致。
+        // FarteryhrMap 现在模板化，接受任意满足 TetrisMap<W,H> 接口的地图类型。
+        // MapT 语义：bit=1 = occupied（1=occupied），与 TetrisMap<W,H> 一致。
         template<class LandPoint, class MapT>
         struct FarteryhrMap
         {

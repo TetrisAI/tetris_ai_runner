@@ -7,13 +7,13 @@
 // 设计目标:
 // - 与 cobra::Board<H> 思路一致: 把整张棋盘按 W*H 的 packed bits 塞进一个
 //   BoardVec<uint64_t, Tn> 里, 以便所有 row 级位运算都能向量化.
-// - W / H 都是模板参数; row_t 在 Map 内部按 W 选最窄的无符号类型.
+// - W / H 都是模板参数; row_t 在 TetrisMap 内部按 W 选最窄的无符号类型.
 //   * W <= 8 用 uint8_t, <= 16 用 uint16_t, <= 32 用 uint32_t, <= 64 用 uint64_t.
 //   * 上限 64 = lane_t (uint64) 全宽; W>64 需要拆 lane, 不在本容器范畴.
 // - 对外提供与现有 TetrisMap 等价的"按行视图":
 //     row_t row(int y) const;          //取第 y 行(低位是 x=0)
 //     void  set_row(int y, row_t v);   //写第 y 行
-//   这样 Phase 2 在重写 Search/AI 之前, Map 与 TetrisMap 之间可以做对拍.
+//   这样 Phase 2 在重写 Search/AI 之前, 旧 TetrisMap 与新的位板 TetrisMap 之间可以做对拍.
 // - 不引入 cobra 的 do_move / clear_lines 加速版本; 这些留给 movegen 阶段.
 //   本头文件只负责"棋盘的存储与基础位运算", 不包含规则/形状.
 //
@@ -23,8 +23,8 @@
 //   cobra::Board<H>::Tlines       -> Tbits / W
 //   cobra::Board<H>::Tn           -> ((H - 1) / Tlines) + 1
 //   cobra::Board<H>::Bitboard     -> simd::BoardVec<uint64_t, Tn>
-//   cobra::Board<H>::all()        -> Map<W,H>::all_mask()
-//   cobra::Board<H>::col_mask<x>  -> Map<W,H>::col_mask<x>()
+//   cobra::Board<H>::all()        -> TetrisMap<W,H>::all_mask()
+//   cobra::Board<H>::col_mask<x>  -> TetrisMap<W,H>::col_mask<x>()
 //==========================================================================
 
 #include "tetris_simd.h"
@@ -72,10 +72,10 @@ namespace m_tetris2
     //W: 棋盘宽度(列数), 必须 1..32
     //H: 棋盘高度(行数), 必须 >= 1
     template<int W, int H>
-    struct Map
+    struct TetrisMap
     {
-        static_assert(W >= 1 && W <= 64, "Map<W, H> requires 1 <= W <= 64");
-        static_assert(H >= 1, "Map<W, H> requires H >= 1");
+        static_assert(W >= 1 && W <= 64, "TetrisMap<W, H> requires 1 <= W <= 64");
+        static_assert(H >= 1, "TetrisMap<W, H> requires H >= 1");
 
         static constexpr int width = W;
         static constexpr int height = H;
@@ -97,8 +97,8 @@ namespace m_tetris2
         vec_t data;
 
         //----- 构造 -----
-        constexpr Map() noexcept : data{} {}
-        explicit constexpr Map(vec_t const &v) noexcept : data(v) {}
+        constexpr TetrisMap() noexcept : data{} {}
+        explicit constexpr TetrisMap(vec_t const &v) noexcept : data(v) {}
 
         //----- 几何工具 -----
         static constexpr bool is_ok_x(int x) noexcept
@@ -186,50 +186,50 @@ namespace m_tetris2
         static consteval vec_t col_mask() noexcept
         {
             static_assert(X >= 0 && X < W);
-            Map m{};
+            TetrisMap m{};
             for (int y = 0; y < H; ++y)
                 m.set(X, y);
             return m.data;
         }
 
         //----- 位运算 -----
-        constexpr Map operator|(Map const &o) const noexcept
+        constexpr TetrisMap operator|(TetrisMap const &o) const noexcept
         {
-            return Map(data | o.data);
+            return TetrisMap(data | o.data);
         }
-        constexpr Map operator&(Map const &o) const noexcept
+        constexpr TetrisMap operator&(TetrisMap const &o) const noexcept
         {
-            return Map(data & o.data);
+            return TetrisMap(data & o.data);
         }
-        constexpr Map operator^(Map const &o) const noexcept
+        constexpr TetrisMap operator^(TetrisMap const &o) const noexcept
         {
-            return Map(data ^ o.data);
+            return TetrisMap(data ^ o.data);
         }
-        constexpr Map operator~() const noexcept
+        constexpr TetrisMap operator~() const noexcept
         {
-            return Map((~data) & all_mask());
+            return TetrisMap((~data) & all_mask());
         }
-        constexpr Map &operator|=(Map const &o) noexcept
+        constexpr TetrisMap &operator|=(TetrisMap const &o) noexcept
         {
             data |= o.data;
             return *this;
         }
-        constexpr Map &operator&=(Map const &o) noexcept
+        constexpr TetrisMap &operator&=(TetrisMap const &o) noexcept
         {
             data &= o.data;
             return *this;
         }
-        constexpr Map &operator^=(Map const &o) noexcept
+        constexpr TetrisMap &operator^=(TetrisMap const &o) noexcept
         {
             data ^= o.data;
             return *this;
         }
 
-        constexpr bool operator==(Map const &o) const noexcept
+        constexpr bool operator==(TetrisMap const &o) const noexcept
         {
             return data == o.data;
         }
-        constexpr bool operator!=(Map const &o) const noexcept
+        constexpr bool operator!=(TetrisMap const &o) const noexcept
         {
             return data != o.data;
         }
@@ -273,7 +273,7 @@ namespace m_tetris2
         template<int Dx>
         static consteval vec_t shift_col_keep_mask() noexcept
         {
-            Map m{};
+            TetrisMap m{};
             if constexpr (Dx >= 0)
             {
                 for (int x = Dx; x < W; ++x)
@@ -291,7 +291,7 @@ namespace m_tetris2
 
     public:
         template<int Dx, int Dy>
-        constexpr Map shifted() const noexcept
+        constexpr TetrisMap shifted() const noexcept
         {
             if constexpr (Dx == 0 && Dy == 0)
                 return *this;
@@ -356,7 +356,7 @@ namespace m_tetris2
                 v &= shift_col_keep_mask<Dx>();
             //再次和 all_mask 与, 防止 Dx 平移把 lane 内多余高位带回来.
             v &= all_mask();
-            return Map(v);
+            return TetrisMap(v);
         }
 
         //----- 枚举所有置位的格子 -----
@@ -382,12 +382,12 @@ namespace m_tetris2
         }
 
         //----- 满行检测 -----
-        //返回一张 Map: 在所有"行 == row_full"的 (x, y) 都置 1, 其余 0.
+        //返回一张 TetrisMap: 在所有"行 == row_full"的 (x, y) 都置 1, 其余 0.
         //对应 cobra Board<H>::line_clears, 但实现走 row 逐行遍历, 避免 cobra 的
         //packed-row 加法技巧对 W 的特殊依赖, 同时保持 W 任意 1..32 的正确性.
-        constexpr Map line_clears() const noexcept
+        constexpr TetrisMap line_clears() const noexcept
         {
-            Map result{};
+            TetrisMap result{};
             for (int y = 0; y < H; ++y)
                 if (row(y) == row_full)
                     for (int x = 0; x < W; ++x)
@@ -402,9 +402,9 @@ namespace m_tetris2
         //
         //实现: 走逐行 row()/set_row() 双指针. W=10 H=40 时最多 40 次行复制,
         //不是热点(每次 do_move 才调一次), 不为它做 SIMD 特化.
-        constexpr Map clear_lines(Map const &lines) const noexcept
+        constexpr TetrisMap clear_lines(TetrisMap const &lines) const noexcept
         {
-            Map result{};
+            TetrisMap result{};
             int dst = 0;
             for (int y = 0; y < H; ++y)
             {

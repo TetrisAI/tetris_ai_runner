@@ -183,7 +183,7 @@ namespace ai_tag
                 }
             }
 
-            // Compute column tops dynamically (Map<W,H> does not cache top[]).
+            // Compute column tops dynamically (TetrisMap<W,H> does not cache top[]).
             int top[map_width];
             for (int x = 0; x < map_width; ++x)
             {
@@ -456,7 +456,7 @@ namespace ai_tag
                 ++result.map_low;
             }
 
-            // Compute column tops dynamically (Map<W,H> does not cache top[]).
+            // Compute column tops dynamically (TetrisMap<W,H> does not cache top[]).
             int top[map_width];
             for (int x = 0; x < map_width; ++x)
             {

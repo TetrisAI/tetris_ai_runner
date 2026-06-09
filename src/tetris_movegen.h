@@ -4,7 +4,7 @@
 //==========================================================================
 // Cobra-style bitboard BFS move generator.
 //
-// 与 cobra::MoveList 等价: 给定一张棋盘 Map<W,H> 和一个方块类型 T,
+// 与 cobra::MoveList 等价: 给定一张棋盘 TetrisMap<W,H> 和一个方块类型 T,
 // 通过 BFS 在位图上扩展左/右/下/旋转, 输出所有可达的落点.
 //
 // 形状数据从 shape::piece_cells / shape::piece_line 取.
@@ -53,7 +53,7 @@ namespace m_tetris2
         //
         //TODO(phase3-coord): shape::piece_cells 的 (col, row) 中 row 来自 OpLines 索引,
         //  而 OpLines[0] 是 4xN 矩阵的"顶部"(create_node 中以 line4..line1 顺序填到 data
-        //  做了一次倒序). Map<W,H> 是 y-up 坐标系, 因此使用 piece_cells 时需要把 row
+        //  做了一次倒序). TetrisMap<W,H> 是 y-up 坐标系, 因此使用 piece_cells 时需要把 row
         //  翻转为 (Spec::note - 1 - row) 才能与现有 attach() 语义对齐. 当前实现假定
         //  OpLines 已是 y-up 顺序, 需要在 perft 对拍阶段把翻转加进来.
 
@@ -107,10 +107,10 @@ namespace m_tetris2
 
         //对单个旋转 R 构造 usable map (需要 Op 类型做编译期).
         template<class Spec, char T, std::uint8_t R>
-        constexpr auto usable_map(Map<static_cast<int>(Spec::width),
+        constexpr auto usable_map(TetrisMap<static_cast<int>(Spec::width),
                                       static_cast<int>(Spec::height)> const &board) noexcept
         {
-            using MapT = Map<static_cast<int>(Spec::width), static_cast<int>(Spec::height)>;
+            using MapT = TetrisMap<static_cast<int>(Spec::width), static_cast<int>(Spec::height)>;
             using Op = shape::find_op<Spec, T, R>;
             constexpr auto cnt = shape::piece_cells<Spec, T, R>.count;
             return detail::usable_for_rotation_impl<MapT, Op>(
@@ -120,7 +120,7 @@ namespace m_tetris2
         template<class Spec, char T, std::uint8_t R>
         constexpr auto inbounds_map() noexcept
         {
-            using MapT = Map<static_cast<int>(Spec::width), static_cast<int>(Spec::height)>;
+            using MapT = TetrisMap<static_cast<int>(Spec::width), static_cast<int>(Spec::height)>;
             using Op = shape::find_op<Spec, T, R>;
             constexpr auto cnt = shape::piece_cells<Spec, T, R>.count;
             return detail::inbounds_for_rotation_impl<MapT, Op>(
@@ -185,7 +185,7 @@ namespace m_tetris2
         {
             static constexpr int W = static_cast<int>(Spec::width);
             static constexpr int H = static_cast<int>(Spec::height);
-            using map_t = Map<W, H>;
+            using map_t = TetrisMap<W, H>;
 
             //旋转数量编译期常量, 来自 RuleSpec::ops 中类型 T 的 OpDesc 数量.
             static constexpr int R_count = static_cast<int>(shape::rotation_count<Spec, T>);

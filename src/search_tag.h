@@ -147,7 +147,7 @@ namespace m_tetris2
             // TODO(multi-thread): 多线程路径在此并发分发 PendingTask。
             //==================================================================
             template<class EvalCallback>
-            static void search_eval(Context &ctx, Map<RuleSpec::width, RuleSpec::height> const &board,
+            static void search_eval(Context &ctx, TetrisMap<RuleSpec::width, RuleSpec::height> const &board,
                                     bb::BBState const &spawn, std::size_t depth,
                                     EvalCallback &on_land)
             {
@@ -176,7 +176,7 @@ namespace m_tetris2
             static std::vector<char>
             make_path(Context &ctx, bb::BBState const &spawn,
                       LandPoint const &land_point,
-                      Map<RuleSpec::width, RuleSpec::height> const &board)
+                      TetrisMap<RuleSpec::width, RuleSpec::height> const &board)
             {
                 return make_path_native(ctx, spawn, land_point, board);
             }
@@ -1055,7 +1055,7 @@ namespace m_tetris2
             static std::vector<char>
             make_path_none(Context &ctx, bb::BBState const &spawn,
                            bb::BBState const &target,
-                           Map<RuleSpec::width, RuleSpec::height> const &board)
+                           TetrisMap<RuleSpec::width, RuleSpec::height> const &board)
             {
                 if (target.t == 0)
                     return std::vector<char>();
@@ -1117,7 +1117,7 @@ namespace m_tetris2
             static std::vector<char>
             make_path_native(Context &ctx, bb::BBState const &spawn,
                              LandPoint const &land_point,
-                             Map<RuleSpec::width, RuleSpec::height> const &board)
+                             TetrisMap<RuleSpec::width, RuleSpec::height> const &board)
             {
                 //commit (tag-bb-native): 入口短路改用 cells_key 比较, 与
                 //  oracle `node->index_filtered == land_point->index_filtered`

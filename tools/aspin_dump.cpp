@@ -22,9 +22,9 @@
 namespace
 {
     // 位板极性: 1=occupied, 0=empty (与旧 TetrisMap 的 1=empty 相反)
-    using NewMap = m_tetris2::Map<10, 40>;
+    using NewMap = m_tetris2::TetrisMap<10, 40>;
 
-    // 从 ascii 行 (bottom-up) 拼一张 Map<10,40>.
+    // 从 ascii 行 (bottom-up) 拼一张 TetrisMap<10,40>.
     // '#' / 非'.' 非' ' 字符 = 占用格 (bit=1).
     NewMap from_rows(std::initializer_list<char const *> rows_bottom_up)
     {

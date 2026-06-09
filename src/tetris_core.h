@@ -27,7 +27,7 @@
 namespace m_tetris2
 {
     const int max_height = 40;
-    //C-A2: legacy bridge layer 解锁 W>32. 新引擎 (Map<W,H>) 已支持 W<=64;
+    //C-A2: legacy bridge layer 解锁 W>32. 新引擎 (TetrisMap<W,H>) 已支持 W<=64;
     //  此常量同时作为 TetrisMap::top / AI 栈数组等的容量上限.
     const int max_width = 64;
     const int max_wall_kick = 16;
@@ -739,7 +739,7 @@ namespace m_tetris2
         };
         size_t version;
         using _SearchSpec = typename SearchRuleSpecOf<TetrisSearch>::type;
-        using map_t = m_tetris2::Map<_SearchSpec::width, _SearchSpec::height>;
+        using map_t = m_tetris2::TetrisMap<_SearchSpec::width, _SearchSpec::height>;
         map_t map;
         typename Core::LandPoint identity;
         typename Core::Result result;

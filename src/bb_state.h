@@ -70,7 +70,7 @@ namespace m_tetris2
     namespace movegen
     {
         template<class Spec, char T, std::uint8_t R>
-        constexpr auto usable_map(Map<static_cast<int>(Spec::width), static_cast<int>(Spec::height)> const &board) noexcept;
+        constexpr auto usable_map(TetrisMap<static_cast<int>(Spec::width), static_cast<int>(Spec::height)> const &board) noexcept;
 
         template<class Spec, char T, std::uint8_t R>
         constexpr auto inbounds_map() noexcept;
@@ -202,7 +202,7 @@ namespace m_tetris2
             static constexpr int kMaxR =
                 static_cast<int>(MaxRotation<RuleSpec, typename RuleSpec::ops>::value);
 
-            using map_t = Map<kW, kH>;
+            using map_t = TetrisMap<kW, kH>;
 
             //  走 piece_info_t::index_of(t) 256 桶 LUT, 与原 switch 等价但去掉了
             //  SRS-7 piece 的硬编码列表; 字符未在 RuleSpec::ops 中出现时返回 -1.
@@ -1102,7 +1102,7 @@ namespace m_tetris2
             }
 
 
-            // 纯位板版 attach：把 BBState 对应的方块写入 Map<W,H>，消行。
+            // 纯位板版 attach：把 BBState 对应的方块写入 TetrisMap<W,H>，消行。
             // 返回消行数.
 
             static size_t attach_to_map(BBState const &s, map_t &map);
@@ -1126,10 +1126,10 @@ namespace m_tetris2
             static map_t build_board(MapIn const &m);
 
                     };
-        // 新重载：Map<W,H> 直接传入，无需转换（已经是 1=占 极性）。
+        // 新重载：TetrisMap<W,H> 直接传入，无需转换（已经是 1=占 极性）。
         template<class RuleSpec>
-        inline Map<RuleSpec::width, RuleSpec::height> build_board_for_search(
-            Map<RuleSpec::width, RuleSpec::height> const &map)
+        inline TetrisMap<RuleSpec::width, RuleSpec::height> build_board_for_search(
+            TetrisMap<RuleSpec::width, RuleSpec::height> const &map)
         {
             return map;
         }
@@ -1145,7 +1145,7 @@ namespace m_tetris2
     {
 
         // out-of-line: Helpers<RuleSpec>::build_board
-        // MapIn 可以是 TetrisMap 或 Map<W,H>，均委托给 build_board_for_search 重载.
+        // MapIn 可以是 TetrisMap 或其他兼容 TetrisMap<W,H> 接口的类型，均委托给 build_board_for_search 重载.
         template<class RuleSpec>
         template<class MapIn>
         typename Helpers<RuleSpec>::map_t Helpers<RuleSpec>::build_board(MapIn const &m)
@@ -1190,7 +1190,7 @@ namespace m_tetris2
             int xb = static_cast<int>(s.xb);
             int yb = static_cast<int>(s.yb);
 
-            // 1. 写方块 cell 到 Map<W,H>（极性: 1=占，直接 set）.
+            // 1. 写方块 cell 到 TetrisMap<W,H>（极性: 1=占，直接 set）.
             for (std::size_t i = 0; i < cells.count; ++i)
             {
                 int ax = xb + static_cast<int>(cells.cells[i].x);

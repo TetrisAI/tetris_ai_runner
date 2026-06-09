@@ -188,7 +188,7 @@ namespace m_tetris2
             // Phase 2 推式接口：SimpleStrategy 的薄包装实现。
             //==================================================================
             template<class EvalCallback>
-            static void search_eval(Context &ctx, Map<RuleSpec::width, RuleSpec::height> const &board,
+            static void search_eval(Context &ctx, TetrisMap<RuleSpec::width, RuleSpec::height> const &board,
                                     bb::BBState const &spawn, std::size_t depth,
                                     EvalCallback &on_land)
             {
@@ -275,7 +275,7 @@ namespace m_tetris2
             static std::vector<char>
             make_path(Context &ctx, bb::BBState const &spawn,
                       LandPoint const &land_point,
-                      Map<RuleSpec::width, RuleSpec::height> const &board)
+                      TetrisMap<RuleSpec::width, RuleSpec::height> const &board)
             {
                 std::vector<char> path;
                 char piece_t = static_cast<char>(spawn.t);

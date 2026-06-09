@@ -20,7 +20,7 @@
 //   m_tetris2::shape::piece_spawn<Spec, T, R>      - 返回 {x, y}
 //
 // 不在本头文件做的事:
-// - 不构造 Map<W, H>; 后续 movegen 才会把 lines 写入 Map.
+// - 不构造 TetrisMap<W, H>; 后续 movegen 才会把 lines 写入 TetrisMap.
 // - 不计算 bbox 紧缩 / pretty-print; 那些是 debug helper 不影响热路径.
 //==========================================================================
 

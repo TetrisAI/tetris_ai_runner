@@ -75,7 +75,7 @@ namespace ai_misaka
             Result r;
             r.t = Details::t_value;
             // Copy rows in 1=empty semantics (as expected by VirtualRow in ai_misaka.cpp).
-            // Map<W,H> stores 1=occupied, so we bitwise-invert each row.
+            // TetrisMap<W,H> stores 1=occupied, so we bitwise-invert each row.
             // MH == 22 is guaranteed by static_assert above; fill all 22 rows.
             for (int y = 0; y < MH; ++y)
                 r.map_rows[y] = ~static_cast<m_tetris2::row_t>(map.row(y));

@@ -73,7 +73,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     {
         return 0;
     }
-    using TOJMap = m_tetris2::Map<rule_toj::TetrisRule::rule_spec::width,
+    using TOJMap = m_tetris2::TetrisMap<rule_toj::TetrisRule::rule_spec::width,
                                   rule_toj::TetrisRule::rule_spec::height>;
     TOJMap map{};
     for (int y = 0, add = 0; y < boardH; ++y, add += boardW)
@@ -169,7 +169,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
         memset(srs_pc->status(), 0, sizeof *srs_pc->status());
     }
 #endif
-    using TOJMap = m_tetris2::Map<rule_toj::TetrisRule::rule_spec::width,
+    using TOJMap = m_tetris2::TetrisMap<rule_toj::TetrisRule::rule_spec::width,
                                   rule_toj::TetrisRule::rule_spec::height>;
     TOJMap map{};
     for (size_t d = 0, s = 22; d < 23; ++d, --s)
@@ -345,7 +345,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI3(int field[], int field_w, int
         botris_pc->prepare(10, 40);
         memset(botris_pc->status(), 0, sizeof *botris_pc->status());
     }
-    using BotrisMap = m_tetris2::Map<rule_botris::TetrisRule::rule_spec::width,
+    using BotrisMap = m_tetris2::TetrisMap<rule_botris::TetrisRule::rule_spec::width,
                                      rule_botris::TetrisRule::rule_spec::height>;
     BotrisMap map{};
     for (size_t d = 0; d < 40; ++d)
@@ -503,7 +503,7 @@ public:
     }
     std::vector<char> make_path(m_tetris2::bb::BBState const &spawn,
                                 m_tetris2::BBLandPoint const &land_point,
-                                m_tetris2::Map<rule_spec::width, rule_spec::height> const &board)
+                                m_tetris2::TetrisMap<rule_spec::width, rule_spec::height> const &board)
     {
         switch (*config_ptr)
         {
@@ -517,7 +517,7 @@ public:
             return std::vector<char>();
         }
     }
-    std::vector<m_tetris2::BBLandPoint> const *search(m_tetris2::Map<rule_spec::width, rule_spec::height> const &map, m_tetris2::TetrisBlockStatus const &status, size_t depth)
+    std::vector<m_tetris2::BBLandPoint> const *search(m_tetris2::TetrisMap<rule_spec::width, rule_spec::height> const &map, m_tetris2::TetrisBlockStatus const &status, size_t depth)
     {
         switch (*config_ptr)
         {
@@ -569,7 +569,7 @@ public:
         }
     }
     template<class EvalCallback>
-    void search_eval(m_tetris2::Map<rule_qq::TetrisRule::rule_spec::width,
+    void search_eval(m_tetris2::TetrisMap<rule_qq::TetrisRule::rule_spec::width,
                                     rule_qq::TetrisRule::rule_spec::height> const &board,
                      m_tetris2::bb::BBState const &spawn, size_t depth, EvalCallback &cb)
     {
@@ -606,7 +606,7 @@ extern "C" DECLSPEC_EXPORT int __cdecl QQTetrisAI(int boardW, int boardH, int bo
         *path = '\0';
         return 0;
     }
-    using QQMap = m_tetris2::Map<rule_qq::TetrisRule::rule_spec::width,
+    using QQMap = m_tetris2::TetrisMap<rule_qq::TetrisRule::rule_spec::width,
                                  rule_qq::TetrisRule::rule_spec::height>;
     QQMap map{};
     for (int y = 0; y < boardH; ++y)
@@ -718,7 +718,7 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
         path[0] = {'\0'};
         return 0;
     }
-    using C2Map = m_tetris2::Map<rule_c2::TetrisRule::rule_spec::width,
+    using C2Map = m_tetris2::TetrisMap<rule_c2::TetrisRule::rule_spec::width,
                                  rule_c2::TetrisRule::rule_spec::height>;
     C2Map map{};
     for (int y = 0; y < boardH; ++y)

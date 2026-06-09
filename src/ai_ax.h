@@ -40,7 +40,7 @@ namespace ai_ax
 
             const int width_m1 = map_width - 1;
 
-            // ColTrans/RowTrans: Map<W,H> uses 1=occupied semantics.
+            // ColTrans/RowTrans: TetrisMap<W,H> uses 1=occupied semantics.
             // bottom row: occupied count = popcount(map.row(0))  [was ~row[0] & mask in 1=empty]
             // top row empty: empty count = popcount(row_full ^ map.row(roof-1))
             //                occupied count (roof==height case) = popcount(map.row(roof-1))
@@ -78,7 +78,7 @@ namespace ai_ax
 
             for (int y = roof - 1; y >= 0; --y)
             {
-                // empty bits (1=empty): Map<W,H> is 1=occupied, so invert
+                // empty bits (1=empty): TetrisMap<W,H> is 1=occupied, so invert
                 uint32_t inv_row = static_cast<uint32_t>(row_full ^ map.row(y));
                 v.LineCoverBits |= inv_row;
                 int LineHole = v.LineCoverBits ^ inv_row;

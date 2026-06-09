@@ -58,7 +58,7 @@ namespace tetris_diff
     // NewMap: 与 oracle_diff 历史选型一致, 10 列 × 40 行 (master 端 spawn 高度
     //   与 SRS 下落空间). 所有 driver 共用同一棋面尺寸.
     //=======================================================================
-    using NewMap = m_tetris2::Map<10, 40>;
+    using NewMap = m_tetris2::TetrisMap<10, 40>;
     static constexpr int kBoardW = 10;
     static constexpr int kBoardH = 40;
 

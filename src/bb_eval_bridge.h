@@ -6,9 +6,9 @@
 // 提供：
 //   1. concept 探针（检测 AI::eval 需要哪种 SpinType 参数及 Map 类型）：
 //
-//        EvalWantsSpinT<AI,Spec,T,R,SpinT> — eval(TetrisNode<Det,SpinT>, Map<W,H>, Map<W,H>, int)
+//        EvalWantsSpinT<AI,Spec,T,R,SpinT> — eval(TetrisNode<Det,SpinT>, TetrisMap<W,H>, TetrisMap<W,H>, int)
 //                                            SpinT 通常为 AI::EvalSpinType
-//        EvalWantsNoSpinMapT               — eval(TetrisNode<Det,monostate>,  Map<W,H>, Map<W,H>, int)
+//        EvalWantsNoSpinMapT               — eval(TetrisNode<Det,monostate>,  TetrisMap<W,H>, TetrisMap<W,H>, int)
 //
 //   2. BBCallEval<AI, Spec>
 //      供 Search 层 EvalCallback（for_each_move<T,R> 推式回调）直接调用：
@@ -106,7 +106,7 @@ namespace m_tetris2
         using type = typename AI::EvalSpinType;
     };
 
-    // 泛化 SpinT 路径：eval(TetrisNode<Details, SpinT>, Map<W,H>, Map<W,H>, int)
+    // 泛化 SpinT 路径：eval(TetrisNode<Details, SpinT>, TetrisMap<W,H>, TetrisMap<W,H>, int)
     // SpinT 由 AIEvalSpinTypeOf<AI>::type 提供（AI::EvalSpinType 的真实类型，
     // 与 eval 签名严格一致），或 void（AI 无 EvalSpinType 时，concept 自然不满足）。
     // SpinT=void 时 !std::is_void_v<SpinT> 约束在 concept 内短路，不会实例化
@@ -115,18 +115,18 @@ namespace m_tetris2
     concept EvalWantsSpinT = !std::is_void_v<SpinT> && requires(
                                                            AI const &ai,
                                                            TetrisNode<TetrisNodeDetails<Spec, T, R>, SpinT> node,
-                                                           Map<Spec::width, Spec::height> const &m,
+                                                           TetrisMap<Spec::width, Spec::height> const &m,
                                                            int clear)
     {
         {ai.eval(node, m, m, clear)};
     };
 
-    // NoSpin + MapT 路径：eval(TetrisNode<Details, monostate>, Map<W,H>, Map<W,H>, int)
+    // NoSpin + MapT 路径：eval(TetrisNode<Details, monostate>, TetrisMap<W,H>, TetrisMap<W,H>, int)
     template<class AI, class Spec, char T, uint8_t R>
     concept EvalWantsNoSpinMapT = requires(
         AI const &ai,
         TetrisNode<TetrisNodeDetails<Spec, T, R>, std::monostate> node,
-        Map<Spec::width, Spec::height> const &m,
+        TetrisMap<Spec::width, Spec::height> const &m,
         int clear)
     {
         {ai.eval(node, m, m, clear)};
@@ -159,15 +159,15 @@ namespace m_tetris2
         //------------------------------------------------------------------
         template<char T, uint8_t R, class LP>
         static auto call_eval_typed(AI const &ai, LP const &lp,
-                                    Map<Spec::width, Spec::height> const &after,
-                                    Map<Spec::width, Spec::height> const &src_map,
+                                    TetrisMap<Spec::width, Spec::height> const &after,
+                                    TetrisMap<Spec::width, Spec::height> const &src_map,
                                     size_t clear)
         {
             if constexpr (!std::is_same_v<Spec, void> && !shape::has_op<Spec, T, R>)
             {
                 static_assert(!(!std::is_same_v<Spec, void> && !shape::has_op<Spec, T, R>),
                               "call_eval_typed invoked with (T,R) not in Spec::ops. "
-                              "All AIs must use Map<W,H>-based eval signatures.");
+                              "All AIs must use TetrisMap<W,H>-based eval signatures.");
             }
             else
             {
@@ -220,8 +220,8 @@ namespace m_tetris2
                 {
                     static_assert(EvalWantsNoSpinMapT<AI, Spec, T, R>,
                                   "AI must implement one of: "
-                                  "eval(TetrisNode<Det, EvalSpinType>, Map<W,H>, Map<W,H>, int) [requires using EvalSpinType = ...], or "
-                                  "eval(TetrisNode<Det,monostate>, Map<W,H>, Map<W,H>, int).");
+                                  "eval(TetrisNode<Det, EvalSpinType>, TetrisMap<W,H>, TetrisMap<W,H>, int) [requires using EvalSpinType = ...], or "
+                                  "eval(TetrisNode<Det,monostate>, TetrisMap<W,H>, TetrisMap<W,H>, int).");
                 }
             } // end else (has_op)
         }

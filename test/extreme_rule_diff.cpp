@@ -42,7 +42,7 @@ namespace
     using NewRule = rule_extreme::TetrisRule::rule_spec;
     static constexpr int kW = static_cast<int>(NewRule::width);
     static constexpr int kH = static_cast<int>(NewRule::height);
-    using NewMap = m_tetris2::Map<kW, kH>;
+    using NewMap = m_tetris2::TetrisMap<kW, kH>;
 
     struct Tup
     {

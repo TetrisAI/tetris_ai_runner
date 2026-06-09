@@ -122,7 +122,7 @@ namespace srs_minimal
 namespace
 {
     using Rule = srs_minimal::SrsRule;
-    using BoardT = m_tetris2::Map<10, 40>;
+    using BoardT = m_tetris2::TetrisMap<10, 40>;
 
     // Spawn 选择: cobra Gen::SPAWN_X = 4, RulesT::SPAWN_Y = 19. 但 cobra piece 锚点
     // 是 piece-center, 我们的 piece-local (0,0) 是 OpLines 最底行最左列. 不同方块基准

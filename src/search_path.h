@@ -149,7 +149,7 @@ namespace m_tetris2
             // search() 原有拉式接口保留不变（仅检查 empty() 的调用方不受影响）。
             //==================================================================
             template<class EvalCallback>
-            static void search_eval(Context &ctx, Map<RuleSpec::width, RuleSpec::height> const &board,
+            static void search_eval(Context &ctx, TetrisMap<RuleSpec::width, RuleSpec::height> const &board,
                                     bb::BBState const &spawn, std::size_t depth,
                                     EvalCallback &on_land)
             {
@@ -193,7 +193,7 @@ namespace m_tetris2
             static std::vector<char>
             make_path(Context &ctx, bb::BBState const &spawn,
                       LandPoint const &land_point,
-                      Map<RuleSpec::width, RuleSpec::height> const &board)
+                      TetrisMap<RuleSpec::width, RuleSpec::height> const &board)
             {
                 if (SpinHook::config_is_20g(ctx.config_))
                 {
@@ -898,7 +898,7 @@ namespace m_tetris2
             static std::vector<char>
             make_path_1g_native(Context &ctx, bb::BBState const &spawn,
                                 LandPoint const &land_point,
-                                Map<RuleSpec::width, RuleSpec::height> const &board)
+                                TetrisMap<RuleSpec::width, RuleSpec::height> const &board)
             {
                 char piece_t = static_cast<char>(spawn.t);
                 if (piece_info_t::index_of(piece_t) < 0)
@@ -1039,7 +1039,7 @@ namespace m_tetris2
             static std::vector<char>
             make_path_20g_native(Context &ctx, bb::BBState const &spawn,
                                  LandPoint const &land_point,
-                                 Map<RuleSpec::width, RuleSpec::height> const &board)
+                                 TetrisMap<RuleSpec::width, RuleSpec::height> const &board)
             {
                 char piece_t = static_cast<char>(spawn.t);
                 if (piece_info_t::index_of(piece_t) < 0)

@@ -126,7 +126,7 @@ namespace m_tetris2
     struct TetrisNodeDetails
     {
         using spec_type = Spec;
-        using map_type = Map<Spec::width, Spec::height>;
+        using map_type = TetrisMap<Spec::width, Spec::height>;
         static constexpr char t_value = T;
         static constexpr uint8_t r_value = R;
     };

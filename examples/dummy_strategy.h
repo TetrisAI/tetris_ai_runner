@@ -155,7 +155,7 @@ namespace m_tetris2
             static std::vector<char>
             make_path(Context &ctx, bb::BBState const &spawn,
                       LandPoint const &land_point,
-                      Map<RuleSpec::width, RuleSpec::height> const &board)
+                      TetrisMap<RuleSpec::width, RuleSpec::height> const &board)
             {
                 (void)ctx;
                 (void)spawn;

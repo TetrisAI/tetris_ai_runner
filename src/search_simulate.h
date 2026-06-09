@@ -139,7 +139,7 @@ namespace m_tetris2
             // Phase 2 推式接口：与 PathStrategy::search_eval 同形，参见其注释。
             //==================================================================
             template<class EvalCallback>
-            static void search_eval(Context &ctx, Map<RuleSpec::width, RuleSpec::height> const &board,
+            static void search_eval(Context &ctx, TetrisMap<RuleSpec::width, RuleSpec::height> const &board,
                                     bb::BBState const &spawn, std::size_t depth,
                                     EvalCallback &on_land)
             {
@@ -164,7 +164,7 @@ namespace m_tetris2
             static std::vector<char>
             make_path(Context &ctx, bb::BBState const &spawn,
                       LandPoint const &land_point,
-                      Map<RuleSpec::width, RuleSpec::height> const &board)
+                      TetrisMap<RuleSpec::width, RuleSpec::height> const &board)
             {
                 if (SpinHook::config_is_20g(ctx.config_))
                 {
@@ -479,7 +479,7 @@ namespace m_tetris2
             static std::vector<char>
             make_path_simulate_1g_native(Context &ctx, bb::BBState const &spawn,
                                          LandPoint const &land_point,
-                                         Map<RuleSpec::width, RuleSpec::height> const &board)
+                                         TetrisMap<RuleSpec::width, RuleSpec::height> const &board)
             {
                 char piece_t = static_cast<char>(spawn.t);
                 if (piece_info_t::index_of(piece_t) < 0)
@@ -538,7 +538,7 @@ namespace m_tetris2
             static std::vector<char>
             make_path_simulate_20g_native(Context &ctx, bb::BBState const &spawn,
                                           LandPoint const &land_point,
-                                          Map<RuleSpec::width, RuleSpec::height> const &board)
+                                          TetrisMap<RuleSpec::width, RuleSpec::height> const &board)
             {
                 char piece_t = static_cast<char>(spawn.t);
                 if (piece_info_t::index_of(piece_t) < 0)

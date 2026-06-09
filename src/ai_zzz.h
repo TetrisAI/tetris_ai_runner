@@ -293,7 +293,7 @@ namespace ai_zzz
         {
             using MapT = typename Details::map_type;
             using row_t = typename MapT::row_t;
-            // Map<W,H>: bit=1 means occupied (1=occupied semantics).
+            // TetrisMap<W,H>: bit=1 means occupied (1=occupied semantics).
             // TetrisMap: bit=1 means empty (1=empty semantics). Conversion done in bridge.
             constexpr int W = MapT::width;
             constexpr int H = MapT::height;
@@ -1587,7 +1587,7 @@ namespace ai_zzz
                 }
             }
 
-            // Compute col tops and occupied counts via Map<W,H> API (1=occupied).
+            // Compute col tops and occupied counts via TetrisMap<W,H> API (1=occupied).
             // top[x] = first y from bottom where get(x,y)==1, plus 1; 0 if column empty.
             {
                 int map_count = map.popcount();
