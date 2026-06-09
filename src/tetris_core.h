@@ -35,9 +35,6 @@ namespace m_tetris2
     //row_t / WallKickList / OpLines / OpDesc / RuleSpec / kOpRotateNone 由
     //tetris_rule_spec.h 提供; 这里不再重复定义.
 
-    struct TetrisNode;
-    struct TetrisWallKickOpertion;
-    struct TetrisOpertion;
     struct TetrisMap;
     union TetrisBlockStatus;
     class TetrisContext;
@@ -144,19 +141,6 @@ namespace m_tetris2
         }
     };
 
-    struct TetrisNodeBlockLocate
-    {
-        uint32_t count;
-        struct
-        {
-            uint32_t x, y;
-        } data[16];
-        TetrisNodeBlockLocate()
-        {
-            count = 0;
-        }
-    };
-
     struct TetrisMapSnap
     {
         row_t row[4][max_height];
@@ -206,134 +190,6 @@ namespace m_tetris2
         };
     };
 
-    //踢墙表
-    struct TetrisWallKickOpertion
-    {
-        struct WallKickNode
-        {
-            int8_t x, y;
-        };
-        uint32_t length;
-        WallKickNode data[max_wall_kick];
-    };
-
-    //方块操作
-    struct TetrisOpertion
-    {
-        //创建一个方块
-        TetrisNode (*create)(size_t w, size_t h, TetrisOpertion const &op);
-        //顺时针旋转(右旋)
-        bool (*rotate_clockwise)(TetrisNode &node, TetrisContext const *context);
-        //逆时针旋转(左旋)
-        bool (*rotate_counterclockwise)(TetrisNode &node, TetrisContext const *context);
-        //转动180°
-        bool (*rotate_opposite)(TetrisNode &node, TetrisContext const *context);
-        //顺时针旋转踢墙
-        TetrisWallKickOpertion wall_kick_clockwise;
-        //逆时针旋转踢墙
-        TetrisWallKickOpertion wall_kick_counterclockwise;
-        //转动180°踢墙
-        TetrisWallKickOpertion wall_kick_opposite;
-    };
-
-    //指针网节点
-    struct TetrisNode
-    {
-        //方块状态
-        TetrisBlockStatus status;
-        //方块每行的数据
-        row_t data[4];
-        //方块每列的上沿高度
-        int32_t top[4];
-        //方块每列的下沿高度
-        int32_t bottom[4];
-        //方块在场景中的矩形位置
-        int32_t row, height, col, width;
-        //各种变形会触及到的最低高度
-        int32_t low;
-
-        //指针网索引
-        //用于取代哈希表的hash
-
-        size_t index;
-        size_t index_filtered;
-
-        //用于落点搜索优化
-        std::vector<TetrisNode const *> const *land_point;
-
-        //以下是指针网的数据
-        //对应操作所造成的数据改变全都预置好,不需要再计算
-        //如果为空,表示已经到达场景边界或者不支持该操作
-
-        TetrisNode const *move_left;
-        TetrisNode const *move_right;
-        TetrisNode const *move_up;
-        union
-        {
-            struct
-            {
-                TetrisNode const *self;
-                TetrisNode const *move_down;
-            };
-            TetrisNode const *move_down_multi[max_height];
-        };
-
-        //踢墙序列,依次尝试
-        //遇到nullptr,表示序列结束
-        union
-        {
-            TetrisNode const *rotate_clockwise;
-            TetrisNode const *wall_kick_clockwise[max_wall_kick];
-        };
-        union
-        {
-            TetrisNode const *rotate_counterclockwise;
-            TetrisNode const *wall_kick_counterclockwise[max_wall_kick];
-        };
-        union
-        {
-            TetrisNode const *rotate_opposite;
-            TetrisNode const *wall_kick_opposite[max_wall_kick];
-        };
-
-        //检查当前块是否能够合并入场景
-        bool check(TetrisMap const &map) const;
-        //计算当前块软降位置
-        TetrisNode const *drop(TetrisMap const &map) const;
-    };
-
-    //节点标记.广搜的时候使用
-    template<bool Filtered>
-    class TetrisNodeMarkTemplate
-    {
-    private:
-        struct Mark
-        {
-            Mark() : version(0)
-            {
-            }
-            size_t version;
-            std::pair<TetrisNode const *, char> data;
-        };
-        size_t version_;
-        std::vector<Mark> data_;
-
-    public:
-        void init(size_t size);
-        void clear();
-        std::pair<TetrisNode const *, char> get(size_t index);
-        std::pair<TetrisNode const *, char> get(TetrisNode const *key);
-        bool set(TetrisNode const *key, TetrisNode const *node, char op);
-        bool cover_if(TetrisNode const *key, TetrisNode const *node, char ck, char op);
-        bool mark(TetrisNode const *key);
-    };
-
-    using TetrisNodeMark = TetrisNodeMarkTemplate<false>;
-    using TetrisNodeMarkFiltered = TetrisNodeMarkTemplate<true>;
-
-    template<class TetrisRule, class AI, class Search>
-    struct TetrisContextBuilder;
-
     struct AIEnv
     {
         char const *next;
@@ -350,7 +206,7 @@ namespace m_tetris2
         friend class TetrisEngine;
 
     private:
-        TetrisContext() : width_(0), height_(0), type_max_(0), index_to_type_(), type_to_index_(), spawn_cache_()
+        TetrisContext() : width_(0), height_(0), type_max_(0), index_to_type_(), type_to_index_()
         {
         }
 
@@ -360,13 +216,6 @@ namespace m_tetris2
         size_t type_max_;
         char index_to_type_[256];
         size_t type_to_index_[256];
-
-        // generate() 返回的轻量 wrapper，对应 oracle TetrisNode 的 status 字段。
-        struct SpawnInfo
-        {
-            TetrisBlockStatus status;
-        };
-        SpawnInfo spawn_cache_[256];
 
     public:
         using Env = AIEnv;
@@ -387,31 +236,14 @@ namespace m_tetris2
         size_t convert(char type) const { return type_to_index_[int(type) + 128]; }
         char convert(size_t index) const { return index_to_type_[index]; }
 
-        // 与 oracle TetrisContext::generate 对齐：用 piece char 查 spawn 表，
-        // 返回包含 TetrisBlockStatus 的轻量对象指针；piece 不合法时返回 nullptr。
-        SpawnInfo const * generate(char piece) const
-        {
-            int idx = int(piece) + 128;
-            if (idx < 0 || idx >= 256)
-                return nullptr;
-            SpawnInfo const &si = spawn_cache_[idx];
-            // status.t == 0 说明该 slot 未被填充（合法 piece char 均非 '\0'）
-            if (si.status.t == 0)
-                return nullptr;
-            return &si;
-        }
-
-        // TypeFiller 通过此 helper 填充 type 表和 spawn 表的所有 private 字段。
-        void fill_type_entry(char t_upper, int8_t sx, int8_t sy)
+        // TypeFiller 通过此 helper 填充类型映射。
+        void fill_type_entry(char t_upper, int8_t /*sx*/, int8_t /*sy*/)
         {
             int lo = int(::tolower(t_upper)) + 128;
             int hi = int(::toupper(t_upper)) + 128;
             index_to_type_[type_max_] = t_upper;
             type_to_index_[lo] = type_max_;
             type_to_index_[hi] = type_max_;
-            TetrisBlockStatus bs(t_upper, sx, sy, 0);
-            spawn_cache_[lo].status = bs;
-            spawn_cache_[hi].status = bs;
             ++type_max_;
         }
     };
@@ -2418,28 +2250,4 @@ namespace m_tetris2
             engine_.search(status, map, result);
         }
     };
-
-    inline bool TetrisNode::check(TetrisMap const &map) const
-    {
-        row_t l = 0;
-        switch (height)
-        {
-        default:
-            assert(0);
-        case 4:
-            l |= ~map.row[row + 3] & data[3];
-        case 3:
-            l |= ~map.row[row + 2] & data[2];
-        case 2:
-            l |= ~map.row[row + 1] & data[1];
-        case 1:
-            l |= ~map.row[row + 0] & data[0];
-        }
-        return l == 0;
-    }
-
-    //==========================================================================
-    // 编译期规则原语 (WallKickList / OpLines / OpDesc / RuleSpec / kOpRotateNone)
-    // 已抽到 tetris_rule_spec.h.
-    //==========================================================================
 }

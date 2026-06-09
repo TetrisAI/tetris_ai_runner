@@ -216,7 +216,7 @@ foreach(diff_driver IN ITEMS
     cautious_diff
     simple_diff
 )
-    add_executable(${diff_driver}
+    add_executable(${diff_driver} EXCLUDE_FROM_ALL
         src/ai_zzz.cpp
         src/integer_utils.cpp
         src/random.cpp
@@ -275,7 +275,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
 # and the live API is caught at build time.
 # ---------------------------------------------------------------------------
 project(dummy_strategy_compile_check)
-add_executable(${PROJECT_NAME}
+add_executable(${PROJECT_NAME} EXCLUDE_FROM_ALL
     examples/dummy_strategy_compile.cpp
     src/integer_utils.cpp
     src/random.cpp
