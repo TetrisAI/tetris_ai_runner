@@ -135,17 +135,16 @@ namespace
     {
         tetris_diff::CaseProbe cp;
         m_tetris::TetrisContext const *oracle_ctx = oracle_engine().context().get();
-        m_tetris2::TetrisContext const *new_ctx = new_engine().context().get();
-        if (!oracle_ctx || !new_ctx)
+        if (!oracle_ctx)
             return cp;
         m_tetris::TetrisMap oracle_map;
         NewMap new_map = board;
         tetris_diff::copy_to_oracle_map(board, oracle_map);
         auto oracle_spawn = oracle_ctx->generate(piece);
-        auto new_spawn = new_ctx->generate(piece);
-        // new_spawn->check() 要求旧 TetrisMap，test fixture 保证入口为空，跳过此守门。
-        if (!oracle_spawn || !new_spawn || !oracle_spawn->check(oracle_map))
+        if (!oracle_spawn || !oracle_spawn->check(oracle_map))
             return cp;
+        auto [sx, sy] = rule_srs::TetrisRule::rule_spec::spawn(piece, 10, 40);
+        m_tetris2::TetrisBlockStatus new_spawn{piece, static_cast<int8_t>(sx), static_cast<int8_t>(sy), 0};
 
         g_oracle_lps.clear();
         g_candidate_lps.clear();
@@ -154,7 +153,7 @@ namespace
             for (auto const &lp : *oracle_result)
                 if (lp.node)
                     g_oracle_lps.push_back(lp);
-        auto *candidate_result = new_search_obj().search(new_map, new_spawn->status, 0);
+        auto *candidate_result = new_search_obj().search(new_map, new_spawn, 0);
         if (candidate_result)
             for (auto const &lp : *candidate_result)
                 if (lp.state.t != 0)
@@ -203,7 +202,7 @@ namespace
         m_tetris::TetrisMap oracle_map_copy = oracle_map;
         NewMap new_map_copy = new_map;
         auto oracle_spawn_copy = oracle_spawn;
-        auto new_spawn_copy = new_spawn;
+        m_tetris2::TetrisBlockStatus new_spawn_copy = new_spawn;
         cp.oracle_make_path = [oracle_spawn_copy, oracle_map_copy](LpEntry const &e) -> std::string
         {
             if (e.index >= g_oracle_lps.size())
@@ -216,9 +215,9 @@ namespace
             if (e.index >= g_candidate_lps.size())
                 return std::string();
             auto board = m_tetris2::bb::build_board_for_search<NewSearcher::rule_spec>(new_map_copy);
-            auto spawn = Helpers::state_from_status(new_spawn_copy->status.t,
-                static_cast<std::uint8_t>(new_spawn_copy->status.r),
-                new_spawn_copy->status.x, new_spawn_copy->status.y);
+            auto spawn = Helpers::state_from_status(new_spawn_copy.t,
+                static_cast<std::uint8_t>(new_spawn_copy.r),
+                new_spawn_copy.x, new_spawn_copy.y);
             std::vector<char> v = new_search_obj().make_path(spawn, g_candidate_lps[e.index], board);
             return std::string(v.begin(), v.end());
         };

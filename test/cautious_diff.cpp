@@ -106,17 +106,16 @@ namespace
     {
         tetris_diff::CaseProbe cp;
         m_tetris::TetrisContext const *oracle_ctx = oracle_engine().context().get();
-        m_tetris2::TetrisContext const *new_ctx = new_engine().context().get();
-        if (!oracle_ctx || !new_ctx)
+        if (!oracle_ctx)
             return cp;
         m_tetris::TetrisMap oracle_map;
         NewMap new_map = board;
         tetris_diff::copy_to_oracle_map(board, oracle_map);
         auto oracle_spawn = oracle_ctx->generate(piece);
-        auto new_spawn = new_ctx->generate(piece);
-        // new_spawn->check() 要求旧 TetrisMap，test fixture 保证入口为空，跳过此守门。
-        if (!oracle_spawn || !new_spawn || !oracle_spawn->check(oracle_map))
+        if (!oracle_spawn || !oracle_spawn->check(oracle_map))
             return cp;
+        auto [sx, sy] = rule_srs::TetrisRule::rule_spec::spawn(piece, 10, 40);
+        m_tetris2::TetrisBlockStatus new_spawn{piece, static_cast<int8_t>(sx), static_cast<int8_t>(sy), 0};
 
         g_oracle_lps.clear();
         g_candidate_lps.clear();
@@ -125,7 +124,7 @@ namespace
             for (auto n : *oracle_result)
                 if (n)
                     g_oracle_lps.push_back(n);
-        auto *candidate_result = new_search_obj().search(new_map, new_spawn->status, 0);
+        auto *candidate_result = new_search_obj().search(new_map, new_spawn, 0);
         if (candidate_result)
             for (auto const &lp : *candidate_result)
                 if (lp != nullptr)

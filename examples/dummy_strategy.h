@@ -11,12 +11,12 @@
 //   smallest combination of mixins that the contract actually requires.
 //
 // Behavior (intentionally minimal — NOT semantically correct for play):
-//   - search(map, spawn_node, depth):
-//         Iterate the spawn-row land-point list (TetrisContext-built table
-//         hanging off `spawn_node->land_point`), drop each rotation onto the
-//         board, dedup by absolute cell signature (bb::CellsKey), and emit
-//         distinct landings into ctx.land_point_cache_.
-//   - make_path(map, src_node, land_point):
+//   - search(map, spawn, depth):
+//         Enumerate all rotation states reachable from `spawn` at the spawn
+//         row, drop each onto the board via the bitboard usable-row table,
+//         dedup by absolute cell signature (bb::CellsKey), and emit distinct
+//         landings into ctx.land_point_cache_.
+//   - make_path(map, spawn, land_point, board):
 //         Always returns "D" (a single hard drop). Sufficient for any landing
 //         whose path is "spawn -> hard drop", incorrect otherwise.
 //
@@ -56,7 +56,6 @@ namespace m_tetris2
                     using Config = typename SpinHook::Config;
                     using LandPoint = typename SpinHook::LandPoint;
 
-                    TetrisContext const *context_ = nullptr;
                     Config const *config_ = nullptr;
                     std::vector<LandPoint> land_point_cache_{};
                 };
@@ -89,24 +88,22 @@ namespace m_tetris2
                                            detail::dummy::ExtrasMixin<SpinHook, RuleSpec>>;
 
             //=== Strategy contract: init ======================================
-            // Cache the TetrisContext / Config pair.
-            static void init(Context &ctx, TetrisContext const *context, Config const *config)
+            // Cache the Config pointer. TetrisContext is no longer needed.
+            static void init(Context &ctx, TetrisContext const * /*context*/, Config const *config)
             {
-                ctx.context_ = context;
                 ctx.config_ = config;
             }
 
             //=== Strategy contract: search ====================================
-            // Iterate `node->land_point` (spawn-row rotation table) and emit
-            // one landing per distinct cell signature.
+            // Enumerate all spawn-row rotation states for `spawn.t`, drop each
+            // onto the board via the bitboard usable-row table, dedup by cell
+            // signature, and emit distinct landings into ctx.land_point_cache_.
             static std::vector<LandPoint> const *
-            search(Context &ctx, TetrisMap const &map, TetrisNode const *node, std::size_t depth)
+            search(Context &ctx, TetrisMap const &map, TetrisBlockStatus const &spawn, std::size_t depth)
             {
                 (void)depth;
                 ctx.land_point_cache_.clear();
-                if (!node || !node->check(map))
-                    return &ctx.land_point_cache_;
-                if (piece_info_t::index_of(node->status.t) < 0)
+                if (piece_info_t::index_of(spawn.t) < 0)
                     return &ctx.land_point_cache_;
                 map_t board{};
                 using row_t = typename map_t::row_t;
@@ -118,23 +115,25 @@ namespace m_tetris2
                     board.set_row(y, static_cast<row_t>(occ));
                 }
                 std::array<map_t, kMaxR> usable_arr{};
-                Helpers::build_usable_for_piece(node->status.t, board, usable_arr);
+                Helpers::build_usable_for_piece(spawn.t, board, usable_arr);
+
+                std::array<map_t, kMaxR> inbounds_arr{};
+                Helpers::build_inbounds_for_piece(spawn.t, inbounds_arr);
+
+                bb::BBState entry = Helpers::state_from_status(
+                    spawn.t, static_cast<std::uint8_t>(spawn.r), spawn.x, spawn.y);
+
+                if (!Helpers::usable_at_bb(entry.r, entry.xb, entry.yb, usable_arr))
+                    return &ctx.land_point_cache_;
+
+                std::vector<bb::BBState> spawn_states;
+                Helpers::enumerate_spawn_row_states(spawn.t, entry, inbounds_arr, spawn_states);
 
                 std::vector<bb::CellsKey> emitted_keys;
                 emitted_keys.reserve(8);
 
-                if (node->land_point == nullptr)
-                    return &ctx.land_point_cache_;
-                for (auto cit = node->land_point->begin(); cit != node->land_point->end(); ++cit)
+                for (auto const &rot_state : spawn_states)
                 {
-                    TetrisNode const *spawn_rot = *cit;
-                    if (!spawn_rot)
-                        continue;
-                    bb::BBState rot_state = Helpers::state_from_status(
-                        spawn_rot->status.t,
-                        static_cast<std::uint8_t>(spawn_rot->status.r),
-                        spawn_rot->status.x,
-                        spawn_rot->status.y);
                     auto sunk = Helpers::drop_bb_state(rot_state, usable_arr);
                     if (!sunk)
                         continue;

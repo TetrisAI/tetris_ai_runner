@@ -32,14 +32,17 @@ namespace
         backend.init(dummy_ctx, cfg);
 
         m_tetris2::TetrisMap map(10, 40);
-        m_tetris2::TetrisNode const *node = nullptr;
-        auto spawn = node == nullptr ? m_tetris2::bb::BBState{0, 0, 0, 0}
-            : m_tetris2::bb::Helpers<Backend::rule_spec>::state_from_status(
-                node->status.t,
-                static_cast<std::uint8_t>(node->status.r),
-                node->status.x,
-                node->status.y);
-        std::vector<Backend::LandPoint> const *cache = backend.search(map, node, 0);
+
+        // 直接构造 TetrisBlockStatus，不依赖 TetrisNode 指针。
+        auto [sx, sy] = rule_srs::TetrisRule::rule_spec::spawn('S', 10, 40);
+        m_tetris2::TetrisBlockStatus spawn{'S',
+                                          static_cast<std::int8_t>(sx),
+                                          static_cast<std::int8_t>(sy),
+                                          0};
+        auto spawn_bb = m_tetris2::bb::Helpers<Backend::rule_spec>::state_from_status(
+            spawn.t, static_cast<std::uint8_t>(spawn.r), spawn.x, spawn.y);
+
+        std::vector<Backend::LandPoint> const *cache = backend.search(map, spawn, 0);
         (void)cache;
 
         Backend::LandPoint lp{};
@@ -57,7 +60,7 @@ namespace
             }
             return out;
         }();
-        std::vector<char> path = backend.make_path(spawn, lp, board);
+        std::vector<char> path = backend.make_path(spawn_bb, lp, board);
         (void)path;
     }
 } // namespace
