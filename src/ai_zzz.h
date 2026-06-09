@@ -40,7 +40,7 @@ namespace ai_zzz
             std::string ai_name() const;
 
             template<class Details>
-            Result eval(m_tetris2::BBNode<Details, std::monostate> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
+            Result eval(m_tetris2::TetrisNode<Details, std::monostate> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
             {
                 using MapT = typename Details::map_type;
                 constexpr int map_width = MapT::width;
@@ -287,7 +287,7 @@ namespace ai_zzz
         void init(Config const *config);
         std::string ai_name() const;
         template<class Details>
-        double eval(m_tetris2::BBNode<Details, std::monostate> node,
+        double eval(m_tetris2::TetrisNode<Details, std::monostate> node,
                     typename Details::map_type const &map,
                     typename Details::map_type const &src_map, int clear) const
         {
@@ -514,7 +514,7 @@ namespace ai_zzz
             return 0.5;
         }
         template<class Details>
-        Result eval(m_tetris2::BBNode<Details, TSpinType> const &lp, typename Details::map_type const &map, typename Details::map_type const &, size_t clear) const
+        Result eval(m_tetris2::TetrisNode<Details, TSpinType> const &lp, typename Details::map_type const &map, typename Details::map_type const &, size_t clear) const
         {
             using MapT = typename Details::map_type;
             constexpr int map_width = MapT::width;
@@ -599,7 +599,7 @@ namespace ai_zzz
             return 0.5;
         }
         template<class Details>
-        Result eval(m_tetris2::BBNode<Details, ASpinType> const &lp, typename Details::map_type const &map, typename Details::map_type const &, size_t clear) const
+        Result eval(m_tetris2::TetrisNode<Details, ASpinType> const &lp, typename Details::map_type const &map, typename Details::map_type const &, size_t clear) const
         {
             using MapT = typename Details::map_type;
             constexpr int map_width = MapT::width;
@@ -692,7 +692,7 @@ namespace ai_zzz
             return 1.5;
         }
         template<class Details>
-        Result eval(m_tetris2::BBNode<Details, TSpinType> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
+        Result eval(m_tetris2::TetrisNode<Details, TSpinType> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
         {
             using MapT = typename Details::map_type;
             constexpr int map_width = MapT::width;
@@ -986,7 +986,7 @@ namespace ai_zzz
             return 1.5;
         }
         template<class Details>
-        Result eval(m_tetris2::BBNode<Details, ASpinType> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
+        Result eval(m_tetris2::TetrisNode<Details, ASpinType> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
         {
             using MapT = typename Details::map_type;
             constexpr int map_width = MapT::width;
@@ -1266,7 +1266,7 @@ namespace ai_zzz
             return config_->param.ratio;
         }
         template<class Details>
-        Result eval(m_tetris2::BBNode<Details, std::monostate> const &lp, typename Details::map_type const &map, typename Details::map_type const &, size_t clear) const
+        Result eval(m_tetris2::TetrisNode<Details, std::monostate> const &lp, typename Details::map_type const &map, typename Details::map_type const &, size_t clear) const
         {
             using MapT = typename Details::map_type;
             constexpr int map_width = MapT::width;
@@ -1354,7 +1354,7 @@ namespace ai_zzz
             result.clear = int8_t(clear);
             result.top_out = lp.row() >= 20;
             result.roof = roof;
-            result.piece_type = m_tetris2::BBNodeBase<Details>::T;
+            result.piece_type = m_tetris2::TetrisNodeBase<Details>::T;
             // Pre-compute safe_cache for all piece types.
             using Spec = typename Details::spec_type;
             for (size_t i = 0; i < m_tetris2::ai_rule_spec::piece_count<Spec>() && i < 8; ++i)
@@ -1436,7 +1436,7 @@ namespace ai_zzz
         void init(Config const *config);
         std::string ai_name() const;
         template<class Details>
-        Result eval(m_tetris2::BBNode<Details, std::monostate> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
+        Result eval(m_tetris2::TetrisNode<Details, std::monostate> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
         {
             using MapT = typename Details::map_type;
             constexpr int map_width = MapT::width;

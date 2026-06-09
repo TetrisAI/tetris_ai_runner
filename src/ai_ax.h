@@ -24,7 +24,7 @@ namespace ai_ax
         };
 
         template<class Details>
-        Result eval(m_tetris2::BBNode<Details, std::monostate> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
+        Result eval(m_tetris2::TetrisNode<Details, std::monostate> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
         {
             using MapT = typename Details::map_type;
             constexpr int map_width  = MapT::width;

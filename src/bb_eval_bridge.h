@@ -6,13 +6,13 @@
 // 提供：
 //   1. concept 探针（检测 AI::eval 需要哪种 SpinType 参数及 Map 类型）：
 //
-//        EvalWantsSpinT<AI,Spec,T,R,SpinT> — eval(BBNode<Det,SpinT>, Map<W,H>, Map<W,H>, int)
+//        EvalWantsSpinT<AI,Spec,T,R,SpinT> — eval(TetrisNode<Det,SpinT>, Map<W,H>, Map<W,H>, int)
 //                                            SpinT 通常为 AI::EvalSpinType
-//        EvalWantsNoSpinMapT               — eval(BBNode<Det,monostate>,  Map<W,H>, Map<W,H>, int)
+//        EvalWantsNoSpinMapT               — eval(TetrisNode<Det,monostate>,  Map<W,H>, Map<W,H>, int)
 //
 //   2. BBCallEval<AI, Spec>
 //      供 Search 层 EvalCallback（for_each_move<T,R> 推式回调）直接调用：
-//        - call_eval_typed<T,R>：T、R 均为编译期，构造 BBNode 并调 ai.eval()
+//        - call_eval_typed<T,R>：T、R 均为编译期，构造 TetrisNode 并调 ai.eval()
 //        - SpinType 由 AI::EvalSpinType 决定；无 EvalSpinType 则 fallback 至 monostate
 //
 // LandPoint 约定（三种形态）：
@@ -60,7 +60,7 @@ namespace m_tetris2
     //
     // These are value-compatible with search_tspin::Search::TSpinType and
     // search_aspin::Search::ASpinType respectively. The enumerators are used
-    // in BBNode<Details,SpinT>.spin and in concept probes below.
+    // in TetrisNode<Details,SpinT>.spin and in concept probes below.
     //
     // NOTE: Do NOT use the search_*::Search::*SpinType aliases here; those
     // headers cannot be included without triggering the circular-include
@@ -83,14 +83,14 @@ namespace m_tetris2
     // concept 探针
     //
     // 检测 AI::eval 接受哪种 SpinType 及 Map 类型。
-    // 探针使用具体的 BBNodeDetails<Spec,T,R> 实例化 BBNode，
+    // 探针使用具体的 TetrisNodeDetails<Spec,T,R> 实例化 TetrisNode，
     // 通过普通参数推导调用 ai.eval(node, ...)，不依赖显式模板成员语法。
     //
     // 设计约定：
     //   AI 应声明 using EvalSpinType = <SpinT>（即 search_tspin/aspin 里的 enum）。
     //   BBCallEval 通过 AIEvalSpinTypeOf<AI>::type 安全提取该类型（无则 void），
     //   再用 EvalWantsSpinT<AI,Spec,T,R,SpinT> 探测；SpinT=void 时 concept
-    //   自然不满足（BBNode<Det,void> 不合法），从而安全 fallback 到 monostate 路径。
+    //   自然不满足（TetrisNode<Det,void> 不合法），从而安全 fallback 到 monostate 路径。
     //   全程无 hard-error，不需要 requires { typename AI::EvalSpinType; } 短路保护。
     //----------------------------------------------------------------------
 
@@ -106,26 +106,26 @@ namespace m_tetris2
         using type = typename AI::EvalSpinType;
     };
 
-    // 泛化 SpinT 路径：eval(BBNode<Details, SpinT>, Map<W,H>, Map<W,H>, int)
+    // 泛化 SpinT 路径：eval(TetrisNode<Details, SpinT>, Map<W,H>, Map<W,H>, int)
     // SpinT 由 AIEvalSpinTypeOf<AI>::type 提供（AI::EvalSpinType 的真实类型，
     // 与 eval 签名严格一致），或 void（AI 无 EvalSpinType 时，concept 自然不满足）。
     // SpinT=void 时 !std::is_void_v<SpinT> 约束在 concept 内短路，不会实例化
-    // BBNode<Det,void>（BBNode<Det,void> 的 spin 字段是 void，ill-formed）。
+    // TetrisNode<Det,void>（TetrisNode<Det,void> 的 spin 字段是 void，ill-formed）。
     template<class AI, class Spec, char T, uint8_t R, class SpinT>
     concept EvalWantsSpinT = !std::is_void_v<SpinT> && requires(
                                                            AI const &ai,
-                                                           BBNode<BBNodeDetails<Spec, T, R>, SpinT> node,
+                                                           TetrisNode<TetrisNodeDetails<Spec, T, R>, SpinT> node,
                                                            Map<Spec::width, Spec::height> const &m,
                                                            int clear)
     {
         {ai.eval(node, m, m, clear)};
     };
 
-    // NoSpin + MapT 路径：eval(BBNode<Details, monostate>, Map<W,H>, Map<W,H>, int)
+    // NoSpin + MapT 路径：eval(TetrisNode<Details, monostate>, Map<W,H>, Map<W,H>, int)
     template<class AI, class Spec, char T, uint8_t R>
     concept EvalWantsNoSpinMapT = requires(
         AI const &ai,
-        BBNode<BBNodeDetails<Spec, T, R>, std::monostate> node,
+        TetrisNode<TetrisNodeDetails<Spec, T, R>, std::monostate> node,
         Map<Spec::width, Spec::height> const &m,
         int clear)
     {
@@ -152,7 +152,7 @@ namespace m_tetris2
     {
     public:
         //------------------------------------------------------------------
-        // call_eval_typed<T, R>：T 和 R 均为编译期，构造 BBNode 并调 eval。
+        // call_eval_typed<T, R>：T 和 R 均为编译期，构造 TetrisNode 并调 eval。
         //
         // 供 Search 层 EvalCallback（for_each_move<T,R> 回调）直接调用，
         // T、R 在调用点已静态确定，编译器可完全内联，零运行时 dispatch。
@@ -171,13 +171,13 @@ namespace m_tetris2
             }
             else
             {
-                using Det = BBNodeDetails<Spec, T, R>;
+                using Det = TetrisNodeDetails<Spec, T, R>;
 
                 // ── 从 LandPoint 提取位板坐标 ──────────────────────────────────
                 // BBState 持有 (t, r, xb, yb)：
-                //   xb = bbox 左列（= BBNode.x = master status.x - origin.x）
+                //   xb = bbox 左列（= TetrisNode.x = master status.x - origin.x）
                 //   yb = bbox 底行 y-up（= node.row）
-                // BBNode.y = status.y = yb + kOriginY（kOriginY 为编译期常量）
+                // TetrisNode.y = status.y = yb + kOriginY（kOriginY 为编译期常量）
                 uint8_t spin_u8 = 0u;
                 int8_t node_x = 0;
                 int8_t node_y = 0;
@@ -190,10 +190,10 @@ namespace m_tetris2
                 {
                     // 均持有 .state（bb::BBState{t,r,xb,yb}）
                     node_x = static_cast<int8_t>(lp.state.xb);
-                    // BBNode.y = yb + kOriginY，在编译期使用 Det::kOriginY 计算
+                    // TetrisNode.y = yb + kOriginY，在编译期使用 Det::kOriginY 计算
                     node_y = static_cast<int8_t>(
                         static_cast<int>(lp.state.yb) +
-                        BBNodeBase<Det>::kOriginY);
+                        TetrisNodeBase<Det>::kOriginY);
                 }
                 if constexpr (requires { lp.type; })
                 {
@@ -203,7 +203,7 @@ namespace m_tetris2
                 if constexpr (EvalWantsSpinT<AI, Spec, T, R, typename AIEvalSpinTypeOf<AI>::type>)
                 {
                     using SpinT = typename AIEvalSpinTypeOf<AI>::type;
-                    BBNode<Det, SpinT> node;
+                    TetrisNode<Det, SpinT> node;
                     node.x = node_x;
                     node.y = node_y;
                     node.spin = static_cast<SpinT>(spin_u8);
@@ -211,7 +211,7 @@ namespace m_tetris2
                 }
                 else if constexpr (EvalWantsNoSpinMapT<AI, Spec, T, R>)
                 {
-                    BBNode<Det, std::monostate> node;
+                    TetrisNode<Det, std::monostate> node;
                     node.x = node_x;
                     node.y = node_y;
                     return ai.eval(node, after, src_map, (int)clear);
@@ -220,8 +220,8 @@ namespace m_tetris2
                 {
                     static_assert(EvalWantsNoSpinMapT<AI, Spec, T, R>,
                                   "AI must implement one of: "
-                                  "eval(BBNode<Det, EvalSpinType>, Map<W,H>, Map<W,H>, int) [requires using EvalSpinType = ...], or "
-                                  "eval(BBNode<Det,monostate>, Map<W,H>, Map<W,H>, int).");
+                                  "eval(TetrisNode<Det, EvalSpinType>, Map<W,H>, Map<W,H>, int) [requires using EvalSpinType = ...], or "
+                                  "eval(TetrisNode<Det,monostate>, Map<W,H>, Map<W,H>, int).");
                 }
             } // end else (has_op)
         }

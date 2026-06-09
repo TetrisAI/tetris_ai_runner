@@ -40,10 +40,10 @@ static_assert(std::is_same_v<DeduceSpinPolicy<ai_zzz::Botris>,    ActiveAllPolic
 static_assert(std::is_same_v<DeduceSpinPolicy<ai_zzz::Botris_PC>, ActiveAllPolicy>,
     "Botris_PC (TetrisNodeWithASpinType) must deduce ActiveAllPolicy");
 
-// ai_zzz::qq::Attack: eval 只接受 BBNode<Details, std::monostate>，无 TSpinType / ASpinType
+// ai_zzz::qq::Attack: eval 只接受 TetrisNode<Details, std::monostate>，无 TSpinType / ASpinType
 // → DeduceSpinPolicy 应推导出 ActiveNonePolicy
 static_assert(std::is_same_v<DeduceSpinPolicy<ai_zzz::qq::Attack>, ActiveNonePolicy>,
-    "ai_zzz::qq::Attack (BBNode<Details,monostate> only) must deduce ActiveNonePolicy");
+    "ai_zzz::qq::Attack (TetrisNode<Details,monostate> only) must deduce ActiveNonePolicy");
 
 // ─── 2. TSpinHook::active_for_piece 双参行为 ─────────────────────────────────
 

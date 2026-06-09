@@ -125,14 +125,14 @@ namespace ai_farteryhr
         std::string ai_name() const;
 
         template<class Details>
-        int eval(m_tetris2::BBNode<Details, std::monostate> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
+        int eval(m_tetris2::TetrisNode<Details, std::monostate> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
         {
             using MapT = typename Details::map_type;
             constexpr int fw = MapT::width;
             constexpr int fh_full = MapT::height;
             int fh = fh_full - fhh;
 
-            detail::FarteryhrMap<m_tetris2::BBNode<Details, std::monostate>, MapT> fmap(lp, src_map, fhh);
+            detail::FarteryhrMap<m_tetris2::TetrisNode<Details, std::monostate>, MapT> fmap(lp, src_map, fhh);
             int pts = 0;
 
             for(size_t i = 0; i < fmap.block_count; ++i)

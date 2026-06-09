@@ -65,7 +65,7 @@ namespace ai_misaka
         void init(Config const *config);
         std::string ai_name() const;
         template<class Details>
-        Result eval(m_tetris2::BBNode<Details, TSpinType> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
+        Result eval(m_tetris2::TetrisNode<Details, TSpinType> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
         {
             using MapT = typename Details::map_type;
             constexpr int MW = MapT::width;

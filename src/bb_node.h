@@ -3,14 +3,14 @@
 //==========================================================================
 // bb_node.h — 编译期 piece 落点节点，供 AI eval 接口使用。
 //
-// BBNodeDetails<Spec, T, R>
-//   将 <Spec, T, R> 三参数打包为单一类型，供 BBNode 第一模板参数使用。
+// TetrisNodeDetails<Spec, T, R>
+//   将 <Spec, T, R> 三参数打包为单一类型，供 TetrisNode 第一模板参数使用。
 //   AI 编写者通过 Details 的静态成员访问编译期信息：
 //     Details::t_value  — char，piece 类型字符 ('T' / 'I' / ...)
 //     Details::r_value  — uint8_t，旋转索引 (0 / 1 / 2 / 3)
 //     Details::spec_type — Spec 类型本身
 //
-// BBNodeBase<Details>
+// TetrisNodeBase<Details>
 //   核心字段：
 //     编译期（[[no_unique_address]]，零尺寸）：
 //       t        — piece 类型字符 ('T' / 'I' / ...)
@@ -30,11 +30,11 @@
 //     width()       — bbox 列数（= kWidth）                 旧 node.width
 //     line(int i)   — 第 i 行 mask（y-down，i=0 为顶行）   旧 node.data[i]
 //
-// BBNode<Details, SpinT>
-//   在 BBNodeBase 基础上追加 SpinT spin 字段（TSpinType / ASpinType）。
+// TetrisNode<Details, SpinT>
+//   在 TetrisNodeBase 基础上追加 SpinT spin 字段（TSpinType / ASpinType）。
 //
-// BBNode<Details, std::monostate>（偏特化）
-//   NoSpinHook 路径，移除 spin 成员，尺寸与 BBNodeBase 等同。
+// TetrisNode<Details, std::monostate>（偏特化）
+//   NoSpinHook 路径，移除 spin 成员，尺寸与 TetrisNodeBase 等同。
 //
 // 坐标语义（与 LandingPosT 一致）：
 //   x        = bbox 左下角列（= master status.x - origin.x，即旧 node.col）
@@ -55,7 +55,7 @@
 //
 // 使用示例（AI 编写者视角）：
 //   template<class Details, class SpinType>
-//   double eval(BBNode<Details, SpinType> node, SpinType spin, ...) const {
+//   double eval(TetrisNode<Details, SpinType> node, SpinType spin, ...) const {
 //       // 编译期信息
 //       constexpr char    T = Details::t_value;
 //       constexpr uint8_t R = Details::r_value;
@@ -116,14 +116,14 @@ namespace m_tetris2
     }
 
     //----------------------------------------------------------------------
-    // BBNodeDetails<Spec, T, R>
+    // TetrisNodeDetails<Spec, T, R>
     //
     // 将三个模板参数打包为单一类型，隐藏 AI 编写者视角中的细节。
     // AI eval 签名只需要 template<class Details, class SpinType>，
     // 内部通过 Details::t_value / Details::r_value / Details::spec_type 访问。
     //----------------------------------------------------------------------
     template<class Spec, char T, uint8_t R>
-    struct BBNodeDetails
+    struct TetrisNodeDetails
     {
         using spec_type = Spec;
         using map_type = Map<Spec::width, Spec::height>;
@@ -132,13 +132,13 @@ namespace m_tetris2
     };
 
     //----------------------------------------------------------------------
-    // BBNodeBase<Details>
+    // TetrisNodeBase<Details>
     //
     // 公共基类，持有编译期 t / r / height / origin_y 以及运行时 x / y。
-    // 不含 spin 字段；spin 由派生类（BBNode 两个特化）按需添加。
+    // 不含 spin 字段；spin 由派生类（TetrisNode 两个特化）按需添加。
     //----------------------------------------------------------------------
     template<class Details>
-    struct BBNodeBase
+    struct TetrisNodeBase
     {
         using spec_type = typename Details::spec_type;
         static constexpr char T = Details::t_value;
@@ -203,26 +203,26 @@ namespace m_tetris2
     };
 
     //----------------------------------------------------------------------
-    // BBNode<Details, SpinT>（通用形态：含 spin 成员）
+    // TetrisNode<Details, SpinT>（通用形态：含 spin 成员）
     //
     // SpinT 应为：
     //   TSpinType  （TSpinHook 路径）
     //   ASpinType  （ASpinHook 路径）
     //----------------------------------------------------------------------
     template<class Details, class SpinT = std::monostate>
-    struct BBNode : BBNodeBase<Details>
+    struct TetrisNode : TetrisNodeBase<Details>
     {
         SpinT spin; ///< TSpinType 或 ASpinType
     };
 
     //----------------------------------------------------------------------
-    // BBNode<Details, std::monostate>（偏特化：NoSpinHook 路径）
+    // TetrisNode<Details, std::monostate>（偏特化：NoSpinHook 路径）
     //
-    // 移除 spin 成员，整体尺寸 = BBNodeBase（四个 no_unique_address 零尺寸
+    // 移除 spin 成员，整体尺寸 = TetrisNodeBase（四个 no_unique_address 零尺寸
     // integral_constant + int8_t x + int8_t y = 2 字节）。
     //----------------------------------------------------------------------
     template<class Details>
-    struct BBNode<Details, std::monostate> : BBNodeBase<Details>
+    struct TetrisNode<Details, std::monostate> : TetrisNodeBase<Details>
     {
         // 不添加任何成员
     };

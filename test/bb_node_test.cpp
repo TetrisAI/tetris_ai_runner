@@ -1,11 +1,11 @@
-// bb_node_test.cpp — 验证 BBNode<Details,SpinT> 的编译期字段、坐标语义、
+// bb_node_test.cpp — 验证 TetrisNode<Details,SpinT> 的编译期字段、坐标语义、
 //                    monostate 偏特化无 spin 成员。
 //
 // 编译期验证（static_assert）：
-//   1. BBNodeBase::kHeight == 4（SRS 全量 4 行 OpLines）
-//   2. BBNodeBase::kOriginY == piece_cells.origin.y（编译期对拍）
+//   1. TetrisNodeBase::kHeight == 4（SRS 全量 4 行 OpLines）
+//   2. TetrisNodeBase::kOriginY == piece_cells.origin.y（编译期对拍）
 //   3. .t / .r / .height / .origin_y 均为 integral_constant，值正确
-//   4. BBNode<monostate> sizeof == 2，BBNode<SpinT> sizeof == 3
+//   4. TetrisNode<monostate> sizeof == 2，TetrisNode<SpinT> sizeof == 3
 //   5. has_spin 探针：monostate 无 spin 成员，SpinT 特化有
 //   9. kWidth > 0（各 piece/rotation）
 //  10. kLines 编译期非空
@@ -27,54 +27,54 @@
 
 using Spec = rule_srs::TetrisRule::rule_spec;
 
-// 便捷别名：隐藏 BBNodeDetails 细节，与新 API 风格一致
+// 便捷别名：隐藏 TetrisNodeDetails 细节，与新 API 风格一致
 template<char T, uint8_t R>
-using Det = m_tetris2::BBNodeDetails<Spec, T, R>;
+using Det = m_tetris2::TetrisNodeDetails<Spec, T, R>;
 
 // ── 模拟 SpinType 用于测试 ──────────────────────────────────────────────────
 enum class FakeSpinType : uint8_t { None = 0, Mini = 1, Full = 2 };
 
 // ── 1. kHeight == 4（SRS 所有 piece 全部 4 行 OpLines）──────────────────────
-static_assert(m_tetris2::BBNodeBase<Det<'T', 0>>::kHeight == 4, "T R=0 kHeight==4");
-static_assert(m_tetris2::BBNodeBase<Det<'I', 0>>::kHeight == 4, "I R=0 kHeight==4");
-static_assert(m_tetris2::BBNodeBase<Det<'O', 0>>::kHeight == 4, "O R=0 kHeight==4");
-static_assert(m_tetris2::BBNodeBase<Det<'S', 1>>::kHeight == 4, "S R=1 kHeight==4");
+static_assert(m_tetris2::TetrisNodeBase<Det<'T', 0>>::kHeight == 4, "T R=0 kHeight==4");
+static_assert(m_tetris2::TetrisNodeBase<Det<'I', 0>>::kHeight == 4, "I R=0 kHeight==4");
+static_assert(m_tetris2::TetrisNodeBase<Det<'O', 0>>::kHeight == 4, "O R=0 kHeight==4");
+static_assert(m_tetris2::TetrisNodeBase<Det<'S', 1>>::kHeight == 4, "S R=1 kHeight==4");
 
 // ── 2. kOriginY == piece_cells.origin.y（编译期对拍）────────────────────────
 static_assert(
-    m_tetris2::BBNodeBase<Det<'T', 0>>::kOriginY ==
+    m_tetris2::TetrisNodeBase<Det<'T', 0>>::kOriginY ==
         (int)m_tetris2::shape::piece_cells<Spec, 'T', 0>.origin.y,
     "T R=0 kOriginY must match piece_cells.origin.y");
 static_assert(
-    m_tetris2::BBNodeBase<Det<'T', 2>>::kOriginY ==
+    m_tetris2::TetrisNodeBase<Det<'T', 2>>::kOriginY ==
         (int)m_tetris2::shape::piece_cells<Spec, 'T', 2>.origin.y,
     "T R=2 kOriginY must match piece_cells.origin.y");
 static_assert(
-    m_tetris2::BBNodeBase<Det<'I', 1>>::kOriginY ==
+    m_tetris2::TetrisNodeBase<Det<'I', 1>>::kOriginY ==
         (int)m_tetris2::shape::piece_cells<Spec, 'I', 1>.origin.y,
     "I R=1 kOriginY must match piece_cells.origin.y");
 
 // ── 3. integral_constant 字段的编译期值 ─────────────────────────────────────
-static_assert(m_tetris2::BBNode<Det<'T', 0>>{}.t      == 'T', ".t must equal 'T'");
-static_assert(m_tetris2::BBNode<Det<'T', 0>>{}.r      ==  0,  ".r must equal 0");
-static_assert(m_tetris2::BBNode<Det<'T', 2>>{}.r      ==  2,  ".r must equal 2");
-static_assert(m_tetris2::BBNode<Det<'I', 1>>{}.t      == 'I', ".t must equal 'I'");
-static_assert(m_tetris2::BBNode<Det<'T', 0>>{}.height ==  4,  ".height must equal 4");
+static_assert(m_tetris2::TetrisNode<Det<'T', 0>>{}.t      == 'T', ".t must equal 'T'");
+static_assert(m_tetris2::TetrisNode<Det<'T', 0>>{}.r      ==  0,  ".r must equal 0");
+static_assert(m_tetris2::TetrisNode<Det<'T', 2>>{}.r      ==  2,  ".r must equal 2");
+static_assert(m_tetris2::TetrisNode<Det<'I', 1>>{}.t      == 'I', ".t must equal 'I'");
+static_assert(m_tetris2::TetrisNode<Det<'T', 0>>{}.height ==  4,  ".height must equal 4");
 static_assert(
-    m_tetris2::BBNode<Det<'T', 0>>{}.origin_y ==
-        m_tetris2::BBNodeBase<Det<'T', 0>>::kOriginY,
+    m_tetris2::TetrisNode<Det<'T', 0>>{}.origin_y ==
+        m_tetris2::TetrisNodeBase<Det<'T', 0>>::kOriginY,
     ".origin_y must equal kOriginY");
 
 // ── 4. sizeof 验证 ───────────────────────────────────────────────────────────
-using NodeNoSpin   = m_tetris2::BBNode<Det<'T', 0>, std::monostate>;
-using NodeWithSpin = m_tetris2::BBNode<Det<'T', 0>, FakeSpinType>;
+using NodeNoSpin   = m_tetris2::TetrisNode<Det<'T', 0>, std::monostate>;
+using NodeWithSpin = m_tetris2::TetrisNode<Det<'T', 0>, FakeSpinType>;
 
 // monostate 特化：4 个 no_unique_address（零尺寸）+ int8_t x + int8_t y = 2 字节
 static_assert(sizeof(NodeNoSpin) == 2,
-    "BBNode<monostate>: size must be 2 (x + y only)");
+    "TetrisNode<monostate>: size must be 2 (x + y only)");
 // FakeSpinType(uint8_t) 追加 1 字节 = 3 字节
 static_assert(sizeof(NodeWithSpin) == 3,
-    "BBNode<FakeSpinType>: size must be 3 (x + y + spin)");
+    "TetrisNode<FakeSpinType>: size must be 3 (x + y + spin)");
 
 // ── 5. has_spin 探针 ─────────────────────────────────────────────────────────
 namespace detail {
@@ -84,21 +84,21 @@ namespace detail {
     struct has_spin<T, std::void_t<decltype(std::declval<T>().spin)>> : std::true_type {};
 }
 static_assert(!detail::has_spin<NodeNoSpin>::value,
-    "BBNode<monostate> must NOT have a spin member");
+    "TetrisNode<monostate> must NOT have a spin member");
 static_assert( detail::has_spin<NodeWithSpin>::value,
-    "BBNode<FakeSpinType> must have a spin member");
+    "TetrisNode<FakeSpinType> must have a spin member");
 
 // ── 9. kWidth > 0（编译期）──────────────────────────────────────────────────
-static_assert(m_tetris2::BBNodeBase<Det<'T', 0>>::kWidth > 0, "T R=0 kWidth > 0");
-static_assert(m_tetris2::BBNodeBase<Det<'I', 0>>::kWidth > 0, "I R=0 kWidth > 0");
-static_assert(m_tetris2::BBNodeBase<Det<'I', 1>>::kWidth > 0, "I R=1 kWidth > 0");
-static_assert(m_tetris2::BBNodeBase<Det<'O', 0>>::kWidth > 0, "O R=0 kWidth > 0");
-static_assert(m_tetris2::BBNodeBase<Det<'S', 0>>::kWidth > 0, "S R=0 kWidth > 0");
+static_assert(m_tetris2::TetrisNodeBase<Det<'T', 0>>::kWidth > 0, "T R=0 kWidth > 0");
+static_assert(m_tetris2::TetrisNodeBase<Det<'I', 0>>::kWidth > 0, "I R=0 kWidth > 0");
+static_assert(m_tetris2::TetrisNodeBase<Det<'I', 1>>::kWidth > 0, "I R=1 kWidth > 0");
+static_assert(m_tetris2::TetrisNodeBase<Det<'O', 0>>::kWidth > 0, "O R=0 kWidth > 0");
+static_assert(m_tetris2::TetrisNodeBase<Det<'S', 0>>::kWidth > 0, "S R=0 kWidth > 0");
 
 // ── 10. kLines 编译期非空（顶行 mask 是 constexpr）──────────────────────────
-static_assert(m_tetris2::BBNodeBase<Det<'T', 0>>::kLines.size() == 4,
+static_assert(m_tetris2::TetrisNodeBase<Det<'T', 0>>::kLines.size() == 4,
     "T R=0 kLines must have 4 entries");
-static_assert(m_tetris2::BBNodeBase<Det<'I', 0>>::kLines.size() == 4,
+static_assert(m_tetris2::TetrisNodeBase<Det<'I', 0>>::kLines.size() == 4,
     "I R=0 kLines must have 4 entries");
 
 int main()
@@ -111,10 +111,10 @@ int main()
     //
     // T R=0
     {
-        constexpr int oy = m_tetris2::BBNodeBase<Det<'T', 0>>::kOriginY;
+        constexpr int oy = m_tetris2::TetrisNodeBase<Det<'T', 0>>::kOriginY;
         for (int yb = 0; yb < 20; ++yb)
         {
-            m_tetris2::BBNode<Det<'T', 0>> node{};
+            m_tetris2::TetrisNode<Det<'T', 0>> node{};
             node.x = 3;
             node.y = static_cast<int8_t>(yb + oy);
             assert(node.row() == yb && "T R=0: row() must equal yb");
@@ -123,10 +123,10 @@ int main()
     }
     // T R=2
     {
-        constexpr int oy = m_tetris2::BBNodeBase<Det<'T', 2>>::kOriginY;
+        constexpr int oy = m_tetris2::TetrisNodeBase<Det<'T', 2>>::kOriginY;
         for (int yb = 0; yb < 20; ++yb)
         {
-            m_tetris2::BBNode<Det<'T', 2>> node{};
+            m_tetris2::TetrisNode<Det<'T', 2>> node{};
             node.x = 2;
             node.y = static_cast<int8_t>(yb + oy);
             assert(node.row() == yb && "T R=2: row() must equal yb");
@@ -134,10 +134,10 @@ int main()
     }
     // I R=1（水平 I，cy_min 不同）
     {
-        constexpr int oy = m_tetris2::BBNodeBase<Det<'I', 1>>::kOriginY;
+        constexpr int oy = m_tetris2::TetrisNodeBase<Det<'I', 1>>::kOriginY;
         for (int yb = 0; yb < 20; ++yb)
         {
-            m_tetris2::BBNode<Det<'I', 1>> node{};
+            m_tetris2::TetrisNode<Det<'I', 1>> node{};
             node.x = 5;
             node.y = static_cast<int8_t>(yb + oy);
             assert(node.row() == yb && "I R=1: row() must equal yb");
@@ -145,10 +145,10 @@ int main()
     }
     // O R=0
     {
-        constexpr int oy = m_tetris2::BBNodeBase<Det<'O', 0>>::kOriginY;
+        constexpr int oy = m_tetris2::TetrisNodeBase<Det<'O', 0>>::kOriginY;
         for (int yb = 0; yb < 20; ++yb)
         {
-            m_tetris2::BBNode<Det<'O', 0>> node{};
+            m_tetris2::TetrisNode<Det<'O', 0>> node{};
             node.x = 4;
             node.y = static_cast<int8_t>(yb + oy);
             assert(node.row() == yb && "O R=0: row() must equal yb");
@@ -157,7 +157,7 @@ int main()
 
     // ── 7. SpinT 特化：spin 成员可正常赋值读取 ──────────────────────────────
     {
-        m_tetris2::BBNode<Det<'T', 2>, FakeSpinType> node{};
+        m_tetris2::TetrisNode<Det<'T', 2>, FakeSpinType> node{};
         node.x    = 4;
         node.y    = 18;
         node.spin = FakeSpinType::Full;
@@ -166,18 +166,18 @@ int main()
         assert(node.spin == FakeSpinType::Full  && "spin node: spin");
         assert(static_cast<char>(node.t)    == 'T' && "spin node: t");
         assert(static_cast<uint8_t>(node.r) ==  2  && "spin node: r");
-        constexpr int oy = m_tetris2::BBNodeBase<Det<'T', 2>>::kOriginY;
+        constexpr int oy = m_tetris2::TetrisNodeBase<Det<'T', 2>>::kOriginY;
         assert(node.row() == 18 - oy && "spin node: row()");
     }
 
     // ── 11. land_height() == row() + kHeight ────────────────────────────────
     {
         // T R=0（cy_min != 0，验证 land_height != y + 1 的情况）
-        constexpr int oy = m_tetris2::BBNodeBase<Det<'T', 0>>::kOriginY;
-        constexpr int kH = m_tetris2::BBNodeBase<Det<'T', 0>>::kHeight;
+        constexpr int oy = m_tetris2::TetrisNodeBase<Det<'T', 0>>::kOriginY;
+        constexpr int kH = m_tetris2::TetrisNodeBase<Det<'T', 0>>::kHeight;
         for (int yb = 0; yb < 20; ++yb)
         {
-            m_tetris2::BBNode<Det<'T', 0>> node{};
+            m_tetris2::TetrisNode<Det<'T', 0>> node{};
             node.x = 3;
             node.y = static_cast<int8_t>(yb + oy);
             assert(node.land_height() == node.row() + kH &&
@@ -186,9 +186,9 @@ int main()
     }
     {
         // I R=1（水平条，典型 kOriginY 值）
-        constexpr int oy = m_tetris2::BBNodeBase<Det<'I', 1>>::kOriginY;
-        constexpr int kH = m_tetris2::BBNodeBase<Det<'I', 1>>::kHeight;
-        m_tetris2::BBNode<Det<'I', 1>> node{};
+        constexpr int oy = m_tetris2::TetrisNodeBase<Det<'I', 1>>::kOriginY;
+        constexpr int kH = m_tetris2::TetrisNodeBase<Det<'I', 1>>::kHeight;
+        m_tetris2::TetrisNode<Det<'I', 1>> node{};
         node.x = 3;
         node.y = static_cast<int8_t>(5 + oy);
         assert(node.land_height() == node.row() + kH &&
@@ -197,12 +197,12 @@ int main()
 
     // ── 12. width() == kWidth ────────────────────────────────────────────────
     {
-        using Base_T0 = m_tetris2::BBNodeBase<Det<'T', 0>>;
-        using Base_I1 = m_tetris2::BBNodeBase<Det<'I', 1>>;
-        using Base_O0 = m_tetris2::BBNodeBase<Det<'O', 0>>;
-        m_tetris2::BBNode<Det<'T', 0>> nt{};
-        m_tetris2::BBNode<Det<'I', 1>> ni{};
-        m_tetris2::BBNode<Det<'O', 0>> no{};
+        using Base_T0 = m_tetris2::TetrisNodeBase<Det<'T', 0>>;
+        using Base_I1 = m_tetris2::TetrisNodeBase<Det<'I', 1>>;
+        using Base_O0 = m_tetris2::TetrisNodeBase<Det<'O', 0>>;
+        m_tetris2::TetrisNode<Det<'T', 0>> nt{};
+        m_tetris2::TetrisNode<Det<'I', 1>> ni{};
+        m_tetris2::TetrisNode<Det<'O', 0>> no{};
         assert(nt.width() == Base_T0::kWidth && "T R=0: width() == kWidth");
         assert(ni.width() == Base_I1::kWidth && "I R=1: width() == kWidth");
         assert(no.width() == Base_O0::kWidth && "O R=0: width() == kWidth");
@@ -215,18 +215,18 @@ int main()
     // piece_line<Spec,T,R,I> = OpLines::data[I]（y-up，I=0 为底行）
     // line(i) 应为 OpLines::data[kHeight - 1 - i]（y-down，i=0 为顶行）
     {
-        using Base = m_tetris2::BBNodeBase<Det<'T', 0>>;
+        using Base = m_tetris2::TetrisNodeBase<Det<'T', 0>>;
         constexpr int H = Base::kHeight;
-        m_tetris2::BBNode<Det<'T', 0>> node{};
+        m_tetris2::TetrisNode<Det<'T', 0>> node{};
         for (int i = 0; i < H; ++i)
         {
             uint64_t expected = m_tetris2::shape::find_op<Spec, 'T', 0>::lines::data[H - 1 - i];
             assert(node.line(i) == expected && "T R=0: line(i) must match OpLines y-down flip");
         }
         // I R=0（水平 I，形状直观）
-        using BaseI = m_tetris2::BBNodeBase<Det<'I', 0>>;
+        using BaseI = m_tetris2::TetrisNodeBase<Det<'I', 0>>;
         constexpr int HI = BaseI::kHeight;
-        m_tetris2::BBNode<Det<'I', 0>> inode{};
+        m_tetris2::TetrisNode<Det<'I', 0>> inode{};
         for (int i = 0; i < HI; ++i)
         {
             uint64_t expected = m_tetris2::shape::find_op<Spec, 'I', 0>::lines::data[HI - 1 - i];
