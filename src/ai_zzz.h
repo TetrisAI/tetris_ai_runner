@@ -1162,8 +1162,8 @@ namespace ai_zzz
         typedef search_tspin::Search::TSpinType TSpinType;
         using EvalSpinType = TSpinType;
 
-        // legacy bridge for ppt_pso.cpp
-        int get_safe(m_tetris2::TetrisMap const &map, char type) const
+        template<class MapT>
+        int get_safe(MapT const &map, char type) const
         {
             int safe = 0;
             int t = piece_index_[static_cast<unsigned char>(type)];
@@ -1241,14 +1241,13 @@ namespace ai_zzz
 
             static void init_t_value(uint32_t const *rows, int width, int roof, int16_t &t2_value_ref, int16_t &t3_value_ref, uint32_t *out_rows = nullptr);
 
-            // legacy bridge for ppt_pso.cpp
-            static void init_t_value(m_tetris2::TetrisMap const &map, int16_t &t2_value_ref, int16_t &t3_value_ref)
+            template<class MapT>
+            static void init_t_value(MapT const &map, int16_t &t2_value_ref, int16_t &t3_value_ref)
             {
                 uint32_t occ_rows[40];
-                uint32_t mask = map.empty_line();
-                for (int y = 0; y < map.height; ++y)
-                    occ_rows[y] = ~map.row[y] & mask;
-                init_t_value(occ_rows, map.width, map.roof, t2_value_ref, t3_value_ref);
+                for (int y = 0; y < MapT::height; ++y)
+                    occ_rows[y] = static_cast<uint32_t>(map.row(y));
+                init_t_value(occ_rows, MapT::width, map.max_y() + (map.none() ? 0 : 1), t2_value_ref, t3_value_ref);
             }
         };
 
@@ -1375,19 +1374,6 @@ namespace ai_zzz
         };
         std::vector<MapInDangerData> map_danger_data_;
 
-        // legacy bridge for ppt_pso.cpp
-        size_t map_in_danger_(m_tetris2::TetrisMap const &map, size_t t, size_t up) const
-        {
-            if (up >= 20)
-                return 1;
-            int height = 22 - (int)up;
-            uint32_t mask = static_cast<uint32_t>(map.empty_line());
-            uint32_t e0 = (height >= 4 && height - 4 < map.height) ? ((~static_cast<uint32_t>(map.row[height - 4])) & mask) : 0u;
-            uint32_t e1 = (height >= 3 && height - 3 < map.height) ? ((~static_cast<uint32_t>(map.row[height - 3])) & mask) : 0u;
-            uint32_t e2 = (height >= 2 && height - 2 < map.height) ? ((~static_cast<uint32_t>(map.row[height - 2])) & mask) : 0u;
-            uint32_t e3 = (height >= 1 && height - 1 < map.height) ? ((~static_cast<uint32_t>(map.row[height - 1])) & mask) : 0u;
-            return (static_cast<uint32_t>(map_danger_data_[t].data[0]) & e0) | (static_cast<uint32_t>(map_danger_data_[t].data[1]) & e1) | (static_cast<uint32_t>(map_danger_data_[t].data[2]) & e2) | (static_cast<uint32_t>(map_danger_data_[t].data[3]) & e3);
-        }
 
         template<class MapT>
         size_t map_in_danger_(MapT const &map, size_t t, size_t up) const

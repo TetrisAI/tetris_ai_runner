@@ -34,7 +34,6 @@
 namespace m_tetris2
 {
     struct TetrisNode;
-    struct TetrisMap;
 
     namespace bb
     {
@@ -64,9 +63,6 @@ namespace m_tetris2
                 return a.t == b.t && a.r == b.r && a.xb == b.xb && a.yb == b.yb;
             }
         };
-
-        template<class RuleSpec>
-        Map<RuleSpec::width, RuleSpec::height> build_board_for_search(TetrisMap const &map);
 
         template<class RuleSpec>
         BBState state_from_node_for_search(TetrisNode const *node);
@@ -478,8 +474,6 @@ namespace m_tetris2
 
             //==============================================================
             //==============================================================
-            static BBState state_from_node(TetrisNode const *n);
-
             // 运行时 (t, r, master_x, master_y) -> BBState.
             // 等价于 state_from_node 但直接接受坐标，无需 TetrisNode*.
             static BBState state_from_status(char t, std::uint8_t r, int mx, int my)
@@ -1115,62 +1109,47 @@ namespace m_tetris2
                 }
             }
 
-                        // TetrisMap.row[y] 极性: 低 W 位中 1=空, 0=占含墙外.
 
-                        // 位板 map_t 极性: 1=占. 转换 = (~row[y]) & line, line 为低 W 位全 1.
+            // 纯位板版 attach：把 BBState 对应的方块写入 Map<W,H>，消行。
+            // 不需要 TetrisNode*，完全替代 TetrisNode::attach(context, map).
+            // 返回消行数.
 
-                        // out-of-line 定义在 #include "tetris_core.h" 之后（文件末尾），
-
-                        // 以确保 TetrisMap 成员在方法体中是完整类型.
-
-                        static map_t build_board(TetrisMap const &m);
-
-            
-
-                        // 纯位板版 attach：把 BBState 对应的方块写入 TetrisMap，消行，更新 top/roof.
-
-                        // 不需要 TetrisNode*，完全替代 TetrisNode::attach(context, map).
-
-                        // 返回消行数.
-
-                        // out-of-line 定义在 #include "tetris_core.h" 之后（文件末尾）.
-
-                        static size_t attach_to_map(BBState const &s, TetrisMap &map);
+            static size_t attach_to_map(BBState const &s, map_t &map);
 
             
 
                     private:
 
-                        // 编译期 (T, R) 路径：写方块、消行、更新 top/roof.
-
-                        // out-of-line 定义在 #include "tetris_core.h" 之后（文件末尾）.
+                        // 编译期 (T, R) 路径：写方块、消行.
 
                         template<char T, std::uint8_t R>
 
-                        static size_t attach_TR(BBState const &s, TetrisMap &map);
+                        static size_t attach_TR(BBState const &s, map_t &map);
 
             
 
                     public:
 
                     };
+        // 新重载：Map<W,H> 直接传入，无需转换（已经是 1=占 极性）。
         template<class RuleSpec>
-        inline Map<RuleSpec::width, RuleSpec::height> build_board_for_search(TetrisMap const &map)
+        inline Map<RuleSpec::width, RuleSpec::height> build_board_for_search(
+            Map<RuleSpec::width, RuleSpec::height> const &map)
         {
-            return Helpers<RuleSpec>::build_board(map);
+            return map;
         }
 
         template<class RuleSpec>
         inline BBState state_from_node_for_search(TetrisNode const *node)
         {
-            return Helpers<RuleSpec>::state_from_node(node);
+            if (!node)
+                return BBState{0, 0, 0, 0};
+            return Helpers<RuleSpec>::state_from_status(
+                node->status.t,
+                static_cast<std::uint8_t>(node->status.r),
+                node->status.x,
+                node->status.y);
         }
-
-        // out-of-line definition of Helpers<RuleSpec>::state_from_node.
-        // Placed after #include "tetris_core.h" so TetrisNode is complete.
-        // These includes are deferred to here (from the old L74 position) so that
-        // when bb_state.h is included before tetris_core.h, Helpers<> is fully
-        // defined before tetris_core.h sees it (breaks the circular-include issue).
     } // namespace bb
 } // namespace m_tetris2
 
@@ -1181,56 +1160,10 @@ namespace m_tetris2
 {
     namespace bb
     {
-        template<class RuleSpec>
-        BBState Helpers<RuleSpec>::state_from_node(TetrisNode const *n)
-        {
-            BBState s{0, 0, 0, 0};
-            if (!n)
-                return s;
-            char t = n->status.t;
-            std::uint8_t r = static_cast<std::uint8_t>(n->status.r);
-            auto build_for_piece = [&]<char T>()
-            {
-                [&]<std::size_t... Rs>(std::index_sequence<Rs...>)
-                {
-                    ((r == static_cast<std::uint8_t>(Rs)
-                          ? (s = Helpers<RuleSpec>::template build_state_from_master<T, static_cast<std::uint8_t>(Rs)>(n->status.x, n->status.y), true)
-                          : false) ||
-                     ...);
-                }(std::make_index_sequence<Helpers<RuleSpec>::template rcount_v<T>()>{});
-            };
-            bool dispatched = false;
-            [&]<std::size_t... Is>(std::index_sequence<Is...>)
-            {
-                (((!dispatched && Helpers<RuleSpec>::piece_info_t::type_at(Is) == t)
-                      ? (build_for_piece.template operator()<Helpers<RuleSpec>::piece_info_t::type_at(Is)>(), dispatched = true, true)
-                      : false),
-                 ...);
-            }(std::make_index_sequence<Helpers<RuleSpec>::kPieceCount>{});
-            return s;
-        }
-
-        // out-of-line: Helpers<RuleSpec>::build_board
-        // TetrisMap is complete here (tetris_core.h already included above).
-        template<class RuleSpec>
-        typename Helpers<RuleSpec>::map_t
-        Helpers<RuleSpec>::build_board(TetrisMap const &m)
-        {
-            map_t out{};
-            using row_t_local = typename map_t::row_t;
-            constexpr row_t_local row_mask = map_t::row_full;
-            int h = m.height < kH ? m.height : kH;
-            for (int y = 0; y < h; ++y)
-            {
-                std::uint32_t inv = (~m.row[y]) & static_cast<std::uint32_t>(row_mask);
-                out.set_row(y, static_cast<row_t_local>(inv));
-            }
-            return out;
-        }
 
         // out-of-line: Helpers<RuleSpec>::attach_to_map
         template<class RuleSpec>
-        size_t Helpers<RuleSpec>::attach_to_map(BBState const &s, TetrisMap &map)
+        size_t Helpers<RuleSpec>::attach_to_map(BBState const &s, map_t &map)
         {
             size_t result = 0;
             char t = static_cast<char>(s.t);
@@ -1259,92 +1192,59 @@ namespace m_tetris2
         // out-of-line: Helpers<RuleSpec>::attach_TR<T, R>
         template<class RuleSpec>
         template<char T, std::uint8_t R>
-        size_t Helpers<RuleSpec>::attach_TR(BBState const &s, TetrisMap &map)
+        size_t Helpers<RuleSpec>::attach_TR(BBState const &s, map_t &map)
         {
             constexpr auto &cells = shape::piece_cells<RuleSpec, T, R>;
             int xb = static_cast<int>(s.xb);
             int yb = static_cast<int>(s.yb);
 
-            // 1. 写方块 cell 到 TetrisMap（TetrisMap 极性: 1=空, 0=占）.
+            // 1. 写方块 cell 到 Map<W,H>（极性: 1=占，直接 set）.
             for (std::size_t i = 0; i < cells.count; ++i)
             {
                 int ax = xb + static_cast<int>(cells.cells[i].x);
                 int ay = yb + static_cast<int>(cells.cells[i].y);
-                if (ay >= 0 && ay < map.height && ax >= 0 && ax < map.width)
-                    map.row[ay] &= ~(row_t(1) << ax);
+                if (ay >= 0 && ay < kH && ax >= 0 && ax < kW)
+                    map.set(ax, ay);
             }
 
-            // 2. 确定方块行范围 [row_min, row_max].
-            int row_min = map.height, row_max = -1;
+            // 2. 消行（满行 = row(y) == row_full，即低 W 位全 1）.
+            //    确定方块行范围 [row_min, row_max].
+            int row_min = kH, row_max = -1;
             for (std::size_t i = 0; i < cells.count; ++i)
             {
                 int ay = yb + static_cast<int>(cells.cells[i].y);
-                if (ay >= 0 && ay < map.height)
+                if (ay >= 0 && ay < kH)
                 {
                     if (ay < row_min) row_min = ay;
                     if (ay > row_max) row_max = ay;
                 }
             }
 
-            // 3. 消行（满行 = row[y] == 0，即 1=空 全清）.
-            row_t full_row = row_t(0);
             size_t clear = 0;
             if (row_min <= row_max)
             {
-                for (int i = row_max; i >= row_min; --i)
+                // 利用 Map::line_clears() + clear_lines() 批量处理.
+                // 但这两个操作针对全图，而方块只影响 [row_min, row_max]。
+                // 为正确处理消行后整体下移，仍走全图路径（clear_lines 实现是双指针遍历，
+                // 对 W=10 H=40 仅约 40 次行复制，不是热路径）.
+                using row_t_local = typename map_t::row_t;
+                constexpr row_t_local full = map_t::row_full;
+                // 手动统计清除行数并重建 map（和 clear_lines 等价但可获取 clear 数）.
+                map_t result{};
+                int dst = 0;
+                for (int y = 0; y < kH; ++y)
                 {
-                    if (map.row[i] == full_row)
+                    auto r_ = map.row(y);
+                    if (r_ == full)
                     {
-                        std::memmove(&map.row[i], &map.row[i + 1],
-                                     static_cast<std::size_t>(map.height - i - 1) * sizeof(row_t));
-                        map.row[map.height - 1] = map.empty_line();
                         ++clear;
+                        continue;
                     }
+                    result.set_row(dst, r_);
+                    ++dst;
                 }
+                map = result;
             }
-
-            // 4. 更新 top/roof.
-            if (clear > 0)
-            {
-                map.roof = 0;
-                for (int x = 0; x < map.width; ++x)
-                {
-                    map.top[x] = 0;
-                    for (int y = map.height - 1; y >= 0; --y)
-                    {
-                        if (map.full(static_cast<std::size_t>(x),
-                                     static_cast<std::size_t>(y)))
-                        {
-                            map.top[x] = y + 1;
-                            if (y + 1 > map.roof)
-                                map.roof = y + 1;
-                            break;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                for (std::size_t i = 0; i < cells.count; ++i)
-                {
-                    int ax = xb + static_cast<int>(cells.cells[i].x);
-                    int ay = yb + static_cast<int>(cells.cells[i].y);
-                    if (ax >= 0 && ax < map.width && ay >= 0 && ay < map.height)
-                    {
-                        int new_top = ay + 1;
-                        if (new_top > map.top[ax])
-                        {
-                            map.top[ax] = new_top;
-                            if (new_top > map.roof)
-                                map.roof = new_top;
-                        }
-                    }
-                }
-            }
-
-            // 5. 更新 count.
-            map.count += static_cast<int32_t>(cells.count) -
-                         static_cast<int32_t>(clear) * map.width;
 
             return clear;
         }
