@@ -73,18 +73,19 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     {
         return 0;
     }
-    m_tetris2::TetrisMap map(boardW, boardH);
+    using TOJMap = m_tetris2::Map<rule_toj::TetrisRule::rule_spec::width,
+                                  rule_toj::TetrisRule::rule_spec::height>;
+    TOJMap map{};
     for (int y = 0, add = 0; y < boardH; ++y, add += boardW)
     {
         for (int x = 0; x < boardW; ++x)
         {
             if (board[x + add] == '1')
             {
-                map.row[y] |= 1 << x;
+                map.set(x, y);
             }
         }
     }
-    map.prepare();
     m_tetris2::TetrisBlockStatus status(curPiece, curX - 1, curY - 1, curR - 1);
     std::string next(nextPiece);
     auto target = tetris_ai.run(map, status, next.data(), next.size(), 49).target;
@@ -168,16 +169,17 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
         memset(srs_pc->status(), 0, sizeof *srs_pc->status());
     }
 #endif
-    m_tetris2::TetrisMap map(10, 40);
+    using TOJMap = m_tetris2::Map<rule_toj::TetrisRule::rule_spec::width,
+                                  rule_toj::TetrisRule::rule_spec::height>;
+    TOJMap map{};
     for (size_t d = 0, s = 22; d < 23; ++d, --s)
     {
-        map.row[d] = field[s];
+        map.set_row(static_cast<int>(d), static_cast<TOJMap::row_t>(field[s]));
     }
     for (size_t d = 23, s = 0; s < 8; ++d, ++s)
     {
-        map.row[d] = overfield[s];
+        map.set_row(static_cast<int>(d), static_cast<TOJMap::row_t>(overfield[s]));
     }
-    map.prepare();
     srs_ai.search_config()->allow_rotate_move = false;
     srs_ai.search_config()->allow_180 = can180spin;
     srs_ai.search_config()->allow_d = true;
@@ -343,12 +345,13 @@ extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI3(int field[], int field_w, int
         botris_pc->prepare(10, 40);
         memset(botris_pc->status(), 0, sizeof *botris_pc->status());
     }
-    m_tetris2::TetrisMap map(10, 40);
+    using BotrisMap = m_tetris2::Map<rule_botris::TetrisRule::rule_spec::width,
+                                     rule_botris::TetrisRule::rule_spec::height>;
+    BotrisMap map{};
     for (size_t d = 0; d < 40; ++d)
     {
-        map.row[d] = field[d];
+        map.set_row(static_cast<int>(d), static_cast<BotrisMap::row_t>(field[d]));
     }
-    map.prepare();
     botris_ai.search_config()->allow_rotate_move = false;
     botris_ai.search_config()->allow_180 = can180spin;
     botris_ai.search_config()->allow_d = true;
@@ -514,7 +517,7 @@ public:
             return std::vector<char>();
         }
     }
-    std::vector<m_tetris2::BBLandPoint> const *search(m_tetris2::TetrisMap const &map, m_tetris2::TetrisBlockStatus const &status, size_t depth)
+    std::vector<m_tetris2::BBLandPoint> const *search(m_tetris2::Map<rule_spec::width, rule_spec::height> const &map, m_tetris2::TetrisBlockStatus const &status, size_t depth)
     {
         switch (*config_ptr)
         {
@@ -603,9 +606,13 @@ extern "C" DECLSPEC_EXPORT int __cdecl QQTetrisAI(int boardW, int boardH, int bo
         *path = '\0';
         return 0;
     }
-    m_tetris2::TetrisMap map(boardW, boardH);
-    std::memcpy(map.row, board, boardH * sizeof(int));
-    map.prepare();
+    using QQMap = m_tetris2::Map<rule_qq::TetrisRule::rule_spec::width,
+                                 rule_qq::TetrisRule::rule_spec::height>;
+    QQMap map{};
+    for (int y = 0; y < boardH; ++y)
+    {
+        map.set_row(y, static_cast<QQMap::row_t>(board[y]));
+    }
     m_tetris2::TetrisBlockStatus status(nextPiece[0], curX, curY, (4 - curR) % 4);
     size_t next_length = std::strlen(nextPiece) - 1;
     if (level < 10)
@@ -627,7 +634,7 @@ extern "C" DECLSPEC_EXPORT int __cdecl QQTetrisAI(int boardW, int boardH, int bo
     {
         *qq_ai.search_config() = QQTetrisSearch::Path;
     }
-    else if (mode == 0 || map.count <= boardW * 2)
+    else if (mode == 0 || map.popcount() <= boardW * 2)
     {
         *qq_ai.search_config() = QQTetrisSearch::Simulate;
     }
@@ -643,7 +650,7 @@ extern "C" DECLSPEC_EXPORT int __cdecl QQTetrisAI(int boardW, int boardH, int bo
     qq_ai.status()->value = 0;
     using QQSpecHelpers = m_tetris2::bb::Helpers<rule_qq::TetrisRule::rule_spec>;
     std::array<QQSpecHelpers::map_t, QQSpecHelpers::kMaxR> qq_usable_arr{};
-    auto qq_board = m_tetris2::bb::build_board_for_search<rule_qq::TetrisRule::rule_spec>(map);
+    auto const &qq_board = map;
     QQSpecHelpers::build_usable_for_piece(status.t, qq_board, qq_usable_arr);
     while (!QQSpecHelpers::check_T(status.t, status.x, status.y, static_cast<std::uint8_t>(status.r), qq_usable_arr) && status.y > 0)
     {
@@ -711,9 +718,13 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
         path[0] = {'\0'};
         return 0;
     }
-    m_tetris2::TetrisMap map(boardW, boardH);
-    std::memcpy(map.row, board, boardH * sizeof(int));
-    map.prepare();
+    using C2Map = m_tetris2::Map<rule_c2::TetrisRule::rule_spec::width,
+                                 rule_c2::TetrisRule::rule_spec::height>;
+    C2Map map{};
+    for (int y = 0; y < boardH; ++y)
+    {
+        map.set_row(y, static_cast<C2Map::row_t>(board[y]));
+    }
     c2_ai.memory_limit(1ull << 30);
     c2_ai.search_config()->fast_move_down = true;
     c2_ai.ai_config()->p =

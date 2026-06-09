@@ -27,11 +27,10 @@ namespace
     void touch_api()
     {
         Backend backend{};
-        m_tetris2::TetrisContext const *dummy_ctx = nullptr;
         Backend::Config const *cfg = nullptr;
-        backend.init(dummy_ctx, cfg);
+        backend.init(cfg);
 
-        m_tetris2::TetrisMap map(10, 40);
+        Backend::map_t map{};
 
         // 直接构造 TetrisBlockStatus，不依赖 TetrisNode 指针。
         auto [sx, sy] = rule_srs::TetrisRule::rule_spec::spawn('S', 10, 40);
@@ -46,21 +45,7 @@ namespace
         (void)cache;
 
         Backend::LandPoint lp{};
-        auto board = [&]()
-        {
-            using map_t = m_tetris2::Map<Backend::rule_spec::width, Backend::rule_spec::height>;
-            map_t out{};
-            using row_t = typename map_t::row_t;
-            constexpr row_t row_mask = map_t::row_full;
-            int h = map.height < map_t::height ? map.height : map_t::height;
-            for (int y = 0; y < h; ++y)
-            {
-                std::uint32_t occ = (~map.row[y]) & static_cast<std::uint32_t>(row_mask);
-                out.set_row(y, static_cast<row_t>(occ));
-            }
-            return out;
-        }();
-        std::vector<char> path = backend.make_path(spawn_bb, lp, board);
+        std::vector<char> path = backend.make_path(spawn_bb, lp, map);
         (void)path;
     }
 } // namespace

@@ -35,115 +35,7 @@ namespace m_tetris2
     //row_t / WallKickList / OpLines / OpDesc / RuleSpec / kOpRotateNone 由
     //tetris_rule_spec.h 提供; 这里不再重复定义.
 
-    struct TetrisMap;
     union TetrisBlockStatus;
-
-    //游戏场景,下标从0开始,左下角为原点,最大支持[高度=40,宽度=32]
-    struct TetrisMap
-    {
-        //行数据,具体用法看full函数吧...
-        row_t row[max_height];
-        //每一列的高度
-        int32_t top[max_width];
-        //场景宽
-        int32_t width;
-        //场景高
-        int32_t height;
-        //场景目前最大高度
-        int32_t roof;
-        //场景的方块数
-        int32_t count;
-        //
-        row_t line;
-        //判定[x,y]坐标是否有方块
-        inline bool full(size_t x, size_t y) const
-        {
-            return ((row[y] >> x) & 1) == 0;
-        }
-        TetrisMap()
-        {
-        }
-        TetrisMap(int32_t w, int32_t h)
-        {
-            std::memset(this, 0, sizeof *this);
-            width = w;
-            height = h;
-            line = width >= int(sizeof(row_t) * 8) ? row_t(~row_t(0)) : row_t((row_t(1) << width) - row_t(1));
-            clear();
-        }
-        TetrisMap(TetrisMap const &other)
-        {
-            std::memcpy(this, &other, sizeof *this);
-        }
-        TetrisMap &operator=(TetrisMap const &other)
-        {
-            if (this != &other)
-            {
-                std::memcpy(this, &other, sizeof *this);
-            }
-            return *this;
-        }
-        bool operator==(TetrisMap const &other)
-        {
-            return std::memcmp(this, &other, sizeof *this) == 0;
-        }
-        bool operator!=(TetrisMap const &other)
-        {
-            return std::memcmp(this, &other, sizeof *this) != 0;
-        }
-        row_t empty_line() const
-        {
-            return line;
-        }
-        void clear()
-        {
-            for (int y = 0; y < height; ++y)
-            {
-                row[y] = line;
-            }
-            std::memset(top, 0, sizeof top);
-            roof = 0;
-            count = 0;
-        }
-        void prepare_internal()
-        {
-            roof = 0;
-            count = 0;
-            for (int my = 0; my < height; ++my)
-            {
-                for (int mx = 0; mx < width; ++mx)
-                {
-                    if (full(mx, my))
-                    {
-                        top[mx] = roof = my + 1;
-                        ++count;
-                    }
-                }
-            }
-        }
-        void prepare()
-        {
-            roof = 0;
-            count = 0;
-            for (int my = 0; my < height; ++my)
-            {
-                row[my] = ~row[my] & empty_line();
-                for (int mx = 0; mx < width; ++mx)
-                {
-                    if (full(mx, my))
-                    {
-                        top[mx] = roof = my + 1;
-                        ++count;
-                    }
-                }
-            }
-        }
-    };
-
-    struct TetrisMapSnap
-    {
-        row_t row[4][max_height];
-    };
 
     //方块状态
     //t:OISZLJT字符
@@ -1621,6 +1513,7 @@ namespace m_tetris2
         typedef TetrisTreeNode<typename Core::Status, TetrisAI, TetrisSearch> TreeNode;
         typedef LocalContextBuilder<typename TreeNode::Context, TetrisRule, TetrisAI, TetrisSearch> ContextBuilder;
         typedef typename Core::LandPoint LandPoint;
+        using map_t = typename TreeNode::map_t;
 
     private:
         std::deque<TreeNode> tree_storage_;
@@ -1749,7 +1642,7 @@ namespace m_tetris2
         }
         ,
             int > = 0 >
-                    size_t attach(LP const &lp, TetrisMap &map) const
+                    size_t attach(LP const &lp, map_t &map) const
         {
             using Spec = typename SearchRuleSpecOf<TetrisSearch>::type;
             auto bb_map = m_tetris2::bb::build_board_for_search<Spec>(map);
@@ -1832,11 +1725,10 @@ namespace m_tetris2
             return true;
         }
         //run!
-        RunResult run(TetrisMap const &map, TetrisBlockStatus const &status, char const *next, size_t next_length, time_t limit = 100)
+        RunResult run(map_t const &map, TetrisBlockStatus const &status, char const *next, size_t next_length, time_t limit = 100)
         {
             using namespace std::chrono;
-            using Spec = typename SearchRuleSpecOf<TetrisSearch>::type;
-            auto bb_map = m_tetris2::bb::build_board_for_search<Spec>(map);
+            auto const &bb_map = map;
             auto now = high_resolution_clock::now(), end = now + std::chrono::milliseconds(limit);
             root_ = root_->update(&local_context_, bb_map, status_, status.t, next, next_length);
             do
@@ -1850,11 +1742,10 @@ namespace m_tetris2
             return best.first != nullptr ? RunResult(root_->get_best(&local_context_)) : RunResult(false);
         }
         //带hold的run!
-        RunResult run_hold(TetrisMap const &map, TetrisBlockStatus const &status, char hold, bool hold_free, char const *next, size_t next_length, time_t limit = 100)
+        RunResult run_hold(map_t const &map, TetrisBlockStatus const &status, char hold, bool hold_free, char const *next, size_t next_length, time_t limit = 100)
         {
             using namespace std::chrono;
-            using Spec = typename SearchRuleSpecOf<TetrisSearch>::type;
-            auto bb_map = m_tetris2::bb::build_board_for_search<Spec>(map);
+            auto const &bb_map = map;
             auto now = high_resolution_clock::now(), end = now + std::chrono::milliseconds(limit);
             root_ = root_->update(&local_context_, bb_map, status_, status.t, hold, !hold_free, next, next_length);
             do
@@ -1875,11 +1766,11 @@ namespace m_tetris2
             }
         }
         //根据run的结果得到一个操作路径
-        std::vector<char> make_path(TetrisBlockStatus const &status, LandPoint const &land_point, TetrisMap const &map, bool cut_drop = true)
+        std::vector<char> make_path(TetrisBlockStatus const &status, LandPoint const &land_point, map_t const &map, bool cut_drop = true)
         {
             using Spec = typename SearchRuleSpecOf<TetrisSearch>::type;
             using SpecHelpers = m_tetris2::bb::Helpers<Spec>;
-            auto board = m_tetris2::bb::build_board_for_search<Spec>(map);
+            auto const &board = map;
             auto spawn = SpecHelpers::state_from_status(
                 status.t,
                 static_cast<std::uint8_t>(status.r),
@@ -1897,11 +1788,11 @@ namespace m_tetris2
         }
         //单块评价
         template<class container_t>
-        void search(TetrisBlockStatus const &status, TetrisMap const &map, container_t &result)
+        void search(TetrisBlockStatus const &status, map_t const &map, container_t &result)
         {
             using Spec = typename SearchRuleSpecOf<TetrisSearch>::type;
             using SpecHelpers = m_tetris2::bb::Helpers<Spec>;
-            auto board = m_tetris2::bb::build_board_for_search<Spec>(map);
+            auto const &board = map;
             std::array<typename SpecHelpers::map_t, SpecHelpers::kMaxR> usable_arr{};
             SpecHelpers::build_usable_for_piece(status.t, board, usable_arr);
             if (!SpecHelpers::check_T(status.t, status.x, status.y, static_cast<std::uint8_t>(status.r), usable_arr))
@@ -2018,6 +1909,7 @@ namespace m_tetris2
     public:
         typedef typename Engine::Status Status;
         typedef typename Engine::RunResult RunResult;
+        using map_t = typename Engine::map_t;
 
     public:
         TetrisThreadEngine() : engine_(), with_hold_(false), backgrond_(false), running_(false)
@@ -2069,7 +1961,7 @@ namespace m_tetris2
         }
         ,
             int > = 0 >
-                    size_t attach(LP const &lp, TetrisMap &map) const
+                    size_t attach(LP const &lp, map_t &map) const
         {
             return engine_.attach(lp, map);
         }
@@ -2125,7 +2017,7 @@ namespace m_tetris2
             engine_.update();
         }
         //run!
-        RunResult run(TetrisMap const &map, TetrisBlockStatus const &status, char const *next, size_t next_length, time_t limit = 100)
+        RunResult run(typename Engine::map_t const &map, TetrisBlockStatus const &status, char const *next, size_t next_length, time_t limit = 100)
         {
             PauseBackground pause(this);
             ai_config_.assign(engine_.ai_config());
@@ -2136,7 +2028,7 @@ namespace m_tetris2
             return run_result;
         }
         //带hold的run!
-        RunResult run_hold(TetrisMap const &map, TetrisBlockStatus const &status, char hold, bool hold_free, char const *next, size_t next_length, time_t limit = 100)
+        RunResult run_hold(typename Engine::map_t const &map, TetrisBlockStatus const &status, char hold, bool hold_free, char const *next, size_t next_length, time_t limit = 100)
         {
             PauseBackground pause(this);
             ai_config_.assign(engine_.ai_config());
@@ -2147,14 +2039,14 @@ namespace m_tetris2
             return run_result;
         }
         //根据run的结果得到一个操作路径
-        std::vector<char> make_path(TetrisBlockStatus const &status, typename Engine::LandPoint const &land_point, TetrisMap const &map, bool cut_drop = true)
+        std::vector<char> make_path(TetrisBlockStatus const &status, typename Engine::LandPoint const &land_point, typename Engine::map_t const &map, bool cut_drop = true)
         {
             PauseBackground pause(this);
             return engine_.make_path(status, land_point, map, cut_drop);
         }
         //单块评价
         template<class container_t>
-        void search(TetrisBlockStatus const &status, TetrisMap const &map, container_t &result)
+        void search(TetrisBlockStatus const &status, typename Engine::map_t const &map, container_t &result)
         {
             PauseBackground pause(this);
             engine_.search(status, map, result);

@@ -664,11 +664,6 @@ namespace tetris_diff
         copy_to_oracle_map_impl(src, dst);
     }
 
-    inline void copy_to_oracle_map(NewMap const &src, m_tetris2::TetrisMap &dst)
-    {
-        copy_to_oracle_map_impl(src, dst);
-    }
-
     //=======================================================================
     // 简化的 unified-diff 工具: phase A 的 LpKey set 差异 + phase B 的字符串
     //   差异. 都仅 stderr 输出, 上下文 ±3.

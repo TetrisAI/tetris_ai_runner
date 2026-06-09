@@ -82,7 +82,7 @@ struct test_ai
     using H = m_tetris2::bb::Helpers<Spec>;
 
     Engine ai;
-    m_tetris2::TetrisMap map;
+    Engine::map_t map;
     m_tetris2::bb::BBState cs{};
     bool has_curr;
     std::array<H::map_t, H::kMaxR> usable_arr{};
@@ -112,7 +112,7 @@ struct test_ai
 
     void init(size_t round_ms)
     {
-        map = m_tetris2::TetrisMap(10, 40);
+        map = Engine::map_t{};
         r_next.seed(std::random_device()());
         r_garbage.seed(r_next());
         next.clear();
@@ -133,7 +133,7 @@ struct test_ai
     }
     void rebuild_current_usable()
     {
-        auto board = m_tetris2::bb::build_board_for_search<Spec>(map);
+        auto const &board = map;
         H::build_usable_for_piece(static_cast<char>(cs.t), board, usable_arr);
     }
     void reset_current(char current)
@@ -276,7 +276,7 @@ struct test_ai
             int clear = ai.attach(m_tetris2::BBLandPoint{cs}, map);
             total_clear += clear;
             auto &s = cs;
-            auto board = m_tetris2::bb::build_board_for_search<Spec>(map);
+            auto const &board = map;
             std::array<H::map_t, H::kMaxR> ua{};
             H::build_usable_for_piece(static_cast<char>(s.t), board, ua);
             bool immovable = !H::usable_at_bb(s.r, static_cast<int>(s.xb) - 1, static_cast<int>(s.yb), ua) &&
@@ -331,7 +331,7 @@ struct test_ai
                 b2b = 1;
                 break;
             }
-            if (map.count == 0)
+            if (map.none())
             {
                 attack += 6;
             }
@@ -363,25 +363,13 @@ struct test_ai
                 recv_attack.pop_front();
                 for (int y = map.height - 1; y >= line; --y)
                 {
-                    map.row[y] = map.row[y - line];
+                    map.set_row(y, map.row(y - line));
                 }
-                uint32_t row = 1 << std::uniform_int_distribution<uint32_t>(0, ai.width() - 1)(r_garbage);
+                using row_t = typename Engine::map_t::row_t;
+                row_t row = static_cast<row_t>(Engine::map_t::row_full ^ (row_t(1) << std::uniform_int_distribution<uint32_t>(0, ai.width() - 1)(r_garbage)));
                 for (int y = 0; y < line; ++y)
                 {
-                    map.row[y] = row;
-                }
-                map.roof = 0;
-                map.count = 0;
-                for (int my = 0; my < map.height; ++my)
-                {
-                    for (int mx = 0; mx < map.width; ++mx)
-                    {
-                        if (map.full(mx, my))
-                        {
-                            map.top[mx] = map.roof = my + 1;
-                            ++map.count;
-                        }
-                    }
+                    map.set_row(y, row);
                 }
             }
             has_curr = false;
@@ -561,7 +549,7 @@ int main(int argc, char const *argv[])
                 int up1 = std::accumulate(ai1.recv_attack.begin(), ai1.recv_attack.end(), 0);
                 snprintf(out, sizeof out, "HOLD = %c NEXT = %c%c%c%c%c%c COMBO =%2d B2B = %d APP = %1.2f UP = %2d\n",
                          ai1.hold, ai1.next[1], ai1.next[2], ai1.next[3], ai1.next[4], ai1.next[5], ai1.next[6], ai1.combo, ai1.b2b, 1. * ai1.total_attack / ai1.round, up1);
-                m_tetris2::TetrisMap map_copy1 = ai1.map;
+                Engine::map_t map_copy1 = ai1.map;
                 if (ai1.lp() != nullptr)
                 {
                     ai1.ai.attach(ai1.lp(), map_copy1);
@@ -571,7 +559,7 @@ int main(int argc, char const *argv[])
                     strcat_s(out, "##");
                     for (int x = 0; x < 10; ++x)
                     {
-                        strcat_s(out, map_copy1.full(x, y) ? box_1 : box_0);
+                        strcat_s(out, map_copy1.get(x, y) ? box_1 : box_0);
                     }
                     strcat_s(out, "##\r\n");
                 }
@@ -589,7 +577,7 @@ int main(int argc, char const *argv[])
                 int up1 = std::accumulate(ai1.recv_attack.begin(), ai1.recv_attack.end(), 0);
                 snprintf(out, sizeof out, "HOLD = %c NEXT = %c%c%c%c%c%c COMBO =%2d B2B = %d APP = %1.2f UP = %2d\n",
                          ai1.hold, ai1.next[1], ai1.next[2], ai1.next[3], ai1.next[4], ai1.next[5], ai1.next[6], ai1.combo, ai1.b2b, 1. * ai1.total_attack / ai1.round, up1);
-                m_tetris2::TetrisMap map_copy1 = ai1.map;
+                Engine::map_t map_copy1 = ai1.map;
                 if (ai1.lp() != nullptr)
                 {
                     ai1.ai.attach(ai1.lp(), map_copy1);
@@ -599,7 +587,7 @@ int main(int argc, char const *argv[])
                     strcat(out, "##");
                     for (int x = 0; x < 10; ++x)
                     {
-                        strcat(out, map_copy1.full(x, y) ? box_1 : box_0);
+                        strcat(out, map_copy1.get(x, y) ? box_1 : box_0);
                     }
                     strcat(out, "##\r\n");
                 }

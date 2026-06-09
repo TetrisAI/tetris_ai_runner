@@ -89,7 +89,7 @@ namespace m_tetris2
 
             //=== Strategy contract: init ======================================
             // Cache the Config pointer. TetrisContext is no longer needed.
-            static void init(Context &ctx, TetrisContext const * /*context*/, Config const *config)
+            static void init(Context &ctx, Config const *config)
             {
                 ctx.config_ = config;
             }
@@ -99,21 +99,13 @@ namespace m_tetris2
             // onto the board via the bitboard usable-row table, dedup by cell
             // signature, and emit distinct landings into ctx.land_point_cache_.
             static std::vector<LandPoint> const *
-            search(Context &ctx, TetrisMap const &map, TetrisBlockStatus const &spawn, std::size_t depth)
+            search(Context &ctx, map_t const &map, TetrisBlockStatus const &spawn, std::size_t depth)
             {
                 (void)depth;
                 ctx.land_point_cache_.clear();
                 if (piece_info_t::index_of(spawn.t) < 0)
                     return &ctx.land_point_cache_;
-                map_t board{};
-                using row_t = typename map_t::row_t;
-                constexpr row_t row_mask = map_t::row_full;
-                int h = map.height < map_t::height ? map.height : map_t::height;
-                for (int y = 0; y < h; ++y)
-                {
-                    std::uint32_t occ = (~map.row[y]) & static_cast<std::uint32_t>(row_mask);
-                    board.set_row(y, static_cast<row_t>(occ));
-                }
+                map_t const &board = map;
                 std::array<map_t, kMaxR> usable_arr{};
                 Helpers::build_usable_for_piece(spawn.t, board, usable_arr);
 

@@ -1144,26 +1144,6 @@ namespace m_tetris2
     namespace bb
     {
 
-        // TetrisMap（1=空, 0=占）→ Map<W,H>（1=占）重载：极性翻转并裁剪到 kW/kH.
-        // 用于 TetrisEngine::run / make_path 等对外接口仍以 TetrisMap 传入的情况.
-        template<class RuleSpec>
-        inline Map<RuleSpec::width, RuleSpec::height> build_board_for_search(
-            TetrisMap const &m)
-        {
-            Map<RuleSpec::width, RuleSpec::height> out{};
-            using row_t_local = typename Map<RuleSpec::width, RuleSpec::height>::row_t;
-            constexpr row_t_local row_mask = Map<RuleSpec::width, RuleSpec::height>::row_full;
-            int h = m.height < static_cast<int>(RuleSpec::height)
-                        ? m.height
-                        : static_cast<int>(RuleSpec::height);
-            for (int y = 0; y < h; ++y)
-            {
-                row_t_local inv = static_cast<row_t_local>((~m.row[y]) & static_cast<std::uint32_t>(row_mask));
-                out.set_row(y, inv);
-            }
-            return out;
-        }
-
         // out-of-line: Helpers<RuleSpec>::build_board
         // MapIn 可以是 TetrisMap 或 Map<W,H>，均委托给 build_board_for_search 重载.
         template<class RuleSpec>
