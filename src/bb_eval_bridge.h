@@ -23,8 +23,6 @@
 // Note: search_tspin.h / search_aspin.h are NOT included here to avoid a
 // circular-include cycle:
 //   search_tspin.h -> tetris_core.h -> bb_eval_bridge.h -> search_tspin.h (guard skip)
-// m_tetris2::TSpinType / ASpinType are kept as local value-compatible copies for
-// legacy use; concept probes use AI::EvalSpinType directly to avoid type mismatch.
 //==========================================================================
 
 #include "bb_node.h"
@@ -43,8 +41,7 @@ namespace m_tetris2
     //
     // Safe accessor: yields Search::rule_spec if it exists, void otherwise.
     // Used by TetrisCore::eval() so that Searches without a rule_spec
-    // (e.g. search_tspin_oracle::Search) still compile through the legacy
-    // eval path (which never actually uses Spec).
+    // still compile through the generic eval path.
     //----------------------------------------------------------------------
     template<class Search, class = void>
     struct SearchRuleSpecOf
@@ -170,7 +167,7 @@ namespace m_tetris2
             {
                 static_assert(!(!std::is_same_v<Spec, void> && !shape::has_op<Spec, T, R>),
                               "call_eval_typed invoked with (T,R) not in Spec::ops. "
-                              "All AIs must use Map<W,H>-based signatures; legacy fallbacks have been removed.");
+                              "All AIs must use Map<W,H>-based eval signatures.");
             }
             else
             {
@@ -186,7 +183,6 @@ namespace m_tetris2
                 int8_t node_y = 0;
                 if constexpr (std::is_pointer_v<std::remove_cvref_t<LP>>)
                 {
-                    // 仍为裸指针路径（兼容旧代码，不应出现于新框架）
                     node_x = static_cast<int8_t>(lp->status.x);
                     node_y = static_cast<int8_t>(lp->status.y);
                 }
@@ -225,8 +221,7 @@ namespace m_tetris2
                     static_assert(EvalWantsNoSpinMapT<AI, Spec, T, R>,
                                   "AI must implement one of: "
                                   "eval(BBNode<Det, EvalSpinType>, Map<W,H>, Map<W,H>, int) [requires using EvalSpinType = ...], or "
-                                  "eval(BBNode<Det,monostate>, Map<W,H>, Map<W,H>, int). "
-                                  "Legacy TetrisMap / TetrisNode* eval signatures have been removed.");
+                                  "eval(BBNode<Det,monostate>, Map<W,H>, Map<W,H>, int).");
                 }
             } // end else (has_op)
         }

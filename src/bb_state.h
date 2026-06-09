@@ -469,9 +469,7 @@ namespace m_tetris2
             }
 
             //==============================================================
-            //==============================================================
             // 运行时 (t, r, master_x, master_y) -> BBState.
-            // 等价于 state_from_node 但直接接受坐标，无需 TetrisNode*.
             static BBState state_from_status(char t, std::uint8_t r, int mx, int my)
             {
                 BBState s{0, 0, 0, 0};
@@ -768,11 +766,9 @@ namespace m_tetris2
 
             //==============================================================
             // is_above_roof_bb: BBState 入口的 "piece 完全悬空 + 在屋顶以上"
-            //   位板谓词. 与 master `node->low >= map.roof` 在 spawn entry
-            //   语义对齐 (位板侧用当前 R 的 cells 最低 y = yb +
-            //   min_cell_y_TR<T,R>()). 用于 search_tag / search_simple 的
-            //   1g vs 20g/fast 分支 — entry 完全悬空时走 fast/20g 路径,
-            //   不需要 BFS 列出落点.
+            //   位板谓词. 用当前 R 的 cells 最低 y = yb + min_cell_y_TR<T,R>()
+            //   判定是否命中 search_tag / search_simple 的 1g vs 20g/fast 分支。
+            //   entry 完全悬空时走 fast/20g 路径，不需要 BFS 列出落点.
             //==============================================================
             template<char T, std::uint8_t R>
             static int state_piece_min_y_TR(BBState const &s)
@@ -1107,7 +1103,6 @@ namespace m_tetris2
 
 
             // 纯位板版 attach：把 BBState 对应的方块写入 Map<W,H>，消行。
-            // 不需要 TetrisNode*，完全替代 TetrisNode::attach(context, map).
             // 返回消行数.
 
             static size_t attach_to_map(BBState const &s, map_t &map);

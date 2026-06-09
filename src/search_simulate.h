@@ -8,9 +8,7 @@
 // 上的行为完全等价. 与 PathStrategy 的关键差异 (源自 oracle search_simulate
 // 与 search_path 在 make_path 上的两点行为差):
 //
-//   1. 入口快路径用 sunk-起点 cells_key == cells_key(land_point) 判定空 path
-//      (与 oracle search_simulate.cpp:18 的 node->drop(map)->index_filtered
-//       == land_point->index_filtered 严格等价).
+//   1. 入口快路径用 sunk-起点 cells_key == cells_key(land_point) 判定空 path.
 //   2. 1g 邻居集 = x z c l r L R d D — 没有 rotate_move 的二级 X/Z/C, 也
 //      不消费 disable_d 阶段; 旋转邻居用 rotate_no_kick_bb (无 wall-kick).
 //   3. 20g 邻居集 = x z c l r L R, 入队前**不** drop, 命中谓词把 child sink

@@ -298,18 +298,6 @@ namespace m_tetris2
 
         //检查当前块是否能够合并入场景
         bool check(TetrisMap const &map) const;
-        //检查当前块是否能够合并入场景
-        bool check(TetrisMapSnap const &snap) const;
-        //构建场景快照
-        void build_snap(TetrisMap const &map, TetrisContext const *context, TetrisMapSnap &snap) const;
-        //检查当前块是否是露天的
-        bool open(TetrisMap const &map) const;
-        //当前块合并入场景,同时更新场景数据
-        size_t attach(TetrisContext const *context, TetrisMap &map) const;
-        //探测合并后消的最低行
-        int clear_low(TetrisContext const *context, TetrisMap &map) const;
-        //探测合并后消的最低行
-        int clear_high(TetrisContext const *context, TetrisMap &map) const;
         //计算当前块软降位置
         TetrisNode const *drop(TetrisMap const &map) const;
     };
@@ -362,20 +350,16 @@ namespace m_tetris2
         friend class TetrisEngine;
 
     private:
-        TetrisContext() : width_(0), height_(0), row_mask_(0), type_max_(0), index_to_type_(), type_to_index_(), spawn_x_(), spawn_y_(), spawn_cache_()
+        TetrisContext() : width_(0), height_(0), type_max_(0), index_to_type_(), type_to_index_(), spawn_cache_()
         {
         }
 
         //宽,高什么的...
         int32_t width_, height_;
-        //满行
-        row_t row_mask_;
 
         size_t type_max_;
         char index_to_type_[256];
         size_t type_to_index_[256];
-        int8_t spawn_x_[256];
-        int8_t spawn_y_[256];
 
         // generate() 返回的轻量 wrapper，对应 oracle TetrisNode 的 status 字段。
         struct SpawnInfo
@@ -399,10 +383,6 @@ namespace m_tetris2
         {
             return 0;
         }
-        row_t row_mask() const
-        {
-            return row_mask_;
-        }
         size_t type_max() const { return type_max_; }
         size_t convert(char type) const { return type_to_index_[int(type) + 128]; }
         char convert(size_t index) const { return index_to_type_[index]; }
@@ -421,14 +401,6 @@ namespace m_tetris2
             return &si;
         }
 
-        // TypeFiller 无法直接访问 private 成员，通过此 helper 填充 spawn_cache_。
-        void fill_spawn_cache_entry(char t_upper, int8_t sx, int8_t sy)
-        {
-            TetrisBlockStatus bs(t_upper, sx, sy, 0);
-            spawn_cache_[int(::tolower(t_upper)) + 128].status = bs;
-            spawn_cache_[int(::toupper(t_upper)) + 128].status = bs;
-        }
-
         // TypeFiller 通过此 helper 填充 type 表和 spawn 表的所有 private 字段。
         void fill_type_entry(char t_upper, int8_t sx, int8_t sy)
         {
@@ -437,10 +409,6 @@ namespace m_tetris2
             index_to_type_[type_max_] = t_upper;
             type_to_index_[lo] = type_max_;
             type_to_index_[hi] = type_max_;
-            spawn_x_[lo] = sx;
-            spawn_x_[hi] = sx;
-            spawn_y_[lo] = sy;
-            spawn_y_[hi] = sy;
             TetrisBlockStatus bs(t_upper, sx, sy, 0);
             spawn_cache_[lo].status = bs;
             spawn_cache_[hi].status = bs;
@@ -1970,14 +1938,9 @@ namespace m_tetris2
                 auto &ctx = *shared_context_;
                 ctx.width_ = width;
                 ctx.height_ = height;
-                ctx.row_mask_ = width >= int(sizeof(m_tetris2::row_t) * 8)
-                                    ? m_tetris2::row_t(~m_tetris2::row_t(0))
-                                    : m_tetris2::row_t((m_tetris2::row_t(1) << width) - m_tetris2::row_t(1));
                 ctx.type_max_ = 0;
                 std::fill(std::begin(ctx.index_to_type_), std::end(ctx.index_to_type_), '\0');
                 std::fill(std::begin(ctx.type_to_index_), std::end(ctx.type_to_index_), size_t(0));
-                std::fill(std::begin(ctx.spawn_x_), std::end(ctx.spawn_x_), int8_t(0));
-                std::fill(std::begin(ctx.spawn_y_), std::end(ctx.spawn_y_), int8_t(0));
                 bool seen[256] = {false};
                 // 直接从编译期 rule_spec::ops tuple 填充 type/spawn 信息,
                 // 不再通过 flatten_rulespec 建立 TetrisOpertion 表.
@@ -2473,28 +2436,6 @@ namespace m_tetris2
             l |= ~map.row[row + 0] & data[0];
         }
         return l == 0;
-    }
-
-    inline bool TetrisNode::check(TetrisMapSnap const &snap) const
-    {
-        return (snap.row[status.r][row] >> col) & 1;
-    }
-
-    inline bool TetrisNode::open(TetrisMap const &map) const
-    {
-        switch (width)
-        {
-        default:
-            assert(0);
-        case 4:
-            return ((bottom[0] < map.top[col]) & (bottom[1] < map.top[col + 1]) & (bottom[2] < map.top[col + 2]) & (bottom[3] < map.top[col + 3])) == 0;
-        case 3:
-            return ((bottom[0] < map.top[col]) & (bottom[1] < map.top[col + 1]) & (bottom[2] < map.top[col + 2])) == 0;
-        case 2:
-            return ((bottom[0] < map.top[col]) & (bottom[1] < map.top[col + 1])) == 0;
-        case 1:
-            return ((bottom[0] < map.top[col])) == 0;
-        }
     }
 
     //==========================================================================

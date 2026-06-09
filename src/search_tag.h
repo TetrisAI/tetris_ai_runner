@@ -12,7 +12,7 @@
 //     master 端 rotate_* 与 wall_kick_*[] 共用 union, rotate_clockwise 实
 //     际 = 第一个通过的 wall-kick), 与 oracle/search_tag.cpp 行 91-119 / 228-242
 //     / 278-292 / 351-365 一一对应.
-//   * 20g 选路完全由几何决定: node->land_point != null && low >= roof 触发
+//   * 20g 选路完全由几何条件触发.
 //     "20g 种子 + bridge probe + 带 !open 过滤的 BFS"; 否则降级为 1g BFS.
 //     与 SpinHook::config_is_20g 无关 (oracle search_tag 不读 Config).
 //   * T piece (search_t) 走独立路径: cover_if 升级 ' '→'z'/'c' 的 BFS, 命中
@@ -107,11 +107,9 @@ namespace m_tetris2
 
             //=== search ========================================================
             // 与 oracle/search_tag.cpp:161-313 一一对应:
-            //   * !node->check(map) 直接返回空 (位板版用 usable_arr[entry.r] 过滤).
-            //   * node->status.t == 'T' (本框架推广为 SpinHook::active_for_piece<T>):
-            //     走 search_t_native; 否则 1g/20g 分支由几何条件 (node->land_point
-            //     非空 && node->low >= map.roof) 决定 (与 oracle 完全等价 — 不读
-            //     Config::is_20g, oracle search_tag 也不读).
+            //   * 起点不可用时直接返回空 (位板版用 usable_arr[entry.r] 过滤).
+            //   * 对激活 spin 的 piece 走 search_t_native;
+            //     否则 1g/20g 分支由几何条件决定.
             template<class MapIn>
             static std::vector<LandPoint> const *
             search(Context &ctx, MapIn const &map, bb::BBState const &spawn, std::size_t depth)
@@ -188,15 +186,7 @@ namespace m_tetris2
             //=== run_piece_dispatch ============================================
             //==================================================================
             // active_for_piece<T> = true 走 search_t_native (T-spin 路径);
-            // 否则按 oracle 几何判定决定 1g vs 20g.
-            //
-            //commit (strategy-deref): 旧版直接读 master `node->land_point !=
-            //  nullptr && node->low >= map.roof`, 其中 node->low 是 master
-            //  旧初始化阶段沿 spawn-row chain 批量填好的字段,
-            //  本质上就是"该 piece 在 spawn rotation 下 cell 最低 y". 现在改用
-            //  位板侧 helper `is_above_roof_bb(entry_state, map.roof)` 直接从
-            //  BBState 算 piece-min-y 与 map.roof 比较, 与 oracle 行为对齐;
-            //  不再 deref ctx 计算的 node 字段.
+            // 否则按几何判定决定 1g vs 20g.
             template<char T, class EvalCallback = void>
             static void run_piece_dispatch(Context &ctx, map_t const &board, bb::BBState const &spawn,
                                            int roof, EvalCallback *on_land = nullptr)
@@ -228,7 +218,7 @@ namespace m_tetris2
             //==================================================================
             // 邻居顺序与 oracle/search_tag.cpp:262-310 严格一致: z c l r d.
             //
-            // 旋转语义 (与 oracle node->rotate_clockwise/counterclockwise 严格等价):
+            // 旋转语义与 oracle/search_tag.cpp 的 kick 选择顺序一致.
             //   master 端 rotate_* 与 wall_kick_*[0] 共用 union; wall_kick_* 数组在
             //   prepare 阶段用空盘 (仅 bounds-check, 无 board check) 填入, 取第一个
             //   in-bounds 的 kick (pure rotation 在 bounds 时即为它). 运行时再对

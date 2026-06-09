@@ -7,8 +7,7 @@
 // 与旧 MoveGenSearch<RuleSpec, SimpleNoSpinHook> 在 search()/make_path() 上
 // 行为完全等价 — 与 src/search_simple_node::Search 1:1 等价的位板实现:
 //
-//   search():  起点 usable 守门 -> spawn-row fast path (node->land_point !=
-//              nullptr && node->low >= map.roof) 直接遍历 piece-definition
+//   search():  起点 usable 守门 -> spawn-row fast path 直接遍历 piece-definition
 //              spawn-row 节点 + drop -> 否则 rotation graph BFS 出所有
 //              reachable rotation, 在每个 rotation 上 drop + 沿 ±x 横走 +
 //              drop, cells_key 等价类去重.
@@ -45,10 +44,7 @@ namespace m_tetris2
     namespace movegen
     {
         //=== Simple strategy 私有 mixin: SpinHook 依赖字段 ====================
-        // 与 detail::path::ExtrasMixin / detail::simulate::ExtrasMixin 同形,
-        // 但 simple 走 spawn-row fast path 时需要 TetrisContext (master
-        // node->land_point spawn-row 列表是 piece-definition 表, 由
-        // 旧初始化阶段预建).
+        // 与 detail::path::ExtrasMixin / detail::simulate::ExtrasMixin 同形.
         //commit 3: 落到 detail::simple:: 子命名空间, 标注 "SimpleStrategy
         //  私有实现细节, 第三方扩展不应直接消费".
         namespace detail
@@ -136,18 +132,14 @@ namespace m_tetris2
                 if (!Helpers::usable_at_bb(start_state.r, start_state.xb, start_state.yb, usable_arr))
                     return &ctx.land_point_cache_;
 
-                // fast path: spawn 高于 roof 时, 走 spawn-row land_point 列表.
-                //   master node->land_point 是旧初始化阶段建好的
-                //   piece-definition 表 (spawn rotation chain × 每 r 的 spawn-row
-                //   leftmost→rightmost), 与棋盘无关. 位板等价: 用 inbounds_arr
-                //   重建一份等价 BBState 列表 (Helpers::enumerate_spawn_row_states),
-                //   再对每个 spawn-row state 走 drop_bb_state. 与 oracle/search_
-                //   simple.cpp:73-79 完全等价.
+                // fast path: spawn 高于 roof 时, 直接走 spawn-row 状态列表.
+                //   用 inbounds_arr 重建与 piece-definition 等价的 BBState 列表
+                //   (Helpers::enumerate_spawn_row_states), 再对每个 spawn-row
+                //   state 走 drop_bb_state，与 oracle/search_simple.cpp:73-79
+                //   完全等价.
                 //
-                //commit (strategy-deref): 旧版直接读 master `node->low >= map.roof`.
-                //  现在改 `Helpers::is_above_roof_bb(start_state, map.roof)` —
-                //  位板侧从 entry BBState 取 piece cell-min-y 与 map.roof 比较,
-                //  语义与 oracle 对齐 (spawn entry 完全悬空在屋顶以上).
+                //   是否命中 fast path 由 Helpers::is_above_roof_bb(start_state,
+                //   Helpers::board_roof(board)) 判定.
                 if (Helpers::is_above_roof_bb(start_state, Helpers::board_roof(board)))
                 {
                     std::array<map_t, kMaxR> inbounds_arr{};
