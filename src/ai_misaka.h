@@ -68,16 +68,17 @@ namespace ai_misaka
         Result eval(m_tetris2::BBNode<Details, TSpinType> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
         {
             using MapT = typename Details::map_type;
+            constexpr int MW = MapT::width;
             constexpr int MH = MapT::height;
-            static_assert(MH <= 22, "map height exceeds Result::map_rows capacity");
+            static_assert(MW == 10, "ai_misaka only supports width=10");
+            static_assert(MH == 22, "ai_misaka only supports height=22");
             Result r;
             r.t = Details::t_value;
             // Copy rows in 1=empty semantics (as expected by VirtualRow in ai_misaka.cpp).
             // Map<W,H> stores 1=occupied, so we bitwise-invert each row.
+            // MH == 22 is guaranteed by static_assert above; fill all 22 rows.
             for (int y = 0; y < MH; ++y)
                 r.map_rows[y] = ~static_cast<m_tetris2::row_t>(map.row(y));
-            for (int y = MH; y < 22; ++y)
-                r.map_rows[y] = m_tetris2::row_t(0); // sentinel: all empty (outside top)
             r.map_count = map.count();
             r.clear = clear;
             r.t_spin = lp.spin;
