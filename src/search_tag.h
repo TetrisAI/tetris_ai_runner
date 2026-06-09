@@ -112,8 +112,9 @@ namespace m_tetris2
             //     走 search_t_native; 否则 1g/20g 分支由几何条件 (node->land_point
             //     非空 && node->low >= map.roof) 决定 (与 oracle 完全等价 — 不读
             //     Config::is_20g, oracle search_tag 也不读).
+            template<class MapIn>
             static std::vector<LandPoint> const *
-            search(Context &ctx, TetrisMap const &map, bb::BBState const &spawn, std::size_t depth)
+            search(Context &ctx, MapIn const &map, bb::BBState const &spawn, std::size_t depth)
             {
                 ctx.land_point_cache_.clear();
                 (void)depth;
@@ -126,10 +127,11 @@ namespace m_tetris2
                     return &ctx.land_point_cache_;
                 }
                 bool dispatched = false;
+                int roof = Helpers::board_roof(board);
                 [&]<std::size_t... Is>(std::index_sequence<Is...>)
                 {
                     (((!dispatched && piece_info_t::type_at(Is) == t)
-                          ? (run_piece_dispatch<piece_info_t::type_at(Is)>(ctx, board, spawn_state, map.roof), dispatched = true)
+                          ? (run_piece_dispatch<piece_info_t::type_at(Is)>(ctx, board, spawn_state, roof), dispatched = true)
                           : false),
                      ...);
                 }(std::make_index_sequence<kPieceCount>{});

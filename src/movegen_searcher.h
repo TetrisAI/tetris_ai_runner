@@ -80,8 +80,9 @@ namespace m_tetris2
 
             //=== 转发: search ==================================================
             // spawn 直接从 TetrisBlockStatus 构建 BBState，走纯位板路径，
-            // 不查 oracle 指针图。
-            inline auto search(TetrisMap const &map, TetrisBlockStatus const &status, std::size_t depth)
+            // 不查 oracle 指针图。MapIn 可以是 TetrisMap 或 Map<W,H>。
+            template<class MapIn>
+            inline auto search(MapIn const &map, TetrisBlockStatus const &status, std::size_t depth)
             {
                 bb::BBState spawn = bb::Helpers<RuleSpec>::state_from_status(
                     status.t,

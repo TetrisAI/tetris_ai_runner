@@ -362,12 +362,9 @@ namespace m_tetris2
         friend class TetrisEngine;
 
     private:
-        TetrisContext() : opertion_(), width_(0), height_(0), row_mask_(0), type_max_(0), index_to_type_(), type_to_index_(), spawn_x_(), spawn_y_()
+        TetrisContext() : width_(0), height_(0), row_mask_(0), type_max_(0), index_to_type_(), type_to_index_(), spawn_x_(), spawn_y_(), spawn_cache_()
         {
         }
-
-        //规则信息
-        std::map<std::pair<char, unsigned char>, TetrisOpertion> opertion_;
 
         //宽,高什么的...
         int32_t width_, height_;
@@ -379,6 +376,13 @@ namespace m_tetris2
         size_t type_to_index_[256];
         int8_t spawn_x_[256];
         int8_t spawn_y_[256];
+
+        // generate() 返回的轻量 wrapper，对应 oracle TetrisNode 的 status 字段。
+        struct SpawnInfo
+        {
+            TetrisBlockStatus status;
+        };
+        SpawnInfo spawn_cache_[256];
 
     public:
         using Env = AIEnv;
@@ -399,13 +403,49 @@ namespace m_tetris2
         {
             return row_mask_;
         }
-        TetrisNode const *generate(char type) const;
-        size_t type_max() const;
-        size_t convert(char type) const;
-        char convert(size_t index) const;
-        //用于替代 TetrisNode::op 字段,build 期与运行期热路径都改走这个查询接口
-        TetrisOpertion const &get_opertion(char t, unsigned char r) const;
-        TetrisNodeBlockLocate const *get_block(char t, unsigned char r) const;
+        size_t type_max() const { return type_max_; }
+        size_t convert(char type) const { return type_to_index_[int(type) + 128]; }
+        char convert(size_t index) const { return index_to_type_[index]; }
+
+        // 与 oracle TetrisContext::generate 对齐：用 piece char 查 spawn 表，
+        // 返回包含 TetrisBlockStatus 的轻量对象指针；piece 不合法时返回 nullptr。
+        SpawnInfo const * generate(char piece) const
+        {
+            int idx = int(piece) + 128;
+            if (idx < 0 || idx >= 256)
+                return nullptr;
+            SpawnInfo const &si = spawn_cache_[idx];
+            // status.t == 0 说明该 slot 未被填充（合法 piece char 均非 '\0'）
+            if (si.status.t == 0)
+                return nullptr;
+            return &si;
+        }
+
+        // TypeFiller 无法直接访问 private 成员，通过此 helper 填充 spawn_cache_。
+        void fill_spawn_cache_entry(char t_upper, int8_t sx, int8_t sy)
+        {
+            TetrisBlockStatus bs(t_upper, sx, sy, 0);
+            spawn_cache_[int(::tolower(t_upper)) + 128].status = bs;
+            spawn_cache_[int(::toupper(t_upper)) + 128].status = bs;
+        }
+
+        // TypeFiller 通过此 helper 填充 type 表和 spawn 表的所有 private 字段。
+        void fill_type_entry(char t_upper, int8_t sx, int8_t sy)
+        {
+            int lo = int(::tolower(t_upper)) + 128;
+            int hi = int(::toupper(t_upper)) + 128;
+            index_to_type_[type_max_] = t_upper;
+            type_to_index_[lo] = type_max_;
+            type_to_index_[hi] = type_max_;
+            spawn_x_[lo] = sx;
+            spawn_x_[hi] = sx;
+            spawn_y_[lo] = sy;
+            spawn_y_[hi] = sy;
+            TetrisBlockStatus bs(t_upper, sx, sy, 0);
+            spawn_cache_[lo].status = bs;
+            spawn_cache_[hi].status = bs;
+            ++type_max_;
+        }
     };
 
     template<class TetrisAI>
@@ -506,11 +546,6 @@ namespace m_tetris2
             return w == int(Rule::rule_spec::width) && h == int(Rule::rule_spec::height);
         }
     };
-
-    //flatten_rulespec 的前置声明:正式定义在文件末尾(因为依赖 m_tetris2_rule_tools).
-    //TetrisEngine 模板里要在尚未看到完整定义时引用它,所以这里前置一个签名相同的声明.
-    template<class Rule>
-    std::map<std::pair<char, uint8_t>, TetrisOpertion> flatten_rulespec();
 
     template<class TetrisAI>
     struct TetrisAIHasRatio
@@ -1061,7 +1096,9 @@ namespace m_tetris2
             };
         };
         size_t version;
-        TetrisMap map;
+        using _SearchSpec = typename SearchRuleSpecOf<TetrisSearch>::type;
+        using map_t = m_tetris2::Map<_SearchSpec::width, _SearchSpec::height>;
+        map_t map;
         typename Core::LandPoint identity;
         typename Core::Result result;
         TreeNodeStatus<TetrisAI, typename TetrisAIHasIterate<TetrisAI>::type> status;
@@ -1096,7 +1133,7 @@ namespace m_tetris2
             return lp.state.t != 0;
         }
 
-        TetrisTreeNode *update_root(Context *context, TetrisMap const &_map)
+        TetrisTreeNode *update_root(Context *context, map_t const &_map)
         {
             if (map == _map)
             {
@@ -1154,7 +1191,7 @@ namespace m_tetris2
             }
             return next;
         }
-        TetrisTreeNode *update(Context *context, TetrisMap const &_map, Status const &status, char _t, char const *_next, size_t _next_length)
+        TetrisTreeNode *update(Context *context, map_t const &_map, Status const &status, char _t, char const *_next, size_t _next_length)
         {
             TetrisTreeNode *root = update_root(context, _map);
             std::vector<next_t> next = process_next(_next, _next_length, _t);
@@ -1183,7 +1220,7 @@ namespace m_tetris2
             context->width_cache.clear();
             return root;
         }
-        TetrisTreeNode *update(Context *context, TetrisMap const &_map, Status const &status, char _t, char _hold, bool _hold_lock, char const *_next, size_t _next_length)
+        TetrisTreeNode *update(Context *context, map_t const &_map, Status const &status, char _t, char _hold, bool _hold_lock, char const *_next, size_t _next_length)
         {
             TetrisTreeNode *root = update_root(context, _map);
             std::vector<next_t> next = process_next(_next, _next_length, _t);
@@ -1224,7 +1261,7 @@ namespace m_tetris2
         // 这是 Phase 2 推式 eval 的核心：Search 层回调携带编译期 <T,R>，在此直接实例化。
         // TODO(multi-thread): 多线程路径在此构造 PendingTask 而非同步 eval，详见 plan doc。
         template<char T, std::uint8_t R, class SrcBoard>
-        TetrisTreeNode *alloc_eval_typed(Context *context, TetrisMap &map,
+        TetrisTreeNode *alloc_eval_typed(Context *context, map_t &map,
                                          SrcBoard const &src_board,
                                          LandPoint const &lp)
         {
@@ -1256,7 +1293,7 @@ namespace m_tetris2
                 // Fresh 场景：每个落点直接 alloc + eval，无需查字典。
                 auto fresh_cb = [&]<char T, std::uint8_t R>(LandPoint const &land_point_node)
                 {
-                    TetrisTreeNode *child = alloc_eval_typed<T, R>(context, map, board, land_point_node);
+                    TetrisTreeNode *child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
                     child->is_hold = is_hold;
                     child->children_next = children;
                     children = child;
@@ -1284,7 +1321,7 @@ namespace m_tetris2
                     }
                     else
                     {
-                        child = alloc_eval_typed<T, R>(context, map, board, land_point_node);
+                        child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
                     }
                     child->is_hold = is_hold;
                     child->children_next = children;
@@ -1319,7 +1356,7 @@ namespace m_tetris2
                     // Phase 2: Fresh (diff-type hold) — search_node 落点。
                     auto fresh_main_cb = [&]<char T, std::uint8_t R>(LandPoint const &land_point_node)
                     {
-                        TetrisTreeNode *child = alloc_eval_typed<T, R>(context, map, board, land_point_node);
+                        TetrisTreeNode *child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
                         child->is_hold = false;
                         child->children_next = children;
                         children = child;
@@ -1329,7 +1366,7 @@ namespace m_tetris2
                     {
                         auto fresh_hold_cb = [&]<char T, std::uint8_t R>(LandPoint const &land_point_node)
                         {
-                            TetrisTreeNode *child = alloc_eval_typed<T, R>(context, map, board, land_point_node);
+                            TetrisTreeNode *child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
                             child->is_hold = true;
                             child->children_next = children;
                             children = child;
@@ -1384,7 +1421,7 @@ namespace m_tetris2
                             }
                             else
                             {
-                                child = alloc_eval_typed<T, R>(context, map, board, land_point_node);
+                                child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
                             }
                             child->is_hold = false;
                             child->children_next = children;
@@ -1403,7 +1440,7 @@ namespace m_tetris2
                             }
                             else
                             {
-                                child = alloc_eval_typed<T, R>(context, map, board, land_point_node);
+                                child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
                             }
                             child->is_hold = true;
                             child->children_next = children;
@@ -1433,7 +1470,7 @@ namespace m_tetris2
                     // Phase 2: 推式 search_eval。
                     auto fresh_cb = [&]<char T, std::uint8_t R>(LandPoint const &land_point_node)
                     {
-                        TetrisTreeNode *child = alloc_eval_typed<T, R>(context, map, board, land_point_node);
+                        TetrisTreeNode *child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
                         child->is_hold = false;
                         child->children_next = children;
                         children = child;
@@ -1467,7 +1504,7 @@ namespace m_tetris2
                         }
                         else
                         {
-                            child = alloc_eval_typed<T, R>(context, map, board, land_point_node);
+                            child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
                         }
                         child->is_hold = false;
                         child->children_next = children;
@@ -1825,6 +1862,38 @@ namespace m_tetris2
         using rebind_search_policy_t = typename rebind_search_policy<Tag, Policy>::type;
     } // namespace detail
 
+    namespace detail
+    {
+        //tuple 展开: 直接从编译期 RuleSpec::ops 填充 TetrisContext 的 type/spawn 表,
+        //不再依赖 TetrisOpertion / create_node 等运行时桥接层.
+        template<class TetrisRule, class Tuple, size_t I, size_t Size>
+        struct TypeFiller
+        {
+            static void run(TetrisContext &ctx, int width, int height, bool (&seen)[256])
+            {
+                using Op = typename std::tuple_element<I, Tuple>::type;
+                char t = Op::type;
+                int upper_index = int(::toupper(t)) + 128;
+                if (!seen[upper_index])
+                {
+                    seen[upper_index] = true;
+                    auto spawn = TetrisRule::rule_spec::spawn(::toupper(t), width, height);
+                    // 通过 public helper 填充所有 private 字段（TypeFiller 在 detail
+                    // namespace，不是 TetrisContext 的 friend）
+                    ctx.fill_type_entry(::toupper(t),
+                                        static_cast<int8_t>(spawn.first),
+                                        static_cast<int8_t>(spawn.second));
+                }
+                TypeFiller<TetrisRule, Tuple, I + 1, Size>::run(ctx, width, height, seen);
+            }
+        };
+        template<class TetrisRule, class Tuple, size_t Size>
+        struct TypeFiller<TetrisRule, Tuple, Size, Size>
+        {
+            static void run(TetrisContext &, int, int, bool (&)[256]) {}
+        };
+    } // namespace detail
+
     template<class TetrisRule, class TetrisAI, class TetrisSearchTag>
     class TetrisEngine
     {
@@ -1897,7 +1966,6 @@ namespace m_tetris2
                 return true;
             }
             shared_context_.reset(new TetrisContext());
-            shared_context_->opertion_ = m_tetris2::flatten_rulespec<typename TetrisRule::rule_spec>();
             {
                 auto &ctx = *shared_context_;
                 ctx.width_ = width;
@@ -1911,25 +1979,10 @@ namespace m_tetris2
                 std::fill(std::begin(ctx.spawn_x_), std::end(ctx.spawn_x_), int8_t(0));
                 std::fill(std::begin(ctx.spawn_y_), std::end(ctx.spawn_y_), int8_t(0));
                 bool seen[256] = {false};
-                for (auto const &entry : ctx.opertion_)
-                {
-                    char t = entry.first.first;
-                    int upper_index = int(::toupper(t)) + 128;
-                    if (seen[upper_index])
-                    {
-                        continue;
-                    }
-                    seen[upper_index] = true;
-                    ctx.index_to_type_[ctx.type_max_] = ::toupper(t);
-                    ctx.type_to_index_[int(::tolower(t)) + 128] = ctx.type_max_;
-                    ctx.type_to_index_[int(::toupper(t)) + 128] = ctx.type_max_;
-                    auto spawn = TetrisRule::rule_spec::spawn(::toupper(t), width, height);
-                    ctx.spawn_x_[int(::tolower(t)) + 128] = static_cast<int8_t>(spawn.first);
-                    ctx.spawn_x_[int(::toupper(t)) + 128] = static_cast<int8_t>(spawn.first);
-                    ctx.spawn_y_[int(::tolower(t)) + 128] = static_cast<int8_t>(spawn.second);
-                    ctx.spawn_y_[int(::toupper(t)) + 128] = static_cast<int8_t>(spawn.second);
-                    ++ctx.type_max_;
-                }
+                // 直接从编译期 rule_spec::ops tuple 填充 type/spawn 信息,
+                // 不再通过 flatten_rulespec 建立 TetrisOpertion 表.
+                using Ops = typename TetrisRule::rule_spec::ops;
+                m_tetris2::detail::TypeFiller<TetrisRule, Ops, 0, std::tuple_size<Ops>::value>::run(ctx, width, height, seen);
             }
             local_context_.engine = shared_context_.get();
             local_context_.ai = &ai_;
@@ -1981,7 +2034,8 @@ namespace m_tetris2
                     size_t attach(LP const &lp, TetrisMap &map) const
         {
             using Spec = typename SearchRuleSpecOf<TetrisSearch>::type;
-            return m_tetris2::bb::Helpers<Spec>::attach_to_map(lp.state, map);
+            auto bb_map = m_tetris2::bb::build_board_for_search<Spec>(map);
+            return m_tetris2::bb::Helpers<Spec>::attach_to_map(lp.state, bb_map);
         }
         //上下文对象...
         std::shared_ptr<TetrisContext> const &context() const
@@ -2068,8 +2122,10 @@ namespace m_tetris2
         RunResult run(TetrisMap const &map, TetrisBlockStatus const &status, char const *next, size_t next_length, time_t limit = 100)
         {
             using namespace std::chrono;
+            using Spec = typename SearchRuleSpecOf<TetrisSearch>::type;
+            auto bb_map = m_tetris2::bb::build_board_for_search<Spec>(map);
             auto now = high_resolution_clock::now(), end = now + std::chrono::milliseconds(limit);
-            root_ = root_->update(&local_context_, map, status_, status.t, next, next_length);
+            root_ = root_->update(&local_context_, bb_map, status_, status.t, next, next_length);
             do
             {
                 if (root_->template run<false>(&local_context_))
@@ -2084,8 +2140,10 @@ namespace m_tetris2
         RunResult run_hold(TetrisMap const &map, TetrisBlockStatus const &status, char hold, bool hold_free, char const *next, size_t next_length, time_t limit = 100)
         {
             using namespace std::chrono;
+            using Spec = typename SearchRuleSpecOf<TetrisSearch>::type;
+            auto bb_map = m_tetris2::bb::build_board_for_search<Spec>(map);
             auto now = high_resolution_clock::now(), end = now + std::chrono::milliseconds(limit);
-            root_ = root_->update(&local_context_, map, status_, status.t, hold, !hold_free, next, next_length);
+            root_ = root_->update(&local_context_, bb_map, status_, status.t, hold, !hold_free, next, next_length);
             do
             {
                 if (root_->template run<true>(&local_context_))
@@ -2441,165 +2499,6 @@ namespace m_tetris2
 
     //==========================================================================
     // 编译期规则原语 (WallKickList / OpLines / OpDesc / RuleSpec / kOpRotateNone)
-    // 已抽到 tetris_rule_spec.h. 这里仅保留运行时桥接层.
+    // 已抽到 tetris_rule_spec.h.
     //==========================================================================
-
-    //==========================================================================
-    // RuleSpec -> 运行时 std::map<{t,r}, TetrisOpertion> 的桥接层
-    //
-    // 让运行时桥接层继续复用原 init / get_opertion 接口,
-    // 内部完全用 OpDesc / OpLines / WallKickList 描述方块,行为与之前等价.
-    //==========================================================================
-
-    namespace detail
-    {
-        //把编译期 OpDesc 翻译为一次 m_tetris2_rule_tools::create_node 调用
-        //之所以拆出来是因为 create_node 的实现位于 m_tetris2_rule_tools 命名空间,
-        //这里只声明,定义放在 tetris_core.cpp 的对应位置(避免循环包含).
-        template<class Op>
-        TetrisNode op_create_bridge(size_t w, size_t h, TetrisOpertion const &op);
-
-        //把编译期 WallKickList 拷贝到运行时 TetrisWallKickOpertion
-        template<class Wk>
-        TetrisWallKickOpertion to_wallkick();
-
-        //旋转目标 R != kOpRotateNone 时返回 rotate_template<R>,否则 nullptr.
-        //通过偏特化避开 C++14 静态 constexpr 成员的 ODR-use 麻烦.
-        using RotateFn = bool (*)(TetrisNode &, TetrisContext const *);
-        template<uint8_t R, bool IsNone = (R == kOpRotateNone)>
-        struct RotateSelector
-        {
-            static RotateFn get();
-        };
-        template<uint8_t R>
-        struct RotateSelector<R, true>
-        {
-            static RotateFn get()
-            {
-                return nullptr;
-            }
-        };
-
-        //把单个 OpDesc 平展成 TetrisOpertion
-        template<class Op>
-        TetrisOpertion to_opertion()
-        {
-            TetrisOpertion result = {};
-            result.create = &op_create_bridge<Op>;
-            result.rotate_clockwise = RotateSelector<Op::target_cw>::get();
-            result.rotate_counterclockwise = RotateSelector<Op::target_ccw>::get();
-            result.rotate_opposite = RotateSelector<Op::target_opp>::get();
-            result.wall_kick_clockwise = to_wallkick<typename Op::wk_cw>();
-            result.wall_kick_counterclockwise = to_wallkick<typename Op::wk_ccw>();
-            result.wall_kick_opposite = to_wallkick<typename Op::wk_opp>();
-            return result;
-        }
-
-        //tuple 展开:把 RuleSpec::ops 里每个 OpDesc 插入 std::map
-        template<class Map, class Tuple, size_t I, size_t Size>
-        struct OpFlattener
-        {
-            static void run(Map &m)
-            {
-                using Op = typename std::tuple_element<I, Tuple>::type;
-                m.insert(std::make_pair(std::make_pair(Op::type, Op::rotation), to_opertion<Op>()));
-                OpFlattener<Map, Tuple, I + 1, Size>::run(m);
-            }
-        };
-        template<class Map, class Tuple, size_t Size>
-        struct OpFlattener<Map, Tuple, Size, Size>
-        {
-            static void run(Map &) {}
-        };
-    }
-
-    //把 RuleSpec 平展为 std::map<{t, r}, TetrisOpertion>
-    template<class Rule>
-    std::map<std::pair<char, uint8_t>, TetrisOpertion> flatten_rulespec()
-    {
-        std::map<std::pair<char, uint8_t>, TetrisOpertion> info;
-        using Tup = typename Rule::ops;
-        detail::OpFlattener<decltype(info), Tup, 0, std::tuple_size<Tup>::value>::run(info);
-        return info;
-    }
-}
-
-namespace m_tetris2_rule_tools
-{
-    using namespace m_tetris2;
-
-    //创建一个节点(只支持4x4矩阵,这里包含了矩阵收缩)
-    TetrisNode create_node(size_t w, size_t h, char T, int8_t X, int8_t Y, uint8_t R, uint32_t line1, uint32_t line2, uint32_t line3, uint32_t line4, TetrisOpertion const &op);
-
-    //创建一个节点(只支持4x4矩阵,这里包含了矩阵收缩)
-    template<char T, int8_t X, int8_t Y, uint8_t R, uint32_t line1, uint32_t line2, uint32_t line3, uint32_t line4>
-    TetrisNode create_node(size_t w, size_t h, TetrisOpertion const &op)
-    {
-        static_assert(X < 0 || X >= 4 || Y < 0 || Y >= 4 || (line1 || line2 || line3 || line3), "data error");
-        return create_node(w, h, T, X, Y, R, line1, line2, line3, line4, op);
-    }
-
-    //一个通用的旋转
-    bool rotate_default(TetrisNode &node, unsigned char R, TetrisContext const *context);
-
-    //一个通用的旋转模板
-    template<unsigned char R>
-    bool rotate_template(TetrisNode &node, TetrisContext const *context)
-    {
-        return rotate_default(node, R, context);
-    }
-
-    //左移,右移,上移,下移...
-
-    bool move_left(TetrisNode &node, TetrisContext const *context);
-    bool move_right(TetrisNode &node, TetrisContext const *context);
-    bool move_up(TetrisNode &node, TetrisContext const *context);
-    bool move_down(TetrisNode &node, TetrisContext const *context);
-}
-
-//==========================================================================
-// RuleSpec 桥接层模板定义
-// 这些模板的实现依赖 m_tetris2_rule_tools::create_node / rotate_default,
-// 所以放在 m_tetris2_rule_tools 声明之后.
-//==========================================================================
-namespace m_tetris2
-{
-    namespace detail
-    {
-        //把编译期的 OpLines<L0,L1,L2,L3> 与 OpDesc 信息翻译为一次 create_node 调用.
-        //当前桥接层固定按 4 行矩阵调用(对应 m_tetris2_rule_tools::create_node 的接口).
-        //RuleSpec::N != 4 的规则尚未接入桥接层,会在后续阶段(N 完全可变)放开.
-        //
-        //Op::spawn_x / Op::spawn_y: piece-local 初始化锚点, 不是游戏出生位置;
-        //  此处把它直接交给 create_node 用于建立每个 piece 的 base 节点.
-        //  游戏出生位置由 RuleSpec::spawn(PT, W, H) 提供, 与本桥接层无关.
-        template<class Op>
-        TetrisNode op_create_bridge(size_t w, size_t h, TetrisOpertion const &op)
-        {
-            using Lines = typename Op::lines;
-            static_assert(Lines::size == 4, "Bridge layer currently only supports N==4 rules");
-            return m_tetris2_rule_tools::create_node(
-                w, h, Op::type, Op::spawn_x, Op::spawn_y, Op::rotation,
-                Lines::data[0], Lines::data[1], Lines::data[2], Lines::data[3], op);
-        }
-
-        template<class Wk>
-        TetrisWallKickOpertion to_wallkick()
-        {
-            TetrisWallKickOpertion result = {};
-            result.length = static_cast<uint32_t>(Wk::length);
-            for (size_t i = 0; i < Wk::length; ++i)
-            {
-                result.data[i].x = Wk::data[i * 2 + 0];
-                result.data[i].y = Wk::data[i * 2 + 1];
-            }
-            return result;
-        }
-
-        template<uint8_t R, bool IsNone>
-        RotateFn RotateSelector<R, IsNone>::get()
-        {
-            return &m_tetris2_rule_tools::rotate_template<R>;
-        }
-    }
 }

@@ -110,8 +110,9 @@ namespace m_tetris2
             // landings 转 LandPoint 入 cache; 不需要 20g 专属位板 BFS (即使
             // SimulateNoSpinHook 的 config_is_20g 恒 false, 也保留这条 dispatch
             // 让自定义 hook 自由扩展).
+            template<class MapIn>
             static std::vector<LandPoint> const *
-            search(Context &ctx, TetrisMap const &map, bb::BBState const &spawn, std::size_t depth)
+            search(Context &ctx, MapIn const &map, bb::BBState const &spawn, std::size_t depth)
             {
                 ctx.land_point_cache_.clear();
                 map_t board = Helpers::build_board(map);

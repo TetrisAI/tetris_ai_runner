@@ -32,11 +32,8 @@ option(ORACLE "Build production targets using oracle/ pointer-graph implementati
 # In ORACLE=ON mode, production targets embed oracle/tetris_core.cpp directly
 # and do NOT link this library.
 # ---------------------------------------------------------------------------
-add_library(tetris_core STATIC
-    src/tetris_core.cpp
-)
-target_include_directories(tetris_core PUBLIC src)
-set_target_properties(tetris_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_library(tetris_core INTERFACE)
+target_include_directories(tetris_core INTERFACE src)
 
 # ---------------------------------------------------------------------------
 # tetris_oracle: legacy master BFS searches (search_simple / search_path /

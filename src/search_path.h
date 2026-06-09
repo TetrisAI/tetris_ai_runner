@@ -98,8 +98,9 @@ namespace m_tetris2
             // MoveGen::generate 内部处理：若 spawn 位置被占用，generate 直接
             // 返回而不调 collect，land_point_cache_ 保持空，与原 node->check()
             // 提前 return 语义等价，无需在此重复检查。
+            template<class MapIn>
             static std::vector<LandPoint> const *
-            search(Context &ctx, TetrisMap const &map, bb::BBState const &spawn, std::size_t depth)
+            search(Context &ctx, MapIn const &map, bb::BBState const &spawn, std::size_t depth)
             {
                 ctx.land_point_cache_.clear();
                 if (spawn.t == 0)

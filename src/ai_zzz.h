@@ -928,12 +928,20 @@ namespace ai_zzz
         {
             if (up >= 20)
                 return 1;
-            constexpr int MH = MapT::height;
+            int MH = static_cast<int>(map.height);
             size_t height = 22 - up;
-            uint32_t e0 = (height >= 4 && static_cast<int>(height - 4) < MH) ? static_cast<uint32_t>(map.row(static_cast<int>(height - 4))) : 0u;
-            uint32_t e1 = (height >= 3 && static_cast<int>(height - 3) < MH) ? static_cast<uint32_t>(map.row(static_cast<int>(height - 3))) : 0u;
-            uint32_t e2 = (height >= 2 && static_cast<int>(height - 2) < MH) ? static_cast<uint32_t>(map.row(static_cast<int>(height - 2))) : 0u;
-            uint32_t e3 = (height >= 1 && static_cast<int>(height - 1) < MH) ? static_cast<uint32_t>(map.row(static_cast<int>(height - 1))) : 0u;
+            // TetrisMap 的 row 是数组（m.row[y]），Map<W,H> 的 row 是方法（m.row(y)）
+            // 使用模板 lambda（C++20）确保 if constexpr 在 dependent context 中生效
+            auto get_row = [&]<class M_>(M_ const &m, int y) -> uint32_t {
+                if constexpr (std::is_same_v<M_, m_tetris2::TetrisMap>)
+                    return static_cast<uint32_t>(m.row[y]);
+                else
+                    return static_cast<uint32_t>(m.row(y));
+            };
+            uint32_t e0 = (height >= 4 && static_cast<int>(height - 4) < MH) ? get_row(map, static_cast<int>(height - 4)) : 0u;
+            uint32_t e1 = (height >= 3 && static_cast<int>(height - 3) < MH) ? get_row(map, static_cast<int>(height - 3)) : 0u;
+            uint32_t e2 = (height >= 2 && static_cast<int>(height - 2) < MH) ? get_row(map, static_cast<int>(height - 2)) : 0u;
+            uint32_t e3 = (height >= 1 && static_cast<int>(height - 1) < MH) ? get_row(map, static_cast<int>(height - 1)) : 0u;
             return (static_cast<uint32_t>(map_danger_data_[t].data[0]) & e0) | (static_cast<uint32_t>(map_danger_data_[t].data[1]) & e1) | (static_cast<uint32_t>(map_danger_data_[t].data[2]) & e2) | (static_cast<uint32_t>(map_danger_data_[t].data[3]) & e3);
         }
     };
@@ -1146,12 +1154,20 @@ namespace ai_zzz
         {
             if (up >= 20)
                 return 1;
-            constexpr int MH = MapT::height;
+            int MH = static_cast<int>(map.height);
             size_t height = 22 - up;
-            uint32_t e0 = (height >= 4 && static_cast<int>(height - 4) < MH) ? static_cast<uint32_t>(map.row(static_cast<int>(height - 4))) : 0u;
-            uint32_t e1 = (height >= 3 && static_cast<int>(height - 3) < MH) ? static_cast<uint32_t>(map.row(static_cast<int>(height - 3))) : 0u;
-            uint32_t e2 = (height >= 2 && static_cast<int>(height - 2) < MH) ? static_cast<uint32_t>(map.row(static_cast<int>(height - 2))) : 0u;
-            uint32_t e3 = (height >= 1 && static_cast<int>(height - 1) < MH) ? static_cast<uint32_t>(map.row(static_cast<int>(height - 1))) : 0u;
+            // TetrisMap 的 row 是数组（m.row[y]），Map<W,H> 的 row 是方法（m.row(y)）
+            // 使用模板 lambda（C++20）确保 if constexpr 在 dependent context 中生效
+            auto get_row = [&]<class M_>(M_ const &m, int y) -> uint32_t {
+                if constexpr (std::is_same_v<M_, m_tetris2::TetrisMap>)
+                    return static_cast<uint32_t>(m.row[y]);
+                else
+                    return static_cast<uint32_t>(m.row(y));
+            };
+            uint32_t e0 = (height >= 4 && static_cast<int>(height - 4) < MH) ? get_row(map, static_cast<int>(height - 4)) : 0u;
+            uint32_t e1 = (height >= 3 && static_cast<int>(height - 3) < MH) ? get_row(map, static_cast<int>(height - 3)) : 0u;
+            uint32_t e2 = (height >= 2 && static_cast<int>(height - 2) < MH) ? get_row(map, static_cast<int>(height - 2)) : 0u;
+            uint32_t e3 = (height >= 1 && static_cast<int>(height - 1) < MH) ? get_row(map, static_cast<int>(height - 1)) : 0u;
             return (static_cast<uint32_t>(map_danger_data_[t].data[0]) & e0) | (static_cast<uint32_t>(map_danger_data_[t].data[1]) & e1) | (static_cast<uint32_t>(map_danger_data_[t].data[2]) & e2) | (static_cast<uint32_t>(map_danger_data_[t].data[3]) & e3);
         }
     };
@@ -1245,9 +1261,20 @@ namespace ai_zzz
             static void init_t_value(MapT const &map, int16_t &t2_value_ref, int16_t &t3_value_ref)
             {
                 uint32_t occ_rows[40];
-                for (int y = 0; y < MapT::height; ++y)
-                    occ_rows[y] = static_cast<uint32_t>(map.row(y));
-                init_t_value(occ_rows, MapT::width, map.max_y() + (map.none() ? 0 : 1), t2_value_ref, t3_value_ref);
+                if constexpr (std::is_same_v<MapT, m_tetris2::TetrisMap>)
+                {
+                    // TetrisMap: 无 static height/max_y()/none(), 用 map.roof 和 map.row[]
+                    // prepare() 之后 row[y] 的 1-bit = 占用
+                    for (int y = 0; y < map.roof; ++y)
+                        occ_rows[y] = static_cast<uint32_t>(map.row[y]);
+                    init_t_value(occ_rows, map.width, map.roof, t2_value_ref, t3_value_ref);
+                }
+                else
+                {
+                    for (int y = 0; y < MapT::height; ++y)
+                        occ_rows[y] = static_cast<uint32_t>(map.row(y));
+                    init_t_value(occ_rows, MapT::width, map.max_y() + (map.none() ? 0 : 1), t2_value_ref, t3_value_ref);
+                }
             }
         };
 
@@ -1380,12 +1407,20 @@ namespace ai_zzz
         {
             if (up >= 20)
                 return 1;
-            constexpr int MH = MapT::height;
+            int MH = static_cast<int>(map.height);
             size_t height = 22 - up;
-            uint32_t e0 = (height >= 4 && static_cast<int>(height - 4) < MH) ? static_cast<uint32_t>(map.row(static_cast<int>(height - 4))) : 0u;
-            uint32_t e1 = (height >= 3 && static_cast<int>(height - 3) < MH) ? static_cast<uint32_t>(map.row(static_cast<int>(height - 3))) : 0u;
-            uint32_t e2 = (height >= 2 && static_cast<int>(height - 2) < MH) ? static_cast<uint32_t>(map.row(static_cast<int>(height - 2))) : 0u;
-            uint32_t e3 = (height >= 1 && static_cast<int>(height - 1) < MH) ? static_cast<uint32_t>(map.row(static_cast<int>(height - 1))) : 0u;
+            // TetrisMap 的 row 是数组（m.row[y]），Map<W,H> 的 row 是方法（m.row(y)）
+            // 使用模板 lambda（C++20）确保 if constexpr 在 dependent context 中生效
+            auto get_row = [&]<class M_>(M_ const &m, int y) -> uint32_t {
+                if constexpr (std::is_same_v<M_, m_tetris2::TetrisMap>)
+                    return static_cast<uint32_t>(m.row[y]);
+                else
+                    return static_cast<uint32_t>(m.row(y));
+            };
+            uint32_t e0 = (height >= 4 && static_cast<int>(height - 4) < MH) ? get_row(map, static_cast<int>(height - 4)) : 0u;
+            uint32_t e1 = (height >= 3 && static_cast<int>(height - 3) < MH) ? get_row(map, static_cast<int>(height - 3)) : 0u;
+            uint32_t e2 = (height >= 2 && static_cast<int>(height - 2) < MH) ? get_row(map, static_cast<int>(height - 2)) : 0u;
+            uint32_t e3 = (height >= 1 && static_cast<int>(height - 1) < MH) ? get_row(map, static_cast<int>(height - 1)) : 0u;
             return (static_cast<uint32_t>(map_danger_data_[t].data[0]) & e0) | (static_cast<uint32_t>(map_danger_data_[t].data[1]) & e1) | (static_cast<uint32_t>(map_danger_data_[t].data[2]) & e2) | (static_cast<uint32_t>(map_danger_data_[t].data[3]) & e3);
         }
     };

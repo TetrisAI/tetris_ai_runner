@@ -113,8 +113,9 @@ namespace m_tetris2
             }
 
             //=== search ========================================================
+            template<class MapIn>
             static std::vector<LandPoint> const *
-            search(Context &ctx, TetrisMap const &map, bb::BBState const &spawn, std::size_t depth)
+            search(Context &ctx, MapIn const &map, bb::BBState const &spawn, std::size_t depth)
             {
                 (void)depth;
                 ctx.land_point_cache_.clear();
@@ -147,7 +148,7 @@ namespace m_tetris2
                 //  现在改 `Helpers::is_above_roof_bb(start_state, map.roof)` —
                 //  位板侧从 entry BBState 取 piece cell-min-y 与 map.roof 比较,
                 //  语义与 oracle 对齐 (spawn entry 完全悬空在屋顶以上).
-                if (Helpers::is_above_roof_bb(start_state, map.roof))
+                if (Helpers::is_above_roof_bb(start_state, Helpers::board_roof(board)))
                 {
                     std::array<map_t, kMaxR> inbounds_arr{};
                     Helpers::build_inbounds_for_piece(piece_t, inbounds_arr);
