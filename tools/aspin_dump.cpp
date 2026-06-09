@@ -9,7 +9,6 @@
 #include "../src/rule_botris.h"
 #include "../src/search_aspin.h"
 #include "../src/search_path.h"
-#include "../src/tetris_core.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -22,16 +21,14 @@
 
 namespace
 {
-    using NewMap = m_tetris2::TetrisMap;
+    // 位板极性: 1=occupied, 0=empty (与旧 TetrisMap 的 1=empty 相反)
+    using NewMap = m_tetris2::Map<10, 40>;
 
-    // 从 ascii 行 (bottom-up) 拼一张 TetrisMap.
-    // master TetrisMap.row 极性: 1=空, 0=占; 棋盘外列 bit 必须填 0.
+    // 从 ascii 行 (bottom-up) 拼一张 Map<10,40>.
+    // '#' / 非'.' 非' ' 字符 = 占用格 (bit=1).
     NewMap from_rows(std::initializer_list<char const *> rows_bottom_up)
     {
-        NewMap m(10, 40);
-        std::uint32_t empty_row = (1u << 10) - 1u;
-        for (int y = 0; y < 40; ++y)
-            m.row[y] = empty_row;
+        NewMap m{};
         int y = 0;
         for (char const *row : rows_bottom_up)
         {
@@ -42,15 +39,7 @@ namespace
                 if (c != '.' && c != ' ')
                     occ |= (1u << x);
             }
-            m.row[y] &= ~occ;
-            if (occ != 0)
-            {
-                m.roof = std::max<int>(m.roof, y + 1);
-                for (int x = 0; x < 10; ++x)
-                    if ((occ >> x) & 1)
-                        m.top[x] = std::max<int>(m.top[x], y + 1);
-            }
-            m.count += __builtin_popcount(occ);
+            m.set_row(y, static_cast<NewMap::row_t>(occ));
             ++y;
         }
         return m;
@@ -59,47 +48,22 @@ namespace
     // 几个常见 fixture (来自 oracle_diff 的现成 board, 这里抠 ASpin 关心的几张).
     NewMap make_empty()
     {
-        return NewMap(10, 40);
+        return NewMap{};
     }
 
     NewMap make_donation()
     {
-        // 与 oracle_diff::make_donation_board 等价, 但走 master TetrisMap.
-        NewMap m(10, 40);
-        std::uint32_t empty_row = (1u << 10) - 1u;
-        for (int y = 0; y < 40; ++y)
-            m.row[y] = empty_row;
-        // y=0..13 全填 col 0..8.
+        // 与 oracle_diff::make_donation_board 等价.
+        // y=0..13: col 0..8 占用 (col 9 空)
+        // y=14:    col 0..6 占用
+        // y=15:    col 0..3 占用
+        // y=16:    col 0..1 占用
+        NewMap m{};
         for (int y = 0; y < 14; ++y)
-        {
-            std::uint32_t occ = (1u << 9) - 1u; // col 0..8
-            m.row[y] &= ~occ;
-            for (int x = 0; x < 9; ++x)
-                m.top[x] = std::max<int>(m.top[x], y + 1);
-            m.count += 9;
-        }
-        for (int x = 0; x < 7; ++x)
-        {
-            std::uint32_t occ = 1u << x;
-            m.row[14] &= ~occ;
-            m.top[x] = 15;
-            m.count += 1;
-        }
-        for (int x = 0; x < 4; ++x)
-        {
-            std::uint32_t occ = 1u << x;
-            m.row[15] &= ~occ;
-            m.top[x] = 16;
-            m.count += 1;
-        }
-        for (int x = 0; x < 2; ++x)
-        {
-            std::uint32_t occ = 1u << x;
-            m.row[16] &= ~occ;
-            m.top[x] = 17;
-            m.count += 1;
-        }
-        m.roof = 17;
+            m.set_row(y, static_cast<NewMap::row_t>((1u << 9) - 1u)); // col 0..8
+        m.set_row(14, static_cast<NewMap::row_t>((1u << 7) - 1u));    // col 0..6
+        m.set_row(15, static_cast<NewMap::row_t>((1u << 4) - 1u));    // col 0..3
+        m.set_row(16, static_cast<NewMap::row_t>((1u << 2) - 1u));    // col 0..1
         return m;
     }
 
@@ -115,18 +79,11 @@ namespace
 
     NewMap make_sealed_top()
     {
-        NewMap m(10, 40);
-        std::uint32_t empty_row = (1u << 10) - 1u;
-        for (int y = 0; y < 40; ++y)
-            m.row[y] = empty_row;
+        // y=18..39 全行填满，y=0..17 全空。
+        NewMap m{};
+        NewMap::row_t full_row = NewMap::row_full;
         for (int y = 18; y < 40; ++y)
-        {
-            m.row[y] = 0;
-            for (int x = 0; x < 10; ++x)
-                m.top[x] = std::max<int>(m.top[x], y + 1);
-            m.count += 10;
-        }
-        m.roof = 40;
+            m.set_row(y, full_row);
         return m;
     }
 
@@ -243,18 +200,7 @@ namespace
         });
     }
 
-    using AspinEngine =
-        m_tetris2::TetrisEngine<rule_botris::TetrisRule, ai_zzz::Botris, aspin::Search>;
-    using AspinSearcher = AspinEngine::TetrisSearch;
-
-    AspinEngine &engine()
-    {
-        static AspinEngine e;
-        static bool prepared = []()
-        { return e.prepare(10, 40); }();
-        (void)prepared;
-        return e;
-    }
+    using AspinSearcher = aspin::Search::type<rule_botris::TetrisRule>;
 
     AspinSearcher::Config &config()
     {
@@ -267,7 +213,6 @@ namespace
         static AspinSearcher s;
         static bool inited = []()
         {
-            AspinEngine &e = engine();
             s.init(&config());
             return true;
         }();
@@ -303,17 +248,14 @@ namespace
 
     std::vector<Tup> dump_one(NewMap const &map, char piece)
     {
-        AspinEngine &e = engine();
-        m_tetris2::TetrisContext const *ctx = e.context().get();
         std::vector<Tup> out;
-        if (!ctx)
-            return out;
-        auto spawn = ctx->generate(piece);
-        if (!spawn)
-            return out;
-        if (!spawn->check(map))
-            return out;
-        auto *result = search_obj().search(map, spawn->status, 0);
+        auto sp = rule_botris::TetrisRule::rule_spec::spawn(piece,
+            rule_botris::TetrisRule::rule_spec::width,
+            rule_botris::TetrisRule::rule_spec::height);
+        auto spawn = Helpers::state_from_status(piece,
+            static_cast<std::uint8_t>(0),
+            sp.first, sp.second);
+        auto *result = search_obj().search(map, spawn, 0);
         if (!result)
             return out;
         out.reserve(result->size());

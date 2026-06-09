@@ -15,7 +15,6 @@
 
 #include "_diff_harness.h"
 
-#include "../src/tetris_core.h"
 #include "../oracle/search_tspin.h"
 #include "../src/ai_zzz.h"
 #include "../src/bb_state.h"
@@ -43,18 +42,6 @@ namespace
         static_assert(sizeof(k) == sizeof(v), "CellsKey size mismatch");
         std::memcpy(&v, &k, sizeof(v));
         return v;
-    }
-
-    using NewEngine =
-        m_tetris2::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ, path::Search>;
-
-    NewEngine &engine()
-    {
-        static NewEngine e;
-        static bool prepared = []()
-        { return e.prepare(10, 40); }();
-        (void)prepared;
-        return e;
     }
 
     using PathSearcher = m_tetris2::movegen::Searcher<m_tetris2::PathStrategy,
@@ -104,18 +91,14 @@ namespace
                                  std::string const & /*board_name*/, bool /*is_20g*/)
     {
         tetris_diff::CaseProbe cp;
-        m_tetris2::TetrisContext const *ctx = engine().context().get();
-        if (!ctx)
-            return cp;
         NewMap map = board;
-        auto spawn = ctx->generate(piece);
-        // spawn->check() 要求旧 TetrisMap，test fixture 保证入口为空，跳过此守门。
-        if (!spawn)
-            return cp;
+        auto spawn = Helpers::state_from_status(piece,
+            static_cast<std::uint8_t>(0),
+            3, 21);
 
         // "oracle" 在本 driver 里 = PathStrategy (功能更全的参照),
         // "candidate" = SimpleStrategy (子集).
-        auto *oracle_result = path_search_obj().search(map, spawn->status, 0);
+        auto *oracle_result = path_search_obj().search(map, spawn, 0);
         if (oracle_result)
         {
             std::size_t i = 0;
@@ -126,7 +109,7 @@ namespace
                 ++i;
             }
         }
-        auto *candidate_result = simple_search_obj().search(map, spawn->status, 0);
+        auto *candidate_result = simple_search_obj().search(map, spawn, 0);
         if (candidate_result)
         {
             std::size_t i = 0;

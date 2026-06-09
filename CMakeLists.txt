@@ -247,7 +247,6 @@ add_executable(${PROJECT_NAME}
     tools/aspin_dump.cpp
 )
 target_include_directories(${PROJECT_NAME} PRIVATE src)
-target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core)
 
 project(extreme_rule_diff)
 add_executable(${PROJECT_NAME}
