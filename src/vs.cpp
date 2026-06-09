@@ -37,7 +37,7 @@ struct tetris_game
     typedef int (*ai_run_t)(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int level, int mode, char path[], size_t limit);
     m_tetris2::TetrisEngine2<rule_qq::TetrisRule, ai_zzz::qq::Attack, search_path::Search> tetris_ai;
     ege::mtrandom random;
-    m_tetris2::TetrisMap map;
+    decltype(tetris_ai)::map_t map;
     std::vector<char> next;
     size_t next_length;
     HMODULE hDll;
@@ -210,7 +210,7 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
         cd.Y = 0;
         SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), cd);
         out[0] = '\0';
-        m_tetris2::TetrisMap map[2] = {game[0].map, game[1].map};
+        decltype(game[0].tetris_ai)::map_t map[2] = {game[0].map, game[1].map};
         auto sp = rule_qq::TetrisRule::rule_spec::spawn(game[0].next.front(), game[0].tetris_ai.width(), game[0].tetris_ai.height());
         auto cs = m_tetris2::bb::Helpers<rule_qq::TetrisRule::rule_spec>::state_from_status(game[0].next.front(), 0, sp.first, sp.second);
         auto lp = m_tetris2::BBLandPoint(cs);
@@ -331,7 +331,7 @@ int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
     }
     SetWindowTextA(GetConsoleWindow(), ((char const *(*)())name)());
     int w = 10, h = 20;
-    m_tetris2::TetrisMap map(w, h);
+    decltype(tetris_ai)::map_t map;
     char *param_map = new char[w * h];
     char *path = new char[1024];
     tetris_ai.prepare(w, h);

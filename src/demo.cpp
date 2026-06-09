@@ -74,7 +74,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     {
         return 0;
     }
-    m_tetris2::TetrisMap map(boardW, boardH);
+    decltype(tetris_ai)::map_t map;
     for (int y = 0, add = 0; y < boardH; ++y, add += boardW)
     {
         for (int x = 0; x < boardW; ++x)

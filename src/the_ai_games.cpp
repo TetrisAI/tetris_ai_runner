@@ -196,7 +196,7 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
                  std::cout << output;
                  return false;
              }
-             m_tetris2::TetrisMap map1(field_width, field_height + 1), map2(field_width, field_height + 1);
+             decltype(bot_1)::map_t map1{}, map2{};
              m_tetris2::TetrisBlockStatus status(this_piece, this_piece_pos_x, this_piece_pos_y + map1.height, 0);
              for (int my = 0; my < field_height; ++my)
              {
@@ -339,7 +339,8 @@ struct test_ai
 {
     m_tetris2::TetrisEngine2<rule_tag::TetrisRule, ai_tag::the_ai_games, search_tag::Search> ai;
     m_tetris2::TetrisEngine2<rule_tag::TetrisRule, ai_tag::the_ai_games_enemy, search_tag::Search> t;
-    m_tetris2::TetrisMap map;
+    using map_t = decltype(ai)::map_t;
+    map_t map;
     int point = 0, combo = 0;
     int win = 0, add_point;
     int attack;
@@ -349,7 +350,7 @@ struct test_ai
     {
         r1.reset(seed);
         r2.reset(seed);
-        map = m_tetris2::TetrisMap(10, 21);
+        map = map_t{};
         ai.prepare(10, 21);
         ai.status()->max_combo = 0;
         ai.status()->combo = 0;
@@ -369,7 +370,7 @@ struct test_ai
     void reset()
     {
         r2.reset(r1.rand());
-        map = m_tetris2::TetrisMap(10, 21);
+        map = map_t{};
         point = 0, combo = 0;
     }
     m_tetris2::BBLandPoint lp() const
@@ -398,7 +399,7 @@ struct test_ai
         auto cs = H::state_from_status(next.front(), 0, sp.first, sp.second);
         return !H::usable_at_bb(cs.r, cs.xb, cs.yb, usable_arr) || map.roof >= map.height;
     }
-    void run(int enemy_combo, int enemy_point, int round, m_tetris2::TetrisMap const &enemy_map)
+    void run(int enemy_combo, int enemy_point, int round, map_t const &enemy_map)
     {
         using Spec = rule_tag::TetrisRule::rule_spec;
         int up[4];
@@ -527,8 +528,8 @@ void match(test_ai &ai1, test_ai &ai2, std::function<void(test_ai const &, test_
             out_put(ai1, ai2);
         }
 
-        m_tetris2::TetrisMap map_copy1 = ai1.map;
-        m_tetris2::TetrisMap map_copy2 = ai2.map;
+        auto map_copy1 = ai1.map;
+        auto map_copy2 = ai2.map;
         int point1 = ai1.point, combo1 = ai1.combo;
         int point2 = ai2.point, combo2 = ai2.combo;
 
@@ -785,8 +786,8 @@ int wmain(int argc, wchar_t const *argv[])
 
                     out[0] = '\0';
                     snprintf(out, sizeof out, "score = %f point = %d combo = %d [%s]\nscore = %f point = %d combo = %d [%s]\n", m1s, ai1.point, ai1.combo, m1->data.name, m2s, ai2.point, ai2.combo, m2->data.name);
-                    m_tetris2::TetrisMap map_copy1 = ai1.map;
-                    m_tetris2::TetrisMap map_copy2 = ai2.map;
+                    auto map_copy1 = ai1.map;
+                    auto map_copy2 = ai2.map;
                     ai1.ai.attach(ai1.lp(), map_copy1);
                     ai2.ai.attach(ai2.lp(), map_copy2);
                     for(int y = 21; y >= 0; --y)
