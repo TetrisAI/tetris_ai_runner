@@ -37,7 +37,6 @@ namespace m_tetris2
 
     struct TetrisMap;
     union TetrisBlockStatus;
-    class TetrisContext;
 
     //游戏场景,下标从0开始,左下角为原点,最大支持[高度=40,宽度=32]
     struct TetrisMap
@@ -199,54 +198,6 @@ namespace m_tetris2
         bool is_hold;
     };
 
-    //上下文对象.场景大小改变了需要重新初始化上下文
-    class TetrisContext
-    {
-        template<class TetrisRule, class AI, class Search>
-        friend class TetrisEngine;
-
-    private:
-        TetrisContext() : width_(0), height_(0), type_max_(0), index_to_type_(), type_to_index_()
-        {
-        }
-
-        //宽,高什么的...
-        int32_t width_, height_;
-
-        size_t type_max_;
-        char index_to_type_[256];
-        size_t type_to_index_[256];
-
-    public:
-        using Env = AIEnv;
-
-        int32_t width() const
-        {
-            return width_;
-        }
-        int32_t height() const
-        {
-            return height_;
-        }
-        uint32_t full() const
-        {
-            return 0;
-        }
-        size_t type_max() const { return type_max_; }
-        size_t convert(char type) const { return type_to_index_[int(type) + 128]; }
-        char convert(size_t index) const { return index_to_type_[index]; }
-
-        // TypeFiller 通过此 helper 填充类型映射。
-        void fill_type_entry(char t_upper, int8_t /*sx*/, int8_t /*sy*/)
-        {
-            int lo = int(::tolower(t_upper)) + 128;
-            int hi = int(::toupper(t_upper)) + 128;
-            index_to_type_[type_max_] = t_upper;
-            type_to_index_[lo] = type_max_;
-            type_to_index_[hi] = type_max_;
-            ++type_max_;
-        }
-    };
 
     template<class TetrisAI>
     struct TetrisAIInfo
@@ -505,11 +456,11 @@ namespace m_tetris2
         {
             using SearchSpec = typename SearchRuleSpecOf<TetrisSearch>::type;
 
-            static void call(TetrisAI &ai, LocalContext<TreeNode> const *local_context, TetrisContext const * /*shared_context*/)
+            static void call(TetrisAI &ai, LocalContext<TreeNode> const *local_context)
             {
                 ai.template init<SearchSpec>(local_context->ai_config());
             }
-            static void call(TetrisSearch &search, LocalContext<TreeNode> const *local_context, TetrisContext const * /*shared_context*/)
+            static void call(TetrisSearch &search, LocalContext<TreeNode> const *local_context)
             {
                 TetrisCallInit<TetrisSearch>(search, local_context->search_config());
             }
@@ -519,11 +470,11 @@ namespace m_tetris2
         {
             using SearchSpec = typename SearchRuleSpecOf<TetrisSearch>::type;
 
-            static void call(TetrisAI &ai, LocalContext<TreeNode> const *local_context, TetrisContext const * /*shared_context*/)
+            static void call(TetrisAI &ai, LocalContext<TreeNode> const *local_context)
             {
                 ai.template init<SearchSpec>();
             }
-            static void call(TetrisSearch &search, LocalContext<TreeNode> const *local_context, TetrisContext const * /*shared_context*/)
+            static void call(TetrisSearch &search, LocalContext<TreeNode> const *local_context)
             {
                 TetrisCallInit<TetrisSearch>{search};
             }
@@ -531,14 +482,14 @@ namespace m_tetris2
 
     public:
         template<class TreeNode>
-        static void init_ai(TetrisAI &ai, LocalContext<TreeNode> const *local_context, TetrisContext const *shared_context)
+        static void init_ai(TetrisAI &ai, LocalContext<TreeNode> const *local_context)
         {
-            CallInit<TreeNode, typename LocalContext<TreeNode>::AIConfigType>::call(ai, local_context, shared_context);
+            CallInit<TreeNode, typename LocalContext<TreeNode>::AIConfigType>::call(ai, local_context);
         }
         template<class TreeNode>
-        static void init_search(TetrisSearch &search, LocalContext<TreeNode> const *local_context, TetrisContext const *shared_context)
+        static void init_search(TetrisSearch &search, LocalContext<TreeNode> const *local_context)
         {
-            CallInit<TreeNode, typename LocalContext<TreeNode>::SearchConfigType>::call(search, local_context, shared_context);
+            CallInit<TreeNode, typename LocalContext<TreeNode>::SearchConfigType>::call(search, local_context);
         }
     };
 
@@ -728,7 +679,6 @@ namespace m_tetris2
             typedef chash_map<TetrisBlockStatus, TetrisTreeNode *, TetrisBlockStatusHash, TetrisBlockStatusEqual> children_map_t;
             typedef chash_set<TetrisBlockStatus, TetrisBlockStatusHash, TetrisBlockStatusEqual> identity_set_t;
             size_t version;
-            TetrisContext const *engine;
             TetrisAI *ai;
             TetrisSearch *search;
             std::vector<value_heap_t> sort;
@@ -1344,11 +1294,11 @@ namespace m_tetris2
             Core::iterate(*context->ai, iterate_cache.data(), iterate_cache.size(), this);
         }
         template<bool EnableEnv>
-        TetrisContext::Env env(Context *context, TetrisTreeNode const *tree_node)
+        AIEnv env(Context *context, TetrisTreeNode const *tree_node)
         {
             if (EnableEnv)
             {
-                TetrisContext::Env result =
+                AIEnv result =
                     {
                         nullptr, 0, lp_type(tree_node->identity), tree_node->is_hold ? node : hold};
                 result.length = std::distance(next, context->next.cend());
@@ -1662,38 +1612,6 @@ namespace m_tetris2
         using rebind_search_policy_t = typename rebind_search_policy<Tag, Policy>::type;
     } // namespace detail
 
-    namespace detail
-    {
-        //tuple 展开: 直接从编译期 RuleSpec::ops 填充 TetrisContext 的 type/spawn 表,
-        //不再依赖 TetrisOpertion / create_node 等运行时桥接层.
-        template<class TetrisRule, class Tuple, size_t I, size_t Size>
-        struct TypeFiller
-        {
-            static void run(TetrisContext &ctx, int width, int height, bool (&seen)[256])
-            {
-                using Op = typename std::tuple_element<I, Tuple>::type;
-                char t = Op::type;
-                int upper_index = int(::toupper(t)) + 128;
-                if (!seen[upper_index])
-                {
-                    seen[upper_index] = true;
-                    auto spawn = TetrisRule::rule_spec::spawn(::toupper(t), width, height);
-                    // 通过 public helper 填充所有 private 字段（TypeFiller 在 detail
-                    // namespace，不是 TetrisContext 的 friend）
-                    ctx.fill_type_entry(::toupper(t),
-                                        static_cast<int8_t>(spawn.first),
-                                        static_cast<int8_t>(spawn.second));
-                }
-                TypeFiller<TetrisRule, Tuple, I + 1, Size>::run(ctx, width, height, seen);
-            }
-        };
-        template<class TetrisRule, class Tuple, size_t Size>
-        struct TypeFiller<TetrisRule, Tuple, Size, Size>
-        {
-            static void run(TetrisContext &, int, int, bool (&)[256]) {}
-        };
-    } // namespace detail
-
     template<class TetrisRule, class TetrisAI, class TetrisSearchTag>
     class TetrisEngine
     {
@@ -1706,7 +1624,12 @@ namespace m_tetris2
 
     private:
         std::deque<TreeNode> tree_storage_;
-        std::shared_ptr<TetrisContext> shared_context_;
+        int32_t width_ = 0;
+        int32_t height_ = 0;
+        size_t type_max_ = 0;
+        std::array<char, 256> index_to_type_{};
+        std::array<size_t, 256> type_to_index_{};
+        bool prepared_ = false;
         typename ContextBuilder::template LocalContext<TreeNode> local_context_;
         TreeNode *root_;
         TetrisAI ai_;
@@ -1737,86 +1660,86 @@ namespace m_tetris2
         };
 
     public:
-        TetrisEngine() : shared_context_(), local_context_(&tree_storage_), ai_(), root_(nullptr), status_(), memory_limit_(128ull << 20)
+        TetrisEngine() : local_context_(&tree_storage_), ai_(), root_(nullptr), status_(), memory_limit_(128ull << 20)
         {
             tree_storage_.emplace_back();
             root_ = &tree_storage_.back();
-        }
-        TetrisEngine(std::shared_ptr<TetrisContext> context) : shared_context_(context), local_context_(&tree_storage_), ai_(), root_(nullptr), status_(), memory_limit_(128ull << 20)
-        {
-            tree_storage_.emplace_back();
-            root_ = &tree_storage_.back();
-            local_context_.engine = shared_context_.get();
             local_context_.ai = &ai_;
             local_context_.search = &search_;
-            if (TetrisRuleInit<TetrisRule>::init(shared_context_->width(), shared_context_->height()))
-            {
-                ContextBuilder::init_ai(ai_, &local_context_, shared_context_.get());
-                ContextBuilder::init_search(search_, &local_context_, shared_context_.get());
-            }
-            else
-            {
-                shared_context_.reset();
-            }
         }
         bool prepare(int width, int height)
         {
-            if (shared_context_ != nullptr && shared_context_->width() == width && shared_context_->height() == height)
+            if (prepared_ && width_ == width && height_ == height)
             {
                 return true;
             }
-            shared_context_.reset(new TetrisContext());
+            width_ = width;
+            height_ = height;
+            type_max_ = 0;
+            prepared_ = false;
+            std::fill(index_to_type_.begin(), index_to_type_.end(), '\0');
+            std::fill(type_to_index_.begin(), type_to_index_.end(), size_t(0));
+            bool seen[256] = {false};
+            using Ops = typename TetrisRule::rule_spec::ops;
+            std::apply([&](auto... op_tag)
             {
-                auto &ctx = *shared_context_;
-                ctx.width_ = width;
-                ctx.height_ = height;
-                ctx.type_max_ = 0;
-                std::fill(std::begin(ctx.index_to_type_), std::end(ctx.index_to_type_), '\0');
-                std::fill(std::begin(ctx.type_to_index_), std::end(ctx.type_to_index_), size_t(0));
-                bool seen[256] = {false};
-                // 直接从编译期 rule_spec::ops tuple 填充 type/spawn 信息,
-                // 不再通过 flatten_rulespec 建立 TetrisOpertion 表.
-                using Ops = typename TetrisRule::rule_spec::ops;
-                m_tetris2::detail::TypeFiller<TetrisRule, Ops, 0, std::tuple_size<Ops>::value>::run(ctx, width, height, seen);
-            }
-            local_context_.engine = shared_context_.get();
+                (([&]
+                {
+                    using Op = std::decay_t<decltype(op_tag)>;
+                    char t = Op::type;
+                    int upper_index = int(::toupper(t)) + 128;
+                    if (!seen[upper_index])
+                    {
+                        seen[upper_index] = true;
+                        char t_upper = ::toupper(t);
+                        int lo = int(::tolower(t_upper)) + 128;
+                        int hi = int(::toupper(t_upper)) + 128;
+                        index_to_type_[type_max_] = t_upper;
+                        type_to_index_[lo] = type_max_;
+                        type_to_index_[hi] = type_max_;
+                        ++type_max_;
+                    }
+                }()), ...);
+            }, Ops{});
             local_context_.ai = &ai_;
             local_context_.search = &search_;
             if (TetrisRuleInit<TetrisRule>::init(width, height))
             {
-                ContextBuilder::init_ai(ai_, &local_context_, shared_context_.get());
-                ContextBuilder::init_search(search_, &local_context_, shared_context_.get());
+                ContextBuilder::init_ai(ai_, &local_context_);
+                ContextBuilder::init_search(search_, &local_context_);
+                prepared_ = true;
+                return true;
             }
-            else
-            {
-                shared_context_.reset();
-                return false;
-            }
-            return true;
+            width_ = 0;
+            height_ = 0;
+            type_max_ = 0;
+            std::fill(index_to_type_.begin(), index_to_type_.end(), '\0');
+            std::fill(type_to_index_.begin(), type_to_index_.end(), size_t(0));
+            return false;
         }
         size_t type_max() const
         {
-            return shared_context_->type_max();
+            return type_max_;
         }
         size_t convert(char type) const
         {
-            return shared_context_->convert(type);
+            return type_to_index_[int(type) + 128];
         }
         char convert(size_t index) const
         {
-            return shared_context_->convert(index);
+            return index_to_type_[index];
         }
         int32_t width() const
         {
-            return shared_context_->width();
+            return width_;
         }
         int32_t height() const
         {
-            return shared_context_->height();
+            return height_;
         }
         uint32_t full() const
         {
-            return shared_context_->full();
+            return 0;
         }
         template<class LP,
                  std::enable_if_t < !std::is_pointer_v<std::remove_cvref_t<LP>> &&
@@ -1831,11 +1754,6 @@ namespace m_tetris2
             using Spec = typename SearchRuleSpecOf<TetrisSearch>::type;
             auto bb_map = m_tetris2::bb::build_board_for_search<Spec>(map);
             return m_tetris2::bb::Helpers<Spec>::attach_to_map(lp.state, bb_map);
-        }
-        //上下文对象...
-        std::shared_ptr<TetrisContext> const &context() const
-        {
-            return shared_context_;
         }
         uint64_t memory_limit() const
         {
@@ -2105,9 +2023,6 @@ namespace m_tetris2
         TetrisThreadEngine() : engine_(), with_hold_(false), backgrond_(false), running_(false)
         {
         }
-        TetrisThreadEngine(std::shared_ptr<TetrisContext> context) : engine_(context), with_hold_(false), backgrond_(false), running_(false)
-        {
-        }
         ~TetrisThreadEngine()
         {
             if (running_)
@@ -2157,11 +2072,6 @@ namespace m_tetris2
                     size_t attach(LP const &lp, TetrisMap &map) const
         {
             return engine_.attach(lp, map);
-        }
-        //上下文对象...
-        std::shared_ptr<TetrisContext> const &context() const
-        {
-            return engine_.context();
         }
         uint64_t memory_limit() const
         {

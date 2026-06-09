@@ -105,8 +105,9 @@ struct test_ai
     int total_receive;
 
     test_ai(Engine &global_ai, int const *_combo_table, int _combo_table_max)
-        : ai(global_ai.context()), combo_table(_combo_table), combo_table_max(_combo_table_max)
+        : ai(), combo_table(_combo_table), combo_table_max(_combo_table_max)
     {
+        ai.prepare(global_ai.width(), global_ai.height());
     }
 
     void init(size_t round_ms)

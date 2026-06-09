@@ -173,8 +173,9 @@ struct test_ai
     int framecnt;
 
     test_ai(m_tetris2::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ, m_tetris2::movegen::Searcher<m_tetris2::PathStrategy, m_tetris2::TSpinHook, rule_srs::TetrisRule::rule_spec>> &global_ai, int const *_combo_table, int _combo_table_max)
-        : ai(global_ai.context()), combo_table(_combo_table), combo_table_max(_combo_table_max)
+        : ai(), combo_table(_combo_table), combo_table_max(_combo_table_max)
     {
+        ai.prepare(global_ai.width(), global_ai.height());
     }
 
     void init(pso_data const &data, pso_config const &config)

@@ -161,9 +161,10 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
         return result;
     }
 #if USE_PC
-    if (!srs_pc || srs_pc->context() != srs_ai.context())
+    if (!srs_pc)
     {
-        srs_pc.reset(new m_tetris2::TetrisThreadEngine2<rule_toj::TetrisRule, ai_zzz::TOJ_PC, tspin::Search>(srs_ai.context()));
+        srs_pc.reset(new m_tetris2::TetrisThreadEngine2<rule_toj::TetrisRule, ai_zzz::TOJ_PC, tspin::Search>());
+        srs_pc->prepare(10, 40);
         memset(srs_pc->status(), 0, sizeof *srs_pc->status());
     }
 #endif
@@ -336,9 +337,10 @@ extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI3(int field[], int field_w, int
         *result = '\0';
         return result;
     }
-    if (!botris_pc || botris_pc->context() != botris_ai.context())
+    if (!botris_pc)
     {
-        botris_pc.reset(new m_tetris2::TetrisThreadEngine2<rule_botris::TetrisRule, ai_zzz::Botris_PC, aspin::Search>(botris_ai.context()));
+        botris_pc.reset(new m_tetris2::TetrisThreadEngine2<rule_botris::TetrisRule, ai_zzz::Botris_PC, aspin::Search>());
+        botris_pc->prepare(10, 40);
         memset(botris_pc->status(), 0, sizeof *botris_pc->status());
     }
     m_tetris2::TetrisMap map(10, 40);
