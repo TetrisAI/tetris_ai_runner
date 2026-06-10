@@ -19,7 +19,7 @@
 #include "rule_botris.h"
 #include "sb_tree.h"
 #include "integer_utils.h"
-#include "bb_sim.h"
+#include "movegen_sim.h"
 
 #if _MSC_VER
 #define NOMINMAX
@@ -266,7 +266,7 @@ struct test_ai
             break;
         case 'V':
         {
-            if (auto dropped = H::drop_bb_state(cs, usable_arr))
+            if (auto dropped = H::drop(cs, usable_arr))
             {
                 cs = *dropped;
             }
@@ -278,10 +278,10 @@ struct test_ai
             auto const &board = map;
             std::array<H::map_t, H::kMaxR> ua{};
             H::build_usable_for_piece(static_cast<char>(s.t), board, ua);
-            bool immovable = !H::usable_at_bb(s.r, static_cast<int>(s.xb) - 1, static_cast<int>(s.yb), ua) &&
-                             !H::usable_at_bb(s.r, static_cast<int>(s.xb) + 1, static_cast<int>(s.yb), ua) &&
-                             !H::usable_at_bb(s.r, static_cast<int>(s.xb), static_cast<int>(s.yb) - 1, ua) &&
-                             !H::usable_at_bb(s.r, static_cast<int>(s.xb), static_cast<int>(s.yb) + 1, ua);
+            bool immovable = !H::usable_at(s.r, static_cast<int>(s.xb) - 1, static_cast<int>(s.yb), ua) &&
+                             !H::usable_at(s.r, static_cast<int>(s.xb) + 1, static_cast<int>(s.yb), ua) &&
+                             !H::usable_at(s.r, static_cast<int>(s.xb), static_cast<int>(s.yb) - 1, ua) &&
+                             !H::usable_at(s.r, static_cast<int>(s.xb), static_cast<int>(s.yb) + 1, ua);
             switch (clear)
             {
             case 0:

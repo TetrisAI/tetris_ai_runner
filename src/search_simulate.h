@@ -25,8 +25,8 @@
 // **不** drop, dedup 仅看 PathMark version).
 //==========================================================================
 
-#include "bb_bfs_engine.h"
-#include "bb_state.h"
+#include "movegen_bfs.h"
+#include "movegen_state.h"
 #include "movegen_context.h"
 #include "movegen_hook.h"
 #include "movegen_searcher.h"
@@ -300,13 +300,13 @@ namespace m_tetris2
                     {
                         bb::State nL_state = cur;
                         nL_state.xb = static_cast<std::int8_t>(nL_state.xb - 1);
-                        if (Helpers::usable_at_bb(nL_state.r, nL_state.xb, nL_state.yb, *usable_arr))
+                        if (Helpers::usable_at(nL_state.r, nL_state.xb, nL_state.yb, *usable_arr))
                         {
                             while (true)
                             {
                                 bb::State try_state = nL_state;
                                 try_state.xb = static_cast<std::int8_t>(try_state.xb - 1);
-                                if (!Helpers::usable_at_bb(try_state.r, try_state.xb, try_state.yb, *usable_arr))
+                                if (!Helpers::usable_at(try_state.r, try_state.xb, try_state.yb, *usable_arr))
                                     break;
                                 nL_state = try_state;
                             }
@@ -316,13 +316,13 @@ namespace m_tetris2
                     {
                         bb::State nR_state = cur;
                         nR_state.xb = static_cast<std::int8_t>(nR_state.xb + 1);
-                        if (Helpers::usable_at_bb(nR_state.r, nR_state.xb, nR_state.yb, *usable_arr))
+                        if (Helpers::usable_at(nR_state.r, nR_state.xb, nR_state.yb, *usable_arr))
                         {
                             while (true)
                             {
                                 bb::State try_state = nR_state;
                                 try_state.xb = static_cast<std::int8_t>(try_state.xb + 1);
-                                if (!Helpers::usable_at_bb(try_state.r, try_state.xb, try_state.yb, *usable_arr))
+                                if (!Helpers::usable_at(try_state.r, try_state.xb, try_state.yb, *usable_arr))
                                     break;
                                 nR_state = try_state;
                             }
@@ -335,7 +335,7 @@ namespace m_tetris2
                         bb::EnqueueDecision dd = emit(nd, 'd');
                         if (dd != bb::EnqueueDecision::Skip)
                         {
-                            auto D = Helpers::drop_bb_state(cur, *usable_arr);
+                            auto D = Helpers::drop(cur, *usable_arr);
                             if (D)
                                 emit(*D, 'D');
                         }
@@ -410,13 +410,13 @@ namespace m_tetris2
                     {
                         bb::State nL_state = cur;
                         nL_state.xb = static_cast<std::int8_t>(nL_state.xb - 1);
-                        if (Helpers::usable_at_bb(nL_state.r, nL_state.xb, nL_state.yb, *usable_arr))
+                        if (Helpers::usable_at(nL_state.r, nL_state.xb, nL_state.yb, *usable_arr))
                         {
                             while (true)
                             {
                                 bb::State try_state = nL_state;
                                 try_state.xb = static_cast<std::int8_t>(try_state.xb - 1);
-                                if (!Helpers::usable_at_bb(try_state.r, try_state.xb, try_state.yb, *usable_arr))
+                                if (!Helpers::usable_at(try_state.r, try_state.xb, try_state.yb, *usable_arr))
                                     break;
                                 nL_state = try_state;
                             }
@@ -426,13 +426,13 @@ namespace m_tetris2
                     {
                         bb::State nR_state = cur;
                         nR_state.xb = static_cast<std::int8_t>(nR_state.xb + 1);
-                        if (Helpers::usable_at_bb(nR_state.r, nR_state.xb, nR_state.yb, *usable_arr))
+                        if (Helpers::usable_at(nR_state.r, nR_state.xb, nR_state.yb, *usable_arr))
                         {
                             while (true)
                             {
                                 bb::State try_state = nR_state;
                                 try_state.xb = static_cast<std::int8_t>(try_state.xb + 1);
-                                if (!Helpers::usable_at_bb(try_state.r, try_state.xb, try_state.yb, *usable_arr))
+                                if (!Helpers::usable_at(try_state.r, try_state.xb, try_state.yb, *usable_arr))
                                     break;
                                 nR_state = try_state;
                             }
@@ -444,7 +444,7 @@ namespace m_tetris2
 
             // Simulate20gVisitor: 命中谓词需要 lazy drop —
             // oracle: child->drop(map)->index_filtered == index, 等价位板侧
-            // cells_key_for_state(*drop_bb_state(child, usable)) == index_landpoint.
+            // cells_key_for_state(*drop(child, usable)) == index_landpoint.
             struct Simulate20gVisitor
             {
                 bb::CellsKey index_landpoint;
@@ -459,7 +459,7 @@ namespace m_tetris2
 
                 bool on_admit(bb::State const &s, char, bb::EnqueueDecision)
                 {
-                    auto sunk = Helpers::drop_bb_state(s, *usable_arr);
+                    auto sunk = Helpers::drop(s, *usable_arr);
                     if (!sunk)
                         return true;
                     bb::CellsKey k = Helpers::cells_key_for_state(*sunk);
@@ -492,7 +492,7 @@ namespace m_tetris2
                 bb::CellsKey index_landpoint = Helpers::cells_key_for_state(land_point.state);
                 bb::State entry_state = spawn;
                 {
-                    auto sunk_start = Helpers::drop_bb_state(entry_state, usable_arr);
+                    auto sunk_start = Helpers::drop(entry_state, usable_arr);
                     if (sunk_start && Helpers::cells_key_for_state(*sunk_start) == index_landpoint)
                         return std::vector<char>();
                 }
@@ -551,7 +551,7 @@ namespace m_tetris2
                 bb::CellsKey index_landpoint = Helpers::cells_key_for_state(land_point.state);
                 bb::State entry_state = spawn;
                 {
-                    auto sunk_start = Helpers::drop_bb_state(entry_state, usable_arr);
+                    auto sunk_start = Helpers::drop(entry_state, usable_arr);
                     if (sunk_start && Helpers::cells_key_for_state(*sunk_start) == index_landpoint)
                         return std::vector<char>();
                 }

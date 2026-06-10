@@ -31,7 +31,7 @@
 //   - 不被任何 .cpp / 旧 .h include — 通过本文件内的 static_assert 自证语法.
 //==========================================================================
 
-#include "bb_state.h"
+#include "movegen_state.h"
 
 #include <cstddef>
 #include <cstdint>

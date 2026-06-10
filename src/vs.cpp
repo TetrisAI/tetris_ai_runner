@@ -13,7 +13,7 @@
 #include "rule_qq.h"
 #include "rule_srs.h"
 #include "random.h"
-#include "bb_sim.h"
+#include "movegen_sim.h"
 
 extern "C" void attach_init()
 {
@@ -120,7 +120,7 @@ struct tetris_game
         H::build_usable_for_piece(status.t, board, usable_arr);
         auto cs = H::state_from_status(status.t, status.r, status.x, status.y);
         // game over 检测：顶行有方块 或 初始位置不合法
-        if (map.row[tetris_ai.height() - 1] != 0 || !H::usable_at_bb(cs.r, cs.xb, cs.yb, usable_arr))
+        if (map.row[tetris_ai.height() - 1] != 0 || !H::usable_at(cs.r, cs.xb, cs.yb, usable_arr))
         {
             return -1;
         }
@@ -133,7 +133,7 @@ struct tetris_game
         // 纯位板路径模拟
         m_tetris2::bb::sim_path<H>(cs, usable_arr, move, move_end);
         // 硬降落地
-        if (auto landed = H::drop_bb_state(cs, usable_arr))
+        if (auto landed = H::drop(cs, usable_arr))
             cs = *landed;
         // attach：用 ad-hoc lp wrapper 满足 engine.attach 的 lp.state 要求
         struct LpWrapper { m_tetris2::bb::State state; };
@@ -370,7 +370,7 @@ int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
             log_piece = 0;
         }
         // game over 检测：初始位置不合法
-        if (!H::usable_at_bb(cs.r, cs.xb, cs.yb, usable_arr))
+        if (!H::usable_at(cs.r, cs.xb, cs.yb, usable_arr))
         {
             total_lines += this_lines;
             if (this_lines > max_line)
@@ -417,7 +417,7 @@ int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
             int cur_r = static_cast<int>(cs.r);
             while (best_r > cur_r)
             {
-                if (auto kicked = H::first_passing_kick_bb(static_cast<char>(cs.t), m_tetris2::bb::KickDir::Ccw, cs, usable_arr))
+                if (auto kicked = H::first_kick(static_cast<char>(cs.t), m_tetris2::bb::KickDir::Ccw, cs, usable_arr))
                     cs = *kicked;
                 else
                     break;
@@ -425,7 +425,7 @@ int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
             }
             while (best_r < cur_r)
             {
-                if (auto kicked = H::first_passing_kick_bb(static_cast<char>(cs.t), m_tetris2::bb::KickDir::Cw, cs, usable_arr))
+                if (auto kicked = H::first_kick(static_cast<char>(cs.t), m_tetris2::bb::KickDir::Cw, cs, usable_arr))
                     cs = *kicked;
                 else
                     break;
@@ -433,19 +433,19 @@ int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
             }
             // 平移到目标 x（master 坐标）
             auto [cur_mx, cur_my] = H::master_xy_from_state(cs);
-            while (best_x > cur_mx && H::usable_at_bb(cs.r, static_cast<int>(cs.xb) + 1, static_cast<int>(cs.yb), usable_arr))
+            while (best_x > cur_mx && H::usable_at(cs.r, static_cast<int>(cs.xb) + 1, static_cast<int>(cs.yb), usable_arr))
             {
                 cs.xb++;
                 cur_mx++;
             }
-            while (best_x < cur_mx && H::usable_at_bb(cs.r, static_cast<int>(cs.xb) - 1, static_cast<int>(cs.yb), usable_arr))
+            while (best_x < cur_mx && H::usable_at(cs.r, static_cast<int>(cs.xb) - 1, static_cast<int>(cs.yb), usable_arr))
             {
                 cs.xb--;
                 cur_mx--;
             }
         }
         // 硬降落地
-        if (auto landed = H::drop_bb_state(cs, usable_arr))
+        if (auto landed = H::drop(cs, usable_arr))
             cs = *landed;
         LpWrapper lp{cs};
         int clear = static_cast<int>(tetris_ai.attach(lp, map));

@@ -17,8 +17,8 @@
 // detail::common::MakePath1gDedup; 20g 与 run_piece_20g 各有专属 dedup.
 //==========================================================================
 
-#include "bb_bfs_engine.h"
-#include "bb_state.h"
+#include "movegen_bfs.h"
+#include "movegen_state.h"
 #include "integer_utils.h"
 #include "movegen_context.h"
 #include "movegen_hook.h"
@@ -364,41 +364,41 @@ namespace m_tetris2
                 template<class Emit>
                 void expand(bb::State const &s, Emit emit)
                 {
-                    auto drop_res = Helpers::drop_bb_state(s, *usable_arr);
+                    auto drop_res = Helpers::drop(s, *usable_arr);
                     if (!drop_res)
                         return;
                     bb::State ss = *drop_res;
                     {
                         bb::State n = ss;
                         n.yb = static_cast<std::int8_t>(n.yb - 1);
-                        if (Helpers::usable_at_bb(n.r, n.xb, n.yb, *usable_arr))
+                        if (Helpers::usable_at(n.r, n.xb, n.yb, *usable_arr))
                             emit(n, ' ');
                     }
                     {
                         bb::State n = ss;
                         n.xb = static_cast<std::int8_t>(n.xb - 1);
-                        if (Helpers::usable_at_bb(n.r, n.xb, n.yb, *usable_arr))
+                        if (Helpers::usable_at(n.r, n.xb, n.yb, *usable_arr))
                             emit(n, ' ');
                     }
                     {
                         bb::State n = ss;
                         n.xb = static_cast<std::int8_t>(n.xb + 1);
-                        if (Helpers::usable_at_bb(n.r, n.xb, n.yb, *usable_arr))
+                        if (Helpers::usable_at(n.r, n.xb, n.yb, *usable_arr))
                             emit(n, ' ');
                     }
                     if (allow_180)
                     {
-                        auto wk = Helpers::first_passing_kick_bb(T, bb::KickDir::Opp, ss, *usable_arr);
+                        auto wk = Helpers::first_kick(T, bb::KickDir::Opp, ss, *usable_arr);
                         if (wk)
                             emit(*wk, 'x');
                     }
                     {
-                        auto wk = Helpers::first_passing_kick_bb(T, bb::KickDir::Ccw, ss, *usable_arr);
+                        auto wk = Helpers::first_kick(T, bb::KickDir::Ccw, ss, *usable_arr);
                         if (wk)
                             emit(*wk, 'z');
                     }
                     {
-                        auto wk = Helpers::first_passing_kick_bb(T, bb::KickDir::Cw, ss, *usable_arr);
+                        auto wk = Helpers::first_kick(T, bb::KickDir::Cw, ss, *usable_arr);
                         if (wk)
                             emit(*wk, 'c');
                     }
@@ -425,11 +425,11 @@ namespace m_tetris2
 
                 bool on_pop(bb::State const &s)
                 {
-                    auto drop_res = Helpers::drop_bb_state(s, *usable_arr);
+                    auto drop_res = Helpers::drop(s, *usable_arr);
                     if (!drop_res)
                         return true;
                     bb::State ss = *drop_res;
-                    if (Helpers::usable_at_bb(ss.r, ss.xb, ss.yb - 1, *usable_arr))
+                    if (Helpers::usable_at(ss.r, ss.xb, ss.yb - 1, *usable_arr))
                         return true;
                     //commit (remove-context): 直接对 State 走 cells_key_for_state.
                     //  与 cells_key_for(sunk_node) byte-equivalent (status_to_bbox 与
@@ -516,7 +516,7 @@ namespace m_tetris2
                 }
                 constexpr auto sp = RuleSpec::spawn(T, kW, kH);
                 bb::State spawn_bb = Helpers::template build_state_from_master<T, 0>(sp.first, sp.second);
-                auto sunk_opt = Helpers::drop_bb_state(spawn_bb, usable_arr);
+                auto sunk_opt = Helpers::drop(spawn_bb, usable_arr);
                 if (!sunk_opt)
                     return;
                 bb::State start_state = *sunk_opt;
@@ -559,24 +559,24 @@ namespace m_tetris2
                 {
                     if (disable_d)
                     {
-                        auto D = Helpers::drop_bb_state(cur, *usable_arr);
+                        auto D = Helpers::drop(cur, *usable_arr);
                         if (D)
                             emit(*D, 'D');
                         return;
                     }
                     if (allow_180)
                     {
-                        auto wk = Helpers::first_passing_kick_bb(piece_t, bb::KickDir::Opp, cur, *usable_arr);
+                        auto wk = Helpers::first_kick(piece_t, bb::KickDir::Opp, cur, *usable_arr);
                         if (wk)
                             emit(*wk, 'x');
                     }
                     {
-                        auto wk = Helpers::first_passing_kick_bb(piece_t, bb::KickDir::Ccw, cur, *usable_arr);
+                        auto wk = Helpers::first_kick(piece_t, bb::KickDir::Ccw, cur, *usable_arr);
                         if (wk)
                             emit(*wk, 'z');
                     }
                     {
-                        auto wk = Helpers::first_passing_kick_bb(piece_t, bb::KickDir::Cw, cur, *usable_arr);
+                        auto wk = Helpers::first_kick(piece_t, bb::KickDir::Cw, cur, *usable_arr);
                         if (wk)
                             emit(*wk, 'c');
                     }
@@ -632,13 +632,13 @@ namespace m_tetris2
                     {
                         bb::State nL_state = cur;
                         nL_state.xb = static_cast<std::int8_t>(nL_state.xb - 1);
-                        if (Helpers::usable_at_bb(nL_state.r, nL_state.xb, nL_state.yb, *usable_arr))
+                        if (Helpers::usable_at(nL_state.r, nL_state.xb, nL_state.yb, *usable_arr))
                         {
                             while (true)
                             {
                                 bb::State try_state = nL_state;
                                 try_state.xb = static_cast<std::int8_t>(try_state.xb - 1);
-                                if (!Helpers::usable_at_bb(try_state.r, try_state.xb, try_state.yb, *usable_arr))
+                                if (!Helpers::usable_at(try_state.r, try_state.xb, try_state.yb, *usable_arr))
                                     break;
                                 nL_state = try_state;
                             }
@@ -649,13 +649,13 @@ namespace m_tetris2
                     {
                         bb::State nR_state = cur;
                         nR_state.xb = static_cast<std::int8_t>(nR_state.xb + 1);
-                        if (Helpers::usable_at_bb(nR_state.r, nR_state.xb, nR_state.yb, *usable_arr))
+                        if (Helpers::usable_at(nR_state.r, nR_state.xb, nR_state.yb, *usable_arr))
                         {
                             while (true)
                             {
                                 bb::State try_state = nR_state;
                                 try_state.xb = static_cast<std::int8_t>(try_state.xb + 1);
-                                if (!Helpers::usable_at_bb(try_state.r, try_state.xb, try_state.yb, *usable_arr))
+                                if (!Helpers::usable_at(try_state.r, try_state.xb, try_state.yb, *usable_arr))
                                     break;
                                 nR_state = try_state;
                             }
@@ -669,14 +669,14 @@ namespace m_tetris2
                         bb::EnqueueDecision dd = emit(nd, 'd');
                         if (dd == bb::EnqueueDecision::MarkAndEnqueue && allow_D)
                         {
-                            auto D = Helpers::drop_bb_state(cur, *usable_arr);
+                            auto D = Helpers::drop(cur, *usable_arr);
                             if (D)
                                 emit(*D, 'D');
                         }
                     }
                     else if (allow_D)
                     {
-                        auto D = Helpers::drop_bb_state(cur, *usable_arr);
+                        auto D = Helpers::drop(cur, *usable_arr);
                         if (D)
                             emit(*D, 'D');
                     }
@@ -769,36 +769,36 @@ namespace m_tetris2
                 {
                     auto try_drop_emit = [&](bb::State const &pre_drop, char action)
                     {
-                        auto sunk = Helpers::drop_bb_state(pre_drop, *usable_arr);
+                        auto sunk = Helpers::drop(pre_drop, *usable_arr);
                         if (sunk)
                             emit(*sunk, action);
                     };
                     if (allow_180)
                     {
-                        auto wk = Helpers::first_passing_kick_bb(piece_t, bb::KickDir::Opp, cur, *usable_arr);
+                        auto wk = Helpers::first_kick(piece_t, bb::KickDir::Opp, cur, *usable_arr);
                         if (wk)
                             try_drop_emit(*wk, 'x');
                     }
                     {
-                        auto wk = Helpers::first_passing_kick_bb(piece_t, bb::KickDir::Ccw, cur, *usable_arr);
+                        auto wk = Helpers::first_kick(piece_t, bb::KickDir::Ccw, cur, *usable_arr);
                         if (wk)
                             try_drop_emit(*wk, 'z');
                     }
                     {
-                        auto wk = Helpers::first_passing_kick_bb(piece_t, bb::KickDir::Cw, cur, *usable_arr);
+                        auto wk = Helpers::first_kick(piece_t, bb::KickDir::Cw, cur, *usable_arr);
                         if (wk)
                             try_drop_emit(*wk, 'c');
                     }
                     {
                         bb::State nL_state = cur;
                         nL_state.xb = static_cast<std::int8_t>(nL_state.xb - 1);
-                        if (Helpers::usable_at_bb(nL_state.r, nL_state.xb, nL_state.yb, *usable_arr))
+                        if (Helpers::usable_at(nL_state.r, nL_state.xb, nL_state.yb, *usable_arr))
                             try_drop_emit(nL_state, 'l');
                     }
                     {
                         bb::State nR_state = cur;
                         nR_state.xb = static_cast<std::int8_t>(nR_state.xb + 1);
-                        if (Helpers::usable_at_bb(nR_state.r, nR_state.xb, nR_state.yb, *usable_arr))
+                        if (Helpers::usable_at(nR_state.r, nR_state.xb, nR_state.yb, *usable_arr))
                             try_drop_emit(nR_state, 'r');
                     }
                     if (allow_LR)
@@ -806,7 +806,7 @@ namespace m_tetris2
                         bb::State scan = cur;
                         bb::State try_state = scan;
                         try_state.xb = static_cast<std::int8_t>(try_state.xb - 1);
-                        if (Helpers::usable_at_bb(try_state.r, try_state.xb, try_state.yb, *usable_arr))
+                        if (Helpers::usable_at(try_state.r, try_state.xb, try_state.yb, *usable_arr))
                         {
                             bool got_terminal = false;
                             bb::State terminal_state = scan;
@@ -814,9 +814,9 @@ namespace m_tetris2
                             {
                                 bb::State cand = scan;
                                 cand.xb = static_cast<std::int8_t>(cand.xb - 1);
-                                if (!Helpers::usable_at_bb(cand.r, cand.xb, cand.yb, *usable_arr))
+                                if (!Helpers::usable_at(cand.r, cand.xb, cand.yb, *usable_arr))
                                     break;
-                                auto cand_sunk = Helpers::drop_bb_state(cand, *usable_arr);
+                                auto cand_sunk = Helpers::drop(cand, *usable_arr);
                                 if (!cand_sunk)
                                     break;
                                 got_terminal = true;
@@ -832,7 +832,7 @@ namespace m_tetris2
                         bb::State scan = cur;
                         bb::State try_state = scan;
                         try_state.xb = static_cast<std::int8_t>(try_state.xb + 1);
-                        if (Helpers::usable_at_bb(try_state.r, try_state.xb, try_state.yb, *usable_arr))
+                        if (Helpers::usable_at(try_state.r, try_state.xb, try_state.yb, *usable_arr))
                         {
                             bool got_terminal = false;
                             bb::State terminal_state = scan;
@@ -840,9 +840,9 @@ namespace m_tetris2
                             {
                                 bb::State cand = scan;
                                 cand.xb = static_cast<std::int8_t>(cand.xb + 1);
-                                if (!Helpers::usable_at_bb(cand.r, cand.xb, cand.yb, *usable_arr))
+                                if (!Helpers::usable_at(cand.r, cand.xb, cand.yb, *usable_arr))
                                     break;
-                                auto cand_sunk = Helpers::drop_bb_state(cand, *usable_arr);
+                                auto cand_sunk = Helpers::drop(cand, *usable_arr);
                                 if (!cand_sunk)
                                     break;
                                 got_terminal = true;
@@ -1050,7 +1050,7 @@ namespace m_tetris2
                 std::array<map_t, kMaxR> usable_arr{};
                 Helpers::build_usable_for_piece(piece_t, board, usable_arr);
                 bb::State entry_state = spawn;
-                auto start_sunk_opt = Helpers::drop_bb_state(entry_state, usable_arr);
+                auto start_sunk_opt = Helpers::drop(entry_state, usable_arr);
                 if (!start_sunk_opt)
                     return std::vector<char>();
                 bb::State s0 = *start_sunk_opt;
@@ -1101,10 +1101,10 @@ namespace m_tetris2
                         bb::State last_state = *land_last;
                         auto try_kick_chain_to_drop = [&](bb::KickDir dir) -> bool
                         {
-                            auto hit = Helpers::first_passing_kick_bb(piece_t, dir, last_state, usable_arr);
+                            auto hit = Helpers::first_kick(piece_t, dir, last_state, usable_arr);
                             if (!hit)
                                 return false;
-                            auto sunk = Helpers::drop_bb_state(*hit, usable_arr);
+                            auto sunk = Helpers::drop(*hit, usable_arr);
                             if (!sunk)
                                 return false;
                             return Helpers::cells_key_for_state(*sunk) == index_landpoint;

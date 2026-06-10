@@ -1,7 +1,7 @@
 #pragma once
 
 #include "tetris_shape.h"
-#include "bb_state.h"
+#include "movegen_state.h"
 
 #include <array>
 #include <cstddef>

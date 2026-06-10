@@ -30,8 +30,8 @@
 //     当前调用面只有 ::m_tetris2::TSpinHook 一种实例.
 //==========================================================================
 
-#include "bb_bfs_engine.h"
-#include "bb_state.h"
+#include "movegen_bfs.h"
+#include "movegen_state.h"
 #include "movegen_context.h"
 #include "movegen_hook.h"
 #include "movegen_searcher.h"
@@ -223,7 +223,7 @@ namespace m_tetris2
             //   prepare 阶段用空盘 (仅 bounds-check, 无 board check) 填入, 取第一个
             //   in-bounds 的 kick (pure rotation 在 bounds 时即为它). 运行时再对
             //   该单一 pointer 做 board check (node->rotate_*->check(map)).
-            //   位板版无法用 first_passing_kick_bb (= 第一个 board-clear 的 kick),
+            //   位板版无法用 first_kick (= 第一个 board-clear 的 kick),
             //   因为它会跳过 master 的 wall_kick_*[0] 选中位置 (board 失败) 而
             //   找到一个 master 不会试的更远 kick.
             //   等价做法: 取 cur 的 master node, 直接读 node->rotate_* (= "第一个
@@ -240,18 +240,18 @@ namespace m_tetris2
                 {
                     //commit (remove-context): rotate_* = wall_kick_*[0] = 空盘
                     //  inbounds 第一个命中的 kick 目标. 用 inbounds_arr 喂
-                    //  first_passing_kick_bb, 与 master rotate_counterclockwise /
+                    //  first_kick, 与 master rotate_counterclockwise /
                     //  rotate_clockwise 出口完全等价; board check 由 dedup 走
-                    //  usable_at_bb(usable_arr) 二段过滤, 与 oracle "rotate_* &&
+                    //  usable_at(usable_arr) 二段过滤, 与 oracle "rotate_* &&
                     //  rotate_*->check(map)" 一致.
-                    if (auto rn = Helpers::first_passing_kick_bb(piece_t, bb::KickDir::Ccw, cur, *inbounds_arr))
+                    if (auto rn = Helpers::first_kick(piece_t, bb::KickDir::Ccw, cur, *inbounds_arr))
                     {
-                        if (Helpers::usable_at_bb(rn->r, rn->xb, rn->yb, *usable_arr))
+                        if (Helpers::usable_at(rn->r, rn->xb, rn->yb, *usable_arr))
                             emit(*rn, 'z');
                     }
-                    if (auto rn = Helpers::first_passing_kick_bb(piece_t, bb::KickDir::Cw, cur, *inbounds_arr))
+                    if (auto rn = Helpers::first_kick(piece_t, bb::KickDir::Cw, cur, *inbounds_arr))
                     {
-                        if (Helpers::usable_at_bb(rn->r, rn->xb, rn->yb, *usable_arr))
+                        if (Helpers::usable_at(rn->r, rn->xb, rn->yb, *usable_arr))
                             emit(*rn, 'c');
                     }
                     {
@@ -273,7 +273,7 @@ namespace m_tetris2
             };
 
             //=== Tag-search 1g visitor: pop 时检测 land-point ===================
-            // land-point 谓词: !move_down->check(map), 等价 usable_at_bb(r, xb, yb-1)
+            // land-point 谓词: !move_down->check(map), 等价 usable_at(r, xb, yb-1)
             // 不成立. 与 oracle/search_tag.cpp:271-277 / 271 内部分支同形.
             // emitted_keys 走线性 cells_key 去重 (与 oracle node_mark_filtered_
             // 等价: cells_key 与 master IndexFilter 一一对应).
@@ -292,7 +292,7 @@ namespace m_tetris2
 
                 bool on_pop(bb::State const &cur)
                 {
-                    bool grounded = !Helpers::usable_at_bb(cur.r, cur.xb, cur.yb - 1, *usable_arr);
+                    bool grounded = !Helpers::usable_at(cur.r, cur.xb, cur.yb - 1, *usable_arr);
                     if (!grounded)
                         return true;
                     bb::CellsKey k = Helpers::cells_key_for_state(cur);
@@ -346,7 +346,7 @@ namespace m_tetris2
                                               static_cast<int>(s.xb),
                                               static_cast<int>(s.yb)))
                         return bb::EnqueueDecision::Skip;
-                    if (!Helpers::usable_at_bb(s.r, s.xb, s.yb, *usable_arr))
+                    if (!Helpers::usable_at(s.r, s.xb, s.yb, *usable_arr))
                         return bb::EnqueueDecision::MarkOnly;
                     return bb::EnqueueDecision::MarkAndEnqueue;
                 }
@@ -379,7 +379,7 @@ namespace m_tetris2
             // 邻居顺序与 oracle/search_tag.cpp:227-258 一致: z c l r d.
             // 旋转走 master node->rotate_* (= wall_kick_*[0], 即"第一个 in-bounds
             // kick" 在 prepare 时用空盘填入), 然后用 usable_arr 做 board check.
-            // 与 oracle 行 228-242 / 1g 路径用同样的语义 (避免 first_passing_kick_bb
+            // 与 oracle 行 228-242 / 1g 路径用同样的语义 (避免 first_kick
             // 找到 master 永不会试的更远 kick).
             // l/r 加 !open 过滤 (与 oracle l/r 分支严格对应), z/c/d 不加 open 过滤
             // (对应 oracle 行 228-242, 254-257). open 等价用 open_bb_state
@@ -400,28 +400,28 @@ namespace m_tetris2
                 void expand(bb::State const &cur, Emit emit)
                 {
                     //commit (remove-context): 与 1g 路径同形, rotate_* 走
-                    //  first_passing_kick_bb(inbounds_arr); 与 oracle (search_tag.cpp:
+                    //  first_kick(inbounds_arr); 与 oracle (search_tag.cpp:
                     //  228-242) 一一对应.
-                    if (auto rn = Helpers::first_passing_kick_bb(piece_t, bb::KickDir::Ccw, cur, *inbounds_arr))
+                    if (auto rn = Helpers::first_kick(piece_t, bb::KickDir::Ccw, cur, *inbounds_arr))
                     {
-                        if (Helpers::usable_at_bb(rn->r, rn->xb, rn->yb, *usable_arr))
+                        if (Helpers::usable_at(rn->r, rn->xb, rn->yb, *usable_arr))
                             emit(*rn, 'z');
                     }
-                    if (auto rn = Helpers::first_passing_kick_bb(piece_t, bb::KickDir::Cw, cur, *inbounds_arr))
+                    if (auto rn = Helpers::first_kick(piece_t, bb::KickDir::Cw, cur, *inbounds_arr))
                     {
-                        if (Helpers::usable_at_bb(rn->r, rn->xb, rn->yb, *usable_arr))
+                        if (Helpers::usable_at(rn->r, rn->xb, rn->yb, *usable_arr))
                             emit(*rn, 'c');
                     }
                     {
                         bb::State nL = cur;
                         nL.xb = static_cast<std::int8_t>(nL.xb - 1);
-                        if (Helpers::usable_at_bb(nL.r, nL.xb, nL.yb, *usable_arr) && !open_bb_state(nL))
+                        if (Helpers::usable_at(nL.r, nL.xb, nL.yb, *usable_arr) && !open_bb_state(nL))
                             emit(nL, 'l');
                     }
                     {
                         bb::State nR = cur;
                         nR.xb = static_cast<std::int8_t>(nR.xb + 1);
-                        if (Helpers::usable_at_bb(nR.r, nR.xb, nR.yb, *usable_arr) && !open_bb_state(nR))
+                        if (Helpers::usable_at(nR.r, nR.xb, nR.yb, *usable_arr) && !open_bb_state(nR))
                             emit(nR, 'r');
                     }
                     {
@@ -449,7 +449,7 @@ namespace m_tetris2
 
                 bool on_pop(bb::State const &cur)
                 {
-                    bool grounded = !Helpers::usable_at_bb(cur.r, cur.xb, cur.yb - 1, *usable_arr);
+                    bool grounded = !Helpers::usable_at(cur.r, cur.xb, cur.yb - 1, *usable_arr);
                     if (!grounded)
                         return true;
                     if (Helpers::open_bb_state(cur, *board))
@@ -501,7 +501,7 @@ namespace m_tetris2
                                               static_cast<int>(s.xb),
                                               static_cast<int>(s.yb)))
                         return bb::EnqueueDecision::Skip;
-                    if (!Helpers::usable_at_bb(s.r, s.xb, s.yb, *usable_arr))
+                    if (!Helpers::usable_at(s.r, s.xb, s.yb, *usable_arr))
                         return bb::EnqueueDecision::MarkOnly;
                     return bb::EnqueueDecision::MarkAndEnqueue;
                 }
@@ -525,7 +525,7 @@ namespace m_tetris2
                 //  与 oracle/search_tag.cpp:177-214 同形 — spawn-row land_point 列表
                 //  位板侧重建 (master 在旧初始化阶段建 piece-definition
                 //  表, 现在每次 search 重建一份等价 State 列表), drop 用 board
-                //  的 usable_arr 走 drop_bb_state. 与 master `(*cit)->drop(map)`
+                //  的 usable_arr 走 drop. 与 master `(*cit)->drop(map)`
                 //  一一等价.
                 std::vector<bb::State> spawn_states;
                 Helpers::enumerate_spawn_row_states(T, entry, inbounds_arr, spawn_states);
@@ -534,7 +534,7 @@ namespace m_tetris2
                 drop_seeds.reserve(spawn_states.size());
                 for (bb::State const &spawn_state : spawn_states)
                 {
-                    auto sunk = Helpers::drop_bb_state(spawn_state, usable_arr);
+                    auto sunk = Helpers::drop(spawn_state, usable_arr);
                     if (!sunk)
                         continue;
                     drop_seeds.push_back(*sunk);
@@ -698,19 +698,19 @@ namespace m_tetris2
                         nR.xb = static_cast<std::int8_t>(nR.xb + 1);
                         emit(nR, ' ');
                     }
-                    //z (走 first_passing_kick_bb(inbounds_arr) = master rotate_*);
+                    //z (走 first_kick(inbounds_arr) = master rotate_*);
                     //  与 oracle (search_tag.cpp:351-356) 一致: 先做 board check
-                    //  (= usable_at_bb), 通过后才进入 cover_if 升级路径; 失败 -> 不
+                    //  (= usable_at), 通过后才进入 cover_if 升级路径; 失败 -> 不
                     //  emit (避免在 dedup 中错误升级 op=' '→'z' 到 board-阻挡 state).
-                    if (auto rn = Helpers::first_passing_kick_bb(piece_t, bb::KickDir::Ccw, cur, *inbounds_arr))
+                    if (auto rn = Helpers::first_kick(piece_t, bb::KickDir::Ccw, cur, *inbounds_arr))
                     {
-                        if (Helpers::usable_at_bb(rn->r, rn->xb, rn->yb, *usable_arr))
+                        if (Helpers::usable_at(rn->r, rn->xb, rn->yb, *usable_arr))
                             emit(*rn, 'z');
                     }
                     //c
-                    if (auto rn = Helpers::first_passing_kick_bb(piece_t, bb::KickDir::Cw, cur, *inbounds_arr))
+                    if (auto rn = Helpers::first_kick(piece_t, bb::KickDir::Cw, cur, *inbounds_arr))
                     {
-                        if (Helpers::usable_at_bb(rn->r, rn->xb, rn->yb, *usable_arr))
+                        if (Helpers::usable_at(rn->r, rn->xb, rn->yb, *usable_arr))
                             emit(*rn, 'c');
                     }
                 }
@@ -794,7 +794,7 @@ namespace m_tetris2
                     }
                     if (!admitted)
                         return bb::EnqueueDecision::Skip;
-                    if (!Helpers::usable_at_bb(s.r, s.xb, s.yb, *usable_arr))
+                    if (!Helpers::usable_at(s.r, s.xb, s.yb, *usable_arr))
                         return bb::EnqueueDecision::MarkOnly;
                     return bb::EnqueueDecision::MarkAndEnqueue;
                 }
@@ -839,7 +839,7 @@ namespace m_tetris2
 
                     bool on_pop(bb::State const &cur)
                     {
-                        bool grounded = !Helpers::usable_at_bb(cur.r, cur.xb, cur.yb - 1, *usable_arr);
+                        bool grounded = !Helpers::usable_at(cur.r, cur.xb, cur.yb - 1, *usable_arr);
                         if (!grounded)
                             return true;
                         bb::CellsKey k = Helpers::cells_key_for_state(cur);
@@ -942,12 +942,12 @@ namespace m_tetris2
                 template<class Emit>
                 void expand(bb::State const &cur, Emit emit)
                 {
-                    //commit (remove-context): rotate_* = first_passing_kick_bb(inbounds).
-                    if (auto rn = Helpers::first_passing_kick_bb(piece_t, bb::KickDir::Ccw, cur, *inbounds_arr))
+                    //commit (remove-context): rotate_* = first_kick(inbounds).
+                    if (auto rn = Helpers::first_kick(piece_t, bb::KickDir::Ccw, cur, *inbounds_arr))
                     {
                         emit(*rn, 'z');
                     }
-                    if (auto rn = Helpers::first_passing_kick_bb(piece_t, bb::KickDir::Cw, cur, *inbounds_arr))
+                    if (auto rn = Helpers::first_kick(piece_t, bb::KickDir::Cw, cur, *inbounds_arr))
                     {
                         emit(*rn, 'c');
                     }
@@ -1005,10 +1005,10 @@ namespace m_tetris2
                                              action))
                         return bb::EnqueueDecision::Skip;
                     //l/r/d 分支再做 usable 过滤; z/c 分支 oracle 不查 usable. 统一
-                    //  用 usable_at_bb 在准入即过滤"不可放置入队", 与 oracle 在
+                    //  用 usable_at 在准入即过滤"不可放置入队", 与 oracle 在
                     //  l/r/d 分支的 set+check && 在 z/c 分支因 check(map) 已先判
                     //  导致只 set "可放置" 状态, 二者最终入队集合一致.
-                    if (!Helpers::usable_at_bb(s.r, s.xb, s.yb, *usable_arr))
+                    if (!Helpers::usable_at(s.r, s.xb, s.yb, *usable_arr))
                         return bb::EnqueueDecision::MarkOnly;
                     return bb::EnqueueDecision::MarkAndEnqueue;
                 }
@@ -1111,7 +1111,7 @@ namespace m_tetris2
             // 末段判定: 递归到 land_point.last 的路径若不以 'c'/'z' 结尾 (或
             // 路径为空), 则进入反查; 否则直接返回递归结果. 反查通过比较
             // last 旋转后的目标 cells_key 是否与 land_point.node 一致来选择
-            // suffix 字符 — first_passing_kick_bb(inbounds) 的出口与 master
+            // suffix 字符 — first_kick(inbounds) 的出口与 master
             // last->rotate_counterclockwise / rotate_clockwise 完全等价
             // (master 端 rotate_* = wall_kick_*[0] = 空盘 inbounds 第一个 kick).
             static std::vector<char>
@@ -1150,13 +1150,13 @@ namespace m_tetris2
                         bb::CellsKey target_key = Helpers::cells_key_for_state(target_state);
                         std::array<map_t, kMaxR> inbounds_arr{};
                         Helpers::build_inbounds_for_piece(static_cast<char>(last_state.t), inbounds_arr);
-                        if (auto ccw = Helpers::first_passing_kick_bb(static_cast<char>(last_state.t), bb::KickDir::Ccw, last_state, inbounds_arr);
+                        if (auto ccw = Helpers::first_kick(static_cast<char>(last_state.t), bb::KickDir::Ccw, last_state, inbounds_arr);
                             ccw && Helpers::cells_key_for_state(*ccw) == target_key)
                         {
                             path.push_back('z');
                             return path;
                         }
-                        if (auto cw = Helpers::first_passing_kick_bb(static_cast<char>(last_state.t), bb::KickDir::Cw, last_state, inbounds_arr);
+                        if (auto cw = Helpers::first_kick(static_cast<char>(last_state.t), bb::KickDir::Cw, last_state, inbounds_arr);
                             cw && Helpers::cells_key_for_state(*cw) == target_key)
                         {
                             path.push_back('c');

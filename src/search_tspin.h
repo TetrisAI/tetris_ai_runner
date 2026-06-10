@@ -20,7 +20,7 @@
 #define TETRIS_AI_RUNNER_SEARCH_TSPIN_PHASE1_
 
 #include "tetris_core.h"
-#include "bb_state.h"
+#include "movegen_state.h"
 
 #include <cstddef>
 #include <cstdint>

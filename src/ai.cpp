@@ -29,7 +29,7 @@
 #include "rule_c2.h"
 #include "rule_botris.h"
 #include "random.h"
-#include "bb_sim.h"
+#include "movegen_sim.h"
 
 m_tetris2::TetrisEngine<rule_st::TetrisRule, ai_zzz::Dig, path::Search> tetris_ai;
 
@@ -801,39 +801,39 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
             switch (c)
             {
             case 'L':
-                while (H::usable_at_bb(cs.r, static_cast<int>(cs.xb) - 1, static_cast<int>(cs.yb), usable_arr))
+                while (H::usable_at(cs.r, static_cast<int>(cs.xb) - 1, static_cast<int>(cs.yb), usable_arr))
                     --cs.xb;
                 break;
             case 'R':
-                while (H::usable_at_bb(cs.r, static_cast<int>(cs.xb) + 1, static_cast<int>(cs.yb), usable_arr))
+                while (H::usable_at(cs.r, static_cast<int>(cs.xb) + 1, static_cast<int>(cs.yb), usable_arr))
                     ++cs.xb;
                 break;
             case 'l':
-                if (H::usable_at_bb(cs.r, static_cast<int>(cs.xb) - 1, static_cast<int>(cs.yb), usable_arr))
+                if (H::usable_at(cs.r, static_cast<int>(cs.xb) - 1, static_cast<int>(cs.yb), usable_arr))
                     --cs.xb;
                 break;
             case 'r':
-                if (H::usable_at_bb(cs.r, static_cast<int>(cs.xb) + 1, static_cast<int>(cs.yb), usable_arr))
+                if (H::usable_at(cs.r, static_cast<int>(cs.xb) + 1, static_cast<int>(cs.yb), usable_arr))
                     ++cs.xb;
                 break;
             case 'd':
-                if (H::usable_at_bb(cs.r, static_cast<int>(cs.xb), static_cast<int>(cs.yb) - 1, usable_arr))
+                if (H::usable_at(cs.r, static_cast<int>(cs.xb), static_cast<int>(cs.yb) - 1, usable_arr))
                     --cs.yb;
                 break;
             case 'D':
-                if (auto dropped = H::drop_bb_state(cs, usable_arr))
+                if (auto dropped = H::drop(cs, usable_arr))
                     cs = *dropped;
                 break;
             case 'z':
-                if (auto kicked = H::first_passing_kick_bb(static_cast<char>(cs.t), m_tetris2::bb::KickDir::Ccw, cs, usable_arr))
+                if (auto kicked = H::first_kick(static_cast<char>(cs.t), m_tetris2::bb::KickDir::Ccw, cs, usable_arr))
                     cs = *kicked;
                 break;
             case 'c':
-                if (auto kicked = H::first_passing_kick_bb(static_cast<char>(cs.t), m_tetris2::bb::KickDir::Cw, cs, usable_arr))
+                if (auto kicked = H::first_kick(static_cast<char>(cs.t), m_tetris2::bb::KickDir::Cw, cs, usable_arr))
                     cs = *kicked;
                 break;
             case 'x':
-                if (auto kicked = H::first_passing_kick_bb(static_cast<char>(cs.t), m_tetris2::bb::KickDir::Opp, cs, usable_arr))
+                if (auto kicked = H::first_kick(static_cast<char>(cs.t), m_tetris2::bb::KickDir::Opp, cs, usable_arr))
                     cs = *kicked;
                 break;
             default:

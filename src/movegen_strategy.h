@@ -51,8 +51,8 @@
 //     ActivePiecePolicy 到 Searcher 第四参数.
 //==========================================================================
 
-#include "bb_bfs_engine.h"
-#include "bb_state.h"
+#include "movegen_bfs.h"
+#include "movegen_state.h"
 #include "movegen_context.h"
 #include "movegen_hook.h"
 #include "tetris_core.h"
@@ -144,7 +144,7 @@ namespace m_tetris2
                                                  pk,
                                                  action))
                             return bb::EnqueueDecision::Skip;
-                        if (!Helpers::usable_at_bb(s.r, s.xb, s.yb, *usable_arr))
+                        if (!Helpers::usable_at(s.r, s.xb, s.yb, *usable_arr))
                             return bb::EnqueueDecision::MarkOnly;
                         return bb::EnqueueDecision::MarkAndEnqueue;
                     }

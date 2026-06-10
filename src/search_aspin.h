@@ -28,7 +28,7 @@
 #define TETRIS_AI_RUNNER_SEARCH_ASPIN_PHASE1_
 
 #include "tetris_core.h"
-#include "bb_state.h"
+#include "movegen_state.h"
 
 #include <cstddef>
 #include <cstring>

@@ -19,7 +19,7 @@
 #include "rule_botris.h"
 #include "sb_tree.h"
 #include "integer_utils.h"
-#include "bb_sim.h"
+#include "movegen_sim.h"
 
 #if _MSC_VER
 #define NOMINMAX

@@ -22,7 +22,7 @@
 //     不写 spin/last 元数据, make_path 也不消费末段 wall-kick 重放.
 //==========================================================================
 
-#include "bb_state.h"
+#include "movegen_state.h"
 #include "movegen_context.h"
 #include "movegen_hook.h"
 #include "movegen_searcher.h"
@@ -129,13 +129,13 @@ namespace m_tetris2
                 emitted_keys.reserve(32);
 
                 bb::State start_state = spawn;
-                if (!Helpers::usable_at_bb(start_state.r, start_state.xb, start_state.yb, usable_arr))
+                if (!Helpers::usable_at(start_state.r, start_state.xb, start_state.yb, usable_arr))
                     return &ctx.land_point_cache_;
 
                 // fast path: spawn 高于 roof 时, 直接走 spawn-row 状态列表.
                 //   用 inbounds_arr 重建与 piece-definition 等价的 State 列表
                 //   (Helpers::enumerate_spawn_row_states), 再对每个 spawn-row
-                //   state 走 drop_bb_state，与 oracle/search_simple.cpp:73-79
+                //   state 走 drop，与 oracle/search_simple.cpp:73-79
                 //   完全等价.
                 //
                 //   是否命中 fast path 由 Helpers::is_above_roof_bb(start_state,
@@ -148,7 +148,7 @@ namespace m_tetris2
                     Helpers::enumerate_spawn_row_states(piece_t, start_state, inbounds_arr, spawn_states);
                     for (bb::State const &spawn_state : spawn_states)
                     {
-                        auto sunk = Helpers::drop_bb_state(spawn_state, usable_arr);
+                        auto sunk = Helpers::drop(spawn_state, usable_arr);
                         if (!sunk)
                             continue;
                         bb::CellsKey k = Helpers::cells_key_for_state(*sunk);
@@ -201,7 +201,7 @@ namespace m_tetris2
                 }
                 std::array<map_t, kMaxR> usable_arr{};
                 Helpers::build_usable_for_piece(piece_t, board, usable_arr);
-                if (!Helpers::usable_at_bb(spawn.r, spawn.xb, spawn.yb, usable_arr))
+                if (!Helpers::usable_at(spawn.r, spawn.xb, spawn.yb, usable_arr))
                     return;
 
                 std::vector<bb::CellsKey> emitted_keys;
@@ -216,7 +216,7 @@ namespace m_tetris2
                     Helpers::enumerate_spawn_row_states(piece_t, spawn, inbounds_arr, spawn_states);
                     for (bb::State const &spawn_state : spawn_states)
                     {
-                        auto sunk = Helpers::drop_bb_state(spawn_state, usable_arr);
+                        auto sunk = Helpers::drop(spawn_state, usable_arr);
                         if (!sunk)
                             continue;
                         bb::CellsKey k = Helpers::cells_key_for_state(*sunk);
@@ -295,7 +295,7 @@ namespace m_tetris2
                 Helpers::build_usable_for_piece(piece_t, board, usable_arr);
 
                 bb::State start_state = spawn;
-                if (!Helpers::usable_at_bb(start_state.r, start_state.xb, start_state.yb, usable_arr))
+                if (!Helpers::usable_at(start_state.r, start_state.xb, start_state.yb, usable_arr))
                     return path;
 
                 // Stage 1: rotation graph BFS.
@@ -331,7 +331,7 @@ namespace m_tetris2
                 {
                     bb::State nxt = cursor_state;
                     nxt.xb = static_cast<std::int8_t>(nxt.xb + 1);
-                    if (!Helpers::usable_at_bb(nxt.r, nxt.xb, nxt.yb, usable_arr))
+                    if (!Helpers::usable_at(nxt.r, nxt.xb, nxt.yb, usable_arr))
                         break;
                     path.push_back('r');
                     cursor_state = nxt;
@@ -340,14 +340,14 @@ namespace m_tetris2
                 {
                     bb::State nxt = cursor_state;
                     nxt.xb = static_cast<std::int8_t>(nxt.xb - 1);
-                    if (!Helpers::usable_at_bb(nxt.r, nxt.xb, nxt.yb, usable_arr))
+                    if (!Helpers::usable_at(nxt.r, nxt.xb, nxt.yb, usable_arr))
                         break;
                     path.push_back('l');
                     cursor_state = nxt;
                 }
 
                 // Stage 3: drop, 比 cells_key.
-                auto sunk = Helpers::drop_bb_state(cursor_state, usable_arr);
+                auto sunk = Helpers::drop(cursor_state, usable_arr);
                 if (!sunk)
                     return std::vector<char>();
                 bb::CellsKey land_key = Helpers::cells_key_for_state(land_state);
@@ -402,7 +402,7 @@ namespace m_tetris2
                             continue;
                         if (entries[ns.r].visited)
                             continue;
-                        if (!Helpers::usable_at_bb(ns.r, ns.xb, ns.yb, usable_arr))
+                        if (!Helpers::usable_at(ns.r, ns.xb, ns.yb, usable_arr))
                             continue;
                         entries[ns.r].state = ns;
                         entries[ns.r].visited = 1;
@@ -420,7 +420,7 @@ namespace m_tetris2
             {
                 auto try_emit = [&](bb::State const &s)
                 {
-                    auto sunk = Helpers::drop_bb_state(s, usable_arr);
+                    auto sunk = Helpers::drop(s, usable_arr);
                     if (!sunk)
                         return;
                     bb::CellsKey k = Helpers::cells_key_for_state(*sunk);
@@ -437,7 +437,7 @@ namespace m_tetris2
                 while (true)
                 {
                     scan.xb = static_cast<std::int8_t>(scan.xb - 1);
-                    if (!Helpers::usable_at_bb(scan.r, scan.xb, scan.yb, usable_arr))
+                    if (!Helpers::usable_at(scan.r, scan.xb, scan.yb, usable_arr))
                         break;
                     try_emit(scan);
                 }
@@ -445,7 +445,7 @@ namespace m_tetris2
                 while (true)
                 {
                     scan.xb = static_cast<std::int8_t>(scan.xb + 1);
-                    if (!Helpers::usable_at_bb(scan.r, scan.xb, scan.yb, usable_arr))
+                    if (!Helpers::usable_at(scan.r, scan.xb, scan.yb, usable_arr))
                         break;
                     try_emit(scan);
                 }
@@ -459,7 +459,7 @@ namespace m_tetris2
             {
                 auto try_emit = [&](bb::State const &s)
                 {
-                    auto sunk = Helpers::drop_bb_state(s, usable_arr);
+                    auto sunk = Helpers::drop(s, usable_arr);
                     if (!sunk)
                         return;
                     bb::CellsKey k = Helpers::cells_key_for_state(*sunk);
@@ -478,7 +478,7 @@ namespace m_tetris2
                 while (true)
                 {
                     scan.xb = static_cast<std::int8_t>(scan.xb - 1);
-                    if (!Helpers::usable_at_bb(scan.r, scan.xb, scan.yb, usable_arr))
+                    if (!Helpers::usable_at(scan.r, scan.xb, scan.yb, usable_arr))
                         break;
                     try_emit(scan);
                 }
@@ -486,7 +486,7 @@ namespace m_tetris2
                 while (true)
                 {
                     scan.xb = static_cast<std::int8_t>(scan.xb + 1);
-                    if (!Helpers::usable_at_bb(scan.r, scan.xb, scan.yb, usable_arr))
+                    if (!Helpers::usable_at(scan.r, scan.xb, scan.yb, usable_arr))
                         break;
                     try_emit(scan);
                 }

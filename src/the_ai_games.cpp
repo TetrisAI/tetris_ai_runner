@@ -396,7 +396,7 @@ struct test_ai
         std::array<H::map_t, H::kMaxR> usable_arr{};
         H::build_usable_for_piece(next.front(), board, usable_arr);
         auto cs = H::state_from_status(next.front(), 0, sp.first, sp.second);
-        return !H::usable_at_bb(cs.r, cs.xb, cs.yb, usable_arr) || map.roof >= map.height;
+        return !H::usable_at(cs.r, cs.xb, cs.yb, usable_arr) || map.roof >= map.height;
     }
     void run(int enemy_combo, int enemy_point, int round, map_t const &enemy_map)
     {

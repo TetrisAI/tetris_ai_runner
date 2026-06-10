@@ -1,5 +1,5 @@
-#ifndef TETRIS_AI_RUNNER_BB_BFS_ENGINE_H_
-#define TETRIS_AI_RUNNER_BB_BFS_ENGINE_H_
+#ifndef TETRIS_AI_RUNNER_MOVEGEN_BFS_H_
+#define TETRIS_AI_RUNNER_MOVEGEN_BFS_H_
 
 //==========================================================================
 // 通用位板 BFS 引擎.
@@ -153,4 +153,4 @@ namespace m_tetris2
     } // namespace bb
 } // namespace m_tetris2
 
-#endif // TETRIS_AI_RUNNER_BB_BFS_ENGINE_H_
+#endif // TETRIS_AI_RUNNER_MOVEGEN_BFS_H_

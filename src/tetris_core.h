@@ -174,7 +174,7 @@ namespace m_tetris2
 // tetris_eval_dispatch.h 自身将所有声明包在 namespace m_tetris2 {} 里，
 // 因此分发类型最终落在正确的 namespace 中。
 #include "tetris_eval_dispatch.h"
-#include "bb_state.h"
+#include "movegen_state.h"
 
 namespace m_tetris2
 {

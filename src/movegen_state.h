@@ -1,5 +1,5 @@
-#ifndef TETRIS_AI_RUNNER_BB_STATE_H_
-#define TETRIS_AI_RUNNER_BB_STATE_H_
+#ifndef TETRIS_AI_RUNNER_MOVEGEN_STATE_H_
+#define TETRIS_AI_RUNNER_MOVEGEN_STATE_H_
 
 //==========================================================================
 // 位板 BFS 共享数据结构 + piece-aware 静态 helper.
@@ -390,9 +390,9 @@ namespace m_tetris2
             //   无关). 因此 master cur->rotate_clockwise (= wall_kick_clockwise[0])
             //   = "把 (T, R) 当成空盘可放置位图后, kick 链中第一个 in-bounds 命中
             //   的目标 (T', R', xb', yb')". 位板等价: usable_arr 用 inbounds_map
-            //   预算的"空盘等价" 数组 inbounds_arr 喂给 first_passing_kick_bb,
+            //   预算的"空盘等价" 数组 inbounds_arr 喂给 first_kick,
             //   出来的 State 即与 master rotate_* 完全等价 (board check 由调用
-            //   方在 emit 前再补一次 usable_at_bb(实际 board) 做, 与 oracle
+            //   方在 emit 前再补一次 usable_at(实际 board) 做, 与 oracle
             //   "rotate_* != nullptr && rotate_*->check(map)" 二段判定一致).
             //==============================================================
             template<char T>
@@ -460,7 +460,7 @@ namespace m_tetris2
             //commit 5g cleanup-3: BFS 完全位板化后, node_check_bb 已无调用方, 移除.
             //commit 5g-3b (slice 5): bbox 直查版本. 调用方持有 State 时直接查
             //  usable_arr[r].get, 与 check_TR 等价 (后者只是为指针入口提供折回).
-            static bool usable_at_bb(std::uint8_t r, int xb, int yb,
+            static bool usable_at(std::uint8_t r, int xb, int yb,
                                      std::array<map_t, kMaxR> const &usable_arr)
             {
                 if (xb < 0 || xb >= kW || yb < 0 || yb >= kH)
@@ -902,7 +902,7 @@ namespace m_tetris2
                 return ret;
             }
 
-            static std::optional<State> first_passing_kick_bb(char t,
+            static std::optional<State> first_kick(char t,
                                                                 KickDir dir,
                                                                 State const &cs,
                                                                 std::array<map_t, kMaxR> const &usable_arr)
@@ -1016,7 +1016,7 @@ namespace m_tetris2
             static bool try_kick_chain_to(char t, KickDir dir, State const &last_state, CellsKey const &target_key,
                                           std::array<map_t, kMaxR> const &usable_arr)
             {
-                auto hit = first_passing_kick_bb(t, dir, last_state, usable_arr);
+                auto hit = first_kick(t, dir, last_state, usable_arr);
                 if (!hit)
                     return false;
                 return cells_key_for_state(*hit) == target_key;
@@ -1030,7 +1030,7 @@ namespace m_tetris2
             //commit 7a-2: drop_bb 的 State-only 版本. 与原 drop_bb 完全相同的 column
             //  扫描语义, 唯一差异是直接返回新 State (xb 不变, yb 落到 column 最低
             //  still-usable). out-of-bounds 时返回 nullopt.
-            static std::optional<State> drop_bb_state(State const &cs,
+            static std::optional<State> drop(State const &cs,
                                                         std::array<map_t, kMaxR> const &usable_arr)
             {
                 int xb = static_cast<int>(cs.xb);
@@ -1092,9 +1092,9 @@ namespace m_tetris2
                         ++xb;
                     }
                     //rotate_ccw 优先, 否则 rotate_cw (master prepare 行 427).
-                    auto nxt = first_passing_kick_bb(piece_t, KickDir::Ccw, rot, inbounds_arr);
+                    auto nxt = first_kick(piece_t, KickDir::Ccw, rot, inbounds_arr);
                     if (!nxt)
-                        nxt = first_passing_kick_bb(piece_t, KickDir::Cw, rot, inbounds_arr);
+                        nxt = first_kick(piece_t, KickDir::Cw, rot, inbounds_arr);
                     if (!nxt)
                         break;
                     rot = *nxt;
@@ -1244,4 +1244,4 @@ namespace m_tetris2
     } // namespace bb
 } // namespace m_tetris2
 
-#endif // TETRIS_AI_RUNNER_BB_STATE_H_
+#endif // TETRIS_AI_RUNNER_MOVEGEN_STATE_H_
