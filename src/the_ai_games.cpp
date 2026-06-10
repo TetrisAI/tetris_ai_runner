@@ -10,10 +10,9 @@
 #include "ai_tag.h"
 #include "rule_tag.h"
 #include "random.h"
-#include "tetris_engine2.h"
 
-m_tetris2::TetrisEngine2<rule_tag::TetrisRule, ai_tag::the_ai_games, search_tag::Search> bot_1;
-m_tetris2::TetrisEngine2<rule_tag::TetrisRule, ai_tag::the_ai_games_enemy, search_tag::Search> bot_2;
+m_tetris2::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games, search_tag::Search> bot_1;
+m_tetris2::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games_enemy, search_tag::Search> bot_2;
 
 namespace zzz
 {
@@ -337,8 +336,8 @@ int main()
 
 struct test_ai
 {
-    m_tetris2::TetrisEngine2<rule_tag::TetrisRule, ai_tag::the_ai_games, search_tag::Search> ai;
-    m_tetris2::TetrisEngine2<rule_tag::TetrisRule, ai_tag::the_ai_games_enemy, search_tag::Search> t;
+    m_tetris2::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games, search_tag::Search> ai;
+    m_tetris2::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games_enemy, search_tag::Search> t;
     using map_t = decltype(ai)::map_t;
     map_t map;
     int point = 0, combo = 0;

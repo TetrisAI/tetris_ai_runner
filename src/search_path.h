@@ -1247,7 +1247,7 @@ namespace path
             typename detail::policy_or<Config>::type>;
 
         //rebind_policy<P>: 保留原 Config 的 HookType 等字段, 仅覆盖 PolicyType.
-        //  TetrisEngine2 用此接口向 SearchWith 注入编译期推导的 PolicyType,
+        //  TetrisEngine 用此接口向 SearchWith 注入编译期推导的 PolicyType,
         //  而不影响用户已选定的 HookType (正交原则).
         template<class NewPolicy>
         struct PolicyOverrideConfig : Config { using PolicyType = NewPolicy; };

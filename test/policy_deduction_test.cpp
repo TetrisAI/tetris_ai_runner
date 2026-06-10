@@ -1,4 +1,4 @@
-// policy_deduction_test: 编译期验证 DeduceSpinPolicy + TetrisEngine2 推导链.
+// policy_deduction_test: 编译期验证 DeduceSpinPolicy + TetrisEngine 推导链.
 //
 // 本文件只做 static_assert, 不运行任何运行时逻辑.
 // 通过编译 = 验证通过; 编译失败 = 推导逻辑有误.
@@ -11,7 +11,7 @@
 //      (T==T) && Policy::value<T>, 故 I + ActiveAllPolicy 仍为 false
 //   3. TSpinHook::active_for_piece 单参向后兼容
 //   4. NoSpinHook::active_for_piece Policy 参数下永远 false
-//   5. TetrisEngine2<Rule, TOJ, tspin::Search> == TetrisEngine + manual rebind_policy
+//   5. TetrisEngine<Rule, TOJ, tspin::Search> == TetrisEngine + manual rebind_policy
 
 #include "../src/tetris_core.h"
 #include "../src/ai_zzz.h"
@@ -19,7 +19,6 @@
 #include "../src/rule_srs.h"
 #include "../src/search_path.h"
 #include "../src/search_tspin.h"
-#include "../src/tetris_engine2.h"
 
 #include <type_traits>
 
@@ -82,20 +81,21 @@ static_assert(!NoSpinHook::active_for_piece<'T', ActiveTOnlyPolicy>,
 static_assert(!NoSpinHook::active_for_piece<'T'>,
     "NoSpinHook single-param: must remain false (backward compat)");
 
-// ─── 5. TetrisEngine2 实例化 (类型可见性验证) ─────────────────────────────────
+// ─── 5. TetrisEngine 自动注入结果验证 ─────────────────────────────────────────
 
-using E2_TOJ     = TetrisEngine2<rule_srs::TetrisRule, ai_zzz::TOJ,        tspin::Search>;
-using E2_NoSpin  = TetrisEngine2<rule_srs::TetrisRule, ai_zzz::qq::Attack,  path::Search>;
+using E2_TOJ        = TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ,       tspin::Search>;
+using E2_NoSpin     = TetrisEngine<rule_srs::TetrisRule, ai_zzz::qq::Attack, path::Search>;
+using E2_TOJ_Search = typename E2_TOJ::TetrisSearch;
 
-// TetrisEngine2<..., TOJ, tspin::Search> 与手工注入等价:
-// TetrisEngine<Rule, TOJ, tspin::SearchWith<>::rebind_policy<ActiveTOnlyPolicy>>
-using E2_Manual  = TetrisEngine<
+// TetrisEngine<..., TOJ, tspin::Search> 解析后的实际 Search 类型应等价于手工注入:
+// tspin::SearchWith<>::rebind_policy<ActiveTOnlyPolicy>
+using E2_ManualSearch = typename TetrisEngine<
     rule_srs::TetrisRule,
     ai_zzz::TOJ,
-    tspin::SearchWith<>::rebind_policy<ActiveTOnlyPolicy>>;
+    tspin::SearchWith<>::rebind_policy<ActiveTOnlyPolicy>>::TetrisSearch;
 
-static_assert(std::is_same_v<E2_TOJ, E2_Manual>,
-    "TetrisEngine2<Rule, TOJ, tspin::Search> must equal manual rebind_policy injection");
+static_assert(std::is_same_v<E2_TOJ_Search, E2_ManualSearch>,
+    "TetrisEngine<Rule, TOJ, tspin::Search> must resolve to the same concrete search type as manual rebind_policy injection");
 
 // ─── main (dummy, never called) ──────────────────────────────────────────────
 

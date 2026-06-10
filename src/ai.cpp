@@ -17,7 +17,6 @@
 #include "search_cautious.h"
 #include "movegen_hook.h"
 #include "movegen_searcher.h"
-#include "tetris_engine2.h"
 #include "ai_ax.h"
 #include "ai_zzz.h"
 #include "ai_tag.h"
@@ -32,7 +31,7 @@
 #include "random.h"
 #include "bb_sim.h"
 
-m_tetris2::TetrisEngine2<rule_st::TetrisRule, ai_zzz::Dig, path::Search> tetris_ai;
+m_tetris2::TetrisEngine<rule_st::TetrisRule, ai_zzz::Dig, path::Search> tetris_ai;
 
 extern "C" void attach_init()
 {
@@ -103,19 +102,19 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
 
 #if !USE_V08
 #if USE_THREAD
-m_tetris2::TetrisThreadEngine2<rule_toj::TetrisRule, ai_zzz::TOJ, tspin::Search> srs_ai;
+m_tetris2::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::TOJ, tspin::Search> srs_ai;
 #else
-m_tetris2::TetrisEngine2<rule_toj::TetrisRule, ai_zzz::TOJ, tspin::Search> srs_ai;
+m_tetris2::TetrisEngine<rule_toj::TetrisRule, ai_zzz::TOJ, tspin::Search> srs_ai;
 #endif
 #else
 #if USE_THREAD
-m_tetris2::TetrisThreadEngine2<rule_toj::TetrisRule, ai_zzz::TOJ_v08, tspin::Search> srs_ai;
+m_tetris2::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::TOJ_v08, tspin::Search> srs_ai;
 #else
-m_tetris2::TetrisEngine2<rule_toj::TetrisRule, ai_zzz::TOJ_v08, tspin::Search> srs_ai;
+m_tetris2::TetrisEngine<rule_toj::TetrisRule, ai_zzz::TOJ_v08, tspin::Search> srs_ai;
 #endif
 #endif
 #if USE_PC
-std::unique_ptr<m_tetris2::TetrisThreadEngine2<rule_toj::TetrisRule, ai_zzz::TOJ_PC, tspin::Search>> srs_pc;
+std::unique_ptr<m_tetris2::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::TOJ_PC, tspin::Search>> srs_pc;
 #endif
 std::mutex srs_ai_lock;
 
@@ -164,7 +163,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
 #if USE_PC
     if (!srs_pc)
     {
-        srs_pc.reset(new m_tetris2::TetrisThreadEngine2<rule_toj::TetrisRule, ai_zzz::TOJ_PC, tspin::Search>());
+        srs_pc.reset(new m_tetris2::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::TOJ_PC, tspin::Search>());
         srs_pc->prepare(10, 40);
         memset(srs_pc->status(), 0, sizeof *srs_pc->status());
     }
@@ -325,8 +324,8 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     return result_buffer[player];
 }
 
-m_tetris2::TetrisThreadEngine2<rule_botris::TetrisRule, ai_zzz::Botris, aspin::Search> botris_ai;
-std::unique_ptr<m_tetris2::TetrisThreadEngine2<rule_botris::TetrisRule, ai_zzz::Botris_PC, aspin::Search>> botris_pc;
+m_tetris2::TetrisThreadEngine<rule_botris::TetrisRule, ai_zzz::Botris, aspin::Search> botris_ai;
+std::unique_ptr<m_tetris2::TetrisThreadEngine<rule_botris::TetrisRule, ai_zzz::Botris_PC, aspin::Search>> botris_pc;
 
 extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI3(int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, int duration)
 {
@@ -341,7 +340,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI3(int field[], int field_w, int
     }
     if (!botris_pc)
     {
-        botris_pc.reset(new m_tetris2::TetrisThreadEngine2<rule_botris::TetrisRule, ai_zzz::Botris_PC, aspin::Search>());
+        botris_pc.reset(new m_tetris2::TetrisThreadEngine<rule_botris::TetrisRule, ai_zzz::Botris_PC, aspin::Search>());
         botris_pc->prepare(10, 40);
         memset(botris_pc->status(), 0, sizeof *botris_pc->status());
     }
@@ -597,7 +596,7 @@ private:
     std::vector<m_tetris2::BBLandPoint> flatten_landpoint_;
     std::vector<m_tetris2::BBLandPoint> empty_;
 };
-m_tetris2::TetrisEngine2<rule_qq::TetrisRule, ai_zzz::qq::Attack, QQTetrisSearch> qq_ai;
+m_tetris2::TetrisEngine<rule_qq::TetrisRule, ai_zzz::qq::Attack, QQTetrisSearch> qq_ai;
 
 extern "C" DECLSPEC_EXPORT int __cdecl QQTetrisAI(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int level, int mode, char path[], size_t limit)
 {
@@ -668,7 +667,7 @@ extern "C" DECLSPEC_EXPORT int __cdecl QQTetrisAI(int boardW, int boardH, int bo
     return 0;
 }
 
-m_tetris2::TetrisThreadEngine2<rule_c2::TetrisRule, ai_zzz::C2, cautious::Search> c2_ai;
+m_tetris2::TetrisThreadEngine<rule_c2::TetrisRule, ai_zzz::C2, cautious::Search> c2_ai;
 
 struct c2_out_put
 {

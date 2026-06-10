@@ -6,7 +6,6 @@
 #include "random.h"
 #include "search_simple.h"
 #include "rule_st.h"
-#include "tetris_engine2.h"
 
 //for https://misakamm.com/blog/504
 
@@ -40,7 +39,7 @@ namespace demo
     };
 }
 
-m_tetris2::TetrisEngine2<rule_st::TetrisRule, demo::AI, search_simple::Search> tetris_ai;
+m_tetris2::TetrisEngine<rule_st::TetrisRule, demo::AI, search_simple::Search> tetris_ai;
 
 extern "C" void attach_init()
 {

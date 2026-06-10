@@ -19,7 +19,6 @@
 #include "rule_botris.h"
 #include "sb_tree.h"
 #include "integer_utils.h"
-#include "tetris_engine2.h"
 #include "bb_sim.h"
 
 #if _MSC_VER
@@ -74,7 +73,7 @@ namespace zzz
     }
 }
 
-using Engine = m_tetris2::TetrisEngine2<rule_botris::TetrisRule, ai_zzz::Botris, aspin::Search>;
+using Engine = m_tetris2::TetrisEngine<rule_botris::TetrisRule, ai_zzz::Botris, aspin::Search>;
 
 struct test_ai
 {

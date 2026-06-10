@@ -13,7 +13,6 @@
 #include "rule_qq.h"
 #include "rule_srs.h"
 #include "random.h"
-#include "tetris_engine2.h"
 #include "bb_sim.h"
 
 extern "C" void attach_init()
@@ -35,7 +34,7 @@ extern "C" void attach_init()
 struct tetris_game
 {
     typedef int (*ai_run_t)(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int level, int mode, char path[], size_t limit);
-    m_tetris2::TetrisEngine2<rule_qq::TetrisRule, ai_zzz::qq::Attack, search_path::Search> tetris_ai;
+    m_tetris2::TetrisEngine<rule_qq::TetrisRule, ai_zzz::qq::Attack, search_path::Search> tetris_ai;
     ege::mtrandom random;
     decltype(tetris_ai)::map_t map;
     std::vector<char> next;
@@ -267,7 +266,7 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
     }
 }
 
-m_tetris2::TetrisEngine2<rule_st::TetrisRule, ai_zzz::Dig, search_simple::Search> tetris_ai;
+m_tetris2::TetrisEngine<rule_st::TetrisRule, ai_zzz::Dig, search_simple::Search> tetris_ai;
 
 //创建一个读取两个dll对战数据的控制台，先调用AIPath，再尝试调用旧版AI
 int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])

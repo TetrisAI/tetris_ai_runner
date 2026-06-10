@@ -20,6 +20,8 @@
 #include <thread>
 #include <condition_variable>
 
+#include "tetris_active_policy.h"
+
 #include "chash_map.h"
 #include "chash_set.h"
 #include "tetris_rule_spec.h"
@@ -1486,7 +1488,8 @@ namespace m_tetris2
         //   则把 Policy 注入, 返回 Tag::rebind_policy<Policy>.
         //   否则 (旧式直接传 Searcher / 无 rebind_policy 的 tag) 原样穿透.
         //
-        //   供 TetrisEngine2 用于从 SearchTag 自动注入 DeduceSpinPolicy<AI>.
+        //   供 TetrisEngine / TetrisThreadEngine 用于从 SearchTag 自动注入
+        //   DeduceSpinPolicy<AI>.
         //----------------------------------------------------------------------
         template<class Tag, class Policy, class = void>
         struct rebind_search_policy
@@ -1508,7 +1511,8 @@ namespace m_tetris2
     class TetrisEngine
     {
     public:
-        typedef typename detail::SearchTagResolve<TetrisSearchTag, TetrisRule>::type TetrisSearch;
+        using ResolvedSearchTag = detail::rebind_search_policy_t<TetrisSearchTag, DeduceSpinPolicy<TetrisAI>>;
+        typedef typename detail::SearchTagResolve<ResolvedSearchTag, TetrisRule>::type TetrisSearch;
         typedef TetrisCore<TetrisAI, TetrisSearch> Core;
         typedef TetrisTreeNode<typename Core::Status, TetrisAI, TetrisSearch> TreeNode;
         typedef LocalContextBuilder<typename TreeNode::Context, TetrisRule, TetrisAI, TetrisSearch> ContextBuilder;
@@ -1805,10 +1809,6 @@ namespace m_tetris2
         }
     };
 
-    // TetrisEngine2 已移至 src/tetris_engine2.h.
-    // 需要使用时 include src/tetris_engine2.h (该文件已 include movegen_hook.h,
-    // 因此 DeduceSpinPolicy 在定义点可见).
-
     template<class TetrisRule, class TetrisAI, class TetrisSearch>
     class TetrisThreadEngine
     {
@@ -2052,4 +2052,6 @@ namespace m_tetris2
             engine_.search(status, map, result);
         }
     };
+
+#include "tetris_active_policy.h"
 }

@@ -4,6 +4,7 @@
 #include "integer_utils.h"
 #include "search_aspin.h"
 #include "search_tspin.h"
+#include "tetris_active_policy.h"
 #include "tetris_core.h"
 #include "tetris_shape.h"
 
@@ -89,36 +90,6 @@ namespace m_tetris2
                   "SpinTypePayload.last_r must occupy old TSpinPayload.last_r slot");
     static_assert(offsetof(SpinTypePayload, has_last_rot) == 4,
                   "SpinTypePayload.has_last_rot must occupy old TSpinPayload.has_last_rot slot");
-
-    //=========================================================================
-    // ActivePiecePolicy — TetrisEngine2 框架用于向 Strategy 传递"哪些 piece
-    // 需要激活 spin 路径"的编译期 tag.
-    //
-    //   ActiveAllPolicy:   全件激活 (ASpin 默认行为)
-    //   ActiveNonePolicy:  全件关闭 (AI 不需要 spin / 类型不匹配退化)
-    //   ActiveTOnlyPolicy: 仅 T 件激活 (TSpin 默认行为)
-    //
-    // Strategy 消费时通过 SFINAE 探针判断 Hook::active_for_piece<T, Policy>
-    // 是否存在, 存在则使用双参版本, 否则 fallback 到单参 Hook 历史行为.
-    // 自定义 Hook 无需声明 Policy 参数即可继续工作.
-    //=========================================================================
-    struct ActiveAllPolicy
-    {
-        template<char T>
-        static constexpr bool value = true;
-    };
-
-    struct ActiveNonePolicy
-    {
-        template<char T>
-        static constexpr bool value = false;
-    };
-
-    struct ActiveTOnlyPolicy
-    {
-        template<char T>
-        static constexpr bool value = (T == 'T');
-    };
 
     //=========================================================================
     // BBLandPoint — NoSpinHook / CautiousHook 的无指针 LandPoint.
@@ -1161,69 +1132,6 @@ namespace m_tetris2
         }
     };
 
-    //=========================================================================
-    // detail::DeduceSpinPolicy<AI> — 从 AI class 的 EvalSpinType 别名自动
-    // 推导 ActivePiecePolicy.
-    //
-    // 推导规则:
-    //   AI 定义了 using EvalSpinType = <SpinT>
-    //     ├─ EvalSpinType 是 search_tspin::Search::TSpinType
-    //     │    → ActiveTOnlyPolicy
-    //     ├─ EvalSpinType 是 search_aspin::Search::ASpinType
-    //     │    → ActiveAllPolicy
-    //     └─ 其他 (未来新类型)
-    //          → ActiveNonePolicy (保守回退)
-    //   AI 未定义 EvalSpinType
-    //     → ActiveNonePolicy (无 spin AI, 不需要 spin)
-    //
-    // 设计约定:
-    //   * AI 不必知道 Policy 体系, 推导纯靠 EvalSpinType alias 反查.
-    //   * ai_zzz::tspin::* / ai_misaka::* / ai_tag::the_ai_games* 用
-    //     TSpinType → ActiveTOnlyPolicy.
-    //   * ai_zzz::aspin::* 用 ASpinType → ActiveAllPolicy.
-    //   * ai_zzz::qq/c2, ai_farter, ai_easy, ai_ax 无 EvalSpinType
-    //     → ActiveNonePolicy.
-    //=========================================================================
-    namespace detail
-    {
-        //--- 步骤 1: 探测 AI::EvalSpinType 是否存在 ---
-        template<class AI, class = void>
-        struct has_eval_spin_type : std::false_type
-        {
-        };
-        template<class AI>
-        struct has_eval_spin_type<AI, std::void_t<typename AI::EvalSpinType>> : std::true_type
-        {
-        };
-
-        //--- 步骤 2: 根据 EvalSpinType 的具体类型选 Policy ---
-        //  主模板: 无 EvalSpinType 或未知类型 → ActiveNonePolicy (保守).
-        template<class AI, bool HasSpin = has_eval_spin_type<AI>::value>
-        struct DeduceSpinPolicyImpl
-        {
-            using type = ActiveNonePolicy;
-        };
-        //  有 EvalSpinType 的偏特化: 再根据实际类型分发.
-        template<class AI>
-        struct DeduceSpinPolicyImpl<AI, true>
-        {
-        private:
-            using SpinT = typename AI::EvalSpinType;
-
-        public:
-            using type = std::conditional_t<
-                std::is_same_v<SpinT, ::search_tspin::Search::TSpinType>,
-                ActiveTOnlyPolicy,
-                std::conditional_t<
-                    std::is_same_v<SpinT, ::search_aspin::Search::ASpinType>,
-                    ActiveAllPolicy,
-                    ActiveNonePolicy>>;
-        };
-    } // namespace detail
-
-    //--- 公开入口 ---
-    template<class AI>
-    using DeduceSpinPolicy = typename detail::DeduceSpinPolicyImpl<AI>::type;
 
 } // namespace m_tetris2
 
