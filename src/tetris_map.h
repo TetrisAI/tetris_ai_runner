@@ -1,4 +1,4 @@
-﻿#ifndef TETRIS_AI_RUNNER_TETRIS_MAP_H_
+#ifndef TETRIS_AI_RUNNER_TETRIS_MAP_H_
 #define TETRIS_AI_RUNNER_TETRIS_MAP_H_
 
 //==========================================================================
@@ -13,7 +13,6 @@
 // - 对外提供与现有 TetrisMap 等价的"按行视图":
 //     row_t row(int y) const;          //取第 y 行(低位是 x=0)
 //     void  set_row(int y, row_t v);   //写第 y 行
-//   这样 Phase 2 在重写 Search/AI 之前, 旧 TetrisMap 与新的位板 TetrisMap 之间可以做对拍.
 // - 不引入 cobra 的 do_move / clear_lines 加速版本; 这些留给 movegen 阶段.
 //   本头文件只负责"棋盘的存储与基础位运算", 不包含规则/形状.
 //

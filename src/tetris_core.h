@@ -111,8 +111,7 @@ namespace m_tetris2
         };
 
     public:
-        // Commit 4 Phase 2: eval is now a template member; Result must be
-        // declared as a nested type alias inside each AI class.
+        // eval 是模板成员；每个 AI 类必须在内部声明 Result 类型别名。
         typedef typename TetrisAI::Result Result;
         typedef typename function_traits_get<TetrisAI>::result_type Status;
         enum
@@ -899,8 +898,7 @@ namespace m_tetris2
         }
         // alloc_eval_typed<T,R>: 分配子节点，直接以编译期 <T,R> 调 TetrisCallEval::call_eval_typed，
         // 完全绕过 TetrisCallEval::eval() 里的 for_each_typed_r 运行时循环。
-        // 这是 Phase 2 推式 eval 的核心：Search 层回调携带编译期 <T,R>，在此直接实例化。
-        // TODO(multi-thread): 多线程路径在此构造 PendingTask 而非同步 eval，详见 plan doc。
+        // TODO(multi-thread): 多线程路径在此构造 PendingTask 而非同步 eval。
         template<char T, std::uint8_t R, class SrcBoard>
         TetrisTreeNode *alloc_eval_typed(Context *context, map_t &map,
                                          SrcBoard const &src_board,

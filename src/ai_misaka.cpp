@@ -15,52 +15,6 @@ namespace ai_misaka
     bool misaka::Status::operator<(Status const &other) const
     {
         auto &m = other;
-#if 0
-    {
-        if(max_combo > (combo - 1) * 32 && m.max_combo > (m.combo - 1) * 32)
-        {
-            if(att > 8 || m.att > 8)
-            {
-                if(abs(first.score - m.first.score) < 400)
-                {
-                    if(att != m.att)
-                        return att < m.att;
-                }
-                else
-                {
-                    return first < m.first;
-                }
-            }
-        }
-        if((max_combo > 6 * 32 || m.max_combo > 6 * 32))
-        {
-            if(max_combo != m.max_combo)
-            {
-                return max_combo < m.max_combo;
-            }
-        }
-        if(ai_settings[player].strategy_4w)
-            if((combo > 3 * 32 || m.combo > 3 * 32))
-            {
-                if(combo != m.combo)
-                {
-                    return combo < m.combo;
-                }
-            }
-    }
-    //if (0)
-    if((pool_last.combo > 3 * 32 || m.pool_last.combo > 3 * 32) && pool_last.combo != m.pool_last.combo)
-    {
-        return pool_last.combo < m.pool_last.combo;
-    }
-#else
-        //if ( abs(first.score - m.first.score) >= 900 ) {
-        //    return first < m.first;
-        //}
-        //if ( (max_att >= 6 || m.max_att >= 6) && abs(max_att - m.max_att) >= 2 ) {
-        //    return max_att < m.max_att;
-        //}
-        //else
         if (strategy_4w)
         {
             if ((max_combo > 6 * 32 || m.max_combo > 6 * 32))
@@ -126,7 +80,6 @@ namespace ai_misaka
         //if ( (pool_last.combo > 1 || m.pool_last.combo > 1) && pool_last.combo != m.pool_last.combo) {
         //    return pool_last.combo < m.pool_last.combo;
         //}
-#endif
         return score > m.score;
     }
 

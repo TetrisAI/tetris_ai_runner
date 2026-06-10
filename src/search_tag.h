@@ -70,9 +70,6 @@ namespace m_tetris2
 
                     Config const *config_ = nullptr;
                     std::vector<LandPoint> land_point_cache_{};
-                    //commit B (PathMark 栈化): 旧 search_mark_ / t_mark_ /
-                    //  make_path_mark_ 字段迁出 ctx, 改在各 native 入口栈分配.
-                    //  ctx 不再持任何 PathMark 状态, 解锁后续并发 (多线程独立栈).
                 };
             } // namespace tag
         } // namespace detail
@@ -360,7 +357,6 @@ namespace m_tetris2
                 Helpers::build_usable_for_piece(T, board, usable_arr);
                 std::array<map_t, kMaxR> inbounds_arr{};
                 Helpers::build_inbounds_for_piece(T, inbounds_arr);
-                //commit B: search_mark_ 栈分配; PathMarkBit 默认构造即空集.
                 typename Helpers::PathMarkBit search_mark;
                 std::vector<bb::CellsKey> emitted_keys;
                 emitted_keys.reserve(32);
@@ -382,7 +378,7 @@ namespace m_tetris2
             // 与 oracle 行 228-242 / 1g 路径用同样的语义 (避免 first_kick
             // 找到 master 永不会试的更远 kick).
             // l/r 加 !open 过滤 (与 oracle l/r 分支严格对应), z/c/d 不加 open 过滤
-            // (对应 oracle 行 228-242, 254-257). open 等价用 open_bb_state
+            // (对应 oracle 行 228-242, 254-257). open 等价用 open_state
             struct TagSearch20gNeighbors
             {
                 char piece_t;
@@ -391,9 +387,9 @@ namespace m_tetris2
                 map_t const *board;
                 Context *ctx;
 
-                bool open_bb_state(bb::State const &s)
+                bool open_state(bb::State const &s)
                 {
-                    return Helpers::open_bb_state(s, *board);
+                    return Helpers::open_state(s, *board);
                 }
 
                 template<class Emit>
@@ -415,13 +411,13 @@ namespace m_tetris2
                     {
                         bb::State nL = cur;
                         nL.xb = static_cast<std::int8_t>(nL.xb - 1);
-                        if (Helpers::usable_at(nL.r, nL.xb, nL.yb, *usable_arr) && !open_bb_state(nL))
+                        if (Helpers::usable_at(nL.r, nL.xb, nL.yb, *usable_arr) && !open_state(nL))
                             emit(nL, 'l');
                     }
                     {
                         bb::State nR = cur;
                         nR.xb = static_cast<std::int8_t>(nR.xb + 1);
-                        if (Helpers::usable_at(nR.r, nR.xb, nR.yb, *usable_arr) && !open_bb_state(nR))
+                        if (Helpers::usable_at(nR.r, nR.xb, nR.yb, *usable_arr) && !open_state(nR))
                             emit(nR, 'r');
                     }
                     {
@@ -452,7 +448,7 @@ namespace m_tetris2
                     bool grounded = !Helpers::usable_at(cur.r, cur.xb, cur.yb - 1, *usable_arr);
                     if (!grounded)
                         return true;
-                    if (Helpers::open_bb_state(cur, *board))
+                    if (Helpers::open_state(cur, *board))
                         return true;
                     bb::CellsKey k = Helpers::cells_key_for_state(cur);
                     for (bb::CellsKey ek : *emitted_keys)
@@ -519,7 +515,6 @@ namespace m_tetris2
                 std::vector<bb::CellsKey> emitted_keys;
                 emitted_keys.reserve(32);
 
-                //commit B: search_mark_ 栈分配; PathMarkBit 默认构造即空集.
                 typename Helpers::PathMarkBit search_mark;
                 ctx.node_search_path_.clear();
                 //  与 oracle/search_tag.cpp:177-214 同形 — spawn-row land_point 列表
@@ -824,7 +819,6 @@ namespace m_tetris2
                 //  位板 t_mark 是 PathMark (L3). t_mark 仅由 search_t_native 读写, 而
                 //  search_t_native 仅对 SpinHook::active_for_piece<T>=true 的 piece
                 //  实例化, 故 t_mark 物理上单 piece 写入, 不需要 piece 分桶.
-                //commit B: t_mark 栈分配; PathMark 默认构造即空表 (used_ 全 false).
                 PathMark t_mark;
                 std::vector<bb::CellsKey> emitted_keys;
                 emitted_keys.reserve(32);

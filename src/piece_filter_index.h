@@ -251,13 +251,9 @@ namespace m_tetris2
                 //  = [0, 3, 2, 1]. 为对齐 master, 我们按 CCW 链遍历分配 idx,
                 //  让同一几何等价类里 CCW 序更靠前的 (r, xb, yb) 拿到先到 idx.
                 //
-                //TODO(post-oracle): 这是与 master oracle baseline 对拍兼容的临时
-                //  手段 (master IndexFilter 注册顺序 -> tetris_core.cpp:296-322
-                //  的 BFS rotate_counterclockwise 出列序). 待 oracle baseline
-                //  按新框架重做后, 此处应回归 CW 顺序, 与 BFS 主循环 (旋转扩展
-                //  默认 cw / ccw / opp 同时下发, 但 emit 阶段的 "先到先得" 自然
-                //  从 r=0 沿 CW 顺序遍历) 方向自洽; 切换时同步删除运行时
-                //  tetris_movegen.h 内的 kCcwVisit 构造与使用点.
+                // 使用 CCW 遍历顺序，与 oracle IndexFilter 注册顺序（tetris_core.cpp:296-322 的
+                // rotate_counterclockwise BFS 出列序）保持一致，确保 canonical idx 分配相同。
+                // 切换回 CW 顺序需同步删除 tetris_movegen.h 内的 kCcwVisit 构造与使用点。
                 constexpr auto visit_r = build_ccw_visit<Spec, T, R_count>();
 
                 FilterTable<N> table{};

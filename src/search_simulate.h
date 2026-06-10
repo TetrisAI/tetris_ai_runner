@@ -54,8 +54,6 @@ namespace m_tetris2
         // 与 detail::path::ExtrasMixin 同形, 但 simulate 通常用 NoSpin Hook,
         // hook_state 是空 struct, [[no_unique_address]] 让其 0 字节占位.
         // 持: TetrisContext / Config / LandPoint cache / hook_state.
-        //commit 3: 落到 detail::simulate:: 子命名空间, 标注 "SimulateStrategy
-        //  私有实现细节, 第三方扩展不应直接消费".
         namespace detail
         {
             namespace simulate
@@ -617,8 +615,6 @@ namespace m_tetris2
 // simulate::Search> 单参数即可装配. SimulateStrategy 当前唯一搭配的 hook 是
 // NoSpinHook (active_for_piece 全 false), 这里 Config trait 仅保留 enable
 // 占位以与 path::SearchWith 形态一致.
-//commit (seven-namespace): namespace simulate 从 m_tetris2::simulate 提到顶层
-//  simulate, 与 path / aspin / tspin / cautious / simple / tag 形态统一.
 namespace simulate
 {
     struct DefaultConfig

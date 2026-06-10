@@ -1,4 +1,4 @@
-﻿
+
 //misakamm那里得到的mt随机
 namespace ege
 {

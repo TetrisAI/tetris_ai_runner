@@ -15,15 +15,14 @@
 #include <utility>
 
 //==========================================================================
-// Movegen Hook 抽象 (原 search_hook.h, 改名为 movegen_hook.h —— 与 movegen_search.h
-// 同前缀, 不再以 "search_" 前缀混淆 search 实现).
+// Movegen Hook 抽象。
 //
 // 目标: 让框架层 (MoveGen / MoveGenSearch) 完全不持有 spin 专属算法字符串. 五类
 // 原本散落在 MoveGen / MoveGenSearch 私有静态成员里的 T-spin 专属算法搬入
 // TSpinHook (定义在本文件):
 //
 //   1. corners3 (≥3 corner 占用位图) — compute_corners3 / build_corners3 /
-//      corner_bb_ct
+//      corner_ct
 //   2. last_rotate_arr 维护 + find_last_rotate_pred 反查链
 //   3. blocked_arr (mini-ready 4 邻 OR 取反位图) — compute_mini_blocked_arr /
 //      build_mini_blocked, 替代旧 master 坐标 SearchState (block_data + x_diff /
@@ -585,7 +584,7 @@ namespace m_tetris2
 
     private:
         template<class MapT, int Cx, int Cy>
-        static MapT corner_bb_ct(MapT const &board) noexcept
+        static MapT corner_ct(MapT const &board) noexcept
         {
             MapT shifted = board.template shifted<-Cx, -Cy>();
             return ~shifted;
@@ -596,10 +595,10 @@ namespace m_tetris2
         {
             constexpr int pvx = shape::piece_cells<Spec, T, R>.pivot.x;
             constexpr int pvy = shape::piece_cells<Spec, T, R>.pivot.y;
-            MapT bl = corner_bb_ct<MapT, pvx - 1, pvy - 1>(board);
-            MapT br = corner_bb_ct<MapT, pvx + 1, pvy - 1>(board);
-            MapT tl = corner_bb_ct<MapT, pvx - 1, pvy + 1>(board);
-            MapT tr = corner_bb_ct<MapT, pvx + 1, pvy + 1>(board);
+            MapT bl = corner_ct<MapT, pvx - 1, pvy - 1>(board);
+            MapT br = corner_ct<MapT, pvx + 1, pvy - 1>(board);
+            MapT tl = corner_ct<MapT, pvx - 1, pvy + 1>(board);
+            MapT tr = corner_ct<MapT, pvx + 1, pvy + 1>(board);
             rs.corners3_arr[R] = (bl & br & (tl | tr)) | (tl & tr & (bl | br));
         }
 

@@ -575,9 +575,6 @@ namespace m_tetris2
 // simple::Search> 单参数即可装配. SimpleStrategy 当前唯一搭配的 hook 是
 // NoSpinHook, 这里仅留 enable 占位字段, 默认/自定义 Config 都解析为同一
 // 套 hook 选型, 与历史调用面 byte-equivalent.
-//commit (seven-namespace): namespace simple 从 m_tetris2::simple 提到顶层 simple,
-//  与 path / aspin / tspin / cautious / simulate / tag 形态统一; 与 oracle
-//  search_simple_oracle / 客户端 simple::Search 调用面对称.
 namespace simple
 {
     struct DefaultConfig

@@ -11,10 +11,7 @@
 //   - make_path(): 1g 走 BFS + PathMark + 末段 wall-kick 重放; 20g 邻居入队
 //     时已 drop, 末段 wall-kick + drop + cells_key 比对.
 //
-// 算法 byte-equivalent 自旧 movegen_search.h 搬迁; 三件套 (Run20g* /
-// MakePath1g* / MakePath20g*) 全部改写成"以 Context& 为状态接口"的纯静态
-// 嵌套类型. 1g make_path 的 dedup 复用 movegen_strategy.h 的
-// detail::common::MakePath1gDedup; 20g 与 run_piece_20g 各有专属 dedup.
+// 封装 1g / 20g 路径搜索与 make_path 所需的静态算法组件。
 //==========================================================================
 
 #include "movegen_bfs.h"
@@ -989,7 +986,7 @@ namespace m_tetris2
                 {
                     int spawn_low = Helpers::spawn_min_cell_y_dispatch_state(spawn);
                     int roof = Helpers::board_roof(board);
-                    if (spawn_low >= roof && Helpers::open_bb_state(land_point.state, board))
+                    if (spawn_low >= roof && Helpers::open_state(land_point.state, board))
                         disable_d = true;
                 }
 

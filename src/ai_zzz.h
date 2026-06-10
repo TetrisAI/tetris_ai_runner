@@ -294,7 +294,7 @@ namespace ai_zzz
             using MapT = typename Details::map_type;
             using row_t = typename MapT::row_t;
             // TetrisMap<W,H>: bit=1 means occupied (1=occupied semantics).
-            // TetrisMap: bit=1 means empty (1=empty semantics). Conversion done in bridge.
+            // TetrisMap: bit=1 表示 occupied。
             constexpr int W = MapT::width;
             constexpr int H = MapT::height;
             constexpr row_t full = MapT::row_full;

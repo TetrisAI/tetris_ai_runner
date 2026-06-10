@@ -230,7 +230,7 @@ namespace m_tetris2
     //==========================================================================
     // TetrisCallGet<AI>  — get() 侧调用桥。
     //
-    // 替换 oracle 时代的 TetrisCallAI::get()，与 TetrisCallEval 对称命名。
+    // get() 侧调用分发器，与 TetrisCallEval 保持对称命名。
     //
     // 职责：将框架持有的 LandPoint（可能带 spin 信息的
     //       包装结构体）转换为 AI::get() 所期望的第一参数类型，然后透传其余参数。

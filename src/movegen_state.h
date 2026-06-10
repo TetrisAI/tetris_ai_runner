@@ -4,8 +4,7 @@
 //==========================================================================
 // 位板 BFS 共享数据结构 + piece-aware 静态 helper.
 //
-// 抽自 movegen_search.h (commit 1: 行为零变化的 helper 抽离).
-// 后续 commit 2 起, 位板 BFS 引擎 / 各 search 接位板的实现都会 include 这里.
+// 提供位板 BFS 所需的数据结构与 piece-aware 静态 helper。
 //
 // 设计:
 //   - bb 命名空间下的"自由结构" (KickDir / State / CellsKey) 与 RuleSpec 无关,
@@ -679,7 +678,7 @@ namespace m_tetris2
 
             //land_point->open(map) 位板等价.
             template<char T, std::uint8_t R>
-            static bool open_bb_TR(int xb, int yb, map_t const &board)
+            static bool open_TR(int xb, int yb, map_t const &board)
             {
                 constexpr auto const &cells = shape::piece_cells<RuleSpec, T, R>;
                 int mn[4];
@@ -713,21 +712,21 @@ namespace m_tetris2
             }
 
             template<char T>
-            static bool open_bb_T_state(State const &lp, map_t const &board)
+            static bool open_T_state(State const &lp, map_t const &board)
             {
                 bool ret = false;
                 std::uint8_t cur_r = lp.r;
                 [&]<std::size_t... Rs>(std::index_sequence<Rs...>)
                 {
                     ((Rs == cur_r
-                          ? (ret = open_bb_TR<T, static_cast<std::uint8_t>(Rs)>(lp.xb, lp.yb, board), true)
+                          ? (ret = open_TR<T, static_cast<std::uint8_t>(Rs)>(lp.xb, lp.yb, board), true)
                           : false) ||
                      ...);
                 }(std::make_index_sequence<rcount_v<T>()>{});
                 return ret;
             }
 
-            static bool open_bb_state(State const &lp, map_t const &board)
+            static bool open_state(State const &lp, map_t const &board)
             {
                 bool ret = false;
                 char t = static_cast<char>(lp.t);
@@ -735,7 +734,7 @@ namespace m_tetris2
                 {
                     bool hit = false;
                     (((!hit && piece_info_t::type_at(Is) == t)
-                          ? (ret = open_bb_T_state<piece_info_t::type_at(Is)>(lp, board), hit = true)
+                          ? (ret = open_T_state<piece_info_t::type_at(Is)>(lp, board), hit = true)
                           : false),
                      ...);
                 }(std::make_index_sequence<kPieceCount>{});

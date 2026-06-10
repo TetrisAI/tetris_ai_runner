@@ -1,21 +1,5 @@
-// search_tspin.h — 双阶段头.
-//
-// Phase 1: search_tspin::Search POJO (enum TSpinType / struct Config /
-//          struct TetrisNodeWithTSpinType). 由 movegen_hook.h 在装配
-//          m_tetris2::TSpinHook / CautiousHook 时消费 (LandPoint / Config
-//          alias). 不引入 search_path.h.
-//          master-graph BFS 实现已归档到 oracle/search_tspin.{h,cpp}
-//          (namespace search_tspin_oracle), 仅供 oracle_diff /
-//          tag_landpoint_collision_dump 等对照工具使用; 生产路径 (位板侧)
-//          全走顶层 namespace tspin::Search.
-//
-// Phase 2: 顶层 namespace tspin (DefaultConfig / SearchWith / Search) — 与
-//          aspin / cautious / simple / ... 同形, 让
-//          TetrisEngine<Rule, AI, tspin::Search> 单参装配位板后端. 这部分
-//          需要 path::SearchWith / path::detail::merge / m_tetris2::
-//          PathStrategy / m_tetris2::TSpinHook 全部就绪, 因此被 sentinel
-//          (TETRIS_AI_RUNNER_SEARCH_PATH_TAGS_READY_) 守护; sentinel 由
-//          search_path.h 末尾设置. 协调流程见 search_aspin.h 同段注释.
+// search_tspin.h — 提供 T-spin 搜索所需的类型定义、Hook 装配接口与顶层 tspin::Search 适配器。
+// 顶层 tspin::Search 与其他位板 search 标签同形，可直接用于 TetrisEngine 装配。
 #ifndef TETRIS_AI_RUNNER_SEARCH_TSPIN_PHASE1_
 #define TETRIS_AI_RUNNER_SEARCH_TSPIN_PHASE1_
 

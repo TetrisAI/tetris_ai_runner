@@ -22,8 +22,6 @@
 //     拉一次 (Phase 1 emit, Phase 2 因 sentinel 未就绪而跳过); search_path
 //     .h 末尾再次 include 本头, 此时 sentinel 已就绪, Phase 2 emit.
 //
-// 旧 search_aspin::Search 的 init / search / make_path 成员函数 (老
-// search_aspin.cpp pImpl 外观) 已经废弃: 调用方应改走 aspin::Search.
 #ifndef TETRIS_AI_RUNNER_SEARCH_ASPIN_PHASE1_
 #define TETRIS_AI_RUNNER_SEARCH_ASPIN_PHASE1_
 

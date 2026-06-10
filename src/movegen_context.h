@@ -25,10 +25,6 @@
 //     表示 "movegen 框架装配层"). 与 m_tetris2::bb 中的 piece-aware 静态
 //     helper 互不混叠.
 //
-// commit 1 范围:
-//   - 仅声明 mixin 与 MoveGenContext 模板, 不把 MoveGenSearch 的字段实际
-//     迁出来. commit 2 / commit 3 的 strategy 头文件会消费这些 mixin.
-//   - 不被任何 .cpp / 旧 .h include — 通过本文件内的 static_assert 自证语法.
 //==========================================================================
 
 #include "movegen_state.h"
