@@ -1,7 +1,7 @@
 ﻿
 #include "tetris_core.h"
 #include "integer_utils.h"
-#include "bb_node.h"
+#include "tetris_node.h"
 #include "ai_rule_spec_utils.h"
 
 namespace ai_ax

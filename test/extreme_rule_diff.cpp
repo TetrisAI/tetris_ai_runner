@@ -24,7 +24,7 @@
 //   路径, 只 dump 新框架侧落点. 后续 Phase 再决定是否替换为新框架自洽比对.
 
 #include "../src/rule_extreme.h"
-#include "../src/bb_node.h"
+#include "../src/tetris_node.h"
 #include "../src/tetris_movegen.h"
 #include "../src/tetris_rule_spec.h"
 

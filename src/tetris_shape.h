@@ -85,7 +85,7 @@ namespace m_tetris2
         using find_op = typename detail::Find<Spec, T, R>::type;
 
         // 安全检测：(T,R) 是否存在于 RuleSpec::ops，不触发 static_assert.
-        // 用于 BBCallEval::call_eval_typed 的编译期合法性门控.
+        // 用于 TetrisCallEval::call_eval_typed 的编译期合法性门控.
         template<class Spec, char T, std::uint8_t R>
         inline constexpr bool has_op =
             !std::is_same_v<

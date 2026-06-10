@@ -18,7 +18,7 @@
 //  12. width() == kWidth
 //  13. line(i) 与 OpLines::data 对拍（y-down 翻转验证）
 
-#include "bb_node.h"
+#include "tetris_node.h"
 #include "rule_srs.h"
 
 #include <cassert>

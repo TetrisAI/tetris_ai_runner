@@ -30,7 +30,7 @@ namespace demo
             return eval_result;
         }
 
-        // eval()：BBCallEval 调用约定，接受任意 TetrisNode 类型（只需 clear 参数）
+        // eval()：TetrisCallEval 调用约定，接受任意 TetrisNode 类型（只需 clear 参数）
         template<class Node, class Map>
         double eval(Node const & /*node*/, Map const & /*after*/,
                     Map const & /*before*/, int clear) const

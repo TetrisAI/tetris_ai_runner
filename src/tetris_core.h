@@ -165,7 +165,7 @@ namespace m_tetris2
 } // namespace m_tetris2
 
 // Commit 4 Phase 2: bb_eval_bridge.h must be included OUTSIDE any open
-// namespace block.  It pulls in search_tspin.h / search_aspin.h / bb_node.h
+// namespace block.  It pulls in search_tspin.h / search_aspin.h / tetris_node.h
 // which all open their own namespace blocks (search_tspin / search_aspin /
 // etc.) and reference m_tetris2:: types with full qualification.  Placing the
 // #include inside namespace m_tetris2 {} would turn those inner namespace
@@ -432,7 +432,7 @@ namespace m_tetris2
             static void get(typename TreeNode::Context *context, TreeNode *node, TreeNode *parent)
             {
                 // arity >= 5: AI::get(node, result, depth, status, env)
-                node->status.set(BBCallGet<TetrisAI>::get(*context->ai, node->identity, node->result, parent->level, parent->status.get_raw(), parent->template env<EnableEnv>(context, node)));
+                node->status.set(TetrisCallGet<TetrisAI>::get(*context->ai, node->identity, node->result, parent->level, parent->status.get_raw(), parent->template env<EnableEnv>(context, node)));
             }
         };
         template<class TreeNode, bool EnableEnv>
@@ -441,7 +441,7 @@ namespace m_tetris2
             typedef std::false_type enable_next_c;
             static void get(typename TreeNode::Context *context, TreeNode *node, TreeNode *parent)
             {
-                node->status.set(BBCallGet<TetrisAI>::get(*context->ai,
+                node->status.set(TetrisCallGet<TetrisAI>::get(*context->ai,
                                                           node->identity,
                                                           node->result,
                                                           parent->level,
@@ -455,7 +455,7 @@ namespace m_tetris2
             typedef std::false_type enable_next_c;
             static void get(typename TreeNode::Context *context, TreeNode *node, TreeNode *parent)
             {
-                node->status.set(BBCallGet<TetrisAI>::get(*context->ai,
+                node->status.set(TetrisCallGet<TetrisAI>::get(*context->ai,
                                                           node->identity,
                                                           node->result,
                                                           parent->level,
@@ -468,7 +468,7 @@ namespace m_tetris2
             typedef std::false_type enable_next_c;
             static void get(typename TreeNode::Context *context, TreeNode *node, TreeNode *parent)
             {
-                node->status.set(BBCallGet<TetrisAI>::get(*context->ai,
+                node->status.set(TetrisCallGet<TetrisAI>::get(*context->ai,
                                                           node->identity,
                                                           node->result,
                                                           parent->level));
@@ -898,8 +898,8 @@ namespace m_tetris2
             context->width_cache.clear();
             return root;
         }
-        // alloc_eval_typed<T,R>: 分配子节点，直接以编译期 <T,R> 调 BBCallEval::call_eval_typed，
-        // 完全绕过 BBCallEval::eval() 里的 for_each_typed_r 运行时循环。
+        // alloc_eval_typed<T,R>: 分配子节点，直接以编译期 <T,R> 调 TetrisCallEval::call_eval_typed，
+        // 完全绕过 TetrisCallEval::eval() 里的 for_each_typed_r 运行时循环。
         // 这是 Phase 2 推式 eval 的核心：Search 层回调携带编译期 <T,R>，在此直接实例化。
         // TODO(multi-thread): 多线程路径在此构造 PendingTask 而非同步 eval，详见 plan doc。
         template<char T, std::uint8_t R, class SrcBoard>
@@ -908,7 +908,7 @@ namespace m_tetris2
                                          LandPoint const &lp)
         {
             using Spec = typename SearchRuleSpecOf<TetrisSearch>::type;
-            using BBCallEvalT = BBCallEval<TetrisAI, Spec>;
+            using TetrisCallEvalT = TetrisCallEval<TetrisAI, Spec>;
             TetrisTreeNode *child = context->alloc(this);
             child->map = map;
             child->identity = lp;
@@ -916,7 +916,7 @@ namespace m_tetris2
             // 不再需要 TetrisNode* 或 TetrisContext::get() 反查.
             size_t clear = m_tetris2::bb::Helpers<Spec>::attach_to_map(lp.state, child->map);
             auto after_board = m_tetris2::bb::build_board_for_search<Spec>(child->map);
-            child->result = BBCallEvalT::template call_eval_typed<T, R>(
+            child->result = TetrisCallEvalT::template call_eval_typed<T, R>(
                 *context->ai, child->identity, after_board, src_board, clear);
             return child;
         }

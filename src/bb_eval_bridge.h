@@ -10,7 +10,7 @@
 //                                            SpinT 通常为 AI::EvalSpinType
 //        EvalWantsNoSpinMapT               — eval(TetrisNode<Det,monostate>,  TetrisMap<W,H>, TetrisMap<W,H>, int)
 //
-//   2. BBCallEval<AI, Spec>
+//   2. TetrisCallEval<AI, Spec>
 //      供 Search 层 EvalCallback（for_each_move<T,R> 推式回调）直接调用：
 //        - call_eval_typed<T,R>：T、R 均为编译期，构造 TetrisNode 并调 ai.eval()
 //        - SpinType 由 AI::EvalSpinType 决定；无 EvalSpinType 则 fallback 至 monostate
@@ -18,14 +18,14 @@
 // LandPoint 约定（三种形态）：
 //   NoSpinHook 路径：BBLandPoint             — .state（BBState），无 .type
 //
-// 依赖：bb_node.h, typed_dispatch.h, tetris_shape.h（rotation_count）
+// 依赖：tetris_node.h, typed_dispatch.h, tetris_shape.h（rotation_count）
 //
 // Note: search_tspin.h / search_aspin.h are NOT included here to avoid a
 // circular-include cycle:
 //   search_tspin.h -> tetris_core.h -> bb_eval_bridge.h -> search_tspin.h (guard skip)
 //==========================================================================
 
-#include "bb_node.h"
+#include "tetris_node.h"
 #include "typed_dispatch.h"
 #include "tetris_shape.h"
 
@@ -88,7 +88,7 @@ namespace m_tetris2
     //
     // 设计约定：
     //   AI 应声明 using EvalSpinType = <SpinT>（即 search_tspin/aspin 里的 enum）。
-    //   BBCallEval 通过 AIEvalSpinTypeOf<AI>::type 安全提取该类型（无则 void），
+    //   TetrisCallEval 通过 AIEvalSpinTypeOf<AI>::type 安全提取该类型（无则 void），
     //   再用 EvalWantsSpinT<AI,Spec,T,R,SpinT> 探测；SpinT=void 时 concept
     //   自然不满足（TetrisNode<Det,void> 不合法），从而安全 fallback 到 monostate 路径。
     //   全程无 hard-error，不需要 requires { typename AI::EvalSpinType; } 短路保护。
@@ -133,12 +133,12 @@ namespace m_tetris2
     };
 
     //----------------------------------------------------------------------
-    // BBCallEval<AI, Spec>
+    // TetrisCallEval<AI, Spec>
     //
     // Search 层 EvalCallback（for_each_move<T,R> 推式回调）的编译期分发桥。
     //
     // 使用方式（search_eval EvalCallback 内）：
-    //   BBCallEval<TetrisAI, RuleSpec>::call_eval_typed<T, R>(
+    //   TetrisCallEval<TetrisAI, RuleSpec>::call_eval_typed<T, R>(
     //       ai, lp, after, src_map, clear);
     //
     // 模板参数：
@@ -148,7 +148,7 @@ namespace m_tetris2
     // 注：T、R 均由 Search 层在调用点静态传入，编译器可完全内联，零运行时 dispatch。
     //----------------------------------------------------------------------
     template<class AI, class Spec>
-    struct BBCallEval
+    struct TetrisCallEval
     {
     public:
         //------------------------------------------------------------------
@@ -228,9 +228,9 @@ namespace m_tetris2
     };
 
     //==========================================================================
-    // BBCallGet<AI>  — get() 侧调用桥。
+    // TetrisCallGet<AI>  — get() 侧调用桥。
     //
-    // 替换 oracle 时代的 TetrisCallAI::get()，与 BBCallEval 对称命名。
+    // 替换 oracle 时代的 TetrisCallAI::get()，与 TetrisCallEval 对称命名。
     //
     // 职责：将框架持有的 LandPoint（可能带 spin 信息的
     //       包装结构体）转换为 AI::get() 所期望的第一参数类型，然后透传其余参数。
@@ -248,10 +248,10 @@ namespace m_tetris2
     //     无 incomplete-type 或 circular-include 问题。
     //
     // 用法（TetrisSelectGet 各特化内）：
-    //   BBCallGet<TetrisAI>::get(ai, lp, result, depth, ...)
+    //   TetrisCallGet<TetrisAI>::get(ai, lp, result, depth, ...)
     //==========================================================================
     template<class AI>
-    struct BBCallGet
+    struct TetrisCallGet
     {
     private:
         template<class LP>
@@ -273,7 +273,7 @@ namespace m_tetris2
             else
             {
                 static_assert(sizeof(LP) == 0,
-                              "BBCallGet: no compatible AI::get signature for current LandPoint + params.");
+                              "TetrisCallGet: no compatible AI::get signature for current LandPoint + params.");
             }
         }
 
@@ -370,7 +370,7 @@ namespace m_tetris2
         static auto get(AI const &ai, LP const &lp, Params const &...params)
         {
             static_assert(sizeof...(Params) <= 4,
-                          "BBCallGet currently supports up to 4 trailing params.");
+                          "TetrisCallGet currently supports up to 4 trailing params.");
             if constexpr (sizeof...(Params) == 0)
             {
                 return call0(ai, lp);

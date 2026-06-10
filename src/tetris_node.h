@@ -1,7 +1,7 @@
 #pragma once
 
 //==========================================================================
-// bb_node.h — 编译期 piece 落点节点，供 AI eval 接口使用。
+// tetris_node.h — 编译期 piece 落点节点，供 AI eval 接口使用。
 //
 // TetrisNodeDetails<Spec, T, R>
 //   将 <Spec, T, R> 三参数打包为单一类型，供 TetrisNode 第一模板参数使用。
