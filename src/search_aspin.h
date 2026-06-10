@@ -58,7 +58,7 @@ namespace search_aspin
             {
                 std::memset(this, 0, sizeof(*this));
             }
-            m_tetris2::bb::BBState state{};  // 落点位板坐标 (t/r/xb/yb)
+            m_tetris2::bb::State state{};  // 落点位板坐标 (t/r/xb/yb)
             ASpinType type;
 
             bool operator==(TetrisNodeWithASpinType const &other) const

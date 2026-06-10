@@ -82,7 +82,7 @@ struct test_ai
 
     Engine ai;
     Engine::map_t map;
-    m_tetris2::bb::BBState cs{};
+    m_tetris2::bb::State cs{};
     bool has_curr;
     std::array<H::map_t, H::kMaxR> usable_arr{};
     std::mt19937 r_next, r_garbage;
@@ -224,28 +224,28 @@ struct test_ai
         case 'l':
         case 'r':
         {
-            m_tetris2::bb::sim_path_bb<H>(cs, usable_arr, &c, &c + 1);
+            m_tetris2::bb::sim_path<H>(cs, usable_arr, &c, &c + 1);
             break;
         }
         case 'z':
         case 'Z':
         {
             char move = 'z';
-            m_tetris2::bb::sim_path_bb<H>(cs, usable_arr, &move, &move + 1);
+            m_tetris2::bb::sim_path<H>(cs, usable_arr, &move, &move + 1);
             break;
         }
         case 'x':
         case 'X':
         {
             char move = 'x';
-            m_tetris2::bb::sim_path_bb<H>(cs, usable_arr, &move, &move + 1);
+            m_tetris2::bb::sim_path<H>(cs, usable_arr, &move, &move + 1);
             break;
         }
         case 'c':
         case 'C':
         {
             char move = 'c';
-            m_tetris2::bb::sim_path_bb<H>(cs, usable_arr, &move, &move + 1);
+            m_tetris2::bb::sim_path<H>(cs, usable_arr, &move, &move + 1);
             break;
         }
         case 'v':

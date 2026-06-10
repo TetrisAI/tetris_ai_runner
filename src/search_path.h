@@ -93,14 +93,14 @@ namespace m_tetris2
                 ctx.config_ = config;
             }
 
-            //=== search (BBState spawn 主重载) =================================
+            //=== search (State spawn 主重载) =================================
             // 不依赖 oracle 指针图。spawn 合法性（是否被场地 blocked）由
             // MoveGen::generate 内部处理：若 spawn 位置被占用，generate 直接
             // 返回而不调 collect，land_point_cache_ 保持空，与原 node->check()
             // 提前 return 语义等价，无需在此重复检查。
             template<class MapIn>
             static std::vector<LandPoint> const *
-            search(Context &ctx, MapIn const &map, bb::BBState const &spawn, std::size_t depth)
+            search(Context &ctx, MapIn const &map, bb::State const &spawn, std::size_t depth)
             {
                 ctx.land_point_cache_.clear();
                 if (spawn.t == 0)
@@ -150,7 +150,7 @@ namespace m_tetris2
             //==================================================================
             template<class EvalCallback>
             static void search_eval(Context &ctx, TetrisMap<RuleSpec::width, RuleSpec::height> const &board,
-                                    bb::BBState const &spawn, std::size_t depth,
+                                    bb::State const &spawn, std::size_t depth,
                                     EvalCallback &on_land)
             {
                 if (SpinHook::config_is_20g(ctx.config_))
@@ -191,7 +191,7 @@ namespace m_tetris2
 
             //=== make_path =====================================================
             static std::vector<char>
-            make_path(Context &ctx, bb::BBState const &spawn,
+            make_path(Context &ctx, bb::State const &spawn,
                       LandPoint const &land_point,
                       TetrisMap<RuleSpec::width, RuleSpec::height> const &board)
             {
@@ -224,10 +224,10 @@ namespace m_tetris2
                 auto collect = [&](LandingPosT<SpinHook> lp)
                 {
                     //commit (remove-context): 不再走 ctx.context_->get(status). 直接把
-                    //  master 坐标 (lp.x, lp.y, lp.r) 折成 BBState, 过 state_node_lut_
+                    //  master 坐标 (lp.x, lp.y, lp.r) 折成 State, 过 state_node_lut_
                     //  反查 master 指针 (init 阶段已填表). 行为与旧版 byte-equivalent:
                     //  status_to_bbox 与 build_state_from_master 是双射, LUT 命中即等价.
-                    bb::BBState st_bb{static_cast<std::uint8_t>(T), lp.r, 0, 0};
+                    bb::State st_bb{static_cast<std::uint8_t>(T), lp.r, 0, 0};
                     bool emitted = false;
                     [&]<std::size_t... Rs>(std::index_sequence<Rs...>)
                     {
@@ -238,10 +238,10 @@ namespace m_tetris2
                             node_ex.state = st_bb;
                             if constexpr (EnableMini)
                             {
-                                // 把 (last_x, last_y, last_r) 折成 BBState 直接透传，
+                                // 把 (last_x, last_y, last_r) 折成 State 直接透传，
                                 // 无需经过 state_to_node 查表。
-                                bb::BBState const *last_state_ptr = nullptr;
-                                bb::BBState last_bb{};
+                                bb::State const *last_state_ptr = nullptr;
+                                bb::State last_bb{};
                                 if constexpr (SpinHook::resolves_last_1g)
                                 {
                                     if (SpinHook::payload_has_last_rot(lp.extra))
@@ -309,7 +309,7 @@ namespace m_tetris2
             {
                 std::vector<Run20gMarkSlot> *mark;
 
-                bb::EnqueueDecision try_admit(bb::BBState const &s, bb::BBState const *parent, char action)
+                bb::EnqueueDecision try_admit(bb::State const &s, bb::State const *parent, char action)
                 {
                     if (s.xb < 0 || s.xb >= kW || s.yb < 0 || s.yb >= kH || s.r >= kMaxR)
                         return bb::EnqueueDecision::Skip;
@@ -362,26 +362,26 @@ namespace m_tetris2
                 bool allow_180;
 
                 template<class Emit>
-                void expand(bb::BBState const &s, Emit emit)
+                void expand(bb::State const &s, Emit emit)
                 {
                     auto drop_res = Helpers::drop_bb_state(s, *usable_arr);
                     if (!drop_res)
                         return;
-                    bb::BBState ss = *drop_res;
+                    bb::State ss = *drop_res;
                     {
-                        bb::BBState n = ss;
+                        bb::State n = ss;
                         n.yb = static_cast<std::int8_t>(n.yb - 1);
                         if (Helpers::usable_at_bb(n.r, n.xb, n.yb, *usable_arr))
                             emit(n, ' ');
                     }
                     {
-                        bb::BBState n = ss;
+                        bb::State n = ss;
                         n.xb = static_cast<std::int8_t>(n.xb - 1);
                         if (Helpers::usable_at_bb(n.r, n.xb, n.yb, *usable_arr))
                             emit(n, ' ');
                     }
                     {
-                        bb::BBState n = ss;
+                        bb::State n = ss;
                         n.xb = static_cast<std::int8_t>(n.xb + 1);
                         if (Helpers::usable_at_bb(n.r, n.xb, n.yb, *usable_arr))
                             emit(n, ' ');
@@ -423,15 +423,15 @@ namespace m_tetris2
                 [[no_unique_address]] std::conditional_t<
                     std::is_void_v<EvalCallback>, std::monostate, EvalCallback *> on_land{};
 
-                bool on_pop(bb::BBState const &s)
+                bool on_pop(bb::State const &s)
                 {
                     auto drop_res = Helpers::drop_bb_state(s, *usable_arr);
                     if (!drop_res)
                         return true;
-                    bb::BBState ss = *drop_res;
+                    bb::State ss = *drop_res;
                     if (Helpers::usable_at_bb(ss.r, ss.xb, ss.yb - 1, *usable_arr))
                         return true;
-                    //commit (remove-context): 直接对 BBState 走 cells_key_for_state.
+                    //commit (remove-context): 直接对 State 走 cells_key_for_state.
                     //  与 cells_key_for(sunk_node) byte-equivalent (status_to_bbox 与
                     //  build_state_from_master 双射), 但避免对 master 节点二次取址.
                     bb::CellsKey k = Helpers::cells_key_for_state(ss);
@@ -446,8 +446,8 @@ namespace m_tetris2
                     {
                         std::size_t mi = (static_cast<std::size_t>(ss.r) * kH + static_cast<std::size_t>(ss.yb)) * kW + static_cast<std::size_t>(ss.xb);
                         Run20gMarkSlot const &slot = (*mark)[mi];
-                        bb::BBState const *last_state_ptr = nullptr;
-                        bb::BBState pst{};
+                        bb::State const *last_state_ptr = nullptr;
+                        bb::State pst{};
                         char action = ' ';
                         if (slot.visited && slot.parent_r != 0xFFu)
                         {
@@ -483,7 +483,7 @@ namespace m_tetris2
                     return true;
                 }
 
-                bool on_admit(bb::BBState const &, char, bb::EnqueueDecision)
+                bool on_admit(bb::State const &, char, bb::EnqueueDecision)
                 {
                     return true;
                 }
@@ -515,11 +515,11 @@ namespace m_tetris2
                     SpinHook::template compute_mini_blocked_arr<RuleSpec, T, map_t, kMaxR>(usable_arr, rot_state);
                 }
                 constexpr auto sp = RuleSpec::spawn(T, kW, kH);
-                bb::BBState spawn_bb = Helpers::template build_state_from_master<T, 0>(sp.first, sp.second);
+                bb::State spawn_bb = Helpers::template build_state_from_master<T, 0>(sp.first, sp.second);
                 auto sunk_opt = Helpers::drop_bb_state(spawn_bb, usable_arr);
                 if (!sunk_opt)
                     return;
-                bb::BBState start_state = *sunk_opt;
+                bb::State start_state = *sunk_opt;
 
                 std::vector<Run20gMarkSlot> mark(static_cast<std::size_t>(kMaxR) * kW * kH,
                                                  Run20gMarkSlot{0, ' ', 0xFFu, 0, 0});
@@ -533,9 +533,9 @@ namespace m_tetris2
                 if constexpr (!std::is_void_v<EvalCallback>)
                     visitor.on_land = on_land;
 
-                std::vector<bb::BBState> queue_buffer;
+                std::vector<bb::State> queue_buffer;
                 queue_buffer.reserve(64);
-                bb::run_bb_bfs(start_state, neighbors, dedup, visitor, queue_buffer);
+                bb::run_bfs(start_state, neighbors, dedup, visitor, queue_buffer);
             }
 
             //==================================================================
@@ -555,7 +555,7 @@ namespace m_tetris2
                 std::array<map_t, kMaxR> const *usable_arr;
 
                 template<class Emit>
-                void expand(bb::BBState const &cur, Emit emit)
+                void expand(bb::State const &cur, Emit emit)
                 {
                     if (disable_d)
                     {
@@ -581,7 +581,7 @@ namespace m_tetris2
                             emit(*wk, 'c');
                     }
                     {
-                        bb::BBState nL = cur;
+                        bb::State nL = cur;
                         nL.xb = static_cast<std::int8_t>(nL.xb - 1);
                         bb::EnqueueDecision dL = emit(nL, 'l');
                         if (dL == bb::EnqueueDecision::MarkAndEnqueue && allow_rotate_move)
@@ -605,7 +605,7 @@ namespace m_tetris2
                         }
                     }
                     {
-                        bb::BBState nR = cur;
+                        bb::State nR = cur;
                         nR.xb = static_cast<std::int8_t>(nR.xb + 1);
                         bb::EnqueueDecision dR = emit(nR, 'r');
                         if (dR == bb::EnqueueDecision::MarkAndEnqueue && allow_rotate_move)
@@ -630,13 +630,13 @@ namespace m_tetris2
                     }
                     if (allow_LR)
                     {
-                        bb::BBState nL_state = cur;
+                        bb::State nL_state = cur;
                         nL_state.xb = static_cast<std::int8_t>(nL_state.xb - 1);
                         if (Helpers::usable_at_bb(nL_state.r, nL_state.xb, nL_state.yb, *usable_arr))
                         {
                             while (true)
                             {
-                                bb::BBState try_state = nL_state;
+                                bb::State try_state = nL_state;
                                 try_state.xb = static_cast<std::int8_t>(try_state.xb - 1);
                                 if (!Helpers::usable_at_bb(try_state.r, try_state.xb, try_state.yb, *usable_arr))
                                     break;
@@ -647,13 +647,13 @@ namespace m_tetris2
                     }
                     if (allow_LR)
                     {
-                        bb::BBState nR_state = cur;
+                        bb::State nR_state = cur;
                         nR_state.xb = static_cast<std::int8_t>(nR_state.xb + 1);
                         if (Helpers::usable_at_bb(nR_state.r, nR_state.xb, nR_state.yb, *usable_arr))
                         {
                             while (true)
                             {
-                                bb::BBState try_state = nR_state;
+                                bb::State try_state = nR_state;
                                 try_state.xb = static_cast<std::int8_t>(try_state.xb + 1);
                                 if (!Helpers::usable_at_bb(try_state.r, try_state.xb, try_state.yb, *usable_arr))
                                     break;
@@ -664,7 +664,7 @@ namespace m_tetris2
                     }
                     if (allow_d)
                     {
-                        bb::BBState nd = cur;
+                        bb::State nd = cur;
                         nd.yb = static_cast<std::int8_t>(nd.yb - 1);
                         bb::EnqueueDecision dd = emit(nd, 'd');
                         if (dd == bb::EnqueueDecision::MarkAndEnqueue && allow_D)
@@ -692,10 +692,10 @@ namespace m_tetris2
                 //  与 strategy 入口处一次解算的 requires_last 同语义. 命中第二条
                 //  谓词由两条 AND 合并为单条件.
                 bool requires_last_rotate;
-                bb::BBState found{};
+                bb::State found{};
                 bool hit = false;
 
-                bool check_hit(bb::BBState const &s) const
+                bool check_hit(bb::State const &s) const
                 {
                     bb::CellsKey k = Helpers::cells_key_for_state(s);
                     if (k == index)
@@ -705,12 +705,12 @@ namespace m_tetris2
                     return false;
                 }
 
-                bool on_pop(bb::BBState const &)
+                bool on_pop(bb::State const &)
                 {
                     return true;
                 }
 
-                bool on_admit(bb::BBState const &s, char, bb::EnqueueDecision)
+                bool on_admit(bb::State const &s, char, bb::EnqueueDecision)
                 {
                     if (check_hit(s))
                     {
@@ -729,7 +729,7 @@ namespace m_tetris2
             {
                 PathMark *path_mark;
 
-                bb::EnqueueDecision try_admit(bb::BBState const &s, bb::BBState const *parent, char action)
+                bb::EnqueueDecision try_admit(bb::State const &s, bb::State const *parent, char action)
                 {
                     if (s.xb < 0 || s.xb >= kW || s.yb < 0 || s.yb >= kH || s.r >= kMaxR)
                         return bb::EnqueueDecision::Skip;
@@ -765,9 +765,9 @@ namespace m_tetris2
                 std::array<map_t, kMaxR> const *usable_arr;
 
                 template<class Emit>
-                void expand(bb::BBState const &cur, Emit emit)
+                void expand(bb::State const &cur, Emit emit)
                 {
-                    auto try_drop_emit = [&](bb::BBState const &pre_drop, char action)
+                    auto try_drop_emit = [&](bb::State const &pre_drop, char action)
                     {
                         auto sunk = Helpers::drop_bb_state(pre_drop, *usable_arr);
                         if (sunk)
@@ -790,29 +790,29 @@ namespace m_tetris2
                             try_drop_emit(*wk, 'c');
                     }
                     {
-                        bb::BBState nL_state = cur;
+                        bb::State nL_state = cur;
                         nL_state.xb = static_cast<std::int8_t>(nL_state.xb - 1);
                         if (Helpers::usable_at_bb(nL_state.r, nL_state.xb, nL_state.yb, *usable_arr))
                             try_drop_emit(nL_state, 'l');
                     }
                     {
-                        bb::BBState nR_state = cur;
+                        bb::State nR_state = cur;
                         nR_state.xb = static_cast<std::int8_t>(nR_state.xb + 1);
                         if (Helpers::usable_at_bb(nR_state.r, nR_state.xb, nR_state.yb, *usable_arr))
                             try_drop_emit(nR_state, 'r');
                     }
                     if (allow_LR)
                     {
-                        bb::BBState scan = cur;
-                        bb::BBState try_state = scan;
+                        bb::State scan = cur;
+                        bb::State try_state = scan;
                         try_state.xb = static_cast<std::int8_t>(try_state.xb - 1);
                         if (Helpers::usable_at_bb(try_state.r, try_state.xb, try_state.yb, *usable_arr))
                         {
                             bool got_terminal = false;
-                            bb::BBState terminal_state = scan;
+                            bb::State terminal_state = scan;
                             while (true)
                             {
-                                bb::BBState cand = scan;
+                                bb::State cand = scan;
                                 cand.xb = static_cast<std::int8_t>(cand.xb - 1);
                                 if (!Helpers::usable_at_bb(cand.r, cand.xb, cand.yb, *usable_arr))
                                     break;
@@ -829,16 +829,16 @@ namespace m_tetris2
                     }
                     if (allow_LR)
                     {
-                        bb::BBState scan = cur;
-                        bb::BBState try_state = scan;
+                        bb::State scan = cur;
+                        bb::State try_state = scan;
                         try_state.xb = static_cast<std::int8_t>(try_state.xb + 1);
                         if (Helpers::usable_at_bb(try_state.r, try_state.xb, try_state.yb, *usable_arr))
                         {
                             bool got_terminal = false;
-                            bb::BBState terminal_state = scan;
+                            bb::State terminal_state = scan;
                             while (true)
                             {
-                                bb::BBState cand = scan;
+                                bb::State cand = scan;
                                 cand.xb = static_cast<std::int8_t>(cand.xb + 1);
                                 if (!Helpers::usable_at_bb(cand.r, cand.xb, cand.yb, *usable_arr))
                                     break;
@@ -862,10 +862,10 @@ namespace m_tetris2
                 bb::CellsKey index_landpoint;
                 //commit C2 (N.4): 与 MakePath1gVisitor 同形, 合并为单条件.
                 bool requires_last_rotate;
-                bb::BBState found{};
+                bb::State found{};
                 bool hit = false;
 
-                bool check_hit(bb::BBState const &s) const
+                bool check_hit(bb::State const &s) const
                 {
                     bb::CellsKey k = Helpers::cells_key_for_state(s);
                     if (k == index_key)
@@ -875,12 +875,12 @@ namespace m_tetris2
                     return false;
                 }
 
-                bool on_pop(bb::BBState const &)
+                bool on_pop(bb::State const &)
                 {
                     return true;
                 }
 
-                bool on_admit(bb::BBState const &s, char, bb::EnqueueDecision)
+                bool on_admit(bb::State const &s, char, bb::EnqueueDecision)
                 {
                     if (check_hit(s))
                     {
@@ -896,7 +896,7 @@ namespace m_tetris2
             //=== make_path 1g / 20g 入口 ======================================
             //==================================================================
             static std::vector<char>
-            make_path_1g_native(Context &ctx, bb::BBState const &spawn,
+            make_path_1g_native(Context &ctx, bb::State const &spawn,
                                 LandPoint const &land_point,
                                 TetrisMap<RuleSpec::width, RuleSpec::height> const &board)
             {
@@ -915,7 +915,7 @@ namespace m_tetris2
                 bool allow_180 = SpinHook::config_allow_180(ctx.config_);
                 bool allow_LR = SpinHook::config_allow_LR(ctx.config_);
                 bool allow_D = SpinHook::config_allow_D(ctx.config_);
-                bb::BBState const *land_last = SpinHook::get_last_state(land_point);
+                bb::State const *land_last = SpinHook::get_last_state(land_point);
                 //commit C2 (N.4): 旧 is_landpoint_none(lp) 反转为 lp_requires_last_rotate(cfg, lp).
                 //  index 选择保持原语义: TSpin 命中且 land_last 可用时, BFS 终点
                 //  指向 last 节点 cells_key (旋转一步落到 lp.state); 其余路径
@@ -935,7 +935,7 @@ namespace m_tetris2
                 PathMark pm;
 
                 auto build_path = [&pm, &land_point, allow_180, &usable_arr, piece_t,
-                                   &index_landpoint, land_last](bb::BBState const &cur_state) -> std::vector<char>
+                                   &index_landpoint, land_last](bb::State const &cur_state) -> std::vector<char>
                 {
                     bb::CellsKey cur_key = Helpers::cells_key_for_state(cur_state);
                     std::vector<char> path;
@@ -958,7 +958,7 @@ namespace m_tetris2
                     std::reverse(path.begin(), path.end());
                     if (cur_key != index_landpoint)
                     {
-                        bb::BBState last_state = *land_last;
+                        bb::State last_state = *land_last;
                         if (allow_180 &&
                             Helpers::try_kick_chain_to(piece_t, bb::KickDir::Opp, last_state, index_landpoint, usable_arr))
                         {
@@ -996,7 +996,7 @@ namespace m_tetris2
                 while (true)
                 {
                     pm.clear();
-                    bb::BBState entry_state = spawn;
+                    bb::State entry_state = spawn;
                     //commit C2 (N.4): 第二条命中谓词 (TSpin 入口已在目标 cells_key)
                     //  从 (!is_landpoint_none(lp) && config_last_rotate(cfg)) 合并为
                     //  lp_requires_last_rotate(cfg, lp) — 后者已内联 last_rotate
@@ -1020,10 +1020,10 @@ namespace m_tetris2
                     MakePath1gVisitor visitor{index,
                                               index_landpoint,
                                               requires_last,
-                                              bb::BBState{},
+                                              bb::State{},
                                               false};
                     ctx.node_search_path_.clear();
-                    bb::run_bb_bfs(entry_state, neighbors, dedup, visitor, ctx.node_search_path_);
+                    bb::run_bfs(entry_state, neighbors, dedup, visitor, ctx.node_search_path_);
                     if (visitor.hit)
                     {
                         return build_path(visitor.found);
@@ -1037,7 +1037,7 @@ namespace m_tetris2
             }
 
             static std::vector<char>
-            make_path_20g_native(Context &ctx, bb::BBState const &spawn,
+            make_path_20g_native(Context &ctx, bb::State const &spawn,
                                  LandPoint const &land_point,
                                  TetrisMap<RuleSpec::width, RuleSpec::height> const &board)
             {
@@ -1049,13 +1049,13 @@ namespace m_tetris2
                 }
                 std::array<map_t, kMaxR> usable_arr{};
                 Helpers::build_usable_for_piece(piece_t, board, usable_arr);
-                bb::BBState entry_state = spawn;
+                bb::State entry_state = spawn;
                 auto start_sunk_opt = Helpers::drop_bb_state(entry_state, usable_arr);
                 if (!start_sunk_opt)
                     return std::vector<char>();
-                bb::BBState s0 = *start_sunk_opt;
+                bb::State s0 = *start_sunk_opt;
                 bb::CellsKey index_landpoint = Helpers::cells_key_for_state(land_point.state);
-                bb::BBState const *land_last = SpinHook::get_last_state(land_point);
+                bb::State const *land_last = SpinHook::get_last_state(land_point);
                 //commit C2 (N.4): 与 1g 同形, lp_requires_last_rotate 取代旧
                 //  is_landpoint_none + config_last_rotate 双查询, ASpin 起点==终点
                 //  也享受短路.
@@ -1075,7 +1075,7 @@ namespace m_tetris2
                 PathMark pm;
 
                 auto build_path = [&pm, &land_point, allow_180, &usable_arr, piece_t,
-                                   &index_landpoint, land_last](bb::BBState const &cur_state) -> std::vector<char>
+                                   &index_landpoint, land_last](bb::State const &cur_state) -> std::vector<char>
                 {
                     std::vector<char> path;
                     int r = static_cast<int>(cur_state.r);
@@ -1098,7 +1098,7 @@ namespace m_tetris2
                     bb::CellsKey cur_key = Helpers::cells_key_for_state(cur_state);
                     if (cur_key != index_landpoint)
                     {
-                        bb::BBState last_state = *land_last;
+                        bb::State last_state = *land_last;
                         auto try_kick_chain_to_drop = [&](bb::KickDir dir) -> bool
                         {
                             auto hit = Helpers::first_passing_kick_bb(piece_t, dir, last_state, usable_arr);
@@ -1128,7 +1128,7 @@ namespace m_tetris2
                     return path;
                 };
 
-                auto check_hit_state = [&](bb::BBState const &cand) -> bool
+                auto check_hit_state = [&](bb::State const &cand) -> bool
                 {
                     bb::CellsKey ck = Helpers::cells_key_for_state(cand);
                     if (ck == index_key)
@@ -1149,9 +1149,9 @@ namespace m_tetris2
                 MakePath20gVisitor visitor{index_key,
                                            index_landpoint,
                                            requires_last,
-                                           bb::BBState{},
+                                           bb::State{},
                                            false};
-                bb::run_bb_bfs(s0, neighbors, dedup, visitor, ctx.node_search_path_);
+                bb::run_bfs(s0, neighbors, dedup, visitor, ctx.node_search_path_);
                 if (visitor.hit)
                 {
                     return build_path(visitor.found);
@@ -1161,7 +1161,7 @@ namespace m_tetris2
 
             //=== 起点 root mark 写入 (与旧 path_mark_set_state_root 同形) ========
             //commit B: 不再依赖 ctx.path_mark_, 直接接受栈分配的 PathMark 引用.
-            static bool path_mark_set_state_root(PathMark &pm, bb::BBState const &child, char op)
+            static bool path_mark_set_state_root(PathMark &pm, bb::State const &child, char op)
             {
                 if (child.xb < 0 || child.xb >= kW || child.yb < 0 || child.yb >= kH)
                     return false;

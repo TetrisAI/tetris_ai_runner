@@ -3,8 +3,8 @@
 //==========================================================================
 // bb_sim.h — 纯位板路径字符串模拟
 //
-// sim_path_bb<H>(cs, usable_arr, move, move_end)
-//   按 path 字符串驱动 BBState cs 移动，不接触任何 TetrisNode 指针。
+// sim_path<H>(cs, usable_arr, move, move_end)
+//   按 path 字符串驱动 State cs 移动，不接触任何 TetrisNode 指针。
 //   H = Helpers<RuleSpec> 实例化类型（调用方透过 TetrisEngine::TetrisSearch
 //   可获取对应 RuleSpec，进而得到 H）。
 //
@@ -31,7 +31,7 @@ namespace m_tetris2::bb
 {
 
 template<class H>
-inline void sim_path_bb(BBState &cs,
+inline void sim_path(State &cs,
                         std::array<typename H::map_t, H::kMaxR> const &usable_arr,
                         char const *move,
                         char const *move_end)

@@ -7,7 +7,7 @@
 // 后端走 PathStrategy + m_tetris2::CautiousHook (定义在 movegen_hook.h).
 //
 // 与 search_aspin.h / search_tspin.h 不同, CautiousHook 没有自家专用的
-// LandPoint POJO (它用 m_tetris2::BBLandPoint，持有 BBState，无 TetrisNode
+// LandPoint POJO (它用 m_tetris2::BBLandPoint，持有 State，无 TetrisNode
 // 指针，与 NoSpinHook 共形 — 见 movegen_hook.h),
 // 所以本头不必走双阶段守护; 直接 #include "search_path.h" 把 path 装好,
 // 再 emit cautious 命名空间.

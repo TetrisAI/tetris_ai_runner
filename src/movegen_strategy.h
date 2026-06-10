@@ -44,7 +44,7 @@
 //
 // 共享小工具 (本头 detail::common::*):
 //   跨多个 strategy 复用的小型组件. 当前:
-//   - MakePath1gDedup — 1g make_path 主循环喂 bb::run_bb_bfs 的 dedup policy,
+//   - MakePath1gDedup — 1g make_path 主循环喂 bb::run_bfs 的 dedup policy,
 //     path / simulate 共用.
 //   - policy_or<C, Fallback> — 从 Config 提取 PolicyType, 无则回退 void.
 //     供各 namespace (path / simulate / tag / ...) 的 SearchWith 透传
@@ -91,7 +91,7 @@ namespace m_tetris2
             namespace common
             {
                 //=== 跨 strategy 共享: 1g make_path 的 BFS dedup policy =========
-                // 与 bb::run_bb_bfs 的 try_admit 契约一致 (state, parent, action)
+                // 与 bb::run_bfs 的 try_admit 契约一致 (state, parent, action)
                 // -> EnqueueDecision. 三态:
                 //   - Skip            : 越界 / 已访问 (PathMark.set_bbox 失败).
                 //   - MarkOnly        : mark 写入成功, 但本格物理不可放, 不入队.
@@ -114,8 +114,8 @@ namespace m_tetris2
                     PathMark *path_mark;
                     std::array<map_t, Helpers::kMaxR> const *usable_arr;
 
-                    bb::EnqueueDecision try_admit(bb::BBState const &s,
-                                                  bb::BBState const *parent,
+                    bb::EnqueueDecision try_admit(bb::State const &s,
+                                                  bb::State const *parent,
                                                   char action)
                     {
                         if (s.xb < 0 || s.xb >= Helpers::kW ||

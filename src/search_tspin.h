@@ -59,8 +59,8 @@ namespace search_tspin
             {
                 std::memset(this, 0, sizeof(*this));
             }
-            m_tetris2::bb::BBState state{};  // 落点位板坐标 (t/r/xb/yb)
-            m_tetris2::bb::BBState last{};   // last-rotate 前驱位置（无前驱时 t==0）
+            m_tetris2::bb::State state{};  // 落点位板坐标 (t/r/xb/yb)
+            m_tetris2::bb::State last{};   // last-rotate 前驱位置（无前驱时 t==0）
             TSpinType type;
             union
             {

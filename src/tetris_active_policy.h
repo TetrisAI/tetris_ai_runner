@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+
 namespace m_tetris2
 {
     struct ActiveAllPolicy

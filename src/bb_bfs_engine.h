@@ -74,7 +74,7 @@ namespace m_tetris2
         // 队列容器由调用方持有 (queue_buffer); 引擎进入时 clear, 内部按 FIFO
         // 顺序追加. 这样允许调用方跨多次 run 复用 std::vector 容量.
         template<class State, class NeighborProvider, class DedupPolicy, class Visitor>
-        inline void run_bb_bfs(State const &start,
+        inline void run_bfs(State const &start,
                                NeighborProvider &np,
                                DedupPolicy &dedup,
                                Visitor &vis,
@@ -141,14 +141,14 @@ namespace m_tetris2
 
         //自带队列缓冲的便捷版本; 适合一次性使用、不关心容量复用的调用点.
         template<class State, class NeighborProvider, class DedupPolicy, class Visitor>
-        inline void run_bb_bfs(State const &start,
+        inline void run_bfs(State const &start,
                                NeighborProvider &np,
                                DedupPolicy &dedup,
                                Visitor &vis)
         {
             std::vector<State> queue_buffer;
             queue_buffer.reserve(64);
-            run_bb_bfs(start, np, dedup, vis, queue_buffer);
+            run_bfs(start, np, dedup, vis, queue_buffer);
         }
     } // namespace bb
 } // namespace m_tetris2

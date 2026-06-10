@@ -217,7 +217,7 @@ struct test_ai
         std::array<H::map_t, H::kMaxR> usable_arr{};
         H::build_usable_for_piece(spawn_status.t, board, usable_arr);
         auto cs = H::state_from_status(spawn_status.t, spawn_status.r, spawn_status.x, spawn_status.y);
-        m_tetris2::bb::sim_path_bb<H>(cs, usable_arr, ai_path.data(), ai_path.data() + ai_path.size());
+        m_tetris2::bb::sim_path<H>(cs, usable_arr, ai_path.data(), ai_path.data() + ai_path.size());
         ai_path.push_back('\0');
         if (!(cs.t == result.target.state.t && cs.r == result.target.state.r &&
               cs.xb == result.target.state.xb && cs.yb == result.target.state.yb))
@@ -237,7 +237,7 @@ struct test_ai
                     ai.search(spawn_status, map, lps);
                     ai_path = ai.make_path(spawn_status, result.target, map);
                     cs = H::state_from_status(spawn_status.t, spawn_status.r, spawn_status.x, spawn_status.y);
-                    m_tetris2::bb::sim_path_bb<H>(cs, usable_arr, ai_path.data(), ai_path.data() + ai_path.size());
+                    m_tetris2::bb::sim_path<H>(cs, usable_arr, ai_path.data(), ai_path.data() + ai_path.size());
                 }
             }
         }

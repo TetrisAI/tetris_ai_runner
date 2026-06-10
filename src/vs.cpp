@@ -131,12 +131,12 @@ struct tetris_game
         next.pop_back();
         next.erase(next.begin());
         // 纯位板路径模拟
-        m_tetris2::bb::sim_path_bb<H>(cs, usable_arr, move, move_end);
+        m_tetris2::bb::sim_path<H>(cs, usable_arr, move, move_end);
         // 硬降落地
         if (auto landed = H::drop_bb_state(cs, usable_arr))
             cs = *landed;
         // attach：用 ad-hoc lp wrapper 满足 engine.attach 的 lp.state 要求
-        struct LpWrapper { m_tetris2::bb::BBState state; };
+        struct LpWrapper { m_tetris2::bb::State state; };
         LpWrapper lp{cs};
         size_t clear = tetris_ai.attach(lp, map);
         if (clear >= 3)
@@ -348,7 +348,7 @@ int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
 
     using H = m_tetris2::bb::Helpers<rule_st::TetrisRule::rule_spec>;
     // st LpWrapper，供 engine.attach 桥接
-    struct LpWrapper { m_tetris2::bb::BBState state; };
+    struct LpWrapper { m_tetris2::bb::State state; };
     ege::mtrandom st_random;
 
     while (true)
@@ -404,7 +404,7 @@ int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
             ((ai_run_t)ai[version])(w, h, param_map, status.t, status.x + 1, status.y + 1, status.r + 1, next, path);
             char *move = path, *move_end = path + 1024;
             // 纯位板路径模拟
-            m_tetris2::bb::sim_path_bb<H>(cs, usable_arr, move, move_end);
+            m_tetris2::bb::sim_path<H>(cs, usable_arr, move, move_end);
         }
         else
         {

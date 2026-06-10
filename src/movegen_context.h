@@ -43,13 +43,13 @@ namespace m_tetris2
     namespace movegen
     {
         //=== Mixin 1: BFS queue buffer =========================================
-        // bb::run_bb_bfs(...) 需要一个 std::vector<bb::BBState> 充当 FIFO
+        // bb::run_bfs(...) 需要一个 std::vector<bb::State> 充当 FIFO
         // 队列缓冲. 每次进入新一轮 BFS 之前 clear() 即可复用容量, 与 1g
         // make_path 的多次重试 (disable_d 翻转) 配合.
         //
         // 使用方 (commit 2 起): SearchPath / SearchSimulate 的 make_path.
         // SearchSimple 走 collect_rotations_bb 用的是局部 std::vector<uint8_t>,
-        // run_piece_20g 用的是局部 std::vector<bb::BBState>, 都不入此 mixin.
+        // run_piece_20g 用的是局部 std::vector<bb::State>, 都不入此 mixin.
         //
         // commit B (PathMark 栈化): 旧 PathMarkMixin 已删除. PathMark 由各
         //   strategy 在 BFS 入口栈分配 (clear-on-entry, 无跨调用复用诉求).
@@ -58,10 +58,10 @@ namespace m_tetris2
         struct BfsQueueMixin
         {
             //commit 3: 字段 node_search_path_ 由 strategy make_path 主循环直接
-            //  读写 (`run_bb_bfs(..., node_search_path_)`), 必须 public.
-            //  RuleSpec 模板参数仅用于和别的 mixin 保持同形签名; bb::BBState
+            //  读写 (`run_bfs(..., node_search_path_)`), 必须 public.
+            //  RuleSpec 模板参数仅用于和别的 mixin 保持同形签名; bb::State
             //  本身不依赖 RuleSpec.
-            std::vector<bb::BBState> node_search_path_{};
+            std::vector<bb::State> node_search_path_{};
 
         private:
             static_assert(static_cast<int>(RuleSpec::width) > 0,

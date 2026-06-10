@@ -8,7 +8,7 @@
 // 后续 commit 2 起, 位板 BFS 引擎 / 各 search 接位板的实现都会 include 这里.
 //
 // 设计:
-//   - bb 命名空间下的"自由结构" (KickDir / BBState / CellsKey) 与 RuleSpec 无关,
+//   - bb 命名空间下的"自由结构" (KickDir / State / CellsKey) 与 RuleSpec 无关,
 //     直接共享.
 //   - bb::Helpers<RuleSpec> 模板把所有依赖 RuleSpec 编译期表的 helper 收纳为
 //     static 方法; MoveGenSearch private 继承之, 把名字 using 进类作用域,
@@ -35,7 +35,7 @@ namespace m_tetris2
 {
     namespace bb
     {
-        struct BBState
+        struct State
         {
             std::uint8_t t;
             std::uint8_t r;
@@ -43,20 +43,20 @@ namespace m_tetris2
             std::int8_t yb;
         };
 
-        static_assert(sizeof(BBState) == sizeof(std::uint32_t),
-                      "BBState must be exactly 4 bytes for bit_cast hash");
+        static_assert(sizeof(State) == sizeof(std::uint32_t),
+                      "bb::State must be exactly 4 bytes for bit_cast hash");
 
-        struct BBStateHash
+        struct StateHash
         {
-            std::size_t operator()(BBState const &s) const noexcept
+            std::size_t operator()(State const &s) const noexcept
             {
                 return static_cast<std::size_t>(std::bit_cast<std::uint32_t>(s));
             }
         };
 
-        struct BBStateEqual
+        struct StateEqual
         {
-            bool operator()(BBState const &a, BBState const &b) const noexcept
+            bool operator()(State const &a, State const &b) const noexcept
             {
                 return a.t == b.t && a.r == b.r && a.xb == b.xb && a.yb == b.yb;
             }
@@ -112,7 +112,7 @@ namespace m_tetris2
 
             static constexpr Result data = compute();
             static_assert(data.table[0] == -1,
-                          "piece type '\\0' (value 0) is reserved as BBState sentinel; "
+                          "piece type '\\0' (value 0) is reserved as State sentinel; "
                           "no OpDesc::type may use '\\0'");
             static constexpr int count = data.count;
             static constexpr char type_at(std::size_t i) noexcept
@@ -145,7 +145,7 @@ namespace m_tetris2
             }();
         };
 
-        //BBState 定义已前置到文件顶部，供 tetris_core.h 循环依赖场景复用。
+        //State 定义已前置到文件顶部，供 tetris_core.h 循环依赖场景复用。
 
         //commit 5f: 用位板版 "绝对 cells 集合" 等价类替换 master IndexFilter
         //  (tetris_core.cpp:296-321 把 (node.data[0..3], node.row) 当签名).
@@ -169,7 +169,7 @@ namespace m_tetris2
 
         //commit 5b: 替换 BFS 内 cur->wall_kick_*/move_*/rotate_* 指针图查询的
         //  helper. 内部按 (T, R) 派发到 shape::wk_*<RuleSpec, T, R> 静态表 +
-        //  位板 usable_arr 检查; 命中后续 BFS 全程走 BBState, 不再产生 master
+        //  位板 usable_arr 检查; 命中后续 BFS 全程走 State, 不再产生 master
         //  反查.
         enum class KickDir : std::uint8_t
         {
@@ -391,7 +391,7 @@ namespace m_tetris2
             //   = "把 (T, R) 当成空盘可放置位图后, kick 链中第一个 in-bounds 命中
             //   的目标 (T', R', xb', yb')". 位板等价: usable_arr 用 inbounds_map
             //   预算的"空盘等价" 数组 inbounds_arr 喂给 first_passing_kick_bb,
-            //   出来的 BBState 即与 master rotate_* 完全等价 (board check 由调用
+            //   出来的 State 即与 master rotate_* 完全等价 (board check 由调用
             //   方在 emit 前再补一次 usable_at_bb(实际 board) 做, 与 oracle
             //   "rotate_* != nullptr && rotate_*->check(map)" 二段判定一致).
             //==============================================================
@@ -458,7 +458,7 @@ namespace m_tetris2
             }
 
             //commit 5g cleanup-3: BFS 完全位板化后, node_check_bb 已无调用方, 移除.
-            //commit 5g-3b (slice 5): bbox 直查版本. 调用方持有 BBState 时直接查
+            //commit 5g-3b (slice 5): bbox 直查版本. 调用方持有 State 时直接查
             //  usable_arr[r].get, 与 check_TR 等价 (后者只是为指针入口提供折回).
             static bool usable_at_bb(std::uint8_t r, int xb, int yb,
                                      std::array<map_t, kMaxR> const &usable_arr)
@@ -469,10 +469,10 @@ namespace m_tetris2
             }
 
             //==============================================================
-            // 运行时 (t, r, master_x, master_y) -> BBState.
-            static BBState state_from_status(char t, std::uint8_t r, int mx, int my)
+            // 运行时 (t, r, master_x, master_y) -> State.
+            static State state_from_status(char t, std::uint8_t r, int mx, int my)
             {
-                BBState s{0, 0, 0, 0};
+                State s{0, 0, 0, 0};
                 auto build_for_piece = [&]<char T>()
                 {
                     [&]<std::size_t... Rs>(std::index_sequence<Rs...>)
@@ -494,9 +494,9 @@ namespace m_tetris2
                 return s;
             }
 
-            // BBState (bbox 坐标) -> master (status.x, status.y).
+            // State (bbox 坐标) -> master (status.x, status.y).
             // master_x = xb - orig.x,  master_y = yb + orig.y
-            static std::pair<int, int> master_xy_from_state(BBState const &cs)
+            static std::pair<int, int> master_xy_from_state(State const &cs)
             {
                 int mx = 0, my = 0;
                 char t = static_cast<char>(cs.t);
@@ -556,10 +556,10 @@ namespace m_tetris2
                 return k;
             }
 
-            //commit 7a-2: BBState 入口的 cells_key. 与 cells_key_for(node) 等价 (node
+            //commit 7a-2: State 入口的 cells_key. 与 cells_key_for(node) 等价 (node
             //  侧也是 status_to_bbox -> cells_key_TR), 但跳过 context_->get + 反推.
             template<char T>
-            static CellsKey cells_key_T_state(BBState const &s)
+            static CellsKey cells_key_T_state(State const &s)
             {
                 int xb = static_cast<int>(s.xb);
                 int yb = static_cast<int>(s.yb);
@@ -572,7 +572,7 @@ namespace m_tetris2
                 return ret;
             }
 
-            static CellsKey cells_key_for_state(BBState const &s)
+            static CellsKey cells_key_for_state(State const &s)
             {
                 CellsKey ret{};
                 char t = static_cast<char>(s.t);
@@ -587,7 +587,7 @@ namespace m_tetris2
                 return ret;
             }
 
-            static bool index_filtered_eq_state(BBState const &s, CellsKey const &target)
+            static bool index_filtered_eq_state(State const &s, CellsKey const &target)
             {
                 return cells_key_for_state(s) == target;
             }
@@ -641,7 +641,7 @@ namespace m_tetris2
             }
 
             template<char T, std::uint8_t R>
-            static int spawn_min_cell_y_TR_state(BBState const &spawn)
+            static int spawn_min_cell_y_TR_state(State const &spawn)
             {
                 constexpr auto orig_cur = shape::piece_cells<RuleSpec, T, R>.origin;
                 constexpr auto orig_spawn = shape::piece_cells<RuleSpec, T, 0>.origin;
@@ -650,7 +650,7 @@ namespace m_tetris2
             }
 
             template<char T>
-            static int spawn_min_cell_y_T_state(BBState const &spawn)
+            static int spawn_min_cell_y_T_state(State const &spawn)
             {
                 int best = 0x7fffffff;
                 std::uint8_t cur_r = spawn.r;
@@ -713,7 +713,7 @@ namespace m_tetris2
             }
 
             template<char T>
-            static bool open_bb_T_state(BBState const &lp, map_t const &board)
+            static bool open_bb_T_state(State const &lp, map_t const &board)
             {
                 bool ret = false;
                 std::uint8_t cur_r = lp.r;
@@ -727,7 +727,7 @@ namespace m_tetris2
                 return ret;
             }
 
-            static bool open_bb_state(BBState const &lp, map_t const &board)
+            static bool open_bb_state(State const &lp, map_t const &board)
             {
                 bool ret = false;
                 char t = static_cast<char>(lp.t);
@@ -742,7 +742,7 @@ namespace m_tetris2
                 return ret;
             }
 
-            static int spawn_min_cell_y_dispatch_state(BBState const &spawn)
+            static int spawn_min_cell_y_dispatch_state(State const &spawn)
             {
                 int ret = 0x7fffffff;
                 char t = static_cast<char>(spawn.t);
@@ -765,19 +765,19 @@ namespace m_tetris2
             }
 
             //==============================================================
-            // is_above_roof_bb: BBState 入口的 "piece 完全悬空 + 在屋顶以上"
+            // is_above_roof_bb: State 入口的 "piece 完全悬空 + 在屋顶以上"
             //   位板谓词. 用当前 R 的 cells 最低 y = yb + min_cell_y_TR<T,R>()
             //   判定是否命中 search_tag / search_simple 的 1g vs 20g/fast 分支。
             //   entry 完全悬空时走 fast/20g 路径，不需要 BFS 列出落点.
             //==============================================================
             template<char T, std::uint8_t R>
-            static int state_piece_min_y_TR(BBState const &s)
+            static int state_piece_min_y_TR(State const &s)
             {
                 return static_cast<int>(s.yb) + min_cell_y_TR<T, R>();
             }
 
             template<char T>
-            static int state_piece_min_y_T(BBState const &s)
+            static int state_piece_min_y_T(State const &s)
             {
                 int ret = 0x7fffffff;
                 std::uint8_t cur_r = s.r;
@@ -791,7 +791,7 @@ namespace m_tetris2
                 return ret;
             }
 
-            static bool is_above_roof_bb(BBState const &s, int roof)
+            static bool is_above_roof_bb(State const &s, int roof)
             {
                 int min_y = 0x7fffffff;
                 char t = static_cast<char>(s.t);
@@ -807,13 +807,13 @@ namespace m_tetris2
             }
 
             //==============================================================
-            // 起点 BBState / wall-kick / rotate / drop / build_board.
+            // 起点 State / wall-kick / rotate / drop / build_board.
             //==============================================================
             template<char T, std::uint8_t Target>
-            static BBState build_state_from_master(int status_x, int status_y)
+            static State build_state_from_master(int status_x, int status_y)
             {
                 constexpr auto orig = shape::piece_cells<RuleSpec, T, Target>.origin;
-                BBState s;
+                State s;
                 s.t = static_cast<std::uint8_t>(T);
                 s.r = Target;
                 s.xb = static_cast<std::int8_t>(status_x + static_cast<int>(orig.x));
@@ -822,7 +822,7 @@ namespace m_tetris2
             }
 
             template<char T, std::uint8_t Target, class WkList>
-            static std::optional<BBState> try_kick_chain_TR_bb(int status_x, int status_y,
+            static std::optional<State> try_kick_chain_TR_bb(int status_x, int status_y,
                                                                std::array<map_t, kMaxR> const &usable_arr)
             {
                 if (check_TR<T, Target>(status_x, status_y, usable_arr))
@@ -838,7 +838,7 @@ namespace m_tetris2
             }
 
             template<char T, std::uint8_t R, KickDir Dir>
-            static std::optional<BBState> try_kick_TRD_bb(BBState const &cs,
+            static std::optional<State> try_kick_TRD_bb(State const &cs,
                                                           std::array<map_t, kMaxR> const &usable_arr)
             {
                 constexpr auto orig = shape::piece_cells<RuleSpec, T, R>.origin;
@@ -874,10 +874,10 @@ namespace m_tetris2
             }
 
             template<char T, KickDir Dir>
-            static std::optional<BBState> try_kick_TD_bb(BBState const &cs,
+            static std::optional<State> try_kick_TD_bb(State const &cs,
                                                          std::array<map_t, kMaxR> const &usable_arr)
             {
-                std::optional<BBState> ret;
+                std::optional<State> ret;
                 std::uint8_t cur_r = cs.r;
                 [&]<std::size_t... Rs>(std::index_sequence<Rs...>)
                 {
@@ -887,10 +887,10 @@ namespace m_tetris2
             }
 
             template<KickDir Dir>
-            static std::optional<BBState> first_passing_kick_dir_bb(char t, BBState const &cs,
+            static std::optional<State> first_passing_kick_dir_bb(char t, State const &cs,
                                                                     std::array<map_t, kMaxR> const &usable_arr)
             {
-                std::optional<BBState> ret;
+                std::optional<State> ret;
                 [&]<std::size_t... Is>(std::index_sequence<Is...>)
                 {
                     bool hit = false;
@@ -902,9 +902,9 @@ namespace m_tetris2
                 return ret;
             }
 
-            static std::optional<BBState> first_passing_kick_bb(char t,
+            static std::optional<State> first_passing_kick_bb(char t,
                                                                 KickDir dir,
-                                                                BBState const &cs,
+                                                                State const &cs,
                                                                 std::array<map_t, kMaxR> const &usable_arr)
             {
                 switch (dir)
@@ -919,11 +919,11 @@ namespace m_tetris2
                 return std::nullopt;
             }
 
-            //commit 7b: rotate_no_kick 的 BBState 出口. 旋转目标 r 由 (T, R, Dir) 静态
+            //commit 7b: rotate_no_kick 的 State 出口. 旋转目标 r 由 (T, R, Dir) 静态
             //  解出, 不存在时返回 nullopt; 否则按 build_state_from_master 公式直接折出
             //  (xb', yb'). 与 rotate_no_kick_TRD(cs) 完全等价.
             template<char T, std::uint8_t R, KickDir Dir>
-            static std::optional<BBState> rotate_no_kick_TRD_bb(BBState const &cs)
+            static std::optional<State> rotate_no_kick_TRD_bb(State const &cs)
             {
                 if constexpr (Dir == KickDir::Cw)
                 {
@@ -967,9 +967,9 @@ namespace m_tetris2
             }
 
             template<char T, KickDir Dir>
-            static std::optional<BBState> rotate_no_kick_TD_bb(BBState const &cs)
+            static std::optional<State> rotate_no_kick_TD_bb(State const &cs)
             {
-                std::optional<BBState> ret;
+                std::optional<State> ret;
                 std::uint8_t cur_r = cs.r;
                 [&]<std::size_t... Rs>(std::index_sequence<Rs...>)
                 {
@@ -979,9 +979,9 @@ namespace m_tetris2
             }
 
             template<KickDir Dir>
-            static std::optional<BBState> rotate_no_kick_dir_bb(char t, BBState const &cs)
+            static std::optional<State> rotate_no_kick_dir_bb(char t, State const &cs)
             {
-                std::optional<BBState> ret;
+                std::optional<State> ret;
                 [&]<std::size_t... Is>(std::index_sequence<Is...>)
                 {
                     bool hit = false;
@@ -993,7 +993,7 @@ namespace m_tetris2
                 return ret;
             }
 
-            static std::optional<BBState> rotate_no_kick_bb(char t, KickDir dir, BBState const &cs)
+            static std::optional<State> rotate_no_kick_bb(char t, KickDir dir, State const &cs)
             {
                 switch (dir)
                 {
@@ -1012,8 +1012,8 @@ namespace m_tetris2
             //  的", 我们位板版做同样的事: 顺着 kick 链找第一个 fits 且其 cells_key
             //  == target_key 的.
             //  cells_key 与 (T, R, xb, yb) 是双射, 与原 hit == target 指针对比等价.
-            //commit 7a-2: 整条链改 BBState, 命中后直接 cells_key_for_state 比对.
-            static bool try_kick_chain_to(char t, KickDir dir, BBState const &last_state, CellsKey const &target_key,
+            //commit 7a-2: 整条链改 State, 命中后直接 cells_key_for_state 比对.
+            static bool try_kick_chain_to(char t, KickDir dir, State const &last_state, CellsKey const &target_key,
                                           std::array<map_t, kMaxR> const &usable_arr)
             {
                 auto hit = first_passing_kick_bb(t, dir, last_state, usable_arr);
@@ -1027,10 +1027,10 @@ namespace m_tetris2
             //  move_down->check(map)) cur = move_down". 位板等价: 在 usable_arr[r] 上
             //  从 y_bbox 向下递减直到 usable 不成立; 最后一个仍成立的 y 即终点.
             //  out-of-bounds 时返回 nullptr (理论不会发生, 调用前 cur 必在 BFS 已可达).
-            //commit 7a-2: drop_bb 的 BBState-only 版本. 与原 drop_bb 完全相同的 column
-            //  扫描语义, 唯一差异是直接返回新 BBState (xb 不变, yb 落到 column 最低
+            //commit 7a-2: drop_bb 的 State-only 版本. 与原 drop_bb 完全相同的 column
+            //  扫描语义, 唯一差异是直接返回新 State (xb 不变, yb 落到 column 最低
             //  still-usable). out-of-bounds 时返回 nullopt.
-            static std::optional<BBState> drop_bb_state(BBState const &cs,
+            static std::optional<State> drop_bb_state(State const &cs,
                                                         std::array<map_t, kMaxR> const &usable_arr)
             {
                 int xb = static_cast<int>(cs.xb);
@@ -1049,7 +1049,7 @@ namespace m_tetris2
                         break;
                     yb = try_yb;
                 }
-                BBState ns = cs;
+                State ns = cs;
                 ns.yb = static_cast<std::int8_t>(yb);
                 return ns;
             }
@@ -1057,19 +1057,19 @@ namespace m_tetris2
             //==============================================================
             // spawn-row land_point 枚举的位板等价 (master 旧初始化阶段
             //   tetris_core.cpp:414-428 行为复刻).
-            //   起点 BBState entry, 沿 rotate_ccw (优先 ccw, 没 ccw 用 cw) 链
+            //   起点 State entry, 沿 rotate_ccw (优先 ccw, 没 ccw 用 cw) 链
             //   跑遍每个 r; 每 r 上在 yb 行用 inbounds_arr 扫"可放置基准点"
             //   (与 master move_left/move_right in-bounds 链表等价), leftmost→
-            //   rightmost 顺序 push 出 BBState. drop 由调用方再做.
+            //   rightmost 顺序 push 出 State. drop 由调用方再做.
             //   ccw 链与 master rotate_* 出口完全等价 (master 端 rotate_* =
             //   wall_kick_*[0] = 空盘 inbounds 第一个命中).
             //==============================================================
             static void enumerate_spawn_row_states(char piece_t,
-                                                   BBState const &entry,
+                                                   State const &entry,
                                                    std::array<map_t, kMaxR> const &inbounds_arr,
-                                                   std::vector<BBState> &out)
+                                                   std::vector<State> &out)
             {
-                BBState rot = entry;
+                State rot = entry;
                 std::uint8_t start_r = rot.r;
                 bool first = true;
                 while (true)
@@ -1086,7 +1086,7 @@ namespace m_tetris2
                     int xb = left_xb;
                     while (xb < kW && inbounds_arr[rot.r].get(xb, yb))
                     {
-                        BBState s = rot;
+                        State s = rot;
                         s.xb = static_cast<std::int8_t>(xb);
                         out.push_back(s);
                         ++xb;
@@ -1102,10 +1102,10 @@ namespace m_tetris2
             }
 
 
-            // 纯位板版 attach：把 BBState 对应的方块写入 TetrisMap<W,H>，消行。
+            // 纯位板版 attach：把 State 对应的方块写入 TetrisMap<W,H>，消行。
             // 返回消行数.
 
-            static size_t attach_to_map(BBState const &s, map_t &map);
+            static size_t attach_to_map(State const &s, map_t &map);
 
             
 
@@ -1115,7 +1115,7 @@ namespace m_tetris2
 
                         template<char T, std::uint8_t R>
 
-                        static size_t attach_TR(BBState const &s, map_t &map);
+                        static size_t attach_TR(State const &s, map_t &map);
 
             
 
@@ -1155,7 +1155,7 @@ namespace m_tetris2
 
         // out-of-line: Helpers<RuleSpec>::attach_to_map
         template<class RuleSpec>
-        size_t Helpers<RuleSpec>::attach_to_map(BBState const &s, map_t &map)
+        size_t Helpers<RuleSpec>::attach_to_map(State const &s, map_t &map)
         {
             size_t result = 0;
             char t = static_cast<char>(s.t);
@@ -1184,7 +1184,7 @@ namespace m_tetris2
         // out-of-line: Helpers<RuleSpec>::attach_TR<T, R>
         template<class RuleSpec>
         template<char T, std::uint8_t R>
-        size_t Helpers<RuleSpec>::attach_TR(BBState const &s, map_t &map)
+        size_t Helpers<RuleSpec>::attach_TR(State const &s, map_t &map)
         {
             constexpr auto &cells = shape::piece_cells<RuleSpec, T, R>;
             int xb = static_cast<int>(s.xb);

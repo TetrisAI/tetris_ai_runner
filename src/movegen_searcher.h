@@ -79,12 +79,12 @@ namespace m_tetris2
             }
 
             //=== 转发: search ==================================================
-            // spawn 直接从 TetrisBlockStatus 构建 BBState，走纯位板路径，
+            // spawn 直接从 TetrisBlockStatus 构建 State，走纯位板路径，
             // 不查 oracle 指针图。MapIn 可以是 TetrisMap 或其他兼容 TetrisMap<W,H> 接口的类型。
             template<class MapIn>
             inline auto search(MapIn const &map, TetrisBlockStatus const &status, std::size_t depth)
             {
-                bb::BBState spawn = bb::Helpers<RuleSpec>::state_from_status(
+                bb::State spawn = bb::Helpers<RuleSpec>::state_from_status(
                     status.t,
                     static_cast<std::uint8_t>(status.r),
                     status.x,
@@ -106,7 +106,7 @@ namespace m_tetris2
             // 转发方式与 search() 相同 (ctx_ 隐含注入).
             template<class EvalCallback>
             inline void search_eval(TetrisMap<RuleSpec::width, RuleSpec::height> const &board,
-                                    bb::BBState const &spawn,
+                                    bb::State const &spawn,
                                     std::size_t depth, EvalCallback &on_land)
             {
                 strategy_t::template search_eval<EvalCallback>(ctx_, board, spawn, depth, on_land);
@@ -114,7 +114,7 @@ namespace m_tetris2
 
             //=== 转发: make_path ===============================================
             template<class S = strategy_t>
-            inline auto make_path(bb::BBState const &spawn,
+            inline auto make_path(bb::State const &spawn,
                                   LandPoint const &land_point,
                                   TetrisMap<RuleSpec::width, RuleSpec::height> const &board)
                 -> decltype(S::make_path(std::declval<Context &>(),

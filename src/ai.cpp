@@ -500,7 +500,7 @@ public:
         path_.init(nullptr);
         config_ptr = config;
     }
-    std::vector<char> make_path(m_tetris2::bb::BBState const &spawn,
+    std::vector<char> make_path(m_tetris2::bb::State const &spawn,
                                 m_tetris2::BBLandPoint const &land_point,
                                 m_tetris2::TetrisMap<rule_spec::width, rule_spec::height> const &board)
     {
@@ -570,7 +570,7 @@ public:
     template<class EvalCallback>
     void search_eval(m_tetris2::TetrisMap<rule_qq::TetrisRule::rule_spec::width,
                                     rule_qq::TetrisRule::rule_spec::height> const &board,
-                     m_tetris2::bb::BBState const &spawn, size_t depth, EvalCallback &cb)
+                     m_tetris2::bb::State const &spawn, size_t depth, EvalCallback &cb)
     {
         switch (*config_ptr)
         {

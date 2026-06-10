@@ -1,7 +1,7 @@
 #pragma once
 
 //==========================================================================
-// bb_eval_bridge.h — AI eval 接口编译期分发桥。
+// tetris_eval_dispatch.h — AI eval 接口编译期分发。
 //
 // 提供：
 //   1. concept 探针（检测 AI::eval 需要哪种 SpinType 参数及 Map 类型）：
@@ -16,13 +16,13 @@
 //        - SpinType 由 AI::EvalSpinType 决定；无 EvalSpinType 则 fallback 至 monostate
 //
 // LandPoint 约定（三种形态）：
-//   NoSpinHook 路径：BBLandPoint             — .state（BBState），无 .type
+//   NoSpinHook 路径：BBLandPoint             — .state（State），无 .type
 //
 // 依赖：tetris_node.h, typed_dispatch.h, tetris_shape.h（rotation_count）
 //
 // Note: search_tspin.h / search_aspin.h are NOT included here to avoid a
 // circular-include cycle:
-//   search_tspin.h -> tetris_core.h -> bb_eval_bridge.h -> search_tspin.h (guard skip)
+//   search_tspin.h -> tetris_core.h -> tetris_eval_dispatch.h -> search_tspin.h (guard skip)
 //==========================================================================
 
 #include "tetris_node.h"
@@ -174,7 +174,7 @@ namespace m_tetris2
                 using Det = TetrisNodeDetails<Spec, T, R>;
 
                 // ── 从 LandPoint 提取位板坐标 ──────────────────────────────────
-                // BBState 持有 (t, r, xb, yb)：
+                // State 持有 (t, r, xb, yb)：
                 //   xb = bbox 左列（= TetrisNode.x = master status.x - origin.x）
                 //   yb = bbox 底行 y-up（= node.row）
                 // TetrisNode.y = status.y = yb + kOriginY（kOriginY 为编译期常量）
@@ -188,7 +188,7 @@ namespace m_tetris2
                 }
                 else
                 {
-                    // 均持有 .state（bb::BBState{t,r,xb,yb}）
+                    // 均持有 .state（bb::State{t,r,xb,yb}）
                     node_x = static_cast<int8_t>(lp.state.xb);
                     // TetrisNode.y = yb + kOriginY，在编译期使用 Det::kOriginY 计算
                     node_y = static_cast<int8_t>(

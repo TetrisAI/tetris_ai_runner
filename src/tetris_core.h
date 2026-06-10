@@ -29,8 +29,7 @@
 namespace m_tetris2
 {
     const int max_height = 40;
-    //C-A2: legacy bridge layer 解锁 W>32. 新引擎 (TetrisMap<W,H>) 已支持 W<=64;
-    //  此常量同时作为 TetrisMap::top / AI 栈数组等的容量上限.
+    // TetrisMap<W,H> 支持 W<=64；此常量同时作为 TetrisMap::top / AI 栈数组等的容量上限。
     const int max_width = 64;
     const int max_wall_kick = 16;
 
@@ -166,17 +165,15 @@ namespace m_tetris2
 
 } // namespace m_tetris2
 
-// Commit 4 Phase 2: bb_eval_bridge.h must be included OUTSIDE any open
-// namespace block.  It pulls in search_tspin.h / search_aspin.h / tetris_node.h
-// which all open their own namespace blocks (search_tspin / search_aspin /
-// etc.) and reference m_tetris2:: types with full qualification.  Placing the
-// #include inside namespace m_tetris2 {} would turn those inner namespace
-// openings into m_tetris2::search_tspin etc. with m_tetris2:: references
-// resolving to m_tetris2::m_tetris2::, causing compile errors.
+// tetris_eval_dispatch.h 必须在所有 namespace 块之外 include：它间接拉入
+// search_tspin.h / search_aspin.h / tetris_node.h，这些头文件都开了自己的
+// namespace 块并以完全限定名引用 m_tetris2:: 类型。若将 #include 放在
+// namespace m_tetris2 {} 内部，内层 namespace 会变成 m_tetris2::search_tspin
+// 等，导致编译错误。
 //
-// bb_eval_bridge.h itself wraps all its declarations in namespace m_tetris2 {}
-// so the bridge types end up in the correct namespace regardless.
-#include "bb_eval_bridge.h"
+// tetris_eval_dispatch.h 自身将所有声明包在 namespace m_tetris2 {} 里，
+// 因此分发类型最终落在正确的 namespace 中。
+#include "tetris_eval_dispatch.h"
 #include "bb_state.h"
 
 namespace m_tetris2
@@ -914,7 +911,7 @@ namespace m_tetris2
             TetrisTreeNode *child = context->alloc(this);
             child->map = map;
             child->identity = lp;
-            // 纯位板 attach：直接从 BBState 写方块、消行、更新 top/roof.
+            // 纯位板 attach：直接从 State 写方块、消行、更新 top/roof.
             // 不再需要 TetrisNode* 或 TetrisContext::get() 反查.
             size_t clear = m_tetris2::bb::Helpers<Spec>::attach_to_map(lp.state, child->map);
             auto after_board = m_tetris2::bb::build_board_for_search<Spec>(child->map);
@@ -987,7 +984,7 @@ namespace m_tetris2
             auto h_sp = SearchSpec::spawn(hold_t, SearchSpec::width, SearchSpec::height);
             auto board = m_tetris2::bb::build_board_for_search<SearchSpec>(map);
             auto search_spawn = SearchHelpers::state_from_status(search_t, 0, s_sp.first, s_sp.second);
-            auto hold_spawn = hold_t != '\0' ? SearchHelpers::state_from_status(hold_t, 0, h_sp.first, h_sp.second) : m_tetris2::bb::BBState{};
+            auto hold_spawn = hold_t != '\0' ? SearchHelpers::state_from_status(hold_t, 0, h_sp.first, h_sp.second) : m_tetris2::bb::State{};
             if (search_t == hold_t)
             {
                 return search(context, search_t, false);
@@ -1024,7 +1021,7 @@ namespace m_tetris2
                     {
                         node_flag.set(search_t, hold_t);
                         // 用 search_eval + probe 判断 search_t 是否有任何落点，
-                        // 避免向 search() 传 BBState（其签名接收 TetrisBlockStatus）。
+                        // 避免向 search() 传 State（其签名接收 TetrisBlockStatus）。
                         bool search_has_any = false;
                         auto probe_cb = [&]<char T, std::uint8_t R>(LandPoint const &) { search_has_any = true; };
                         context->search->search_eval(board, search_spawn, level, probe_cb);
