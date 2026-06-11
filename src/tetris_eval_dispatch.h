@@ -58,9 +58,9 @@ namespace m_tetris2
     //----------------------------------------------------------------------
     // SpinType — independent definitions
     //
-    // These are value-compatible with search_tspin::Search::TSpinType and
-    // search_aspin::Search::ASpinType respectively. The enumerators are used
-    // in TetrisNode<Details,SpinT>.spin and in concept probes below.
+    // These values match the spin enums used by search_tspin::Search and
+    // search_aspin::Search. The enumerators are used in
+    // TetrisNode<Details,SpinT>.spin and in concept probes below.
     //
     // NOTE: Do NOT use the search_*::Search::*SpinType aliases here; those
     // headers cannot be included without triggering the circular-include

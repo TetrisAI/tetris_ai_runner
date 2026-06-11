@@ -23,10 +23,7 @@
 
 namespace m_tetris2
 {
-    //落点描述 (commit 3 hook 化): 基础几何 (x/y/r) 由框架持有, T-spin 等
-    //  扩展信息全部交给 Hook::Payload 承载. EmptyPayload 路径下 [[no_unique_address]]
-    //  保证 LandingPosT 不为 extra 字段付字节. SpinTypePayload (commit C2 N.1)
-    //  路径 (TSpinHook / ASpinHook) 调用方读 lp.extra.type / lp.extra.last_*.
+    // 落点描述：基础几何由框架持有，额外元数据由 Hook::Payload 扩展。
     template<class Hook>
     struct LandingPosT
     {
@@ -36,9 +33,7 @@ namespace m_tetris2
         [[no_unique_address]] typename Hook::Payload extra;
     };
 
-    //LandingPos = LandingPosT<DefaultTSpinHook>. 老调用方 (oracle_diff /
-    //  perft_movegen / MoveGenSearch) 默认走 DefaultTSpinHook, 字段层级
-    //  从 lp.spin → lp.extra.type (commit C2 N.1 把 spin 收敛到 SpinTypePayload.type).
+    // 默认的落点类型别名。
     using LandingPos = LandingPosT<DefaultTSpinHook>;
 
     namespace movegen
@@ -51,11 +46,6 @@ namespace m_tetris2
         //由于 shifted<Dx,Dy> 是模板参数必须编译期, 但 cell 也是编译期(来自
         //piece_cells), 所以可以用 index_sequence 展开.
         //
-        //TODO(phase3-coord): shape::piece_cells 的 (col, row) 中 row 来自 OpLines 索引,
-        //  而 OpLines[0] 是 4xN 矩阵的"顶部"(create_node 中以 line4..line1 顺序填到 data
-        //  做了一次倒序). TetrisMap<W,H> 是 y-up 坐标系, 因此使用 piece_cells 时需要把 row
-        //  翻转为 (Spec::note - 1 - row) 才能与现有 attach() 语义对齐. 当前实现假定
-        //  OpLines 已是 y-up 顺序, 需要在 perft 对拍阶段把翻转加进来.
 
         namespace detail
         {
@@ -175,7 +165,7 @@ namespace m_tetris2
         //  不需要 spin 信息的 search (simple/path/cautious/simulate/aspin) 走默认 false,
         //  if constexpr 在编译期裁掉所有 last_rotate / corners3 维护逻辑, 0 开销.
         //
-        //commit 1 (search hook): 把 EnableMini 字面量退化为 Hook trait.
+        // 具体行为由 Hook trait 决定。
         //  框架本身不再认 piece 字面量 'T', 由 Hook::active_for_piece<T> 编译期决定
         //  本 piece 是否走 spin/last_rotate 维护. NoHook 等价原 EnableMini=false,
         //  TSpinEnableHook 等价原 (EnableMini=true && T=='T').
@@ -192,15 +182,12 @@ namespace m_tetris2
             static_assert(R_count > 0, "MoveGen: piece T has no rotations in RuleSpec");
             static_assert(R_count <= 32, "MoveGen: rotation count > 32 not supported");
 
-            //commit 1 (search hook): kCheckTSpin 完全交给 Hook 决定, 框架不再写 (T == 'T').
+            // T-spin 检查由 Hook 控制。
             //  与原 `EnableMini && (T == 'T')` 字面量等价: TSpinEnableHook 只对 'T' 开启,
             //  其它 piece / 其它 hook 保持关闭.
             static constexpr bool kCheckTSpin = Hook::template active_for_piece<T>;
 
-            //commit 4 (search hook): pivot_xs / pivot_ys 不再被框架直接读取. corners3
-            //  的 pivot 偏移已经搬到 DefaultTSpinHook::build_corners3 内部, 通过
-            //  shape::piece_cells<Spec, T, R>.pivot 编译期取值. 框架 generate() 不再
-            //  实例化 build_pivot_xs/ys, 移除以避免无谓模板膨胀.
+            // 旋转元数据由 Hook 自行维护。
 
             //origin 表生成: piece_cells<>.origin = (cx_min, H-1-cy_min) 对每个 R 各异.
             //  emit 阶段输出 (master_x, master_y) = (new_x - origin.x, new_y + origin.y),
@@ -222,16 +209,7 @@ namespace m_tetris2
             static constexpr auto kOriginYs =
                 build_origin_ys(std::make_index_sequence<R_count>{});
 
-            //commit 6 (filtered index): emit 阶段去重表. 把所有 (r, xb, yb)
-            //  按 piece 落到棋盘上的 *绝对 cell 集合* 分组分配 filtered_idx,
-            //  与 master `node_mark_filtered_` 在 IndexFilter 维度做的等价类
-            //  完全等价, 不依赖任何 SRS-7 / pivot 归一化巧合. 详见
-            //  src/piece_filter_index.h.
-            //
-            //  原 kCanonicalR + same_geometry 方案已删: 它在 piece-local 坐标
-            //  下做几何相等比较, 把跨 (xb, yb) 的等价类强行折并 — 仅在 SRS-7
-            //  + cells_impl row-major 归一化下与 master 巧合一致, 引入 5+
-            //  rotation 或 pivot 不规范化 spec 即崩.
+            // emit 阶段使用 filtered_idx 去重等价落点。
             static constexpr std::uint16_t kFilteredCount =
                 movegen::kFilteredCount<Spec, T>;
             static constexpr std::size_t kFilteredWords =
@@ -396,10 +374,7 @@ namespace m_tetris2
                     }
                     else
                     {
-                        //commit 2 (search hook): NoHook 路径下 spin 恒为 0, 框架对 piece
-                        //  字面量 'T' 完全零知识. 原 fallback 弱 spin (corners>=3 -> Full)
-                        //  仅 NoHook+T piece 路径会触发, 没有 master 对照基准, 与 hook
-                        //  体系"额外信息全部由 hook 写入"语义不一致, 此处删除.
+                        // NoHook 路径下不写额外 spin 元数据。
                         landings.for_each_set_bit([&](int x, int y)
                                                   {
                                                       LandingPosT<Hook> lp{};
@@ -539,8 +514,7 @@ namespace m_tetris2
                 }
                 if constexpr (kCheckTSpin)
                 {
-                    //commit 4 (search hook): last_rotate_arr 累积下沉到 hook. NoHook 路径
-                    //  下 rot_state 是 EmptyRotState, on_rotate_reach 空实现, 整段被裁掉.
+                    // 最后一次旋转到达信息由 Hook 累积维护。
                     Hook::template on_rotate_reach<map_t, R_count>(DstR, rotate_reached, rot_state);
                 }
                 if (added.any())

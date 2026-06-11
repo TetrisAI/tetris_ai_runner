@@ -4,11 +4,7 @@
 //==========================================================================
 // 通用位板 BFS 引擎.
 //
-// 设计动机:
-//   位板侧的 BFS 主循环 (run_piece_20g / make_path 1g / make_path 20g) 在
-//   主循环骨架上完全一致 (FIFO 队列 + 准入 mark + 邻居展开 + 命中谓词),
-//   只是各自的"邻居函数"、"准入策略"、"命中/采样行为"不同. 把骨架抽出来,
-//   让三处 BFS 共享一份循环, 各自只描述差异:
+// 抽取 1g / 20g 路径搜索共享的 FIFO 主循环，把邻居生成、去重策略和访问回调拆成可组合组件。
 //
 //     - NeighborProvider: 描述"一个状态有哪些后继" (Run20gNeighbors,
 //       MakePath1gNeighbors, MakePath20gNeighbors, ...);
@@ -39,9 +35,7 @@ namespace m_tetris2
         //  Skip            : 不入队也不更新 mark (已存在等价更新或不可达).
         //  MarkOnly        : 更新 mark / parent / action, 但不入队 (cover_if
         //                    模式: 后到的 "更优" 标记覆盖先到的弱标记, 路径可
-        //                    沿其回溯, 但不再扩展). 当前 commit 2 (run_piece_20g)
-        //                    的 kick cover_if 命中即走此分支; 后续 commit 3
-        //                    1g make_path 的 cover_if 也复用同一语义.
+        //                    沿其回溯，但不再扩展。
         //  MarkAndEnqueue  : 首次访问 (或语义上等价于"首次"), 写 mark 并入队.
         enum class EnqueueDecision : std::uint8_t
         {
@@ -61,8 +55,7 @@ namespace m_tetris2
         //     供 NeighborProvider 决定是否进一步 fan out (e.g. 1g rotate_move 的
         //     X/Z/C 仅在 nL/nR 实际入队时才展开).
         //   Visitor::on_pop(state) -> bool; 返回 false 立刻退出整个 BFS,
-        //     不再处理队列中剩余项. 主要用于 "出队后惰性命中" 模式 (commit 2
-        //     的 run_piece_20g visitor).
+        //     不再处理队列中剩余项，主要用于出队后惰性命中模式。
         //   Visitor::on_admit(state, action, decision) -> bool; dedup 准入
         //     (Skip 之外) 即触发, 返回 false 立刻退出整个 BFS. 用于 "入队即检
         //     命中" 模式 — master 1g make_path 的每一处 set+check_index 命中

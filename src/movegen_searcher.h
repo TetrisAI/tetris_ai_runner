@@ -2,7 +2,7 @@
 #define TETRIS_AI_RUNNER_MOVEGEN_SEARCHER_H_
 
 //==========================================================================
-// Searcher<Strategy, SpinHook, RuleSpec>: Strategy 化重构里的运行时包装.
+// Searcher<Strategy, SpinHook, RuleSpec>: Strategy 搜索器的运行时包装。
 //
 // 设计目标:
 //   - 取代旧 MoveGenSearch<RuleSpec, Hook> 的"实例". MoveGenSearch 把
@@ -54,9 +54,7 @@ namespace m_tetris2
         class Searcher
         {
         private:
-            //commit 3: strategy_t 是内部别名, 第三方调用方应通过下面的
-            //  Context / Config / LandPoint 访问. 把 strategy_t 收敛到 private
-            //  避免下游用 `Searcher::strategy_t` 反向耦合具体实现.
+            // strategy_t 仅在类内部使用。
             using strategy_t = Strategy<SpinHook, RuleSpec, Policy>;
 
         public:
@@ -101,9 +99,7 @@ namespace m_tetris2
             }
 
             //=== 转发: search_eval ============================================
-            // Phase 2 推式接口. EvalCallback 须满足:
-            //   template<char T, uint8_t R> void operator()(LandPoint const &)
-            // 转发方式与 search() 相同 (ctx_ 隐含注入).
+            // 直接转发 search_eval，并由内部 ctx_ 注入上下文。
             template<class EvalCallback>
             inline void search_eval(TetrisMap<RuleSpec::width, RuleSpec::height> const &board,
                                     bb::State const &spawn,
@@ -125,8 +121,7 @@ namespace m_tetris2
 
         protected:
             //=== 内部 ctx 直接读访问 ==========================================
-            //commit 3: 只对派生类暴露 (中间层 / 适配器子类可能需要), 不再
-            //  直接 public — 顶层 API 不暴露 ctx_ 实体.
+            // 仅向派生类暴露内部上下文访问器。
             inline Context &context() noexcept
             {
                 return ctx_;

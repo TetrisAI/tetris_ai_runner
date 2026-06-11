@@ -865,16 +865,9 @@ namespace m_tetris2
     //   * ASpin 不需要 corners3 / Mini / last-rotate 谱系 — RotState / SearchState
     //     退化为空 struct, on_init_rotations / on_rotate_reach / on_search_state_init
     //     全部空实现.
-    //   * Payload 复用 SpinTypePayload (commit C2 N.1): type 字段编码
-    //     0=None / 3=ASpin. 其余 4 个 last_* 字段空载 (ASpin 不需要 last 反查).
-    //   * active_for_piece<T> = true: ASpin 对所有 piece 都计算.
-    //   * Config 与 LandPoint 直接复用 search_aspin::Search::* 公开类型, 保持
-    //     外部 API 不动.
+    // ASpin 对所有 piece 计算，Config 与 LandPoint 直接复用 search_aspin::Search 的公开类型。
     //
-    // ASpinHook **不**派生 BaseSpinHook — 它自己写 on_emit / apply_emit_1g /
-    // apply_emit_20g (4 邻位板阻挡). lp_requires_last_rotate 必须返回 false
-    // (commit C2 N.4 修正: 旧 is_landpoint_none 在 ASpin 命中时返回 false, 让
-    // ASpin 路径"起点==终点"被错误地拒绝自落点短路 — 反转后修复此 bug).
+    // ASpinHook 不需要 last-rotate 反查，起点与终点相同时也允许直接命中。
     //=========================================================================
     struct ASpinHook
     {
@@ -1004,15 +997,10 @@ namespace m_tetris2
                 fn(lp); });
         }
 
-        //=== check_ready / check_mini_ready (ASpin 不消费; 提供空实现保持模板对称) ===
-        //commit (drop-search-state): check_ready / check_mini_ready 已从公共 hook
-        //  接口面下线 (TSpinHook 内 apply_emit_20g 改读 RotState 的位板预算表).
-        //  ASpinHook 自然不需要再提供这两个空实现.
+        //=== check_ready / check_mini_ready (ASpin 不消费；保留空实现以维持模板对称) ===
 
         //=== apply_emit_1g ===
-        //commit (strategy-deref): 与 TSpinHook 同形, 去掉 TetrisContext 参数.
-        //  ASpinHook 不消费 last_state (resolves_last_1g=false), strategy 走该
-        //  快路径时直接把 nullptr 传进来.
+        // ASpinHook 不消费 last_state，策略层可直接传入 nullptr。
         template<class MapT, std::size_t R_count>
         static void apply_emit_1g(LandPoint &node_ex, Payload const &payload,
                                   std::size_t depth, Config const *cfg,

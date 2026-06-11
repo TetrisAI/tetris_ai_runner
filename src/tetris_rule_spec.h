@@ -4,17 +4,7 @@
 //==========================================================================
 // Compile-time rule primitives.
 //
-// 把原本散落在 tetris_core.h 里的编译期方块描述抽出来, 让新的
-// tetris_shape.h / tetris_movegen.h 可以单独编译, 不再被 chash_map / chash_set
-// 等运行期容器拖下水.
-//
-// 内容:
-//   - row_t: 棋盘行/方块行的存储类型
-//   - WallKickList<int8_t...>: 踢墙序列
-//   - OpLines<uint32_t...>: N 行 W 位的形状 mask
-//   - OpDesc<...>: 单条方块操作的编译期描述
-//   - RuleSpec<W, H, N, Ops...>: 整套规则
-//   - kOpRotateNone: 旋转目标无效哨兵
+// 定义规则系统共用的编译期数据结构，包括行类型、踢墙表、操作描述与 RuleSpec。
 //==========================================================================
 
 #include <cstddef>
@@ -24,9 +14,7 @@
 
 namespace m_tetris2
 {
-    //场景行/方块行的存储类型.
-    //后续阶段会根据 RuleSpec::W 自动选择 uint8/16/32/64, 当前阶段统一为 uint64_t
-    //(C-A2: legacy bridge 同时解锁 W<=64; 旧 SRS-7 W=10 时高 32 位恒为 0, 行为不变).
+    //场景行/方块行的存储类型，当前统一为 uint64_t。
     using row_t = std::uint64_t;
 
     //踢墙序列: 平展为 [x0, y0, x1, y1, ...] 的编译期数组
@@ -132,10 +120,8 @@ namespace m_tetris2
 
         using ops = std::tuple<Ops...>;
 
-        //游戏 spawn (出生位置) 接口. 与现有 TetrisBlockStatus(PT, x, y, 0) 第 2/3
-        //  参数完全同形, 让 oracle 用户零理解成本迁移. SRS 系默认 (3, 21);
-        //  非 SRS rule 在自家 RuleSpec specialization 上覆盖该函数 (rule_st /
-        //  rule_qq / rule_tag 用 W/H 函数; rule_botris 按 piece 区分).
+        //游戏出生位置接口；默认返回 SRS 系规则常用的 (3, 21)。
+        //非 SRS 规则可在各自的 RuleSpec specialization 中覆盖该函数。
         static constexpr std::pair<int, int> spawn(char /*PT*/, int /*W*/, int /*H*/)
         {
             return {3, 21};

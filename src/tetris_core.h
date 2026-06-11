@@ -896,9 +896,7 @@ namespace m_tetris2
             context->width_cache.clear();
             return root;
         }
-        // alloc_eval_typed<T,R>: 分配子节点，直接以编译期 <T,R> 调 TetrisCallEval::call_eval_typed，
-        // 完全绕过 TetrisCallEval::eval() 里的 for_each_typed_r 运行时循环。
-        // TODO(multi-thread): 多线程路径在此构造 PendingTask 而非同步 eval。
+        // alloc_eval_typed<T,R>: 分配子节点并直接以编译期 <T,R> 调用 eval。
         template<char T, std::uint8_t R, class SrcBoard>
         TetrisTreeNode *alloc_eval_typed(Context *context, map_t &map,
                                          SrcBoard const &src_board,
@@ -928,8 +926,6 @@ namespace m_tetris2
             if (node_flag.empty())
             {
                 node_flag.set(search_t);
-                // Phase 2: 推式 search_eval，消除外层 for 循环拉取。
-                // Fresh 场景：每个落点直接 alloc + eval，无需查字典。
                 auto fresh_cb = [&]<char T, std::uint8_t R>(LandPoint const &land_point_node)
                 {
                     TetrisTreeNode *child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
@@ -948,7 +944,6 @@ namespace m_tetris2
                     old.emplace(lp_key(it->identity), it);
                 }
                 children = nullptr;
-                // Phase 2: Rescan 场景：先查字典复用，未命中则 alloc + eval。
                 auto rescan_cb = [&]<char T, std::uint8_t R>(LandPoint const &land_point_node)
                 {
                     TetrisTreeNode *child;
@@ -992,7 +987,6 @@ namespace m_tetris2
                 if (node_flag.empty())
                 {
                     node_flag.set(search_t, hold_t);
-                    // Phase 2: Fresh (diff-type hold) — search_node 落点。
                     auto fresh_main_cb = [&]<char T, std::uint8_t R>(LandPoint const &land_point_node)
                     {
                         TetrisTreeNode *child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
@@ -1048,7 +1042,6 @@ namespace m_tetris2
                             old.emplace(lp_key(it->identity), it);
                         }
                         children = nullptr;
-                        // Phase 2: Rescan (diff-type hold) — search_node 落点。
                         auto rescan_main_cb = [&]<char T, std::uint8_t R>(LandPoint const &land_point_node)
                         {
                             TetrisTreeNode *child;
@@ -1106,7 +1099,6 @@ namespace m_tetris2
                 node_flag.set(TetrisNodeFlag::kVirtualSearchFlag);
                 for (int i = 0; i < SearchHelpers::kPieceCount; ++i)
                 {
-                    // Phase 2: 推式 search_eval。
                     auto fresh_cb = [&]<char T, std::uint8_t R>(LandPoint const &land_point_node)
                     {
                         TetrisTreeNode *child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
@@ -1131,7 +1123,6 @@ namespace m_tetris2
                 children = nullptr;
                 for (int i = 0; i < SearchHelpers::kPieceCount; ++i)
                 {
-                    // Phase 2: 推式 search_eval。
                     auto rescan_cb = [&]<char T, std::uint8_t R>(LandPoint const &land_point_node)
                     {
                         TetrisTreeNode *child;

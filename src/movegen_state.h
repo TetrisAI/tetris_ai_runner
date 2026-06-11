@@ -623,7 +623,7 @@ namespace m_tetris2
             }
 
             //==============================================================
-            // disable_d 三谓词位板化 (master search_tspin.cpp:139).
+            // disable_d 由上、左、右三个可达谓词联合判定。
             //==============================================================
             template<char T, std::uint8_t R>
             static int min_cell_y_TR()

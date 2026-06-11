@@ -185,7 +185,6 @@ namespace m_tetris2
             }
 
             //=== search_eval ===================================================
-            // Phase 2 推式接口：SimpleStrategy 的薄包装实现。
             //==================================================================
             template<class EvalCallback>
             static void search_eval(Context &ctx, TetrisMap<RuleSpec::width, RuleSpec::height> const &board,

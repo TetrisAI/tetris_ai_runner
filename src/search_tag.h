@@ -2,7 +2,7 @@
 #define TETRIS_AI_RUNNER_SEARCH_TAG_H_
 
 //==========================================================================
-// TagStrategy<SpinHook, RuleSpec>: oracle search_tag 的位板原生 strategy.
+// TagStrategy<SpinHook, RuleSpec>: TAG 规则使用的位板搜索策略。
 //
 // 与 PathStrategy / SimulateStrategy 的本质差异 (源自 oracle/search_tag.cpp 与
 // oracle/search_path.cpp 的算法分歧):
@@ -54,10 +54,7 @@ namespace m_tetris2
 {
     namespace movegen
     {
-        //=== Tag strategy 私有 mixin: SpinHook 依赖字段 ========================
-        // 与 detail::path::ExtrasMixin 同形 (LandPoint cache + context/config 缓存).
-        //commit (drop-search-state): hook_state_ / SpinHook::SearchState 已删除,
-        //  TSpin 的 ready 改读 search_t_native 入口构建的 corners3_arr 位板.
+        // TagStrategy 私有 mixin，保存配置与落点缓存。
         namespace detail
         {
             namespace tag
@@ -138,10 +135,7 @@ namespace m_tetris2
             }
 
             //=== search_eval ===================================================
-            // Phase 2 推式接口：与 PathStrategy::search_eval 同形，参见其注释。
-            // EvalCallback 须可调用 on_land.operator()<T, R>(LandPoint const &)
-            // 其中 T 为编译期 piece type，R 为编译期旋转态（均为编译期常量）。
-            // TODO(multi-thread): 多线程路径在此并发分发 PendingTask。
+            // 产生落点时直接按编译期 <T, R> 回调 on_land。
             //==================================================================
             template<class EvalCallback>
             static void search_eval(Context &ctx, TetrisMap<RuleSpec::width, RuleSpec::height> const &board,
@@ -235,12 +229,7 @@ namespace m_tetris2
                 template<class Emit>
                 void expand(bb::State const &cur, Emit emit)
                 {
-                    //commit (remove-context): rotate_* = wall_kick_*[0] = 空盘
-                    //  inbounds 第一个命中的 kick 目标. 用 inbounds_arr 喂
-                    //  first_kick, 与 master rotate_counterclockwise /
-                    //  rotate_clockwise 出口完全等价; board check 由 dedup 走
-                    //  usable_at(usable_arr) 二段过滤, 与 oracle "rotate_* &&
-                    //  rotate_*->check(map)" 一致.
+                    // 旋转目标使用预先计算好的 in-bounds kick 顺序。
                     if (auto rn = Helpers::first_kick(piece_t, bb::KickDir::Ccw, cur, *inbounds_arr))
                     {
                         if (Helpers::usable_at(rn->r, rn->xb, rn->yb, *usable_arr))
@@ -275,9 +264,7 @@ namespace m_tetris2
             // emitted_keys 走线性 cells_key 去重 (与 oracle node_mark_filtered_
             // 等价: cells_key 与 master IndexFilter 一一对应).
             //
-            // Phase 2: EvalCallback 可选；非 void 时在 on_pop 展开运行时 cur.r →
-            //   编译期 Rs，直接调 callback，跳过 push_back。
-            // TODO(multi-thread): 多线程路径改为构造 PendingTask，参见 search_path.h。
+            // EvalCallback 非 void 时在 on_pop 中按运行时旋转态分发到编译期回调。
             template<char T, class EvalCallback = void>
             struct TagSearch1gVisitor
             {
@@ -395,9 +382,7 @@ namespace m_tetris2
                 template<class Emit>
                 void expand(bb::State const &cur, Emit emit)
                 {
-                    //commit (remove-context): 与 1g 路径同形, rotate_* 走
-                    //  first_kick(inbounds_arr); 与 oracle (search_tag.cpp:
-                    //  228-242) 一一对应.
+                    // 20g 路径与 1g 路径使用相同的旋转出口选择。
                     if (auto rn = Helpers::first_kick(piece_t, bb::KickDir::Ccw, cur, *inbounds_arr))
                     {
                         if (Helpers::usable_at(rn->r, rn->xb, rn->yb, *usable_arr))
@@ -432,7 +417,6 @@ namespace m_tetris2
             // land-point 谓词 = !node->open(map) && (!move_down || !move_down->check(map)),
             // 与 oracle/search_tag.cpp:220-225 一致. emitted_keys 同 1g 路径线性 dedup.
             //
-            // Phase 2: T 编译期参数用于 rcount_v<T> 展开；EvalCallback 非 void 时触发 callback。
             template<char T, class EvalCallback = void>
             struct TagSearch20gVisitor
             {
@@ -546,7 +530,6 @@ namespace m_tetris2
                         emitted_keys.push_back(k);
                         LandPoint node_ex;
                         node_ex.state = *sunk;
-                        // Phase 2: spawn-seed 落点同样展开运行时 r → 编译期 Rs。
                         if constexpr (!std::is_void_v<EvalCallback>)
                         {
                             [&]<std::size_t... Rs>(std::index_sequence<Rs...>)
@@ -658,7 +641,7 @@ namespace m_tetris2
             // T-spin 的 check 使用 TetrisMapSnap, 但 build_snap 内部把 'T'
             // 的 4 个 rotation 各预算一份 4xN 列表交集. 位板 usable_arr[r] 已
             // 经在 build_usable_for_piece 阶段对 (T, r) 全 cell 做了 board 碰撞
-            // AND, 与 snap 的等价性见 commit 7a-2 注释 (cells_key_for + check_TR).
+            // T-spin 的 usable 位图与 snap 判定针对同一几何状态。
             //
             // T-spin 的 op/parent 由位板 PathMark 持有 (与 PathStrategy /
             //   SimulateStrategy 同款: ctx.path_mark_, 按 (r, xb, yb) 索引,
@@ -804,13 +787,7 @@ namespace m_tetris2
                 std::array<map_t, kMaxR> inbounds_arr{};
                 Helpers::build_inbounds_for_piece(T, inbounds_arr);
 
-                //commit (tag-bb-native): TSpinHook::on_init_rotations 在 board 上
-                //  填一份 corners3_arr (per-rotation 的 "≥3 corner 占用" 位图).
-                //  下文 incomplete 出循环 emit 阶段直接读 corners3_arr[r].get(xb, yb)
-                //  作为 is_ready, 与 search_path.h Run20gVisitor 用 TSpinHook::
-                //  on_emit 的 landings & corners3_arr 同款表. 替换原
-                //  master-coord SpinHook::check_ready, 让 search_t_native 不再
-                //  触碰 master 坐标系.
+                // TSpinHook 在入口初始化阶段准备好按旋转分组的 corners3 位图。
                 typename SpinHook::template RotState<map_t, kMaxR> rot_state{};
                 SpinHook::template on_init_rotations<RuleSpec, T, map_t, kMaxR>(board, rot_state);
                 std::array<map_t, kMaxR> const &corners3_arr = rot_state.corners3_arr;
@@ -888,19 +865,11 @@ namespace m_tetris2
                     node_ex.last = last_state;
                     node_ex.is_check = true;
                     node_ex.is_last_rotate = (last_op != ' ');
-                    //commit (tag-bb-native): is_ready 不再走 master-coord 的
-                    //  SpinHook::check_ready (block_data + x_diff/y_diff);
-                    //  改读位板 corners3_arr[r].get(xb, yb) — 与 search_path.h
-                    //  Run20gVisitor / TSpinHook::on_emit 用同一张表 (master
-                    //  TetrisContext 不再被运行时访问). corners3_arr 在
-                    //  search_t_native 入口由 TSpinHook::on_init_rotations
-                    //  填好, 此处只读.
+                    // is_ready 直接读取按旋转分组的 corners3 位图。
                     node_ex.is_ready = corners3_arr[sunk_state.r].get(
                         static_cast<int>(sunk_state.xb),
                         static_cast<int>(sunk_state.yb));
-                    // Phase 2: T-spin 路径也在此展开运行时 sunk_state.r → 编译期 Rs，
-                    //   触发 EvalCallback，跳过 push_back。
-                    // TODO(multi-thread): 多线程路径改为构造 PendingTask，参见 search_path.h。
+                    // T-spin 落点在此按运行时旋转态分发到编译期回调。
                     if constexpr (!std::is_void_v<EvalCallback>)
                     {
                         [&]<std::size_t... Rs>(std::index_sequence<Rs...>)
@@ -936,7 +905,7 @@ namespace m_tetris2
                 template<class Emit>
                 void expand(bb::State const &cur, Emit emit)
                 {
-                    //commit (remove-context): rotate_* = first_kick(inbounds).
+                    // make_path 使用与 search 相同的旋转出口选择。
                     if (auto rn = Helpers::first_kick(piece_t, bb::KickDir::Ccw, cur, *inbounds_arr))
                     {
                         emit(*rn, 'z');
@@ -1042,10 +1011,7 @@ namespace m_tetris2
             // 内部 "None 路径" make_path: 不读 land_point.type, 仅按 cells_key
             // 命中目标 master node. 用作 T-spin 的 last 反查递归.
             //
-            //commit (tag-bb-native): 入口 entry == target 短路改用 cells_key
-            //  比较, 与 oracle `node->index_filtered == target->index_filtered`
-            //  byte-equivalent (cells_key 与 master IndexFilter 一一对应),
-            //  但 strategy 主体不再读 master node 的 index_filtered 字段.
+            // 入口短路直接比较 entry 与目标状态的 cells_key。
             static std::vector<char>
             make_path_none(Context &ctx, bb::State const &spawn,
                            bb::State const &target,
@@ -1113,17 +1079,7 @@ namespace m_tetris2
                              LandPoint const &land_point,
                              TetrisMap<RuleSpec::width, RuleSpec::height> const &board)
             {
-                //commit (tag-bb-native): 入口短路改用 cells_key 比较, 与
-                //  oracle `node->index_filtered == land_point->index_filtered`
-                //  byte-equivalent.
-                //commit C2 (N.4): 旧 `is_landpoint_none(lp)` 反转语义到
-                //  `lp_requires_last_rotate(cfg, lp)` 之后, 该新 trait 内联了
-                //  `cfg->last_rotate` 检查 — Tag 走 oracle/search_tag 路径不消费
-                //  Config (默认 last_rotate=false), 但 Tag 仍依赖 lp.type != None
-                //  来决定是否需要末段旋转后缀. 这里改用 get_last_state(lp) 作 proxy:
-                //  TSpinHook (Tag 唯一消费者) 在 lp.type != None 时 emit_set 调
-                //  find_last_rotate_pred + apply_emit_* 会写 lp.last; lp.type=None
-                //  时 lp.last.t==0. 二者等价, 不依赖 ctx.config_.
+                // 是否需要末段旋转后缀由 get_last_state(land_point) 是否存在决定。
                 bb::State const *last_ptr = SpinHook::get_last_state(land_point);
                 bool has_spin_landpoint = last_ptr != nullptr;
                 if (!has_spin_landpoint &&
@@ -1174,8 +1130,7 @@ namespace m_tetris2
 // 单参数即可装配. TagStrategy 注释明确 "当前调用面只有 TSpinHook 一种实例",
 // 因此 Default/Custom Config 解析都落到 TSpinHook; Config trait 仅保留
 // enable 占位字段以与 path::SearchWith 形态一致.
-//commit (seven-namespace): namespace tag 从 m_tetris2::tag 提到顶层 tag, 与
-//  path / aspin / tspin / cautious / simple / simulate 形态统一.
+// 顶层 tag 命名空间提供与其他搜索标签同形的装配入口。
 namespace tag
 {
     struct DefaultConfig

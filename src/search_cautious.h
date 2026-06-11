@@ -20,9 +20,7 @@ namespace cautious
     struct DefaultConfig
     {
         using HookType = m_tetris2::CautiousHook;
-        //字段名与 oracle/search_cautious 风格对齐 (master 对应 Config 只
-        //  暴露 fast_move_down 一字段). 字段仅作 trait 形态装饰; 运行时
-        //  生效的是 SearchConfigHolder 里的 CautiousHook::Config 实例.
+        // 字段语义与 CautiousHook::Config 保持一致。
         static constexpr bool fast_move_down = false;
     };
 

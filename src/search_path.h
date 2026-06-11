@@ -42,10 +42,7 @@ namespace m_tetris2
     {
         //=== Path strategy 私有 mixin: SpinHook 依赖字段 =======================
         // 持: TetrisContext / Config / LandPoint cache.
-        //commit 3: 落到 detail::path:: 子命名空间, 标注 "PathStrategy 私有
-        //  实现细节, 第三方扩展不应直接消费".
-        //commit (drop-search-state): SpinHook::SearchState / hook_state_ 已删除,
-        //  20g 路径的 corners3 / blocked 在 run_piece_20g 入口栈上一次性算好.
+        // PathStrategy 私有 mixin，保存搜索配置与落点缓存。
         namespace detail
         {
             namespace path
@@ -139,11 +136,7 @@ namespace m_tetris2
             }
 
             //=== search_eval ===================================================
-            // Phase 2 推式接口：产生落点时直接以编译期 <T,R> 调 on_land，
-            //   绕过 land_point_cache_ 的 push_back + 外部 for 循环，实现
-            //   零运行时 dispatch。EvalCallback 须满足：
-            //     template<char T, uint8_t R> void operator()(LandPoint const &lp)
-            // search() 原有拉式接口保留不变（仅检查 empty() 的调用方不受影响）。
+            // 直接把落点回调给 on_land，并在编译期展开 <T, R>。
             //==================================================================
             template<class EvalCallback>
             static void search_eval(Context &ctx, TetrisMap<RuleSpec::width, RuleSpec::height> const &board,
@@ -220,10 +213,6 @@ namespace m_tetris2
                 std::array<map_t, kMaxR> usable_arr{};
                 auto collect = [&](LandingPosT<SpinHook> lp)
                 {
-                    //commit (remove-context): 不再走 ctx.context_->get(status). 直接把
-                    //  master 坐标 (lp.x, lp.y, lp.r) 折成 State, 过 state_node_lut_
-                    //  反查 master 指针 (init 阶段已填表). 行为与旧版 byte-equivalent:
-                    //  status_to_bbox 与 build_state_from_master 是双射, LUT 命中即等价.
                     bb::State st_bb{static_cast<std::uint8_t>(T), lp.r, 0, 0};
                     bool emitted = false;
                     [&]<std::size_t... Rs>(std::index_sequence<Rs...>)
@@ -267,10 +256,7 @@ namespace m_tetris2
                             {
                                 (void)depth;
                             }
-                            // Phase 2: 编译期 R 已知，直接触发 EvalCallback，跳过 push_back。
-                            // 单线程路径：编译器完全内联 call_eval_typed<T,Rs>，零运行时 dispatch。
-                            // TODO(multi-thread): 多线程路径在此构造 PendingTask{eval_trampoline<T,Rs>, ...}
-                            //   压入工作队列，批量分发后统一写树。eval_trampoline 在编译期全量实例化（28项表）。
+                            // 编译期旋转态已知时直接回调，否则写入落点缓存。
                             if constexpr (!std::is_void_v<EvalCallback>)
                             {
                                 on_land->template operator()<T, static_cast<std::uint8_t>(Rs)>(node_ex);
@@ -410,13 +396,10 @@ namespace m_tetris2
                 std::vector<Run20gMarkSlot> *mark;
                 std::vector<bb::CellsKey> *emitted_keys;
                 std::size_t depth;
-                //commit (drop-search-state): apply_emit_20g 改读位板 RotState
-                //  (corners3_arr / blocked_arr) 算 is_ready / is_mini_ready.
-                //  EnableT=false 路径下 RotState 退化为空 struct, 占 0 字节.
+                // 20g 路径按 RotState 中的位图结果补全落点元数据。
                 using RotStateT = typename SpinHook::template RotState<map_t, kMaxR>;
                 RotStateT const *rot_state;
-                // Phase 2: 指向 EvalCallback 的指针，void 时不存储（零代价）。
-                // TODO(multi-thread): 多线程路径在 on_pop 里构造 PendingTask，压队列。
+                // 非缓存模式下保存 EvalCallback 指针，命中落点时直接回调。
                 [[no_unique_address]] std::conditional_t<
                     std::is_void_v<EvalCallback>, std::monostate, EvalCallback *> on_land{};
 
@@ -428,9 +411,6 @@ namespace m_tetris2
                     bb::State ss = *drop_res;
                     if (Helpers::usable_at(ss.r, ss.xb, ss.yb - 1, *usable_arr))
                         return true;
-                    //commit (remove-context): 直接对 State 走 cells_key_for_state.
-                    //  与 cells_key_for(sunk_node) byte-equivalent (status_to_bbox 与
-                    //  build_state_from_master 双射), 但避免对 master 节点二次取址.
                     bb::CellsKey k = Helpers::cells_key_for_state(ss);
                     for (bb::CellsKey ek : *emitted_keys)
                         if (ek == k)
@@ -459,9 +439,7 @@ namespace m_tetris2
                             node_ex, last_state_ptr, action, depth, ctx->config_,
                             *rot_state, *usable_arr, ss.r, ss.xb, ss.yb);
                     }
-                    // Phase 2: 20g 路径在落点处展开运行时 ss.r → 编译期 Rs，
-                    //   触发 EvalCallback<T, Rs>，实现零运行时 dispatch。
-                    // TODO(multi-thread): 多线程路径改为构造 PendingTask{eval_trampoline<T,Rs>, ...}。
+                    // 20g 落点按运行时旋转态分发到对应的编译期回调。
                     if constexpr (!std::is_void_v<EvalCallback>)
                     {
                         [&]<std::size_t... Rs>(std::index_sequence<Rs...>)
@@ -499,7 +477,7 @@ namespace m_tetris2
                 std::array<map_t, kMaxR> usable_arr{};
                 Helpers::build_usable_for_piece(T, board, usable_arr);
 
-                //commit (drop-search-state): RotState 在 BFS 前一次性算好, 携带
+                // RotState 在 BFS 前统一初始化，供命中阶段读取。
                 //  corners3_arr (≥3 corner 占用位图, 由 board 决定) 与 blocked_arr
                 //  (4 邻 OR 取反位图, 由 usable_arr 决定). apply_emit_20g 仅做
                 //  位板查表, 不再触碰 master 节点 / TetrisMap 字段.
@@ -684,7 +662,7 @@ namespace m_tetris2
             {
                 bb::CellsKey index;
                 bb::CellsKey index_landpoint;
-                //commit C2 (N.4): 旧字段对 last_rotate / landpoint_is_none 合并为
+                // TSpin 路径使用统一的 last-rotate 判定接口。
                 //  单一 requires_last_rotate (= lp_requires_last_rotate(cfg, lp)),
                 //  与 strategy 入口处一次解算的 requires_last 同语义. 命中第二条
                 //  谓词由两条 AND 合并为单条件.
@@ -857,7 +835,7 @@ namespace m_tetris2
             {
                 bb::CellsKey index_key;
                 bb::CellsKey index_landpoint;
-                //commit C2 (N.4): 与 MakePath1gVisitor 同形, 合并为单条件.
+                // 命中条件与 1g visitor 保持同一套判定接口。
                 bool requires_last_rotate;
                 bb::State found{};
                 bool hit = false;
@@ -913,7 +891,7 @@ namespace m_tetris2
                 bool allow_LR = SpinHook::config_allow_LR(ctx.config_);
                 bool allow_D = SpinHook::config_allow_D(ctx.config_);
                 bb::State const *land_last = SpinHook::get_last_state(land_point);
-                //commit C2 (N.4): 旧 is_landpoint_none(lp) 反转为 lp_requires_last_rotate(cfg, lp).
+                // 是否需要最后一次旋转由 lp_requires_last_rotate 统一判定。
                 //  index 选择保持原语义: TSpin 命中且 land_last 可用时, BFS 终点
                 //  指向 last 节点 cells_key (旋转一步落到 lp.state); 其余路径
                 //  (含 ASpin/None) 指向 lp.state cells_key.
@@ -925,7 +903,7 @@ namespace m_tetris2
                 std::array<map_t, kMaxR> usable_arr{};
                 Helpers::build_usable_for_piece(piece_t, board, usable_arr);
 
-                //commit B (PathMark 栈化): 旧版 ctx.path_mark_ 字段被移除, 改在
+                // PathMark 由 make_path 局部栈对象管理。
                 //  入口栈分配, 解锁后续并发. 默认构造 (used_ 全 false) 即合法
                 //  空表; 仅 disable_d 重试需要在 while 顶部 clear 复位 (复用同一
                 //  对象, build_path 闭包捕获 &pm).
@@ -977,11 +955,10 @@ namespace m_tetris2
                 };
 
                 bool disable_d = false;
-                //commit C2 (N.4): 旧 is_landpoint_none(lp) 反转为 lp_requires_last_rotate(cfg, lp).
+                // 是否需要最后一次旋转由 lp_requires_last_rotate 统一判定。
                 //  此处 "非 T-spin landpoint" 走开盘 spawn-fast-drop 启发式 —
                 //  TSpin 命中且 cfg->last_rotate 时不可走 (会丢失 last 旋转步).
-                //  ASpin / NoSpin / Cautious 现在都享受这一优化 (旧版 ASpin
-                //  path 因 is_landpoint_none=false 被错误排除, 该 commit 一并修复).
+                //  ASpin / NoSpin / Cautious 现在都享受这一优化，旧版 ASpin 路径曾被错误排除。
                 if (!requires_last)
                 {
                     int spawn_low = Helpers::spawn_min_cell_y_dispatch_state(spawn);
@@ -994,7 +971,7 @@ namespace m_tetris2
                 {
                     pm.clear();
                     bb::State entry_state = spawn;
-                    //commit C2 (N.4): 第二条命中谓词 (TSpin 入口已在目标 cells_key)
+                    // 第二条命中谓词处理目标 cells_key 已匹配的 TSpin 入口。
                     //  从 (!is_landpoint_none(lp) && config_last_rotate(cfg)) 合并为
                     //  lp_requires_last_rotate(cfg, lp) — 后者已内联 last_rotate
                     //  检查与 lp.type 检查.
@@ -1053,7 +1030,7 @@ namespace m_tetris2
                 bb::State s0 = *start_sunk_opt;
                 bb::CellsKey index_landpoint = Helpers::cells_key_for_state(land_point.state);
                 bb::State const *land_last = SpinHook::get_last_state(land_point);
-                //commit C2 (N.4): 与 1g 同形, lp_requires_last_rotate 取代旧
+                // 20g 路径同样通过 lp_requires_last_rotate 统一判定是否需要最后一次旋转。
                 //  is_landpoint_none + config_last_rotate 双查询, ASpin 起点==终点
                 //  也享受短路.
                 bool requires_last = SpinHook::lp_requires_last_rotate(ctx.config_, land_point);
@@ -1068,7 +1045,7 @@ namespace m_tetris2
                     return std::vector<char>();
                 }
 
-                //commit B (PathMark 栈化): 与 1g 同, ctx.path_mark_ 改栈分配; 默认构造即空表.
+                // 与 1g 路径相同，PathMark 使用局部栈对象。
                 PathMark pm;
 
                 auto build_path = [&pm, &land_point, allow_180, &usable_arr, piece_t,
@@ -1157,7 +1134,7 @@ namespace m_tetris2
             }
 
             //=== 起点 root mark 写入 (与旧 path_mark_set_state_root 同形) ========
-            //commit B: 不再依赖 ctx.path_mark_, 直接接受栈分配的 PathMark 引用.
+            // 直接接受调用方提供的 PathMark 引用。
             static bool path_mark_set_state_root(PathMark &pm, bb::State const &child, char op)
             {
                 if (child.xb < 0 || child.xb >= kW || child.yb < 0 || child.yb >= kH)
@@ -1256,16 +1233,10 @@ namespace path
     using Search = SearchWith<>;
 } // namespace path
 
-//=== Sentinel: 通知 search_aspin.h / search_tspin.h / search_cautious.h 顶层
-//    aspin/tspin/cautious namespace 块可以安全展开 (path::detail::merge /
-//    path::SearchWith / m_tetris2::PathStrategy 此时已就绪, m_tetris2::ASpinHook
-//    / TSpinHook / CautiousHook 经 movegen_hook.h 也已就绪).
+// search_path.h 的核心类型已定义完成，其他搜索标签可在此之后补全顶层命名空间。
 #define TETRIS_AI_RUNNER_SEARCH_PATH_TAGS_READY_
 
-//=== 双阶段头回填: search_aspin.h / search_tspin.h 的 Phase 1 块在 movegen_hook
-//    .h 里被先一步 include (POJO 定义供 ASpinHook / TSpinHook LandPoint alias),
-//    那时 sentinel 还没就绪所以 Phase 2 (顶层 aspin / tspin namespace) 跳过. 这
-//    里 sentinel 已经设置, 主动再 include 一次让 Phase 2 块展开.
+// 重新包含 search_aspin.h 与 search_tspin.h，使依赖 PathStrategy 的顶层搜索标签在这里展开。
 #include "search_aspin.h"
 #include "search_tspin.h"
 

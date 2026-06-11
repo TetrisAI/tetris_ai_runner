@@ -5,12 +5,7 @@
 //
 // 编译期 r → 编译期 R 的 dispatch 工具，以及 TypedLandPoint<T, R> 落点结构体。
 //
-// 用途（Commit 4 Phase 1）：
-//   在 Search 层 run_piece<T> 的 collect lambda 里，对运行时 lp.r 做编译期展开：
-//
-//     for_each_typed_r<rcount>(lp.r, [&]<size_t R>() {
-//         // T, R 均为编译期，可构造 TypedLandPoint<T, R> 传给 eval
-//     });
+// 供搜索层按运行时旋转值选择对应的编译期实例，直接构造带静态 T/R 的落点对象。
 //
 // 约定：
 //   - R_count 通常 <= 4（SRS 七种方块最多 4 旋转状态）

@@ -12,12 +12,7 @@
 // 占据的 cells* 集合相同 + base row 相同; 我们在 (xb, yb) 维度直接按"绝对 cell
 // 集合"分组, 不用 row 单独维度 (cell.y 已包含 yb), 等价.
 //
-// 与 commit 5 之前 `kCanonicalR + same_geometry` 的差异:
-//   * `same_geometry` 只比较 piece 在 pivot 归一化下的 cells 数组, 与 (xb, yb)
-//     无关 -> 把跨 (xb, yb) 的等价类全部塞进同一 canonical r.
-//   * 本表按 (r, xb, yb) 三元组的 *绝对* footprint 分组, 完全不依赖 SRS-7
-//     pivot 归一化巧合.
-//
+// 使用按绝对落点 footprint 分组的 filtered_idx，避免依赖旋转归一化假设。
 // 编译期 (constexpr) 一次 group-by:
 //   1. 枚举 (r, xb, yb), 计算 sorted footprint 并打包成 FootprintKey
 //      (= std::array<uint64_t, ceil(MaxCells*16/64)>); cell 升序填入低位起,
@@ -26,7 +21,7 @@
 //   2. open-addressing hash table (linear probing) 做 group-by: hash(key) ->
 //      probe; 命中复用 idx, 未命中分配新 idx + 写桶. BUCKETS = next_pow2(N*2)
 //      保证 load factor <= 0.5, 平均探测 ~1, 把编译期 ops 控制在 default
-//      `-fconstexpr-ops-limit=33M` 内 (commit 6 早先线性扫到 ~5G ops 才能编译).
+// constexpr 分组后的实现可在当前编译期算力预算内完成构建。
 //   3. 输出 idx[(r * W + xb) * H + yb] 与等价类总数 count.
 //==========================================================================
 

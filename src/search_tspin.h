@@ -12,12 +12,7 @@
 
 namespace search_tspin
 {
-    // POJO-only facade. master-graph BFS (init/search/make_path 三方法及内部
-    // helper) 已迁出到 oracle/search_tspin.{h,cpp}. 保留 class Search 作为
-    // 类型 namespace, 让 ai_zzz.h / ai_misaka.h / ai_tag.h / movegen_hook.h
-    // 等依赖方继续以 search_tspin::Search::TSpinType /
-    // search_tspin::Search::TetrisNodeWithTSpinType / search_tspin::Search::
-    // Config 的旧路径解析.
+    // 类型定义命名空间。TSpinType、Config、TetrisNodeWithTSpinType 供全库直接引用。
     class Search
     {
     public:
@@ -78,9 +73,7 @@ namespace search_tspin
 
 #endif // TETRIS_AI_RUNNER_SEARCH_TSPIN_PHASE1_
 
-//=== Phase 2 协调: 仅当 sentinel 就绪时展开顶层 tspin namespace ============
-//    sentinel TETRIS_AI_RUNNER_SEARCH_PATH_TAGS_READY_ 由 search_path.h 末尾设
-//    置. 流程同 search_aspin.h Phase 2 注释.
+// tspin::Search 需要 search_path.h 的 PathStrategy 等定义，通过双阶段头机制在 search_path.h 包含完后展开。
 #if !defined(TETRIS_AI_RUNNER_SEARCH_TSPIN_PHASE2_) && defined(TETRIS_AI_RUNNER_SEARCH_PATH_TAGS_READY_)
 #define TETRIS_AI_RUNNER_SEARCH_TSPIN_PHASE2_
 
@@ -89,11 +82,7 @@ namespace tspin
     struct DefaultConfig
     {
         using HookType = m_tetris2::TSpinHook;
-        //字段名与 oracle/search_tspin Config (= src/search_tspin.h
-        //  search_tspin::Search::Config) 同步; 默认值同 master-graph BFS
-        //  原版 (allow_rotate_move=false, last_rotate=false, allow_180=true,
-        //  允许 d/D/LR, 非 20g). 字段仅作 trait 形态装饰; 运行时实际生效的
-        //  仍是 SearchConfigHolder 里实例化的 TSpinHook::Config 实例.
+        // 字段语义与 search_tspin::Search::Config 保持一致。
         static constexpr bool allow_rotate_move = false;
         static constexpr bool allow_180 = true;
         static constexpr bool allow_d = true;

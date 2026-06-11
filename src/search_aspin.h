@@ -1,27 +1,5 @@
-// search_aspin.h — 双阶段头.
-//
-// Phase 1: search_aspin::Search POJO (enum ASpinType / struct Config /
-//          struct TetrisNodeWithASpinType). 由 movegen_hook.h 在装配
-//          m_tetris2::ASpinHook 时消费 (LandPoint / Config alias). 不引入
-//          search_path.h 这条重链, 让 movegen_hook.h 能先于 PathStrategy
-//          编完.
-//
-// Phase 2: 顶层 namespace aspin (DefaultConfig / SearchWith / Search) — 与
-//          search_tspin / search_cautious / search_simple / ... 同形, 让
-//          TetrisEngine<Rule, AI, aspin::Search> 单参装配位板后端. 这部分
-//          需要 path::SearchWith / path::detail::merge / m_tetris2::
-//          PathStrategy / m_tetris2::ASpinHook 全部就绪, 因此被 sentinel
-//          (TETRIS_AI_RUNNER_SEARCH_PATH_TAGS_READY_) 守护; sentinel 由
-//          search_path.h 末尾设置.
-//
-// 协调流程:
-//   - 入口 = search_aspin.h: Phase 1 直出, 然后反向 #include "search_path.h"
-//     把 sentinel 拉起来; search_path.h 末尾会重新 include 本头让 Phase 2
-//     展开. 回到原入口时 Phase 2 已经 emit, 守护宏让二次 emit 无副作用.
-//   - 入口 = search_path.h: search_path.h 内部经 movegen_hook.h 把本头先
-//     拉一次 (Phase 1 emit, Phase 2 因 sentinel 未就绪而跳过); search_path
-//     .h 末尾再次 include 本头, 此时 sentinel 已就绪, Phase 2 emit.
-//
+// search_aspin.h — 定义 A-spin 搜索使用的公开类型，并提供顶层 aspin::Search 装配入口。
+// movegen_hook.h 先消费 search_aspin::Search 的类型定义，search_path.h 就绪后再补全顶层搜索标签。
 #ifndef TETRIS_AI_RUNNER_SEARCH_ASPIN_PHASE1_
 #define TETRIS_AI_RUNNER_SEARCH_ASPIN_PHASE1_
 
@@ -79,15 +57,7 @@ namespace search_aspin
 
 #endif // TETRIS_AI_RUNNER_SEARCH_ASPIN_PHASE1_
 
-//=== Phase 2 协调: 仅当 sentinel 就绪时展开顶层 aspin namespace ============
-//    sentinel TETRIS_AI_RUNNER_SEARCH_PATH_TAGS_READY_ 由 search_path.h 末尾设
-//    置. 调用方流程:
-//      - movegen_hook.h include 本头时 sentinel 未就绪, Phase 2 跳过 (只 emit
-//        Phase 1 POJO);
-//      - search_path.h 在自身展开完毕后再 #include "search_aspin.h", 此时
-//        sentinel 就绪, Phase 2 emit 顶层 aspin namespace.
-//    需要 aspin::Search 的 TU 必须 #include "search_path.h" (它会再带回本头),
-//    单独 #include "search_aspin.h" 仅拿到 search_aspin::Search POJO.
+// aspin::Search 依赖 search_path.h 的 PathStrategy 等定义，通过双阶段头机制在 search_path.h 包含完后展开。
 #if !defined(TETRIS_AI_RUNNER_SEARCH_ASPIN_PHASE2_) && defined(TETRIS_AI_RUNNER_SEARCH_PATH_TAGS_READY_)
 #define TETRIS_AI_RUNNER_SEARCH_ASPIN_PHASE2_
 

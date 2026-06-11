@@ -134,7 +134,7 @@ namespace m_tetris2
             }
 
             //=== search_eval ===================================================
-            // Phase 2 推式接口：与 PathStrategy::search_eval 同形，参见其注释。
+            // 产生落点时直接按编译期 <T, R> 回调 on_land。
             //==================================================================
             template<class EvalCallback>
             static void search_eval(Context &ctx, TetrisMap<RuleSpec::width, RuleSpec::height> const &board,
@@ -188,8 +188,6 @@ namespace m_tetris2
                 std::array<map_t, kMaxR> usable_arr{};
                 auto collect = [&](LandingPosT<SpinHook> lp)
                 {
-                    //commit (remove-context): 与 search_path::run_piece 同构, 不再走
-                    //  ctx.context_->get(status), 改 State + state_to_node.
                     bb::State st_bb{static_cast<std::uint8_t>(T), lp.r, 0, 0};
                     bool emitted = false;
                     [&]<std::size_t... Rs>(std::index_sequence<Rs...>)
@@ -232,8 +230,7 @@ namespace m_tetris2
                             {
                                 (void)depth;
                             }
-                            // Phase 2: 编译期 R 已知，直接触发 EvalCallback，跳过 push_back。
-                            // TODO(multi-thread): 多线程路径在此构造 PendingTask，参见 search_path.h。
+                            // 编译期旋转态已知时直接回调，否则写入落点缓存。
                             if constexpr (!std::is_void_v<EvalCallback>)
                             {
                                 on_land->template operator()<T, static_cast<std::uint8_t>(Rs)>(node_ex);
@@ -494,7 +491,6 @@ namespace m_tetris2
                     if (sunk_start && Helpers::cells_key_for_state(*sunk_start) == index_landpoint)
                         return std::vector<char>();
                 }
-                //commit B (PathMark 栈化): ctx.path_mark_ 字段已移除, 改栈分配; 默认构造即空表.
                 PathMark pm;
                 auto build_path = [&pm](bb::State const &cur_state) -> std::vector<char>
                 {
@@ -553,7 +549,6 @@ namespace m_tetris2
                     if (sunk_start && Helpers::cells_key_for_state(*sunk_start) == index_landpoint)
                         return std::vector<char>();
                 }
-                //commit B (PathMark 栈化): ctx.path_mark_ 字段已移除, 改栈分配; 默认构造即空表.
                 PathMark pm;
                 auto build_path = [&pm](bb::State const &cur_state) -> std::vector<char>
                 {
@@ -588,7 +583,7 @@ namespace m_tetris2
             }
 
             //=== 起点 root mark 写入 ============================================
-            //commit B: 接受栈分配的 PathMark 引用, 不再依赖 ctx.path_mark_.
+            // 起点标记直接写入传入的 PathMark。
             static bool path_mark_set_state_root(PathMark &pm, bb::State const &child, char op)
             {
                 if (child.xb < 0 || child.xb >= kW || child.yb < 0 || child.yb >= kH)
