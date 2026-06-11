@@ -1,8 +1,45 @@
 
-#define DECLSPEC_EXPORT __declspec(dllexport)
-#define WINAPI __stdcall
+#ifdef _WIN32
+#  define DECLSPEC_EXPORT __declspec(dllexport)
+#  define WINAPI __stdcall
+#  ifndef WINVER
+#    define WINVER 0x0500
+#  endif
+#  ifndef _WIN32_WINNT
+#    define _WIN32_WINNT 0x0501
+#  endif
+#  define WIN32_LEAN_AND_MEAN
+#  include <windows.h>
+#else
+#  define DECLSPEC_EXPORT __attribute__((visibility("default")))
+#  define WINAPI
+#  include <dlfcn.h>
+#  include <unistd.h>
+#  include <cstdio>
+// POSIX 兼容声明
+using HMODULE = void *;
+inline HMODULE LoadLibraryW(wchar_t const *path)
+{
+    // wchar_t -> char 转换（假设 ASCII 路径）
+    char buf[4096] = {};
+    size_t i = 0;
+    for (; path[i] != L'\0' && i + 1 < sizeof buf; ++i)
+    {
+        buf[i] = static_cast<char>(path[i]);
+    }
+    buf[i] = '\0';
+    return dlopen(buf, RTLD_LAZY);
+}
+inline HMODULE LoadLibraryA(char const *path) { return dlopen(path, RTLD_LAZY); }
+inline HMODULE LoadLibrary(wchar_t const *path) { return LoadLibraryW(path); }
+inline void FreeLibrary(HMODULE h) { dlclose(h); }
+inline void *GetProcAddress(HMODULE h, char const *sym) { return dlsym(h, sym); }
+#endif
 
 #include <ctime>
+#include <cstdlib>
+#include <cstring>
+#include <cwchar>
 #include "tetris_core.h"
 #include "search_simple.h"
 #include "search_path.h"
@@ -17,24 +54,13 @@
 
 extern "C" void attach_init()
 {
-    ege::mtsrand(unsigned int(time(nullptr)));
+    ege::mtsrand(static_cast<unsigned int>(time(nullptr)));
 }
-
-#ifndef WINVER
-#define WINVER 0x0500
-#endif
-
-#ifndef _WIN32_WINNT
-#define _WIN32_WINNT 0x0501
-#endif
-#define WIN32_LEAN_AND_MEAN
-
-#include <windows.h>
 
 struct tetris_game
 {
     typedef int (*ai_run_t)(int boardW, int boardH, int board[], char nextPiece[], int curX, int curY, int curR, int level, int mode, char path[], size_t limit);
-    m_tetris2::TetrisEngine<rule_qq::TetrisRule, ai_zzz::qq::Attack, search_path::Search> tetris_ai;
+    m_tetris2::TetrisEngine<rule_qq::TetrisRule, ai_zzz::qq::Attack, path::Search> tetris_ai;
     ege::mtrandom random;
     decltype(tetris_ai)::map_t map;
     std::vector<char> next;
@@ -53,31 +79,20 @@ struct tetris_game
 
     void under_attack(size_t line)
     {
-        size_t w = map.width, h = map.height;
-        for (size_t y = h - 1; y >= line; --y)
+        constexpr int w = decltype(map)::width;
+        constexpr int h = decltype(map)::height;
+        for (int y = h - 1; y >= static_cast<int>(line); --y)
         {
-            map.row[y] = map.row[y - line];
+            map.set_row(y, map.row(y - static_cast<int>(line)));
         }
-        for (size_t y = 0; y < line; ++y)
+        for (int y = 0; y < static_cast<int>(line); ++y)
         {
-            map.row[y] = 0;
-            for (size_t x = 0; x < w; ++x)
+            map.set_row(y, 0);
+            for (int x = 0; x < w; ++x)
             {
                 if ((x + y) % 2 != 0)
                 {
-                    map.row[y] |= 1 << x;
-                }
-            }
-        }
-        map.count = 0;
-        for (int my = 0; my < map.height; ++my)
-        {
-            for (int mx = 0; mx < map.width; ++mx)
-            {
-                if (map.full(mx, my))
-                {
-                    map.top[mx] = map.roof = my + 1;
-                    ++map.count;
+                    map.set(x, y);
                 }
             }
         }
@@ -120,13 +135,22 @@ struct tetris_game
         H::build_usable_for_piece(status.t, board, usable_arr);
         auto cs = H::state_from_status(status.t, status.r, status.x, status.y);
         // game over 检测：顶行有方块 或 初始位置不合法
-        if (map.row[tetris_ai.height() - 1] != 0 || !H::usable_at(cs.r, cs.xb, cs.yb, usable_arr))
+        if (map.row(tetris_ai.height() - 1) != 0 || !H::usable_at(cs.r, cs.xb, cs.yb, usable_arr))
         {
             return -1;
         }
         std::memset(path, 0, sizeof path);
         next.push_back(0);
-        ((ai_run_t)ai)(tetris_ai.width(), tetris_ai.height(), reinterpret_cast<int *>(map.row), next.data(), status.x, status.y, (4 - status.r) % 4, 10, 0, path, limit);
+        {
+            // 旧版 QQ AI DLL 期望 int board[h*w]，逐格展开
+            constexpr int bw = decltype(map)::width;
+            constexpr int bh = decltype(map)::height;
+            int board_buf[bh * bw] = {};
+            for (int my = 0; my < bh; ++my)
+                for (int mx = 0; mx < bw; ++mx)
+                    board_buf[my * bw + mx] = map.get(mx, my) ? 1 : 0;
+            ((ai_run_t)ai)(tetris_ai.width(), tetris_ai.height(), board_buf, next.data(), status.x, status.y, (4 - status.r) % 4, 10, 0, path, limit);
+        }
         char *move = path, *move_end = path + sizeof path;
         next.pop_back();
         next.erase(next.begin());
@@ -164,30 +188,47 @@ struct tetris_game
     void new_game(size_t seed)
     {
         random.reset(seed);
-        map.width = tetris_ai.width();
-        map.height = tetris_ai.height();
-        map.count = 0;
-        map.roof = 0;
-        std::memset(map.top, 0, sizeof map.top);
-        std::memset(map.row, 0, sizeof map.row);
+        map = decltype(map){};
         next.clear();
         fill_next();
     }
 };
 
+#ifdef _WIN32
 int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[]);
+#else
+int speed_test(int argc, char *argv[]);
+#endif
 
 //创建一个读取两个dll对战数据的控制台，先调用AIPath，再尝试调用旧版AI
+#ifdef _WIN32
 int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
+#else
+int main(int argc, char *argv[])
+#endif
 {
-    ege::mtsrand(unsigned int(time(nullptr)));
+    ege::mtsrand(static_cast<unsigned int>(time(nullptr)));
     if (argc < 3)
     {
+#ifdef _WIN32
         return speed_test(argc, argv, eve);
+#else
+        return speed_test(argc, argv);
+#endif
     }
     tetris_game game[2];
+#ifdef _WIN32
     game[0].init(12, 21, 13, argv[1]);
     game[1].init(12, 21, 13, argv[2]);
+#else
+    auto to_wstr = [](char const *s) {
+        std::wstring w(std::strlen(s), L'\0');
+        std::mbstowcs(w.data(), s, w.size());
+        return w;
+    };
+    game[0].init(12, 21, 13, to_wstr(argc > 1 ? argv[1] : ""));
+    game[1].init(12, 21, 13, to_wstr(argc > 2 ? argv[2] : ""));
+#endif
     size_t new_seed = ege::mtirand();
     game[0].new_game(new_seed);
     game[1].new_game(new_seed);
@@ -196,18 +237,26 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
     unsigned long long attack[2];
 
     char out[81920] = "";
-    char box_0[3] = "□";
-    char box_1[3] = "■";
+    char const *box_0 = "□";
+    char const *box_1 = "■";
 
-    CONSOLE_CURSOR_INFO cursorInfo = {1, FALSE}; // 光标信息
-    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo); // 设置光标信息
+#ifdef _WIN32
+    CONSOLE_CURSOR_INFO cursorInfo = {1, FALSE};
+    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);
+#else
+    fputs("\033[?25l", stdout); // 隐藏光标
+#endif
 
     while (true)
     {
+#ifdef _WIN32
         static COORD cd;
         cd.X = 0;
         cd.Y = 0;
         SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), cd);
+#else
+        fputs("\033[0;0H", stdout); // 移光标到左上角
+#endif
         out[0] = '\0';
         decltype(game[0].tetris_ai)::map_t map[2] = {game[0].map, game[1].map};
         auto sp = rule_qq::TetrisRule::rule_spec::spawn(game[0].next.front(), game[0].tetris_ai.width(), game[0].tetris_ai.height());
@@ -219,16 +268,16 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
         {
             for (int x = 0; x < 12; ++x)
             {
-                strcat_s(out, map[0].full(x, y) ? box_1 : box_0);
+                std::strcat(out, map[0].get(x, y) ? box_1 : box_0);
             }
-            strcat_s(out, "           ");
+            std::strcat(out, "           ");
             for (int x = 0; x < 12; ++x)
             {
-                strcat_s(out, map[1].full(x, y) ? box_1 : box_0);
+                std::strcat(out, map[1].get(x, y) ? box_1 : box_0);
             }
-            strcat_s(out, "\r\n");
+            std::strcat(out, "\r\n");
         }
-        strcat_s(out, "\r\n");
+        std::strcat(out, "\r\n");
         printf(out);
 
         int attack_0 = game[0].run(166);
@@ -239,12 +288,26 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
                 ++win[1];
             if (attack_1 == -1)
                 ++win[0];
-#pragma warning(push)
-#pragma warning(disable : 4996)
-            wchar_t BUFFER[1024];
-            std::swprintf(BUFFER, L"[%s][比分%d:%d][效率%f:%f]", (attack_0 == -1 ? attack_1 == -1 ? TEXT("平局") : argv[2] : argv[1]), win[0], win[1], attack[0] / total, attack[1] / total);
-            SetWindowText(GetConsoleWindow(), BUFFER);
-#pragma warning(pop)
+#ifdef _WIN32
+#  pragma warning(push)
+#  pragma warning(disable : 4996)
+            {
+                wchar_t BUFFER[1024];
+                std::swprintf(BUFFER, 1024, L"[%s][比分%d:%d][效率%f:%f]",
+                    (attack_0 == -1 ? (attack_1 == -1 ? L"平局" : argv[2]) : argv[1]),
+                    (int)win[0], (int)win[1], attack[0] / total, attack[1] / total);
+                SetWindowText(GetConsoleWindow(), BUFFER);
+            }
+#  pragma warning(pop)
+#else
+            {
+                char BUFFER[1024];
+                const char *winner = (attack_0 == -1 ? (attack_1 == -1 ? "平局" : "AI-2") : "AI-1");
+                std::snprintf(BUFFER, sizeof BUFFER, "[%s][比分%zu:%zu][效率%f:%f]",
+                    winner, win[0], win[1], attack[0] / total, attack[1] / total);
+                std::printf("\033]0;%s\007", BUFFER); // 设置终端窗口标题
+            }
+#endif
             new_seed = ege::mtirand();
             game[0].new_game(new_seed);
             game[1].new_game(new_seed);
@@ -266,17 +329,25 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
     }
 }
 
-m_tetris2::TetrisEngine<rule_st::TetrisRule, ai_zzz::Dig, search_simple::Search> tetris_ai;
+m_tetris2::TetrisEngine<rule_st::TetrisRule, ai_zzz::Dig, simple::Search> tetris_ai;
 
 //创建一个读取两个dll对战数据的控制台，先调用AIPath，再尝试调用旧版AI
+#ifdef _WIN32
 int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
+#else
+int speed_test(int argc, char *argv[])
+#endif
 {
     attach_init();
     if (argc < 2)
     {
         return 0;
     }
+#ifdef _WIN32
     HMODULE hDll = LoadLibrary(argv[1]);
+#else
+    HMODULE hDll = LoadLibraryA(argv[1]);
+#endif
     if (hDll == nullptr)
     {
         return 0;
@@ -328,7 +399,11 @@ int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
     {
         return 0;
     }
+#ifdef _WIN32
     SetWindowTextA(GetConsoleWindow(), ((char const *(*)())name)());
+#else
+    std::printf("\033]0;%s\007", ((char const *(*)())name)());
+#endif
     int w = 10, h = 20;
     decltype(tetris_ai)::map_t map;
     char *param_map = new char[w * h];
@@ -380,10 +455,7 @@ int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
             ++game_count;
             printf("{\"avg\":%.2lf,\"max\":%lld,\"count\":%lld,\"current\":%lld}\n", game_count == 0 ? 0. : double(total_lines) / game_count, max_line, game_count, this_lines);
             this_lines = 0;
-            map.count = 0;
-            map.roof = 0;
-            std::memset(map.top, 0, sizeof map.top);
-            std::memset(map.row, 0, sizeof map.row);
+            map = decltype(map){};
             // 地图清空后重建 usable_arr
             board = m_tetris2::bb::build_board_for_search<rule_st::TetrisRule::rule_spec>(map);
             H::build_usable_for_piece(status.t, board, usable_arr);
@@ -393,13 +465,13 @@ int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
             int row = y * w;
             for (int x = 0; x < w; ++x)
             {
-                param_map[x + row] = map.full(x, y) ? '1' : '0';
+                param_map[x + row] = map.get(x, y) ? '1' : '0';
             }
         }
         if (version == 0)
         {
             std::memset(path, 0, 1024);
-            typedef int(__stdcall * ai_run_t)(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char *nextPiece, char path[]);
+            typedef int(WINAPI * ai_run_t)(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char *nextPiece, char path[]);
             char next[] = {'\0'};
             ((ai_run_t)ai[version])(w, h, param_map, status.t, status.x + 1, status.y + 1, status.r + 1, next, path);
             char *move = path, *move_end = path + 1024;
@@ -408,7 +480,7 @@ int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
         }
         else
         {
-            typedef int(__stdcall * ai_run_t)(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char nextPiece, int *bestX, int *bestRotation);
+            typedef int(WINAPI * ai_run_t)(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char nextPiece, int *bestX, int *bestRotation);
             int best_x = status.x + 1, best_r = status.r + 1;
             ((ai_run_t)ai[version])(w, h, param_map, status.t, best_x, status.y + 1, best_r, ' ', &best_x, &best_r);
             --best_x;

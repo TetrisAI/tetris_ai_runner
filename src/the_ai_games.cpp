@@ -6,12 +6,13 @@
 #include <array>
 #include "tetris_core.h"
 #include "search_tag.h"
+#include "search_tspin.h"
 #include "ai_tag.h"
 #include "rule_tag.h"
 #include "random.h"
 
-m_tetris2::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games, search_tag::Search> bot_1;
-m_tetris2::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games_enemy, search_tag::Search> bot_2;
+m_tetris2::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games, tag::Search> bot_1;
+m_tetris2::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games_enemy, tag::Search> bot_2;
 
 namespace zzz
 {
@@ -200,23 +201,19 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
              {
                  for (int mx = 0; mx < field_width; ++mx)
                  {
-                     if (field[mx + field_width * (field_height - my - 1)] != 0)
-                     {
-                         map1.top[mx] = map1.roof = my + 1;
-                         map1.row[my] |= 1 << mx;
-                         ++map1.count;
-                     }
-                     if (enemy_field[mx + field_width * (field_height - my - 1)] != 0)
-                     {
-                         map2.top[mx] = map2.roof = my + 1;
-                         map2.row[my] |= 1 << mx;
-                         ++map2.count;
-                     }
+                    if (field[mx + field_width * (field_height - my - 1)] != 0)
+                    {
+                        map1.set(mx, my);
+                    }
+                    if (enemy_field[mx + field_width * (field_height - my - 1)] != 0)
+                    {
+                        map2.set(mx, my);
+                    }
                  }
              }
              char next_arr[] = {next_piece, '?'};
              std::vector<char> ai_path;
-             m_tetris2::BBLandPoint target;
+             decltype(bot_1)::LandPoint target;
              int enemy_point_calc = 0;
              int up[4];
              bot_2.status()->combo = enemy_combo;
@@ -335,8 +332,8 @@ int main()
 
 struct test_ai
 {
-    m_tetris2::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games, search_tag::Search> ai;
-    m_tetris2::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games_enemy, search_tag::Search> t;
+    m_tetris2::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games, tag::Search> ai;
+    m_tetris2::TetrisEngine<rule_tag::TetrisRule, ai_tag::the_ai_games_enemy, tag::Search> t;
     using map_t = decltype(ai)::map_t;
     map_t map;
     int point = 0, combo = 0;
@@ -429,7 +426,7 @@ struct test_ai
         if (clear > 0)
         {
             new_point = combo;
-            if (result.target.type == search_tag::Search::TSpin)
+            if (result.target.type == search_tspin::Search::TSpinType::TSpin)
             {
                 new_point += clear * 6;
             }

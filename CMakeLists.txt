@@ -345,3 +345,61 @@ add_test(NAME tetris_policy_deduction   COMMAND policy_deduction_test)
 add_test(NAME tetris_typed_dispatch     COMMAND typed_dispatch_test)
 add_test(NAME tetris_bb_node           COMMAND bb_node_test)
 set_tests_properties(tetris_diff_simple_diff PROPERTIES WILL_FAIL FALSE)
+
+# ---------------------------------------------------------------------------
+# tree_test: rb_tree / sb_tree 正确性与性能验证工具.
+# ---------------------------------------------------------------------------
+add_executable(tree_test
+    src/tree_test.cpp
+    src/random.cpp
+)
+target_include_directories(tree_test PRIVATE src)
+
+# ---------------------------------------------------------------------------
+# demo: 入门级演示 AI DLL stub（对应 misakamm/blog/504）.
+# ---------------------------------------------------------------------------
+add_library(demo SHARED
+    src/demo.cpp
+    src/random.cpp
+)
+target_include_directories(demo PRIVATE src)
+
+# ---------------------------------------------------------------------------
+# pso: PSO 参数调优工具（SRS 规则，ai_zzz 评估函数）.
+# 注：pso.cpp 已有 main()，直接接入。
+# ---------------------------------------------------------------------------
+add_executable(pso
+    src/ai_zzz.cpp
+    src/integer_utils.cpp
+    src/random.cpp
+    src/pso.cpp
+)
+target_include_directories(pso PRIVATE src)
+target_link_libraries(pso PRIVATE ${CMAKE_THREAD_LIBS_INIT})
+
+# ---------------------------------------------------------------------------
+# the_ai_games: The AI Games 平台对战入口（TAG 规则 + ai_tag）.
+# ---------------------------------------------------------------------------
+add_executable(the_ai_games
+    src/ai_tag.cpp
+    src/integer_utils.cpp
+    src/random.cpp
+    src/the_ai_games.cpp
+)
+target_include_directories(the_ai_games PRIVATE src)
+target_link_libraries(the_ai_games PRIVATE ${CMAKE_THREAD_LIBS_INIT})
+
+# ---------------------------------------------------------------------------
+# vs: 多规则终端对战工具（QQ/ST/SRS，ai_ax + ai_zzz）.
+# ---------------------------------------------------------------------------
+add_library(vs SHARED
+    src/ai_ax.cpp
+    src/ai_zzz.cpp
+    src/integer_utils.cpp
+    src/random.cpp
+    src/vs.cpp
+)
+target_include_directories(vs PRIVATE src)
+if(NOT WIN32)
+    target_link_libraries(vs PRIVATE dl)
+endif()

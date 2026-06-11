@@ -135,7 +135,13 @@ void tree_test()
     std::vector<Node *> data;
     std::vector<decltype(rb)> _unuse1;
     std::vector<decltype(sb)> _unuse2;
-    ege::mtrandom r;
+    struct RandomCompat
+    {
+        unsigned int rand() const
+        {
+            return ege::mtirand();
+        }
+    } r;
 
     int length = 2000;
 
@@ -298,4 +304,10 @@ void tree_test()
     }
     data.clear();
     system("pause");
+}
+
+int main()
+{
+    tree_test();
+    return 0;
 }

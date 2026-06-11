@@ -1,8 +1,14 @@
 
-#define DECLSPEC_EXPORT __declspec(dllexport)
-#define WINAPI __stdcall
+#ifdef _WIN32
+#  define DECLSPEC_EXPORT __declspec(dllexport)
+#  define WINAPI __stdcall
+#else
+#  define DECLSPEC_EXPORT __attribute__((visibility("default")))
+#  define WINAPI
+#endif
 
 #include <ctime>
+#include <cstring>
 #include "random.h"
 #include "search_simple.h"
 #include "rule_st.h"
@@ -17,6 +23,8 @@ namespace demo
     class AI
     {
     public:
+        using Result = double;
+        template<class Spec>
         void init(void const * /*cfg*/ = nullptr) {}
         std::string ai_name() const
         {
@@ -39,11 +47,11 @@ namespace demo
     };
 }
 
-m_tetris2::TetrisEngine<rule_st::TetrisRule, demo::AI, search_simple::Search> tetris_ai;
+m_tetris2::TetrisEngine<rule_st::TetrisRule, demo::AI, simple::Search> tetris_ai;
 
 extern "C" void attach_init()
 {
-    ege::mtsrand(unsigned int(time(nullptr)));
+    ege::mtsrand(static_cast<unsigned int>(time(nullptr)));
 }
 
 //输出AI名字，将显示在界面上
@@ -80,9 +88,7 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
         {
             if (board[x + add] == '1')
             {
-                map.top[x] = map.roof = y + 1;
-                map.row[y] |= 1 << x;
-                ++map.count;
+                map.set(x, y);
             }
         }
     }
