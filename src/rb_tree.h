@@ -6,7 +6,6 @@
 
 namespace zzz
 {
-    //incomplete
     template<class Interface>
     class rb_tree : public bst_base<Interface>
     {

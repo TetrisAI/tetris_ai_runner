@@ -5,7 +5,6 @@
 
 namespace zzz
 {
-    //incomplete
     template<class Interface>
     class bst_base
     {
