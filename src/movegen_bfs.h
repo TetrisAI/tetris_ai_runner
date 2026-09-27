@@ -29,8 +29,6 @@
 
 namespace m_tetris2
 {
-    namespace bb
-    {
         //准入返回三态.
         //  Skip            : 不入队也不更新 mark (已存在等价更新或不可达).
         //  MarkOnly        : 更新 mark / parent / action, 但不入队 (cover_if
@@ -143,7 +141,6 @@ namespace m_tetris2
             queue_buffer.reserve(64);
             run_bfs(start, np, dedup, vis, queue_buffer);
         }
-    } // namespace bb
 } // namespace m_tetris2
 
 #endif // TETRIS_AI_RUNNER_MOVEGEN_BFS_H_

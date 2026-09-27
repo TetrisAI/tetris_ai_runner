@@ -99,7 +99,7 @@ namespace
     }
 
     auto g_oracle_lps = std::vector<decltype(static_cast<m_tetris::TetrisContext const *>(nullptr)->generate('I'))>();
-    std::vector<m_tetris2::BBLandPoint> g_candidate_lps;
+    std::vector<m_tetris2::TetrisLandPoint> g_candidate_lps;
 
     tetris_diff::CaseProbe probe(char piece, NewMap const &board,
                                  std::string const & /*board_name*/, bool /*is_20g*/)
@@ -135,7 +135,7 @@ namespace
             cp.oracle_lps.push_back(LpEntry{LpKey{static_cast<int>(g_oracle_lps[i]->index_filtered),
                                                   0, -1},
                                             i});
-        // TODO: rewrite candidate_lps construction using BBLandPoint / CellsKey
+        // TODO: rewrite candidate_lps construction using TetrisLandPoint / CellsKey
         // (Helpers<rule_spec>::cells_key_for_state) once LpKey migrates off int index_filtered.
 
         m_tetris::TetrisMap oracle_map_copy = oracle_map;
@@ -149,7 +149,7 @@ namespace
             std::vector<char> v = oracle_search_obj().make_path(oracle_spawn_copy, g_oracle_lps[e.index], oracle_map_copy);
             return std::string(v.begin(), v.end());
         };
-        // TODO: rewrite using g_candidate_lps[e.index] (BBLandPoint) directly.
+        // TODO: rewrite using g_candidate_lps[e.index] (TetrisLandPoint) directly.
         cp.candidate_make_path = [new_spawn_copy, new_map_copy](LpEntry const & /*e*/) -> std::string
         {
             (void)new_spawn_copy;

@@ -34,9 +34,9 @@ namespace
     using LpEntry = tetris_diff::LpEntry;
     using LpKey = tetris_diff::LpKey;
 
-    using Helpers = m_tetris2::bb::Helpers<rule_srs::TetrisRule::rule_spec>;
+    using Helpers = m_tetris2::Helpers<rule_srs::TetrisRule::rule_spec>;
 
-    inline std::uint64_t cells_key_to_u64(m_tetris2::bb::CellsKey const &k)
+    inline std::uint64_t cells_key_to_u64(m_tetris2::CellsKey const &k)
     {
         std::uint64_t v = 0;
         static_assert(sizeof(k) == sizeof(v), "CellsKey size mismatch");

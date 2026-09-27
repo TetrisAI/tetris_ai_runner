@@ -486,7 +486,7 @@ class QQTetrisSearch
 {
 public:
     using rule_spec = rule_qq::TetrisRule::rule_spec;
-    using LandPoint = m_tetris2::BBLandPoint;
+    using LandPoint = m_tetris2::TetrisLandPoint;
     enum Config
     {
         Simple,
@@ -500,8 +500,8 @@ public:
         path_.init(nullptr);
         config_ptr = config;
     }
-    std::vector<char> make_path(m_tetris2::bb::State const &spawn,
-                                m_tetris2::BBLandPoint const &land_point,
+    std::vector<char> make_path(m_tetris2::State const &spawn,
+                                m_tetris2::TetrisLandPoint const &land_point,
                                 m_tetris2::TetrisMap<rule_spec::width, rule_spec::height> const &board)
     {
         switch (*config_ptr)
@@ -516,7 +516,7 @@ public:
             return std::vector<char>();
         }
     }
-    std::vector<m_tetris2::BBLandPoint> const *search(m_tetris2::TetrisMap<rule_spec::width, rule_spec::height> const &map, m_tetris2::TetrisBlockStatus const &status, size_t depth)
+    std::vector<m_tetris2::TetrisLandPoint> const *search(m_tetris2::TetrisMap<rule_spec::width, rule_spec::height> const &map, m_tetris2::TetrisBlockStatus const &status, size_t depth)
     {
         switch (*config_ptr)
         {
@@ -570,7 +570,7 @@ public:
     template<class EvalCallback>
     void search_eval(m_tetris2::TetrisMap<rule_qq::TetrisRule::rule_spec::width,
                                     rule_qq::TetrisRule::rule_spec::height> const &board,
-                     m_tetris2::bb::State const &spawn, size_t depth, EvalCallback &cb)
+                     m_tetris2::State const &spawn, size_t depth, EvalCallback &cb)
     {
         switch (*config_ptr)
         {
@@ -593,8 +593,8 @@ private:
     m_tetris2::movegen::Searcher<m_tetris2::SimpleStrategy, m_tetris2::NoSpinHook, rule_qq::TetrisRule::rule_spec> simple_;
     m_tetris2::movegen::Searcher<m_tetris2::SimulateStrategy, m_tetris2::NoSpinHook, rule_qq::TetrisRule::rule_spec> simulate_;
     m_tetris2::movegen::Searcher<m_tetris2::PathStrategy, m_tetris2::NoSpinHook, rule_qq::TetrisRule::rule_spec> path_;
-    std::vector<m_tetris2::BBLandPoint> flatten_landpoint_;
-    std::vector<m_tetris2::BBLandPoint> empty_;
+    std::vector<m_tetris2::TetrisLandPoint> flatten_landpoint_;
+    std::vector<m_tetris2::TetrisLandPoint> empty_;
 };
 m_tetris2::TetrisEngine<rule_qq::TetrisRule, ai_zzz::qq::Attack, QQTetrisSearch> qq_ai;
 
@@ -647,7 +647,7 @@ extern "C" DECLSPEC_EXPORT int __cdecl QQTetrisAI(int boardW, int boardH, int bo
     qq_ai.status()->attack = 0;
     qq_ai.status()->rubbish = 0;
     qq_ai.status()->value = 0;
-    using QQSpecHelpers = m_tetris2::bb::Helpers<rule_qq::TetrisRule::rule_spec>;
+    using QQSpecHelpers = m_tetris2::Helpers<rule_qq::TetrisRule::rule_spec>;
     std::array<QQSpecHelpers::map_t, QQSpecHelpers::kMaxR> qq_usable_arr{};
     auto const &qq_board = map;
     QQSpecHelpers::build_usable_for_piece(status.t, qq_board, qq_usable_arr);
@@ -776,9 +776,9 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
             next += '?';
         }
     }
-    using C2SpecHelpers = m_tetris2::bb::Helpers<rule_c2::TetrisRule::rule_spec>;
+    using C2SpecHelpers = m_tetris2::Helpers<rule_c2::TetrisRule::rule_spec>;
     std::array<C2SpecHelpers::map_t, C2SpecHelpers::kMaxR> c2_usable_arr{};
-    auto c2_board = m_tetris2::bb::build_board_for_search<rule_c2::TetrisRule::rule_spec>(map);
+    auto c2_board = m_tetris2::build_board_for_search<rule_c2::TetrisRule::rule_spec>(map);
     C2SpecHelpers::build_usable_for_piece(status.t, c2_board, c2_usable_arr);
     while (!C2SpecHelpers::check_T(status.t, status.x, status.y, static_cast<std::uint8_t>(status.r), c2_usable_arr) && status.y > 0)
     {
@@ -791,9 +791,9 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
     {
         ai_path = c2_ai.make_path(status, target, map);
         // 纯位板路径模拟（替换 TetrisNode 指针遍历）
-        using H = m_tetris2::bb::Helpers<rule_c2::TetrisRule::rule_spec>;
+        using H = m_tetris2::Helpers<rule_c2::TetrisRule::rule_spec>;
         std::array<H::map_t, H::kMaxR> usable_arr{};
-        auto board = m_tetris2::bb::build_board_for_search<rule_c2::TetrisRule::rule_spec>(map);
+        auto board = m_tetris2::build_board_for_search<rule_c2::TetrisRule::rule_spec>(map);
         H::build_usable_for_piece(status.t, board, usable_arr);
         auto cs = H::state_from_status(status.t, status.r, status.x, status.y);
         for (char c : ai_path)
@@ -825,15 +825,15 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
                     cs = *dropped;
                 break;
             case 'z':
-                if (auto kicked = H::first_kick(static_cast<char>(cs.t), m_tetris2::bb::KickDir::Ccw, cs, usable_arr))
+                if (auto kicked = H::first_kick(static_cast<char>(cs.t), m_tetris2::KickDir::Ccw, cs, usable_arr))
                     cs = *kicked;
                 break;
             case 'c':
-                if (auto kicked = H::first_kick(static_cast<char>(cs.t), m_tetris2::bb::KickDir::Cw, cs, usable_arr))
+                if (auto kicked = H::first_kick(static_cast<char>(cs.t), m_tetris2::KickDir::Cw, cs, usable_arr))
                     cs = *kicked;
                 break;
             case 'x':
-                if (auto kicked = H::first_kick(static_cast<char>(cs.t), m_tetris2::bb::KickDir::Opp, cs, usable_arr))
+                if (auto kicked = H::first_kick(static_cast<char>(cs.t), m_tetris2::KickDir::Opp, cs, usable_arr))
                     cs = *kicked;
                 break;
             default:

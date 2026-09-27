@@ -125,13 +125,13 @@ struct tetris_game
 
     int run(size_t limit)
     {
-        using H = m_tetris2::bb::Helpers<rule_qq::TetrisRule::rule_spec>;
+        using H = m_tetris2::Helpers<rule_qq::TetrisRule::rule_spec>;
         fill_next();
         auto sp = rule_qq::TetrisRule::rule_spec::spawn(next.front(), tetris_ai.width(), tetris_ai.height());
         auto status = m_tetris2::TetrisBlockStatus(next.front(), static_cast<int8_t>(sp.first), static_cast<int8_t>(sp.second), 0);
         // 构建位板初始状态
         std::array<H::map_t, H::kMaxR> usable_arr{};
-        auto board = m_tetris2::bb::build_board_for_search<rule_qq::TetrisRule::rule_spec>(map);
+        auto board = m_tetris2::build_board_for_search<rule_qq::TetrisRule::rule_spec>(map);
         H::build_usable_for_piece(status.t, board, usable_arr);
         auto cs = H::state_from_status(status.t, status.r, status.x, status.y);
         // game over 检测：顶行有方块 或 初始位置不合法
@@ -155,12 +155,12 @@ struct tetris_game
         next.pop_back();
         next.erase(next.begin());
         // 纯位板路径模拟
-        m_tetris2::bb::sim_path<H>(cs, usable_arr, move, move_end);
+        m_tetris2::sim_path<H>(cs, usable_arr, move, move_end);
         // 硬降落地
         if (auto landed = H::drop(cs, usable_arr))
             cs = *landed;
         // attach：用 ad-hoc lp wrapper 满足 engine.attach 的 lp.state 要求
-        struct LpWrapper { m_tetris2::bb::State state; };
+        struct LpWrapper { m_tetris2::State state; };
         LpWrapper lp{cs};
         size_t clear = tetris_ai.attach(lp, map);
         if (clear >= 3)
@@ -260,8 +260,8 @@ int main(int argc, char *argv[])
         out[0] = '\0';
         decltype(game[0].tetris_ai)::map_t map[2] = {game[0].map, game[1].map};
         auto sp = rule_qq::TetrisRule::rule_spec::spawn(game[0].next.front(), game[0].tetris_ai.width(), game[0].tetris_ai.height());
-        auto cs = m_tetris2::bb::Helpers<rule_qq::TetrisRule::rule_spec>::state_from_status(game[0].next.front(), 0, sp.first, sp.second);
-        auto lp = m_tetris2::BBLandPoint(cs);
+        auto cs = m_tetris2::Helpers<rule_qq::TetrisRule::rule_spec>::state_from_status(game[0].next.front(), 0, sp.first, sp.second);
+        auto lp = m_tetris2::TetrisLandPoint(cs);
         game[0].tetris_ai.attach(lp, map[0]);
         game[0].tetris_ai.attach(lp, map[1]);
         for (int y = 20; y >= 0; --y)
@@ -421,9 +421,9 @@ int speed_test(int argc, char *argv[])
     long long max_line = 0;
     long long game_count = 0;
 
-    using H = m_tetris2::bb::Helpers<rule_st::TetrisRule::rule_spec>;
+    using H = m_tetris2::Helpers<rule_st::TetrisRule::rule_spec>;
     // st LpWrapper，供 engine.attach 桥接
-    struct LpWrapper { m_tetris2::bb::State state; };
+    struct LpWrapper { m_tetris2::State state; };
     ege::mtrandom st_random;
 
     while (true)
@@ -433,7 +433,7 @@ int speed_test(int argc, char *argv[])
         m_tetris2::TetrisBlockStatus status(cur_t, static_cast<int8_t>(sp.first), static_cast<int8_t>(sp.second), 0);
         // 构建位板初始状态
         std::array<H::map_t, H::kMaxR> usable_arr{};
-        auto board = m_tetris2::bb::build_board_for_search<rule_st::TetrisRule::rule_spec>(map);
+        auto board = m_tetris2::build_board_for_search<rule_st::TetrisRule::rule_spec>(map);
         H::build_usable_for_piece(status.t, board, usable_arr);
         auto cs = H::state_from_status(status.t, status.r, status.x, status.y);
         log_new_time = clock();
@@ -457,7 +457,7 @@ int speed_test(int argc, char *argv[])
             this_lines = 0;
             map = decltype(map){};
             // 地图清空后重建 usable_arr
-            board = m_tetris2::bb::build_board_for_search<rule_st::TetrisRule::rule_spec>(map);
+            board = m_tetris2::build_board_for_search<rule_st::TetrisRule::rule_spec>(map);
             H::build_usable_for_piece(status.t, board, usable_arr);
         }
         for (int y = 0; y < h; ++y)
@@ -476,7 +476,7 @@ int speed_test(int argc, char *argv[])
             ((ai_run_t)ai[version])(w, h, param_map, status.t, status.x + 1, status.y + 1, status.r + 1, next, path);
             char *move = path, *move_end = path + 1024;
             // 纯位板路径模拟
-            m_tetris2::bb::sim_path<H>(cs, usable_arr, move, move_end);
+            m_tetris2::sim_path<H>(cs, usable_arr, move, move_end);
         }
         else
         {
@@ -489,7 +489,7 @@ int speed_test(int argc, char *argv[])
             int cur_r = static_cast<int>(cs.r);
             while (best_r > cur_r)
             {
-                if (auto kicked = H::first_kick(static_cast<char>(cs.t), m_tetris2::bb::KickDir::Ccw, cs, usable_arr))
+                if (auto kicked = H::first_kick(static_cast<char>(cs.t), m_tetris2::KickDir::Ccw, cs, usable_arr))
                     cs = *kicked;
                 else
                     break;
@@ -497,7 +497,7 @@ int speed_test(int argc, char *argv[])
             }
             while (best_r < cur_r)
             {
-                if (auto kicked = H::first_kick(static_cast<char>(cs.t), m_tetris2::bb::KickDir::Cw, cs, usable_arr))
+                if (auto kicked = H::first_kick(static_cast<char>(cs.t), m_tetris2::KickDir::Cw, cs, usable_arr))
                     cs = *kicked;
                 else
                     break;

@@ -136,12 +136,12 @@ struct test_ai
         //map.row[12] = 0b1111111101;
         //map.row[11] = 0b1111111111;
     }
-    m_tetris2::BBLandPoint lp() const
+    m_tetris2::TetrisLandPoint lp() const
     {
         using Spec = rule_botris::TetrisRule::rule_spec;
         auto sp = Spec::spawn(next.front(), ai.width(), ai.height());
         m_tetris2::TetrisBlockStatus spawn_status(next.front(), static_cast<int8_t>(sp.first), static_cast<int8_t>(sp.second), 0);
-        return m_tetris2::BBLandPoint(m_tetris2::bb::Helpers<Spec>::state_from_status(spawn_status.t, spawn_status.r, spawn_status.x, spawn_status.y));
+        return m_tetris2::TetrisLandPoint(m_tetris2::Helpers<Spec>::state_from_status(spawn_status.t, spawn_status.r, spawn_status.x, spawn_status.y));
     }
     void prepare()
     {
@@ -184,7 +184,7 @@ struct test_ai
         ai.status()->value = 0;
 
         using Spec = rule_botris::TetrisRule::rule_spec;
-        using H = m_tetris2::bb::Helpers<Spec>;
+        using H = m_tetris2::Helpers<Spec>;
 
         ++round;
         char current = next.front();
@@ -213,11 +213,11 @@ struct test_ai
             return combo_table[std::min(combo_table_max - 1, c)];
         };
         auto ai_path = ai.make_path(spawn_status, result.target, map);
-        auto board = m_tetris2::bb::build_board_for_search<Spec>(map);
+        auto board = m_tetris2::build_board_for_search<Spec>(map);
         std::array<H::map_t, H::kMaxR> usable_arr{};
         H::build_usable_for_piece(spawn_status.t, board, usable_arr);
         auto cs = H::state_from_status(spawn_status.t, spawn_status.r, spawn_status.x, spawn_status.y);
-        m_tetris2::bb::sim_path<H>(cs, usable_arr, ai_path.data(), ai_path.data() + ai_path.size());
+        m_tetris2::sim_path<H>(cs, usable_arr, ai_path.data(), ai_path.data() + ai_path.size());
         ai_path.push_back('\0');
         if (!(cs.t == result.target.state.t && cs.r == result.target.state.r &&
               cs.xb == result.target.state.xb && cs.yb == result.target.state.yb))
@@ -237,7 +237,7 @@ struct test_ai
                     ai.search(spawn_status, map, lps);
                     ai_path = ai.make_path(spawn_status, result.target, map);
                     cs = H::state_from_status(spawn_status.t, spawn_status.r, spawn_status.x, spawn_status.y);
-                    m_tetris2::bb::sim_path<H>(cs, usable_arr, ai_path.data(), ai_path.data() + ai_path.size());
+                    m_tetris2::sim_path<H>(cs, usable_arr, ai_path.data(), ai_path.data() + ai_path.size());
                 }
             }
         }

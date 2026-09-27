@@ -749,7 +749,7 @@ namespace m_tetris2
         typename std::vector<next_t>::const_iterator next;
 
         // lp_key: 提取 children_map_t / identity_set_t 的 TetrisBlockStatus key。
-        //   LandPoint (BBLandPoint / TetrisNodeWith*SpinType): 用 {t, xb, yb, r}
+        //   LandPoint (TetrisLandPoint / TetrisNodeWith*SpinType): 用 {t, xb, yb, r}
         //   构造伪 TetrisBlockStatus。yb 为底行（非真实 status.y 顶行），但在
         //   同一 LandPoint 类型的同一个 map 内，唯一性与真实 status 等价。
         template<class LP>
@@ -909,8 +909,8 @@ namespace m_tetris2
             child->identity = lp;
             // 纯位板 attach：直接从 State 写方块、消行、更新 top/roof.
             // 不再需要 TetrisNode* 或 TetrisContext::get() 反查.
-            size_t clear = m_tetris2::bb::Helpers<Spec>::attach_to_map(lp.state, child->map);
-            auto after_board = m_tetris2::bb::build_board_for_search<Spec>(child->map);
+            size_t clear = m_tetris2::Helpers<Spec>::attach_to_map(lp.state, child->map);
+            auto after_board = m_tetris2::build_board_for_search<Spec>(child->map);
             child->result = TetrisCallEvalT::template call_eval_typed<T, R>(
                 *context->ai, child->identity, after_board, src_board, clear);
             return child;
@@ -919,9 +919,9 @@ namespace m_tetris2
         void search(Context *context, char search_t, bool is_hold)
         {
             using SearchSpec = typename SearchRuleSpecOf<TetrisSearch>::type;
-            using SearchHelpers = m_tetris2::bb::Helpers<SearchSpec>;
+            using SearchHelpers = m_tetris2::Helpers<SearchSpec>;
             auto sp = SearchSpec::spawn(search_t, SearchSpec::width, SearchSpec::height);
-            auto board = m_tetris2::bb::build_board_for_search<SearchSpec>(map);
+            auto board = m_tetris2::build_board_for_search<SearchSpec>(map);
             auto spawn = SearchHelpers::state_from_status(search_t, 0, sp.first, sp.second);
             if (node_flag.empty())
             {
@@ -972,12 +972,12 @@ namespace m_tetris2
         void search(Context *context, char search_t, char hold_t)
         {
             using SearchSpec = typename SearchRuleSpecOf<TetrisSearch>::type;
-            using SearchHelpers = m_tetris2::bb::Helpers<SearchSpec>;
+            using SearchHelpers = m_tetris2::Helpers<SearchSpec>;
             auto s_sp = SearchSpec::spawn(search_t, SearchSpec::width, SearchSpec::height);
             auto h_sp = SearchSpec::spawn(hold_t, SearchSpec::width, SearchSpec::height);
-            auto board = m_tetris2::bb::build_board_for_search<SearchSpec>(map);
+            auto board = m_tetris2::build_board_for_search<SearchSpec>(map);
             auto search_spawn = SearchHelpers::state_from_status(search_t, 0, s_sp.first, s_sp.second);
-            auto hold_spawn = hold_t != '\0' ? SearchHelpers::state_from_status(hold_t, 0, h_sp.first, h_sp.second) : m_tetris2::bb::State{};
+            auto hold_spawn = hold_t != '\0' ? SearchHelpers::state_from_status(hold_t, 0, h_sp.first, h_sp.second) : m_tetris2::State{};
             if (search_t == hold_t)
             {
                 return search(context, search_t, false);
@@ -1091,9 +1091,9 @@ namespace m_tetris2
         void search(Context *context)
         {
             using SearchSpec = typename SearchRuleSpecOf<TetrisSearch>::type;
-            using SearchHelpers = m_tetris2::bb::Helpers<SearchSpec>;
+            using SearchHelpers = m_tetris2::Helpers<SearchSpec>;
             using piece_info_t = typename SearchHelpers::piece_info_t;
-            auto board = m_tetris2::bb::build_board_for_search<SearchSpec>(map);
+            auto board = m_tetris2::build_board_for_search<SearchSpec>(map);
             if (node_flag.empty())
             {
                 node_flag.set(TetrisNodeFlag::kVirtualSearchFlag);
@@ -1155,7 +1155,7 @@ namespace m_tetris2
         void run_virtual(Context *context)
         {
             using SearchSpec = typename SearchRuleSpecOf<TetrisSearch>::type;
-            using SearchHelpers = m_tetris2::bb::Helpers<SearchSpec>;
+            using SearchHelpers = m_tetris2::Helpers<SearchSpec>;
             using piece_info_t = typename SearchHelpers::piece_info_t;
             search(context);
             auto &iterate_cache = context->iterate_cache;
@@ -1635,8 +1635,8 @@ namespace m_tetris2
                     size_t attach(LP const &lp, map_t &map) const
         {
             using Spec = typename SearchRuleSpecOf<TetrisSearch>::type;
-            auto bb_map = m_tetris2::bb::build_board_for_search<Spec>(map);
-            return m_tetris2::bb::Helpers<Spec>::attach_to_map(lp.state, bb_map);
+            auto bb_map = m_tetris2::build_board_for_search<Spec>(map);
+            return m_tetris2::Helpers<Spec>::attach_to_map(lp.state, bb_map);
         }
         uint64_t memory_limit() const
         {
@@ -1759,7 +1759,7 @@ namespace m_tetris2
         std::vector<char> make_path(TetrisBlockStatus const &status, LandPoint const &land_point, map_t const &map, bool cut_drop = true)
         {
             using Spec = typename SearchRuleSpecOf<TetrisSearch>::type;
-            using SpecHelpers = m_tetris2::bb::Helpers<Spec>;
+            using SpecHelpers = m_tetris2::Helpers<Spec>;
             auto const &board = map;
             auto spawn = SpecHelpers::state_from_status(
                 status.t,
@@ -1781,7 +1781,7 @@ namespace m_tetris2
         void search(TetrisBlockStatus const &status, map_t const &map, container_t &result)
         {
             using Spec = typename SearchRuleSpecOf<TetrisSearch>::type;
-            using SpecHelpers = m_tetris2::bb::Helpers<Spec>;
+            using SpecHelpers = m_tetris2::Helpers<Spec>;
             auto const &board = map;
             std::array<typename SpecHelpers::map_t, SpecHelpers::kMaxR> usable_arr{};
             SpecHelpers::build_usable_for_piece(status.t, board, usable_arr);

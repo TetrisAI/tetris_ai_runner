@@ -82,7 +82,7 @@ namespace m_tetris2
             template<class MapIn>
             inline auto search(MapIn const &map, TetrisBlockStatus const &status, std::size_t depth)
             {
-                bb::State spawn = bb::Helpers<RuleSpec>::state_from_status(
+                State spawn = Helpers<RuleSpec>::state_from_status(
                     status.t,
                     static_cast<std::uint8_t>(status.r),
                     status.x,
@@ -102,7 +102,7 @@ namespace m_tetris2
             // 直接转发 search_eval，并由内部 ctx_ 注入上下文。
             template<class EvalCallback>
             inline void search_eval(TetrisMap<RuleSpec::width, RuleSpec::height> const &board,
-                                    bb::State const &spawn,
+                                    State const &spawn,
                                     std::size_t depth, EvalCallback &on_land)
             {
                 strategy_t::template search_eval<EvalCallback>(ctx_, board, spawn, depth, on_land);
@@ -110,7 +110,7 @@ namespace m_tetris2
 
             //=== 转发: make_path ===============================================
             template<class S = strategy_t>
-            inline auto make_path(bb::State const &spawn,
+            inline auto make_path(State const &spawn,
                                   LandPoint const &land_point,
                                   TetrisMap<RuleSpec::width, RuleSpec::height> const &board)
                 -> decltype(S::make_path(std::declval<Context &>(),

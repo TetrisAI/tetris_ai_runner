@@ -13,7 +13,7 @@ namespace m_tetris2
     namespace ai_rule_spec
     {
         template<class Spec>
-        using piece_info_t = bb::PieceIndexInfo<typename Spec::ops>;
+        using piece_info_t = PieceIndexInfo<typename Spec::ops>;
 
         template<class Spec>
         constexpr std::size_t piece_count() noexcept

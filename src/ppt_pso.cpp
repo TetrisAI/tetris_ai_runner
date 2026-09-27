@@ -201,11 +201,11 @@ struct test_ai
         now_frame = 0;
         framecnt = 0;
     }
-    m_tetris2::BBLandPoint lp() const
+    m_tetris2::TetrisLandPoint lp() const
     {
         auto sp = rule_srs::TetrisRule::rule_spec::spawn(next.front(), ai.width(), ai.height());
         m_tetris2::TetrisBlockStatus spawn_status(next.front(), static_cast<int8_t>(sp.first), static_cast<int8_t>(sp.second), 0);
-        return m_tetris2::BBLandPoint(m_tetris2::bb::Helpers<rule_srs::TetrisRule::rule_spec>::state_from_status(spawn_status.t, spawn_status.r, spawn_status.x, spawn_status.y));
+        return m_tetris2::TetrisLandPoint(m_tetris2::Helpers<rule_srs::TetrisRule::rule_spec>::state_from_status(spawn_status.t, spawn_status.r, spawn_status.x, spawn_status.y));
     }
     void prepare()
     {

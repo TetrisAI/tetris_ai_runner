@@ -91,32 +91,32 @@ namespace m_tetris2
                   "SpinTypePayload.has_last_rot must occupy old TSpinPayload.has_last_rot slot");
 
     //=========================================================================
-    // BBLandPoint — NoSpinHook / CautiousHook 的无指针 LandPoint.
+    // TetrisLandPoint — NoSpinHook / CautiousHook 的无指针 LandPoint.
     //
-    //  持有 bb::State{t,r,xb,yb}，位板框架接口层完全不持有 TetrisNode 指针。
+    //  持有 State{t,r,xb,yb}，位板框架接口层完全不持有 TetrisNode 指针。
     //
     //  "无效/nullptr" 哨兵约定：state.t == 0（游戏中合法方块 type 不为 0）。
     //=========================================================================
-    struct BBLandPoint
+    struct TetrisLandPoint
     {
-        bb::State state{}; // 落点位板坐标（t/r/xb/yb）
+        State state{}; // 落点位板坐标（t/r/xb/yb）
 
-        BBLandPoint() = default;
-        explicit BBLandPoint(bb::State s) : state(s) {}
+        TetrisLandPoint() = default;
+        explicit TetrisLandPoint(State s) : state(s) {}
 
         // 从任意 spin-aware LandPoint（TetrisNodeWithTSpinType /
         // TetrisNodeWithASpinType 等）退化构造：只保留位置信息，丢弃 spin。
         template<class LP,
                  class = std::enable_if_t <
-                             !std::is_same_v<std::decay_t<LP>, BBLandPoint> &&
+                             !std::is_same_v<std::decay_t<LP>, TetrisLandPoint> &&
                          requires(LP const &x)
         {
             x.state;
         }
         >>
-            BBLandPoint(LP const &other) : state(other.state) {}
+            TetrisLandPoint(LP const &other) : state(other.state) {}
 
-        bool operator==(BBLandPoint const &o) const
+        bool operator==(TetrisLandPoint const &o) const
         {
             return state.t == o.state.t && state.r == o.state.r &&
                    state.xb == o.state.xb && state.yb == o.state.yb;
@@ -162,7 +162,7 @@ namespace m_tetris2
 
         //=== LandPoint trait ===
         template<class LP>
-        static bb::State const *get_last_state(LP const &) noexcept
+        static State const *get_last_state(LP const &) noexcept
         {
             return nullptr;
         }
@@ -252,14 +252,14 @@ namespace m_tetris2
 
         template<class MapT, std::size_t R_count, class LP, class Payload, class Cfg>
         static void apply_emit_1g(LP &, Payload const &, std::size_t, Cfg const *,
-                                  bb::State const *,
+                                  State const *,
                                   std::array<MapT, R_count> const &,
                                   std::uint8_t, int, int) noexcept
         {
         }
 
         template<class MapT, std::size_t R_count, class LP, class Cfg, class RS>
-        static void apply_emit_20g(LP &, bb::State const *, char, std::size_t,
+        static void apply_emit_20g(LP &, State const *, char, std::size_t,
                                    Cfg const *, RS const &,
                                    std::array<MapT, R_count> const &,
                                    std::uint8_t, int, int) noexcept
@@ -280,9 +280,9 @@ namespace m_tetris2
 
         using Payload = EmptyPayload;
         //LandPoint: MoveGenSearch::search() 输出的元素类型. NoHook 路径下
-        //  没有 spin / last 等元数据，与 NoSpinHook 共用 BBLandPoint，
+        //  没有 spin / last 等元数据，与 NoSpinHook 共用 TetrisLandPoint，
         //  彻底移除 TetrisNode 指针依赖.
-        using LandPoint = BBLandPoint;
+        using LandPoint = TetrisLandPoint;
         //Config: NoHook 路径不持任何配置, 退化为空 struct.
         struct Config
         {
@@ -299,7 +299,7 @@ namespace m_tetris2
     //  on_emit) + LandPoint trait (lp_requires_last_rotate / get_last_state) +
     //  apply_emit_* 由 BaseSpinHook<NoSpinHook> 默认 noop 提供.
     //
-    //  与 NoHook 的关键差异: LandPoint 是 BBLandPoint (持有 State，无
+    //  与 NoHook 的关键差异: LandPoint 是 TetrisLandPoint (持有 State，无
     //  TetrisNode 指针). NoHook 仅在 search_tspin 内部使用，其 LandPoint 带
     //  spin/last 元数据；NoSpinHook LandPoint 只保留位置信息。
     //
@@ -320,7 +320,7 @@ namespace m_tetris2
         };
 
         using Payload = EmptyPayload;
-        using LandPoint = BBLandPoint;
+        using LandPoint = TetrisLandPoint;
         struct Config
         {
         };
@@ -407,7 +407,7 @@ namespace m_tetris2
         {
             return cfg && cfg->last_rotate && lp.type != ::search_tspin::Search::None;
         }
-        static bb::State const *get_last_state(LandPoint const &lp) noexcept
+        static State const *get_last_state(LandPoint const &lp) noexcept
         {
             return lp.last.t != 0 ? &lp.last : nullptr;
         }
@@ -509,7 +509,7 @@ namespace m_tetris2
         template<class MapT, std::size_t R_count>
         static void apply_emit_1g(LandPoint &node_ex, Payload const &payload,
                                   std::size_t depth, Config const *cfg,
-                                  bb::State const *last_state,
+                                  State const *last_state,
                                   std::array<MapT, R_count> const &usable_arr,
                                   std::uint8_t r, int xb, int yb) noexcept
         {
@@ -555,7 +555,7 @@ namespace m_tetris2
         }
 
         template<class MapT, std::size_t R_count>
-        static void apply_emit_20g(LandPoint &node_ex, bb::State const *last_state,
+        static void apply_emit_20g(LandPoint &node_ex, State const *last_state,
                                    char action, std::size_t depth, Config const *cfg,
                                    RotState<MapT, R_count> const &rs,
                                    std::array<MapT, R_count> const &usable_arr,
@@ -905,7 +905,7 @@ namespace m_tetris2
         {
             return false;
         }
-        static bb::State const *get_last_state(LandPoint const &) noexcept
+        static State const *get_last_state(LandPoint const &) noexcept
         {
             return nullptr;
         }
@@ -1004,7 +1004,7 @@ namespace m_tetris2
         template<class MapT, std::size_t R_count>
         static void apply_emit_1g(LandPoint &node_ex, Payload const &payload,
                                   std::size_t depth, Config const *cfg,
-                                  bb::State const * /*last_state*/,
+                                  State const * /*last_state*/,
                                   std::array<MapT, R_count> const &usable_arr,
                                   std::uint8_t r, int xb, int yb) noexcept
         {
@@ -1041,7 +1041,7 @@ namespace m_tetris2
 
         //=== apply_emit_20g ===
         template<class MapT, std::size_t R_count>
-        static void apply_emit_20g(LandPoint &node_ex, bb::State const * /*last_state*/,
+        static void apply_emit_20g(LandPoint &node_ex, State const * /*last_state*/,
                                    char /*action*/, std::size_t /*depth*/,
                                    Config const * /*cfg*/,
                                    RotState<MapT, R_count> const & /*rs*/,
@@ -1066,7 +1066,7 @@ namespace m_tetris2
 
     //=========================================================================
     // CautiousHook: c2_ai 走 MoveGenSearch 时挂的 hook 变体. 不计算任何 spin/last
-    //  元数据 (active_for_piece 全 false), LandPoint 用 BBLandPoint (持有
+    //  元数据 (active_for_piece 全 false), LandPoint 用 TetrisLandPoint (持有
     //  State，无 TetrisNode 指针). Config 仅暴露 fast_move_down 一个字段,
     //  与上层 c2_ai 历史调用面一致.
     //
@@ -1085,7 +1085,7 @@ namespace m_tetris2
         };
 
         using Payload = EmptyPayload;
-        using LandPoint = BBLandPoint;
+        using LandPoint = TetrisLandPoint;
         struct Config
         {
             bool fast_move_down = false;

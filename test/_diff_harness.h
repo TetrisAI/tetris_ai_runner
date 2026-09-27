@@ -65,7 +65,7 @@ namespace tetris_diff
     //=======================================================================
     // LpKey: search 集合的等价类 id.
     //
-    //   cells_key      : bb::CellsKey (4×uint16 格子坐标) 的小端 memcpy 打包
+    //   cells_key      : CellsKey (4×uint16 格子坐标) 的小端 memcpy 打包
     //                    值, 作为落点几何等价类 id. 直接从 BBState 或 oracle
     //                    坐标算, 不经 TetrisNode 指针或 state_to_node.
     //   spin_type      : NoSpin 路径恒 0; TSpin 三态 (None=0/TSpin=1/Mini=2);

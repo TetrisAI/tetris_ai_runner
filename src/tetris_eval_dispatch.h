@@ -16,7 +16,7 @@
 //        - SpinType 由 AI::EvalSpinType 决定；无 EvalSpinType 则 fallback 至 monostate
 //
 // LandPoint 约定（三种形态）：
-//   NoSpinHook 路径：BBLandPoint             — .state（State），无 .type
+//   NoSpinHook 路径：TetrisLandPoint             — .state（State），无 .type
 //
 // 依赖：tetris_node.h, typed_dispatch.h, tetris_shape.h（rotation_count）
 //
@@ -188,7 +188,7 @@ namespace m_tetris2
                 }
                 else
                 {
-                    // 均持有 .state（bb::State{t,r,xb,yb}）
+                    // 均持有 .state（State{t,r,xb,yb}）
                     node_x = static_cast<int8_t>(lp.state.xb);
                     // TetrisNode.y = yb + kOriginY，在编译期使用 Det::kOriginY 计算
                     node_y = static_cast<int8_t>(

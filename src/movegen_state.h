@@ -9,7 +9,7 @@
 // 设计:
 //   - bb 命名空间下的"自由结构" (KickDir / State / CellsKey) 与 RuleSpec 无关,
 //     直接共享.
-//   - bb::Helpers<RuleSpec> 模板把所有依赖 RuleSpec 编译期表的 helper 收纳为
+//   - Helpers<RuleSpec> 模板把所有依赖 RuleSpec 编译期表的 helper 收纳为
 //     static 方法; MoveGenSearch private 继承之, 把名字 using 进类作用域,
 //     原 BFS 主循环的调用点零改动.
 //==========================================================================
@@ -32,8 +32,6 @@
 
 namespace m_tetris2
 {
-    namespace bb
-    {
         struct State
         {
             std::uint8_t t;
@@ -43,7 +41,7 @@ namespace m_tetris2
         };
 
         static_assert(sizeof(State) == sizeof(std::uint32_t),
-                      "bb::State must be exactly 4 bytes for bit_cast hash");
+                      "State must be exactly 4 bytes for bit_cast hash");
 
         struct StateHash
         {
@@ -61,7 +59,6 @@ namespace m_tetris2
             }
         };
 
-    }
 }
 
 namespace m_tetris2
@@ -75,9 +72,7 @@ namespace m_tetris2
         constexpr auto inbounds_map() noexcept;
     }
 
-    namespace bb
-    {
-        //RuleSpec::ops -> piece-type 元数据 (count / index_of(t) / type_at(i)).
+    //RuleSpec::ops -> piece-type 元数据 (count / index_of(t) / type_at(i)).
         //  扫 OpDesc::type 去重, 按"首次出现顺序"分配 [0, count). 与 oracle 系
         //  原 piece_index switch 同形 (SRS rule_*.h 顺序: O, I, L, J, S, Z, T).
         template<class Tuple>
@@ -187,9 +182,9 @@ namespace m_tetris2
         {
             //=== 编译期校验 ===
             static_assert(static_cast<int>(RuleSpec::width) > 0,
-                          "bb::Helpers: RuleSpec must expose static constexpr width > 0");
+                          "Helpers: RuleSpec must expose static constexpr width > 0");
             static_assert(static_cast<int>(RuleSpec::height) > 0,
-                          "bb::Helpers: RuleSpec must expose static constexpr height > 0");
+                          "Helpers: RuleSpec must expose static constexpr height > 0");
 
             static constexpr int kW = static_cast<int>(RuleSpec::width);
             static constexpr int kH = static_cast<int>(RuleSpec::height);
@@ -1132,7 +1127,6 @@ namespace m_tetris2
         {
             return map;
         }
-    } // namespace bb
 } // namespace m_tetris2
 
 #include "tetris_core.h"
@@ -1140,8 +1134,6 @@ namespace m_tetris2
 
 namespace m_tetris2
 {
-    namespace bb
-    {
 
         // out-of-line: Helpers<RuleSpec>::build_board
         // MapIn 可以是 TetrisMap 或其他兼容 TetrisMap<W,H> 接口的类型，均委托给 build_board_for_search 重载.
@@ -1240,7 +1232,6 @@ namespace m_tetris2
             return clear;
         }
 
-    } // namespace bb
 } // namespace m_tetris2
 
 #endif // TETRIS_AI_RUNNER_MOVEGEN_STATE_H_

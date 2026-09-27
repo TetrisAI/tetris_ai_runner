@@ -22,7 +22,7 @@
 //
 // 命名空间:
 //   - m_tetris2::movegen (与 src/tetris_movegen.h 内的位板生成器共享 namespace,
-//     表示 "movegen 框架装配层"). 与 m_tetris2::bb 中的 piece-aware 静态
+//     表示 "movegen 框架装配层"). 与 m_tetris2 中的 piece-aware 静态
 //     helper 互不混叠.
 //
 //==========================================================================
@@ -39,13 +39,13 @@ namespace m_tetris2
     namespace movegen
     {
         //=== Mixin 1: BFS queue buffer =========================================
-        // bb::run_bfs(...) 需要一个 std::vector<bb::State> 充当 FIFO
+        // run_bfs(...) 需要一个 std::vector<State> 充当 FIFO
         // 队列缓冲. 每次进入新一轮 BFS 之前 clear() 即可复用容量, 与 1g
         // make_path 的多次重试 (disable_d 翻转) 配合.
         //
         // 使用方 (commit 2 起): SearchPath / SearchSimulate 的 make_path.
         // SearchSimple 走 collect_rotations_bb 用的是局部 std::vector<uint8_t>,
-        // run_piece_20g 用的是局部 std::vector<bb::State>, 都不入此 mixin.
+        // run_piece_20g 用的是局部 std::vector<State>, 都不入此 mixin.
         //
         // commit B (PathMark 栈化): 旧 PathMarkMixin 已删除. PathMark 由各
         //   strategy 在 BFS 入口栈分配 (clear-on-entry, 无跨调用复用诉求).
@@ -55,9 +55,9 @@ namespace m_tetris2
         {
             //commit 3: 字段 node_search_path_ 由 strategy make_path 主循环直接
             //  读写 (`run_bfs(..., node_search_path_)`), 必须 public.
-            //  RuleSpec 模板参数仅用于和别的 mixin 保持同形签名; bb::State
+            //  RuleSpec 模板参数仅用于和别的 mixin 保持同形签名; State
             //  本身不依赖 RuleSpec.
-            std::vector<bb::State> node_search_path_{};
+            std::vector<State> node_search_path_{};
 
         private:
             static_assert(static_cast<int>(RuleSpec::width) > 0,
@@ -73,7 +73,7 @@ namespace m_tetris2
 
         //=== MoveGenContext<RuleSpec, Mixins...> ===============================
         // 中立 Context 模板:
-        //   - public 继承 bb::Helpers<RuleSpec>, 自动暴露所有 piece-aware
+        //   - public 继承 Helpers<RuleSpec>, 自动暴露所有 piece-aware
         //     helper / 编译期常量;
         //   - 按声明顺序 public 继承每个 Mixin<RuleSpec>;
         //   - 没有任何自身字段 / 自身方法 (Context 是纯组合容器, search
@@ -93,7 +93,7 @@ namespace m_tetris2
         //   strategy-specific mixin 装进 Context, 保持 "Searcher 仅持单一
         //   ctx 实体" 的契约.
         template<class RuleSpec, class... Mixins>
-        struct MoveGenContext : bb::Helpers<RuleSpec>, Mixins...
+        struct MoveGenContext : Helpers<RuleSpec>, Mixins...
         {
             using rule_spec_type = RuleSpec;
         };

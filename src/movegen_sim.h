@@ -27,7 +27,7 @@
 
 #include "movegen_state.h"
 
-namespace m_tetris2::bb
+namespace m_tetris2
 {
 
 template<class H>
@@ -110,4 +110,4 @@ inline void sim_path(State &cs,
     }
 }
 
-} // namespace m_tetris2::bb
+} // namespace m_tetris2

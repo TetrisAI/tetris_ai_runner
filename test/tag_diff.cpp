@@ -36,9 +36,9 @@ namespace
     using LpEntry = tetris_diff::LpEntry;
     using LpKey = tetris_diff::LpKey;
 
-    using Helpers = m_tetris2::bb::Helpers<rule_srs::TetrisRule::rule_spec>;
+    using Helpers = m_tetris2::Helpers<rule_srs::TetrisRule::rule_spec>;
 
-    inline std::uint64_t cells_key_to_u64(m_tetris2::bb::CellsKey const &k)
+    inline std::uint64_t cells_key_to_u64(m_tetris2::CellsKey const &k)
     {
         std::uint64_t v = 0;
         static_assert(sizeof(k) == sizeof(v), "CellsKey size mismatch");
@@ -192,7 +192,7 @@ namespace
         {
             if (e.index >= g_candidate_lps.size())
                 return std::string();
-            auto board = m_tetris2::bb::build_board_for_search<NewSearcher::rule_spec>(new_map_copy);
+            auto board = m_tetris2::build_board_for_search<NewSearcher::rule_spec>(new_map_copy);
             auto spawn = Helpers::state_from_status(new_spawn_copy.t,
                 static_cast<std::uint8_t>(new_spawn_copy.r),
                 new_spawn_copy.x, new_spawn_copy.y);

@@ -78,11 +78,11 @@ using Engine = m_tetris2::TetrisEngine<rule_botris::TetrisRule, ai_zzz::Botris, 
 struct test_ai
 {
     using Spec = rule_botris::TetrisRule::rule_spec;
-    using H = m_tetris2::bb::Helpers<Spec>;
+    using H = m_tetris2::Helpers<Spec>;
 
     Engine ai;
     Engine::map_t map;
-    m_tetris2::bb::State cs{};
+    m_tetris2::State cs{};
     bool has_curr;
     std::array<H::map_t, H::kMaxR> usable_arr{};
     std::mt19937 r_next, r_garbage;
@@ -142,13 +142,13 @@ struct test_ai
         rebuild_current_usable();
         has_curr = true;
     }
-    m_tetris2::BBLandPoint lp() const
+    m_tetris2::TetrisLandPoint lp() const
     {
         if (!has_curr)
         {
             return {};
         }
-        return m_tetris2::BBLandPoint(cs);
+        return m_tetris2::TetrisLandPoint(cs);
     }
     void prepare()
     {
@@ -224,28 +224,28 @@ struct test_ai
         case 'l':
         case 'r':
         {
-            m_tetris2::bb::sim_path<H>(cs, usable_arr, &c, &c + 1);
+            m_tetris2::sim_path<H>(cs, usable_arr, &c, &c + 1);
             break;
         }
         case 'z':
         case 'Z':
         {
             char move = 'z';
-            m_tetris2::bb::sim_path<H>(cs, usable_arr, &move, &move + 1);
+            m_tetris2::sim_path<H>(cs, usable_arr, &move, &move + 1);
             break;
         }
         case 'x':
         case 'X':
         {
             char move = 'x';
-            m_tetris2::bb::sim_path<H>(cs, usable_arr, &move, &move + 1);
+            m_tetris2::sim_path<H>(cs, usable_arr, &move, &move + 1);
             break;
         }
         case 'c':
         case 'C':
         {
             char move = 'c';
-            m_tetris2::bb::sim_path<H>(cs, usable_arr, &move, &move + 1);
+            m_tetris2::sim_path<H>(cs, usable_arr, &move, &move + 1);
             break;
         }
         case 'v':
@@ -272,7 +272,7 @@ struct test_ai
             }
             next.erase(next.begin());
             prepare();
-            int clear = ai.attach(m_tetris2::BBLandPoint{cs}, map);
+            int clear = ai.attach(m_tetris2::TetrisLandPoint{cs}, map);
             total_clear += clear;
             auto &s = cs;
             auto const &board = map;
