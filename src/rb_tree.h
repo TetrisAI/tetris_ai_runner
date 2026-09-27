@@ -15,6 +15,8 @@ namespace zzz
         typedef typename base_t::key_t key_t;
         typedef typename base_t::node_t node_t;
         typedef typename base_t::value_node_t value_node_t;
+        using base_t::bst_upper_bound_;
+        using base_t::bst_equal_range_;
         class iterator
         {
         public:
