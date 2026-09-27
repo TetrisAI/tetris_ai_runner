@@ -285,7 +285,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core)
 
 # ---------------------------------------------------------------------------
 # policy_deduction_test: 编译期 static_assert 验证 DeduceSpinPolicy 推导链
-# 以及 TetrisEngine2 实例化等价性.  纯编译验证, 运行时 main 直接返回 0.
+# 以及 TetrisEngine 实例化等价性.  纯编译验证, 运行时 main 直接返回 0.
 # ---------------------------------------------------------------------------
 project(policy_deduction_test)
 add_executable(${PROJECT_NAME}
