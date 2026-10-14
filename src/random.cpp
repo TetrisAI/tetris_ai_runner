@@ -7,7 +7,7 @@
 
 #include <time.h>
 
-typedef unsigned int uint32;
+#include "random.h"
 
 namespace ege
 {
@@ -39,133 +39,125 @@ namespace ege
     // Matthe Bellew's simplification, Isaku Wada's real version.
     // C++ version by Lyell Haynes (Equamen)
 
+    // 成员必须在此 out-of-line 定义: 类内定义是隐式 inline, LTO 下不导出, vs.cpp 链接失败.
 #define N 624
 #define M 397
 
-    class mtrandom
+    mtrandom::mtrandom() : left(1)
     {
-    public:
-        mtrandom() : left(1)
-        {
-            init();
-        }
+        init();
+    }
 
-        explicit mtrandom(uint32 seed) : left(1)
-        {
-            init(seed);
-        }
+    mtrandom::mtrandom(uint32 seed) : left(1)
+    {
+        init(seed);
+    }
 
-        mtrandom(uint32* init_key, int key_length) : left(1)
+    mtrandom::mtrandom(uint32* init_key, int key_length) : left(1)
+    {
+        int i = 1, j = 0;
+        int k = N > key_length ? N : key_length;
+        init();
+        for(; k; --k)
         {
-            int i = 1, j = 0;
-            int k = N > key_length ? N : key_length;
-            init();
-            for(; k; --k)
+            state[i] = (state[i] ^ ((state[i - 1] ^ (state[i - 1] >> 30)) * 1664525UL)) + init_key[j] + j; // non linear
+            state[i] &= 4294967295UL; // for WORDSIZE > 32 machines
+            ++i;
+            ++j;
+            if(i >= N)
             {
-                state[i] = (state[i] ^ ((state[i - 1] ^ (state[i - 1] >> 30)) * 1664525UL)) + init_key[j] + j; // non linear
-                state[i] &= 4294967295UL; // for WORDSIZE > 32 machines
-                ++i;
-                ++j;
-                if(i >= N)
-                {
-                    state[0] = state[N - 1];
-                    i = 1;
-                }
-                if(j >= key_length)
-                    j = 0;
+                state[0] = state[N - 1];
+                i = 1;
             }
-
-            for(k = N - 1; k; --k)
-            {
-                state[i] = (state[i] ^ ((state[i - 1] ^ (state[i - 1] >> 30)) * 1566083941UL)) - i; // non linear
-                state[i] &= 4294967295UL; // for WORDSIZE > 32 machines
-                ++i;
-                if(i >= N)
-                {
-                    state[0] = state[N - 1];
-                    i = 1;
-                }
-            }
-
-            state[0] = 2147483648UL; // MSB is 1; assuring non-zero initial array
+            if(j >= key_length)
+                j = 0;
         }
 
-        void reset(uint32 rs)
+        for(k = N - 1; k; --k)
         {
-            init(rs);
+            state[i] = (state[i] ^ ((state[i - 1] ^ (state[i - 1] >> 30)) * 1566083941UL)) - i; // non linear
+            state[i] &= 4294967295UL; // for WORDSIZE > 32 machines
+            ++i;
+            if(i >= N)
+            {
+                state[0] = state[N - 1];
+                i = 1;
+            }
+        }
+
+        state[0] = 2147483648UL; // MSB is 1; assuring non-zero initial array
+    }
+
+    void mtrandom::reset(uint32 rs)
+    {
+        init(rs);
+        next_state();
+    }
+
+    uint32 mtrandom::rand()
+    {
+        uint32 y;
+        if(0 == --left)
             next_state();
-        }
+        y = *next++;
+        // Tempering
+        y ^= (y >> 11);
+        y ^= (y << 7) & 0x9d2c5680UL;
+        y ^= (y << 15) & 0xefc60000UL;
+        y ^= (y >> 18);
+        return y;
+    }
 
-        uint32 rand()
+    double mtrandom::real()
+    {
+        return (double)rand() / ((double)(unsigned long)(-1L) + 1);
+    }
+
+    // generates a random number on [0,1) with 53-bit resolution
+    double mtrandom::res53()
+    {
+        uint32 a = rand() >> 5, b = rand() >> 6;
+        return (a * 67108864.0 + b) / 9007199254740992.0;
+    }
+
+    void mtrandom::init(uint32 seed)
+    {
+        state[0] = seed & 4294967295UL;
+        for(int j = 1; j < N; ++j)
         {
-            uint32 y;
-            if(0 == --left)
-                next_state();
-            y = *next++;
-            // Tempering
-            y ^= (y >> 11);
-            y ^= (y << 7) & 0x9d2c5680UL;
-            y ^= (y << 15) & 0xefc60000UL;
-            y ^= (y >> 18);
-            return y;
+            state[j] = (1812433253UL * (state[j - 1] ^ (state[j - 1] >> 30)) + j);
+            // See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier.
+            // In the previous versions, MSBs of the seed affect
+            // only MSBs of the array state[].
+            // 2002/01/09 modified by Makoto Matsumoto
+            state[j] &= 4294967295UL;  // for >32 bit machines
         }
+    }
 
-        double real()
-        {
-            return (double)rand() / ((double)(unsigned long)(-1L) + 1);
-        }
+    void mtrandom::next_state()
+    {
+        uint32* p = state;
+        int i;
 
-        // generates a random number on [0,1) with 53-bit resolution
-        double res53()
-        {
-            uint32 a = rand() >> 5, b = rand() >> 6;
-            return (a * 67108864.0 + b) / 9007199254740992.0;
-        }
+        for(i = N - M + 1; --i; ++p)
+            *p = (p[M] ^ twist(p[0], p[1]));
 
-    private:
-        void init(uint32 seed = 19650218UL)
-        {
-            state[0] = seed & 4294967295UL;
-            for(int j = 1; j < N; ++j)
-            {
-                state[j] = (1812433253UL * (state[j - 1] ^ (state[j - 1] >> 30)) + j);
-                // See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier.
-                // In the previous versions, MSBs of the seed affect
-                // only MSBs of the array state[].
-                // 2002/01/09 modified by Makoto Matsumoto
-                state[j] &= 4294967295UL;  // for >32 bit machines
-            }
-        }
+        for(i = M; --i; ++p)
+            *p = (p[M - N] ^ twist(p[0], p[1]));
+        *p = p[M - N] ^ twist(p[0], state[0]);
+        left = N;
+        next = state;
+    }
 
-        void next_state()
-        {
-            uint32* p = state;
-            int i;
+    uint32 mtrandom::mixbits(uint32 u, uint32 v) const
+    {
+        return (u & 2147483648UL) | (v & 2147483647UL);
+    }
 
-            for(i = N - M + 1; --i; ++p)
-                *p = (p[M] ^ twist(p[0], p[1]));
-
-            for(i = M; --i; ++p)
-                *p = (p[M - N] ^ twist(p[0], p[1]));
-            *p = p[M - N] ^ twist(p[0], state[0]);
-            left = N;
-            next = state;
-        }
-
-        uint32 mixbits(uint32 u, uint32 v) const
-        {
-            return (u & 2147483648UL) | (v & 2147483647UL);
-        }
-
-        uint32 twist(uint32 u, uint32 v) const
-        {
-            return ((mixbits(u, v) >> 1) ^ (v & 1UL ? 2567483615UL : 0UL));
-        }
-
-        uint32 state[N];
-        uint32 left;
-        uint32* next;
-    };
+    uint32 mtrandom::twist(uint32 u, uint32 v) const
+    {
+        return ((mixbits(u, v) >> 1) ^ (v & 1UL ? 2567483615UL : 0UL));
+    }
 
 #undef N
 #undef M

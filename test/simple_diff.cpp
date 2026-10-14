@@ -17,7 +17,7 @@
 
 #include "../oracle/search_tspin.h"
 #include "../src/ai_zzz.h"
-#include "../src/bb_state.h"
+#include "../src/movegen_state.h"
 #include "../src/movegen_searcher.h"
 #include "../src/rule_srs.h"
 #include "../src/search_path.h"
@@ -25,6 +25,7 @@
 #include "../src/search_tspin.h"
 
 #include <cstdio>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -92,9 +93,10 @@ namespace
     {
         tetris_diff::CaseProbe cp;
         NewMap map = board;
+        auto [sx, sy] = rule_srs::TetrisRule::rule_spec::spawn(piece, 10, 40);
         auto spawn = Helpers::state_from_status(piece,
             static_cast<std::uint8_t>(0),
-            3, 21);
+            sx, sy);
 
         // "oracle" 在本 driver 里 = PathStrategy (功能更全的参照),
         // "candidate" = SimpleStrategy (子集).

@@ -1,7 +1,7 @@
 ---
 Language:        Cpp
 BasedOnStyle:    LLVM
-Standard:        c++14
+Standard:        Latest
 
 IndentWidth:     4
 TabWidth:        4
@@ -15,11 +15,13 @@ ColumnLimit:     0
 
 BreakBeforeBraces: Allman
 
-AllowShortFunctionsOnASingleLine: Empty
-AllowShortIfStatementsOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: WithoutElse
 AllowShortLoopsOnASingleLine: false
-AllowShortCaseLabelsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: true
 AllowShortBlocksOnASingleLine: Empty
+AllowShortLambdasOnASingleLine: All
+LambdaBodyIndentation: Signature
 
 PointerAlignment: Right
 ReferenceAlignment: Right
@@ -29,33 +31,36 @@ SpaceBeforeParens: ControlStatements
 SpaceAfterCStyleCast: false
 SpaceAfterTemplateKeyword: false
 SpaceBeforeAssignmentOperators: true
-SpaceInEmptyParentheses: false
-SpacesInParentheses: false
+SpacesInParens:  Never
 SpacesInSquareBrackets: false
-SpacesInAngles: false
-SpacesInCStyleCastParentheses: false
+SpacesInAngles: Never
 SpaceBeforeRangeBasedForLoopColon: true
 SpaceBeforeCpp11BracedList: false
 SpaceBeforeCtorInitializerColon: true
 SpaceBeforeInheritanceColon: true
 
-SortIncludes: false
-IncludeBlocks: Preserve
+SortIncludes:    Never
+IncludeBlocks:   Preserve
+SortUsingDeclarations: Never
 
-KeepEmptyLinesAtTheStartOfBlocks: false
-MaxEmptyLinesToKeep: 1
+KeepEmptyLines:
+  AtEndOfFile:    false
+  AtStartOfBlock: false
+  AtStartOfFile:  true
+MaxEmptyLinesToKeep: 2
 FixNamespaceComments: false
-AlignTrailingComments: false
+AlignTrailingComments:
+  Kind: Leave
 AlignAfterOpenBracket: Align
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
-AlignOperands:   true
+AlignOperands:   Align
 AllowAllParametersOfDeclarationOnNextLine: true
 BinPackArguments: true
-BinPackParameters: true
+BinPackParameters: BinPack
 BreakBeforeBinaryOperators: None
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: BeforeColon
-ConstructorInitializerAllOnOneLineOrOnePerLine: false
+PackConstructorInitializers: BinPack
 Cpp11BracedListStyle: true
-ReflowComments:  false
+ReflowComments:  Never

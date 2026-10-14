@@ -59,7 +59,7 @@ namespace
     {
         static OracleEngine e;
         static bool prepared = []()
-        { return e.prepare(10, 40); }();
+        { return e.prepare(10, 40) && tetris_diff::repair_oracle_wall_kicks(e.context().get()); }();
         (void)prepared;
         return e;
     }

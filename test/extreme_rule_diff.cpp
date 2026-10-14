@@ -21,7 +21,7 @@
 //   等). 即便只对 R<=4 piece 单独跑对拍, oracle 端 TetrisContext::prepare
 //   也会把整套 rule_extreme (含 R=5..10 的 E..J) 注册进 node_block_, 立刻
 //   越界. 阶段 0 不允许动 oracle 端硬假设, 因此所有 piece 都跳过 oracle
-//   路径, 只 dump 新框架侧落点. 后续 Phase 再决定是否替换为新框架自洽比对.
+//   路径, 只统计新框架侧落点数. 后续 Phase 再决定是否替换为新框架自洽比对.
 
 #include "../src/rule_extreme.h"
 #include "../src/tetris_node.h"
@@ -155,28 +155,13 @@ namespace
         return m;
     }
 
-    void dump_to_file(char const *path, std::vector<Tup> const &v)
-    {
-        FILE *fp = std::fopen(path, "w");
-        if (!fp)
-            return;
-        for (auto const &t : v)
-            std::fprintf(fp, "r=%d x=%d y=%d\n", t.r, t.x, t.y);
-        std::fclose(fp);
-    }
-
     int diff_one(char piece, NewMap const &board, char const *board_name)
     {
-        //阶段 0 (Oracle 隔离): 所有 piece 跳过 oracle 路径, 只 dump 新框架侧落点;
+        //阶段 0 (Oracle 隔离): 所有 piece 跳过 oracle 路径, 只统计新框架侧落点;
         //  oracle 路径因 SRS-4-rotation 硬假设与 R>4 piece 不兼容暂不启用.
         int piece_r_count = piece - 'A' + 1;
 
         std::vector<Tup> b = new_landings(board, piece);
-        char path_b[256];
-        std::snprintf(path_b, sizeof(path_b),
-                      "research/flip-bits/dumps/extreme_%s_%c_new.txt", board_name, piece);
-        dump_to_file(path_b, b);
-
         std::fprintf(stderr, "[ok-new-only] %s piece=%c R=%d count=%zu (oracle skipped, phase 0)\n",
                      board_name, piece, piece_r_count, b.size());
         return 0;

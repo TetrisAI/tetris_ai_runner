@@ -11,38 +11,41 @@
 ┌──────────────────────────────────────────────────────────────────────┐
 │                      上层调用方 (TetrisEngine / ai.cpp)               │
 │                                                                      │
-│   typedef m_tetris::movegen::Searcher<                                │
-│       m_tetris::PathStrategy,           // ← 第三方可换的 strategy     │
-│       m_tetris::DefaultTSpinHook,       // ← 第三方可换的 SpinHook     │
-│       rule_srs::TetrisRule::rule_spec   // ← rule 由顶层选定           │
+│   typedef m_tetris2::movegen::Searcher<                               │
+│       m_tetris2::PathStrategy,          // ← 第三方可换的 strategy     │
+│       m_tetris2::TSpinHook,             // ← 第三方可换的 SpinHook     │
+│       rule_srs::TetrisRule::rule_spec,  // ← rule 由顶层选定           │
+│       void                              // ← Policy, 默认 void        │
 │   > MgSearch;                                                        │
 └──────────────────────────────────────────────────────────────────────┘
                               │
-                              ▼  调 init / search / make_path
+                              ▼  调 init / search / search_eval / make_path
 ┌──────────────────────────────────────────────────────────────────────┐
-│ Searcher<Strategy, SpinHook, RuleSpec>   (src/movegen_searcher.h)     │
+│ Searcher<Strategy, SpinHook, RuleSpec, Policy>  (src/movegen_searcher.h)
 │                                                                      │
 │   - 持单一成员 ctx_ : Strategy::Context                                │
-│   - 把 init/search/make_path inline 转发到 Strategy::xxx(ctx_, ...)   │
-│   - 暴露 Context / Config / LandPoint 别名供 TetrisEngine 模板嗅探    │
+│   - 把 init/search/search_eval/make_path inline 转发到                │
+│     Strategy::xxx(ctx_, ...)                                         │
+│   - 暴露 Context / Config / LandPoint / rule_spec 别名供 TetrisEngine │
+│     模板嗅探                                                          │
 └──────────────────────────────────────────────────────────────────────┘
                               │
                               ▼  static 调用
 ┌──────────────────────────────────────────────────────────────────────┐
-│ Strategy<SpinHook, RuleSpec>  (src/search_path.h / search_simulate.h │
-│                                / search_simple.h / 第三方 header)     │
+│ Strategy<SpinHook, RuleSpec, Policy>  (src/search_path.h /           │
+│                     search_simulate.h / search_simple.h / 第三方 header)
 │                                                                      │
 │   - 纯静态类, 没有非静态成员                                            │
 │   - using Context = MoveGenContext<RuleSpec, ...mixins...>           │
 │   - using Config / LandPoint = SpinHook::Config / SpinHook::LandPoint │
-│   - static init / search / make_path 接受 Context& 作首参              │
+│   - static init / search / search_eval / make_path 接受 Context& 作首参│
 └──────────────────────────────────────────────────────────────────────┘
                               │
                               ▼  组合
 ┌──────────────────────────────────────────────────────────────────────┐
 │ MoveGenContext<RuleSpec, Mixins...>  (src/movegen_context.h)          │
 │                                                                      │
-│   - public 继承 bb::Helpers<RuleSpec> + 各 Mixin<RuleSpec[, ...]>    │
+│   - public 继承 Helpers<RuleSpec> + 各 Mixin                          │
 │   - 自身不持任何字段, 全部状态由 mixin 提供                            │
 │   - 每个具体 strategy 只声明它需要的 mixin, 未声明的不实例化           │
 └──────────────────────────────────────────────────────────────────────┘
@@ -58,8 +61,7 @@ Strategy 是纯静态的, Searcher 持的是数据 (Context), 算法和数据是
 
 | 前缀 | 含义 | 示例 |
 | --- | --- | --- |
-| `movegen_*` | 公共 / 中立组件 | `movegen_context.h`, `movegen_searcher.h`, `movegen_strategy.h`, `movegen_hook.h` |
-| `bb_*` | 位板侧基础设施 | `bb_state.h` (含 `bb::Helpers<RuleSpec>`), `bb_bfs_engine.h` |
+| `movegen_*` | 公共 / 中立组件 (含位板基础设施) | `movegen_context.h`, `movegen_searcher.h`, `movegen_strategy.h`, `movegen_hook.h`, `movegen_state.h` (含 `State` / `CellsKey` / `Helpers<RuleSpec>`), `movegen_bfs.h` (含 `run_bfs`) |
 | `search_*` | **具体** search 实现 | `search_path.h`, `search_simulate.h`, `search_simple.h`, 以及第三方扩展 |
 | `rule_*` | 具体 rule 实例 | `rule_srs.h`, `rule_qq.h`, `rule_botris.h` |
 | `ai_*` | 具体 AI 评估器 | `ai_zzz.cpp`, `ai_misaka.h`, `ai_tag.cpp` |
@@ -72,140 +74,178 @@ Strategy 是纯静态的, Searcher 持的是数据 (Context), 算法和数据是
 
 ## 3. 行为契约
 
-每个具体 strategy 必须满足下面的契约 (只接受 `SpinHook` 与 `RuleSpec`
-两个模板参数, 不允许自带额外模板形参):
+每个具体 strategy 必须满足下面的契约 (恰好接受 `SpinHook`、`RuleSpec`、
+`Policy = void` 三个模板参数, 不允许自带额外模板形参; Searcher 以
+`template<class, class, class> class Strategy` 接收 strategy, 少一个都
+无法装配):
 
 ```cpp
-template<class SpinHook, class RuleSpec>
+template<class SpinHook, class RuleSpec, class Policy = void>
 struct YourStrategy
 {
     // (1) Context 类型别名; 由 MoveGenContext<RuleSpec, mixins...> 装配.
-    using Context = m_tetris::movegen::MoveGenContext<
+    using Context = m_tetris2::movegen::MoveGenContext<
         RuleSpec /*, ...mixins... */>;
 
     // (2) LandPoint / Config 路由, 透传 SpinHook 的别名.
+    //     LandPoint 需可默认构造并带 `m_tetris2::State state` 字段
+    //     (官方 SpinHook 的 LandPoint 均满足).
     using LandPoint = typename SpinHook::LandPoint;
     using Config    = typename SpinHook::Config;
 
     // (3) init: TetrisEngine prepare 阶段调用一次.
-    //     第二个形参是 TetrisContext (master node 表持有方),
-    //     第三个形参是 Config* (来自 SearchConfigHolder, 可能为 nullptr).
-    static void init(Context& ctx,
-                     m_tetris::TetrisContext const* context,
-                     Config const* config);
+    //     第二个形参是 Config* (来自 SearchConfigHolder, 可能为 nullptr).
+    static void init(Context& ctx, Config const* config);
 
-    // (4) search: 每次 search frontier 落点采集; 返回 LandPoint vector
+    // (4) search: 一次性收集 spawn 的全部落点; 返回 LandPoint vector
     //     的指针, 生命周期等同于 ctx.land_point_cache_.
+    //     Searcher::search(map, TetrisBlockStatus, depth) 先用
+    //     Helpers<RuleSpec>::state_from_status 把 status 转成 State
+    //     再转发到这里. MapIn 为 TetrisMap<W,H> 或 Helpers::build_board
+    //     可接受的类型.
+    template<class MapIn>
     static std::vector<LandPoint> const*
-    search(Context& ctx, m_tetris::TetrisMap const& map,
-           m_tetris::TetrisNode const* node, std::size_t depth);
+    search(Context& ctx, MapIn const& map,
+           m_tetris2::State const& spawn, std::size_t depth);
 
-    // (5) make_path: 给定 (起点 node, 落点 land_point, 当前 map),
-    //     生成 master 按键串 (l/r/L/R/d/D/x/z/c 等).
+    // (5) search_eval: TetrisTreeNode::run 走的热路径. 不物化 vector,
+    //     对每个落点调 on_land.template operator()<T, R>(land_point),
+    //     T (piece char) / R (rotation) 为编译期常量.
+    template<class EvalCallback>
+    static void
+    search_eval(Context& ctx,
+                m_tetris2::TetrisMap<RuleSpec::width, RuleSpec::height> const& board,
+                m_tetris2::State const& spawn, std::size_t depth,
+                EvalCallback& on_land);
+
+    // (6) make_path: 给定 (起点 spawn State, 落点 land_point, 当前 board),
+    //     生成按键串 (l/r/L/R/d/D/x/z/c 等).
     static std::vector<char>
-    make_path(Context& ctx, m_tetris::TetrisNode const* node,
-              LandPoint const& land_point, m_tetris::TetrisMap const& map);
+    make_path(Context& ctx, m_tetris2::State const& spawn,
+              LandPoint const& land_point,
+              m_tetris2::TetrisMap<RuleSpec::width, RuleSpec::height> const& board);
 };
 ```
 
 契约关键不变量:
 
-- **三个静态方法的首参恒为 `Context&`**. Searcher 只 inline 转发, 不允许
+- **全部静态方法的首参恒为 `Context&`**. Searcher 只 inline 转发, 不允许
   在静态方法外做 ctx 重置 / 切换 / 拷贝.
+- **`search_eval<Cb>` 是必需的**. TetrisEngine 的搜索树只调
+  `search_eval`, 缺失时 strategy 无法挂到 TetrisEngine 上;
+  `search` 供 `TetrisEngine::search` 单块评价接口与 diff 测试使用.
 - **不消费 `Hook::is_simple_search` / `Hook::is_simulate_search`** 这类
   历史的 `if constexpr` 路由 bool. 选哪种 search 由上层装配 typedef 时
   绑定的 Strategy 模板特化决定, 框架运行期不再分支.
-- **行为完全由 SpinHook 与 RuleSpec 决定**. 同一个 strategy 配合 NoSpinHook
-  和 DefaultTSpinHook 应该有可解释的差异, 不应额外读全局开关.
+- **行为完全由 SpinHook、RuleSpec 与 Policy 决定**. 同一个 strategy 配合
+  NoSpinHook 和 TSpinHook 应该有可解释的差异, 不应额外读全局开关.
+  Policy 是编译期 ActivePiecePolicy tag (由 `DeduceSpinPolicy<AI>` 推导,
+  见 `src/tetris_active_policy.h`), 用不到时忽略即可.
 
 ## 4. Context API 速查
 
 `MoveGenContext<RuleSpec, Mixins...>` 自动暴露下列名字, 第三方 strategy
 可以通过 `ctx.xxx` 直接访问:
 
-### 4.1 来自 `bb::Helpers<RuleSpec>` (始终可用)
+### 4.1 来自 `Helpers<RuleSpec>` (始终可用)
 
-`MoveGenContext` public 继承 `bb::Helpers<RuleSpec>`, 因此所有 helper 函数
-都自动是 Context 成员. 也可以通过本地 typedef `using Helpers =
-bb::Helpers<RuleSpec>;` 显式调用 `Helpers::xxx(...)`. 官方 strategy 全部
-采用后一种写法, 第三方扩展两种均可.
+`Helpers<RuleSpec>` 定义在 `src/movegen_state.h`, 命名空间 `m_tetris2`.
+`MoveGenContext` 仍 public 继承 `m_tetris2::Helpers<RuleSpec>`, 因此所有
+helper 函数都自动是 Context 成员. 也可以通过本地 typedef `using Helpers =
+m_tetris2::Helpers<RuleSpec>;` 显式调用 `Helpers::xxx(...)`. 官方 strategy
+全部采用后一种写法, 第三方扩展两种均可.
 
 | 名字 | 用途 |
 | --- | --- |
 | `kW` / `kH` / `kMaxR` / `kPieceCount` | 编译期维度常量 |
-| `map_t` / `PathMark` / `piece_info_t` | 类型别名 |
+| `map_t` / `PathMark` / `PathMarkBit` / `piece_info_t` | 类型别名 |
 | `piece_index(t)` / `rcount_v<T>()` | piece char 索引 / per-piece 旋转数 |
-| `build_board(map)` | 把 master `TetrisMap` 折成位板 `map_t` |
+| `build_board(map)` | 把 `TetrisMap` (或兼容类型) 转成位板 `map_t` |
 | `build_usable_for_piece(t, board, out)` | 构造 (T,r) 的 usable 二维表 |
 | `build_usable_T<T>(board, out)` | 同上, piece 已知时的快路径 |
-| `state_from_node(node)` | master `TetrisNode*` -> `bb::BBState` |
-| `status_to_bbox(node, &xb, &yb)` | master status (x,y) -> bbox 坐标 |
-| `usable_at_bb(r, xb, yb, usable)` | 直接查 usable 表 |
-| `drop_bb_state(state, usable)` | 沿 column 扫到地面后的新 BBState |
-| `first_passing_kick_bb(t, dir, state, usable)` | wall-kick 链返回首个 fits 的 BBState |
+| `build_inbounds_for_piece(t, out)` / `build_inbounds_T<T>(out)` | 构造 (T,r) 的空盘 in-bounds 二维表 (不看 board 占据) |
+| `state_from_status(t, r, x, y)` | status 坐标 (t, r, x, y) -> `State` |
+| `master_xy_from_state(s)` | `State` -> status 坐标 (x, y) |
+| `usable_at(r, xb, yb, usable)` | 直接查 usable 表 |
+| `drop(state, usable)` | 沿 column 扫到地面后的新 `State` (越界返 nullopt) |
+| `first_kick(t, dir, state, usable)` | wall-kick 链返回首个 fits 的 `State` |
 | `rotate_no_kick_bb(t, dir, state)` | 仅做 0-kick 旋转, 失败返 nullopt |
-| `cells_key_for(node)` / `cells_key_for_state(s)` | 4-cell 绝对签名, 等价 master IndexFilter |
-| `index_filtered_eq(node, key)` / `index_filtered_eq_state(s, key)` | cells_key 比对 |
+| `enumerate_spawn_row_states(t, entry, inbounds, out)` | 列出 spawn 行上该 piece 的全部旋转状态 |
+| `cells_key_for_state(s)` | 4-cell 绝对签名 `CellsKey`, 等价 oracle IndexFilter |
+| `cells_key_from_oracle(t, r, x, y)` | 由 status 坐标直接算 `CellsKey` (diff 测试用) |
+| `index_filtered_eq_state(s, key)` | cells_key 比对 |
 | `try_kick_chain_to(t, dir, last_state, target_key, usable)` | T-spin 末段 wall-kick 重放谓词 |
-| `open_bb(node, board)` | 落点是否 "可以从上方直接 drop 进入" |
+| `open_state(s, board)` | 落点是否 "可以从上方直接 drop 进入" |
 | `board_roof(board)` | 棋盘最高占据行 +1 |
-| `spawn_min_cell_y_dispatch(spawn_node)` | spawn piece 的最低 cell y |
+| `is_above_roof_bb(s, roof)` | piece 最低 cell y 是否 >= roof (spawn-row 快路径判定) |
+| `spawn_min_cell_y_dispatch_state(spawn)` | spawn piece 的最低 cell y |
+| `attach_to_map(s, map)` | 把落点写入 map 并消行, 返回消行数 |
+
+`State{t, r, xb, yb}` (4 字节)、`CellsKey`、`KickDir` 是 `m_tetris2`
+命名空间下与 RuleSpec 无关的自由结构, 同样定义在 `src/movegen_state.h`.
 
 ### 4.2 来自具体 Mixin (按声明组合)
 
 声明 `BfsQueueMixin<RuleSpec>` 后:
-- `node_search_path_` (public): `std::vector<bb::BBState>`, 喂给
-  `bb::run_bb_bfs(...)` 的 FIFO 队列缓冲, 多次 BFS 复用容量.
+- `node_search_path_` (public): `std::vector<State>`, 喂给
+  `run_bfs(...)` 的 FIFO 队列缓冲, 多次 BFS 复用容量.
 
-声明 `StateNodeLutMixin<RuleSpec>` 后:
-- `state_node_lut_[]` (public): 维度 `[piece][r][yb][xb]` 的 LUT, init
-  阶段一次性填好.
-- `state_to_node(BBState)` (public): LUT 单点反查, 越界 / 未填返 nullptr.
-- `clear_state_node_lut()` (public): 全表清零, 一般在 init 开头调用一次.
+旧的 `StateNodeLutMixin` (State -> master `TetrisNode*` LUT) 已随
+`TetrisNode*` 指针图一起删除; strategy 全程直接用 `State` 与
+`LandPoint::state`.
 
 PathMark (BFS 期间 (r, xb, yb) 前驱 + op, 用于 `make_path` 末段
 `build_path` 反向重建按键串) 不再以 mixin 形式上 ctx, 改由 strategy
-在 BFS 入口栈分配 (`PathMark pm; pm.clear();`), 解锁后续多线程并发.
+在 BFS 入口栈分配 (`PathMark pm;` 默认构造即空表, 同一对象复用时再
+`pm.clear()`), 解锁后续多线程并发.
 
 第三方 strategy 通常还需要一个自带的 mixin (类似官方
 `detail::path::ExtrasMixin` / `detail::simulate::ExtrasMixin` /
-`detail::simple::ExtrasMixin`) 来持 `TetrisContext const* context_`、
-`Config const* config_`、`std::vector<LandPoint> land_point_cache_`、
-`[[no_unique_address]] SearchState hook_state_` 等 SpinHook 依赖字段.
+`detail::simple::ExtrasMixin`) 来持 `Config const* config_`、
+`std::vector<LandPoint> land_point_cache_` 等 SpinHook 依赖字段.
 此类 mixin 应放在 strategy header 自己的 `detail::<strategy_name>::`
 子命名空间里, 与 strategy 静态类绑定.
 
 ### 4.3 Searcher 暴露
 
-`Searcher<Strategy, SpinHook, RuleSpec>` 仅 public 下列符号:
+`Searcher<Strategy, SpinHook, RuleSpec, Policy = void>` 仅 public 下列符号:
 
 | 名字 | 类型 / 签名 | 备注 |
 | --- | --- | --- |
 | `Context` | `Strategy::Context` 别名 | 通常不直接消费, TetrisEngine 模板嗅探用 |
 | `Config` | `Strategy::Config` 别名 | TetrisEngine `TetrisHasConfig` 探针强依赖此别名 |
 | `LandPoint` | `Strategy::LandPoint` 别名 | 与 search 返回元素类型一致 |
+| `rule_spec` | `RuleSpec` 别名 | |
 | `init(...)` | inline 转发到 `Strategy::init(ctx_, ...)` | 形参由 strategy 自定义 |
-| `search(...)` | inline 转发到 `Strategy::search(ctx_, ...)` | 同上 |
-| `make_path(...)` | inline 转发到 `Strategy::make_path(ctx_, ...)` | 同上 |
+| `search(map, TetrisBlockStatus const&, depth)` | 转 `State` 后转发到 `Strategy::search(ctx_, map, spawn, depth)` | 另有变参重载原样转发 |
+| `search_eval(board, State const& spawn, depth, on_land)` | inline 转发到 `Strategy::search_eval<Cb>(ctx_, ...)` | `board` 为 `TetrisMap<W,H>` |
+| `make_path(State const& spawn, land_point, board)` | inline 转发到 `Strategy::make_path(ctx_, ...)` | `board` 为 `TetrisMap<W,H>` |
 
-`strategy_t` 别名 / `context()` 直读访问器为 protected/private — 第三方
+`strategy_t` 别名为 private, `context()` 直读访问器为 protected — 第三方
 **不应**通过这两个入口反向耦合具体 strategy 实现. 需要做中间层 (e.g.
 adapter 子类) 时再继承 Searcher 拿 protected `context()`.
 
 ## 5. 编写一个新 SearchStrategy: 最小示例
 
 仓库自带 `examples/dummy_strategy.h` 与 `examples/dummy_strategy_compile.cpp`
-两个文件作为模板. CMake target `dummy_strategy_compile_check` 在每次
-全量构建时实例化它, 保证文档与代码不会随 API 演进而失同步.
+两个文件作为模板. CMake target `dummy_strategy_compile_check` 实例化它并在
+空棋盘上跑一遍 search / search_eval / make_path. 该 target 是
+`EXCLUDE_FROM_ALL`, **不会**随全量构建自动编译, 需显式构建并运行:
 
-`DummyStrategy` 实现的最小行为是: 对 spawn 行的 `node->land_point` 列表
-依次 drop 后 emit, `make_path` 永远返回单一 `'D'`. 它**不**正确 (不会
-通过 oracle_diff), 只用来演示契约.
+```sh
+cmake --build build --target dummy_strategy_compile_check
+./build/dummy_strategy_compile_check   # 返回 0 即通过
+```
+
+`DummyStrategy` 实现的最小行为是: 对 spawn 行上该 piece 的全部旋转状态
+(`Helpers::enumerate_spawn_row_states`) 依次 drop, 按 `CellsKey` 去重后
+emit, `make_path` 永远返回单一 `'D'`. 它**不**正确 (不会通过 oracle diff),
+只用来演示契约.
 
 骨架 (节选, 完整版见 `examples/dummy_strategy.h`):
 
 ```cpp
-namespace m_tetris
+namespace m_tetris2
 {
     namespace movegen
     {
@@ -218,42 +258,43 @@ namespace m_tetris
                 {
                     using Config = typename SpinHook::Config;
                     using LandPoint = typename SpinHook::LandPoint;
-                    using SearchState = typename SpinHook::SearchState;
 
-                    TetrisContext const *context_ = nullptr;
                     Config const *config_ = nullptr;
                     std::vector<LandPoint> land_point_cache_{};
-                    [[no_unique_address]] SearchState hook_state_{};
                 };
             }
         }
 
-        template<class SpinHook, class RuleSpec>
+        template<class SpinHook, class RuleSpec, class Policy = void>
         struct DummyStrategy
         {
         public:
             using LandPoint = typename SpinHook::LandPoint;
             using Config = typename SpinHook::Config;
             using Context = MoveGenContext<RuleSpec,
-                                           StateNodeLutMixin<RuleSpec>,
                                            detail::dummy::ExtrasMixin<SpinHook, RuleSpec>>;
 
-            static void init(Context &ctx,
-                             TetrisContext const *context,
-                             Config const *config) { /* ... */ }
+            static void init(Context &ctx, Config const *config) { /* ... */ }
 
+            template<class MapIn>
             static std::vector<LandPoint> const *
-            search(Context &ctx, TetrisMap const &map,
-                   TetrisNode const *node, std::size_t depth) { /* ... */ }
+            search(Context &ctx, MapIn const &map,
+                   State const &spawn, std::size_t depth) { /* ... */ }
+
+            template<class EvalCallback>
+            static void
+            search_eval(Context &ctx, TetrisMap<RuleSpec::width, RuleSpec::height> const &board,
+                        State const &spawn, std::size_t depth,
+                        EvalCallback &on_land) { /* ... */ }
 
             static std::vector<char>
-            make_path(Context &ctx, TetrisNode const *node,
-                      LandPoint const &lp, TetrisMap const &map) { /* ... */ }
+            make_path(Context &ctx, State const &spawn, LandPoint const &lp,
+                      TetrisMap<RuleSpec::width, RuleSpec::height> const &board) { /* ... */ }
         };
     }
 
-    template<class SpinHook, class RuleSpec>
-    using DummyStrategy = movegen::DummyStrategy<SpinHook, RuleSpec>;
+    template<class SpinHook, class RuleSpec, class Policy = void>
+    using DummyStrategy = movegen::DummyStrategy<SpinHook, RuleSpec, Policy>;
 }
 ```
 
@@ -264,16 +305,19 @@ namespace m_tetris
 #include "rule_srs.h"
 #include "examples/dummy_strategy.h"
 
-using Backend = m_tetris::movegen::Searcher<
-    m_tetris::DummyStrategy,
-    m_tetris::NoSpinHook,
+using Backend = m_tetris2::movegen::Searcher<
+    m_tetris2::DummyStrategy,
+    m_tetris2::NoSpinHook,
     rule_srs::TetrisRule::rule_spec>;
 ```
 
-`Searcher` 实例化后即可作为 `TetrisEngine` 的第三模板参数装配. TetrisEngine
-内的 `TetrisHasConfig` 探针会通过 `Backend::Config` 别名识别有无 search
-config; `LandPoint` 走 `element_traits<decltype(search())>::Element` 推断,
-不需要单独 alias 也能装配, 但保留 `Backend::LandPoint` 让上层代码可读.
+`Searcher` 实例化后即可作为 `TetrisEngine` 的第三模板参数装配 (非 tag 类型
+由 `detail::SearchTagResolve` 原样穿透; 官方 search 则以 `path::Search`
+等 `SearchWith<Config>` tag 暴露 `type<Rule>` 与 `rebind_policy<P>`, 由
+TetrisEngine 注入 `DeduceSpinPolicy<AI>`). TetrisEngine 内的
+`TetrisHasConfig` 探针会通过 `Backend::Config` 别名识别有无 search config;
+`LandPoint` 走 `element_traits<decltype(search())>::Element` 推断, 不需要
+单独 alias 也能装配, 但保留 `Backend::LandPoint` 让上层代码可读.
 
 ## 6. 复用资源: Mixin / BFS 引擎 / 共享 dedup
 
@@ -283,27 +327,26 @@ config; `LandPoint` 走 `element_traits<decltype(search())>::Element` 推断,
 
 | Mixin | 字段 / API | 何时使用 |
 | --- | --- | --- |
-| `m_tetris::movegen::BfsQueueMixin<RuleSpec>` | `node_search_path_` | 需要喂 `bb::run_bb_bfs` 的 FIFO 缓冲时 |
-| `m_tetris::movegen::StateNodeLutMixin<RuleSpec>` | `state_node_lut_[]`, `state_to_node`, `clear_state_node_lut` | 需要把 `bb::BBState` 折回 master `TetrisNode*` 时 |
+| `m_tetris2::movegen::BfsQueueMixin<RuleSpec>` | `node_search_path_` | 需要喂 `run_bfs` 的 FIFO 缓冲时 |
 
 `PathMark` (BFS 命中后回放按键串) 不再走 mixin, 改由 strategy 在
-BFS 入口栈分配 (`PathMark pm; pm.clear();`), 不再上 ctx.
+BFS 入口栈分配 (`PathMark pm;`), 不再上 ctx.
 
-需要 `TetrisContext*` / `Config*` / `LandPoint cache` 这种 SpinHook 依赖
-字段时, 自己写一个 strategy 私有 mixin (放在 `detail::<your>::` 子命名
-空间), 不要污染公共组件.
+需要 `Config*` / `LandPoint cache` 这种 SpinHook 依赖字段时, 自己写一个
+strategy 私有 mixin (放在 `detail::<your>::` 子命名空间), 不要污染公共
+组件.
 
-### 6.2 通用 BFS 引擎: `bb::run_bb_bfs`
+### 6.2 通用 BFS 引擎: `run_bfs`
 
-声明位于 `src/bb_bfs_engine.h`. 调用契约:
+声明位于 `src/movegen_bfs.h`, 命名空间 `m_tetris2`. 调用契约:
 
 ```cpp
-m_tetris::bb::run_bb_bfs(
-    start_state,        // BBState, 起点
+m_tetris2::run_bfs(
+    start_state,        // State, 起点
     neighbors,          // 提供 expand(state, emit) 的对象
     dedup,              // 提供 try_admit(state, parent_or_null, action) 的对象
     visitor,            // 提供 on_pop(state) / on_admit(state, action, decision) 的对象
-    queue_buffer);      // std::vector<BBState>&, 调用方持有
+    queue_buffer);      // std::vector<State>&, 调用方持有 (省略则用函数内局部缓冲)
 ```
 
 `dedup.try_admit` 返回 `EnqueueDecision::{Skip|MarkOnly|MarkAndEnqueue}`
@@ -313,14 +356,13 @@ m_tetris::bb::run_bb_bfs(
 
 ### 6.3 共享 dedup: `detail::common::MakePath1gDedup<RuleSpec>`
 
-定义在 `src/movegen_strategy.h`. 与 `bb::run_bb_bfs` 的 try_admit 契约一致,
-封装 1g make_path 的 BFS 准入 (set_bbox + usable_at_bb 三态), `path` 与
+定义在 `src/movegen_strategy.h`. 与 `run_bfs` 的 try_admit 契约一致,
+封装 1g make_path 的 BFS 准入 (set_bbox + usable_at 三态), `path` 与
 `simulate` strategy 的 1g make_path 共用同一份 dedup. 使用方法:
 
 ```cpp
-typename m_tetris::Helpers<RuleSpec>::PathMark pm;
-pm.clear();
-typename m_tetris::movegen::detail::common::MakePath1gDedup<RuleSpec> dedup{
+typename m_tetris2::Helpers<RuleSpec>::PathMark pm;
+m_tetris2::movegen::detail::common::MakePath1gDedup<RuleSpec> dedup{
     /*path_mark =*/ &pm,
     /*usable_arr =*/ &usable_arr};
 ```
@@ -334,8 +376,10 @@ typename m_tetris::movegen::detail::common::MakePath1gDedup<RuleSpec> dedup{
 `examples/dummy_strategy_compile.cpp` 与 CMake target
 `dummy_strategy_compile_check` 形成一个闭环: 任何破坏 strategy 公共契约
 的修改 (改 mixin 字段名、改 Searcher 暴露面、改静态方法签名) 都会让
-`dummy_strategy_compile_check` 在全量构建时编译失败. 维护者改动公共
-组件后, **必须**先确认本 target 仍能 link 通过.
+`dummy_strategy_compile_check` 编译失败. 该 target 是 `EXCLUDE_FROM_ALL`,
+全量构建与 CI 都**不会**覆盖它; 维护者改动公共组件后, **必须**显式执行
+`cmake --build build --target dummy_strategy_compile_check` 并运行
+`./build/dummy_strategy_compile_check` 确认返回 0.
 
 ## 8. 不变量与禁区
 
@@ -348,5 +392,6 @@ typename m_tetris::movegen::detail::common::MakePath1gDedup<RuleSpec> dedup{
   上层 typedef 的事, 不是 hook 的事.
 - 不要把 strategy 的私有 BFS 三件套 (Neighbors / Dedup / Visitor) 移到
   公共组件里, 即便外形相似. 复用价值低于命名空间污染.
-- 不要修改 `oracle/` 下任何文件; oracle 是行为 baseline, 由 `*_diff` 工具
-  消费, 改了就失去 byte-equivalent 验证手段.
+- 不要修改 `oracle/` 下任何文件; oracle (命名空间 `m_tetris`, 旧
+  `TetrisContext` / `TetrisNode*` 指针图引擎) 是行为 baseline, 由 `*_diff`
+  工具消费, 改了就失去 byte-equivalent 验证手段.

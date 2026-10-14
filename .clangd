@@ -1,0 +1,14 @@
+CompileFlags:
+  CompilationDatabase: build
+Diagnostics:
+  UnusedIncludes: None
+  MissingIncludes: None
+Index:
+  StandardLibrary: Yes
+---
+If:
+  PathExclude: src/ai_zzz([^/]*|/.*)
+Diagnostics:
+  Suppress: '*'
+  ClangTidy:
+    Remove: '*'

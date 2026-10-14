@@ -6,9 +6,11 @@ enable_language(C)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -flto)
+# MSVC 不认识 -flto; string(APPEND) 避免已有 CMAKE_CXX_FLAGS 时拼出 ';'.
+if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT MSVC)
+    string(APPEND CMAKE_CXX_FLAGS " -flto")
 endif()
+find_package(Threads REQUIRED)
 
 # ctest 集成入口: 让七 diff driver + extreme_rule_diff + perft_movegen 一键跑.
 enable_testing()
@@ -19,6 +21,18 @@ enable_testing()
 # 用户可通过 -DTETRIS_CONSTEXPR_OPS_LIMIT=<N> 覆盖.
 set(TETRIS_CONSTEXPR_OPS_LIMIT 100663296 CACHE STRING
     "Maximum constexpr operations / steps for heavy compile-time tables (default 96M)")
+
+# compile_commands.json 开启时, 每次构建把只含 src/ai_zzz* 翻译单元的子集写到源码根目录,
+# 供 run-clang-tidy / omp cleanse 只诊断 ai_zzz; clangd 仍读 build/ 下的完整数据库.
+if(CMAKE_EXPORT_COMPILE_COMMANDS)
+    add_custom_target(ai_zzz_compile_commands ALL
+        COMMAND ${CMAKE_COMMAND}
+            -DIN=${CMAKE_BINARY_DIR}/compile_commands.json
+            -DOUT=${CMAKE_SOURCE_DIR}/compile_commands.json
+            "-DREGEX=/src/ai_zzz([^/]*\\.(c|cc|cpp|cxx)|/.*)$"
+            -P ${CMAKE_SOURCE_DIR}/cmake/filter_compile_commands.cmake
+        VERBATIM)
+endif()
 
 # ---------------------------------------------------------------------------
 # ORACLE mode: -DORACLE=ON 时，五个生产 target 使用 oracle/ 里的指针图实现
@@ -38,7 +52,7 @@ target_include_directories(tetris_core INTERFACE src)
 # ---------------------------------------------------------------------------
 # tetris_oracle: legacy master BFS searches (search_simple / search_path /
 # search_simulate / search_tag / search_aspin / search_cautious / search_tspin).
-# Consumed only by *_diff harnesses and the tag_landpoint_collision_dump tool.
+# Consumed only by the *_diff harnesses.
 # Production targets must NOT link or include it (regardless of ORACLE mode).
 # ---------------------------------------------------------------------------
 add_library(tetris_oracle STATIC
@@ -216,7 +230,7 @@ foreach(diff_driver IN ITEMS
     cautious_diff
     simple_diff
 )
-    add_executable(${diff_driver} EXCLUDE_FROM_ALL
+    add_executable(${diff_driver}
         src/ai_zzz.cpp
         src/integer_utils.cpp
         src/random.cpp
@@ -225,16 +239,6 @@ foreach(diff_driver IN ITEMS
     target_include_directories(${diff_driver} PRIVATE src oracle)
     target_link_libraries(${diff_driver} PRIVATE tetris_oracle)
 endforeach()
-
-project(tag_landpoint_collision_dump)
-add_executable(${PROJECT_NAME}
-    src/ai_zzz.cpp
-    src/integer_utils.cpp
-    src/random.cpp
-    tools/tag_landpoint_collision_dump.cpp
-)
-target_include_directories(${PROJECT_NAME} PRIVATE src oracle)
-target_link_libraries(${PROJECT_NAME} PRIVATE tetris_oracle)
 
 project(aspin_dump)
 add_executable(${PROJECT_NAME}
@@ -275,7 +279,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
 # and the live API is caught at build time.
 # ---------------------------------------------------------------------------
 project(dummy_strategy_compile_check)
-add_executable(${PROJECT_NAME} EXCLUDE_FROM_ALL
+add_executable(${PROJECT_NAME}
     examples/dummy_strategy_compile.cpp
     src/integer_utils.cpp
     src/random.cpp
@@ -344,6 +348,7 @@ add_test(NAME tetris_diff_perft_movegen COMMAND perft_movegen all)
 add_test(NAME tetris_policy_deduction   COMMAND policy_deduction_test)
 add_test(NAME tetris_typed_dispatch     COMMAND typed_dispatch_test)
 add_test(NAME tetris_bb_node           COMMAND bb_node_test)
+add_test(NAME tetris_dummy_strategy    COMMAND dummy_strategy_compile_check)
 set_tests_properties(tetris_diff_simple_diff PROPERTIES WILL_FAIL FALSE)
 
 # ---------------------------------------------------------------------------
@@ -375,7 +380,7 @@ add_executable(pso
     src/pso.cpp
 )
 target_include_directories(pso PRIVATE src)
-target_link_libraries(pso PRIVATE ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(pso PRIVATE Threads::Threads)
 
 # ---------------------------------------------------------------------------
 # the_ai_games: The AI Games 平台对战入口（TAG 规则 + ai_tag）.
@@ -387,12 +392,12 @@ add_executable(the_ai_games
     src/the_ai_games.cpp
 )
 target_include_directories(the_ai_games PRIVATE src)
-target_link_libraries(the_ai_games PRIVATE ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(the_ai_games PRIVATE Threads::Threads)
 
 # ---------------------------------------------------------------------------
 # vs: 多规则终端对战工具（QQ/ST/SRS，ai_ax + ai_zzz）.
 # ---------------------------------------------------------------------------
-add_library(vs SHARED
+add_executable(vs
     src/ai_ax.cpp
     src/ai_zzz.cpp
     src/integer_utils.cpp

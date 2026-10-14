@@ -1,3 +1,6 @@
+#pragma once
+
+#include <cstddef>
 
 //misakamm那里得到的mt随机
 namespace ege
@@ -21,10 +24,15 @@ namespace ege
         double real();
         double res53();
 
-
         uint32 state[N];
         uint32 left;
         uint32* next;
+
+    private:
+        void init(uint32 seed = 19650218UL);
+        void next_state();
+        uint32 mixbits(uint32 u, uint32 v) const;
+        uint32 twist(uint32 u, uint32 v) const;
     };
 
     extern void mtsrand(unsigned int s);

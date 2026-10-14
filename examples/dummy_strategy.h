@@ -2,31 +2,34 @@
 #define TETRIS_AI_RUNNER_EXAMPLES_DUMMY_STRATEGY_H_
 
 //==========================================================================
-// DummyStrategy<SpinHook, RuleSpec>: minimal "spawn-row drop only" strategy.
+// DummyStrategy<SpinHook, RuleSpec, Policy>: minimal "spawn-row drop only"
+// strategy.
 //
 // Purpose:
 //   Serves as the canonical template for third-party SearchStrategy authors.
 //   Implements the full strategy contract (Context alias, LandPoint / Config
-//   aliases, init / search / make_path static entry points) using only the
-//   smallest combination of mixins that the contract actually requires.
+//   aliases, init / search / search_eval / make_path static entry points)
+//   using only the smallest combination of mixins that the contract actually
+//   requires.
 //
 // Behavior (intentionally minimal — NOT semantically correct for play):
-//   - search(map, spawn, depth):
-//         Enumerate all rotation states reachable from `spawn` at the spawn
-//         row, drop each onto the board via the bitboard usable-row table,
-//         dedup by absolute cell signature (bb::CellsKey), and emit distinct
-//         landings into ctx.land_point_cache_.
-//   - make_path(map, spawn, land_point, board):
+//   - search(map, spawn, depth) / search_eval<Cb>(board, spawn, depth, cb):
+//         Enumerate all rotation states of `spawn.t` at the spawn row, drop
+//         each onto the board via the bitboard usable table, dedup by
+//         absolute cell signature (CellsKey), and emit distinct landings
+//         (search: into ctx.land_point_cache_; search_eval: through
+//         cb.template operator()<T, R>(land_point)).
+//   - make_path(spawn, land_point, board):
 //         Always returns "D" (a single hard drop). Sufficient for any landing
 //         whose path is "spawn -> hard drop", incorrect otherwise.
 //
 // This file is referenced from `docs/extending_search.md` as the worked
-// example. The companion compile-only target `dummy_strategy_compile_check`
-// instantiates `Searcher<DummyStrategy, NoSpinHook, rule_spec>` to keep the
-// example wired to the live API surface.
+// example. The companion target `dummy_strategy_compile_check` instantiates
+// `Searcher<DummyStrategy, NoSpinHook, rule_spec>` to keep the example wired
+// to the live API surface.
 //==========================================================================
 
-#include "bb_state.h"
+#include "movegen_state.h"
 #include "movegen_context.h"
 #include "movegen_hook.h"
 #include "movegen_strategy.h"
@@ -35,6 +38,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 namespace m_tetris2
@@ -42,10 +46,10 @@ namespace m_tetris2
     namespace movegen
     {
         //=== DummyStrategy private mixin (SpinHook-dependent fields) ===========
-        // This mirrors the layout of detail::path::ExtrasMixin so that any
+        // This mirrors the layout of detail::simple::ExtrasMixin so that any
         // SpinHook providing Config / LandPoint aliases works out of the box.
         // Lives in `detail::dummy::` so it does not leak into the public
-        // `m_tetris::movegen::` namespace.
+        // `m_tetris2::movegen::` namespace.
         namespace detail
         {
             namespace dummy
@@ -69,69 +73,41 @@ namespace m_tetris2
         struct DummyStrategy
         {
         private:
-            using Helpers = bb::Helpers<RuleSpec>;
+            using Helpers = m_tetris2::Helpers<RuleSpec>;
             using map_t = typename Helpers::map_t;
             using piece_info_t = typename Helpers::piece_info_t;
 
             static constexpr int kMaxR = Helpers::kMaxR;
             static constexpr int kPieceCount = Helpers::kPieceCount;
 
-        public:
-            using LandPoint = typename SpinHook::LandPoint;
-            using Config = typename SpinHook::Config;
-
-            //=== Strategy contract: Context type alias ========================
-            // DummyStrategy only needs land_point_cache_ and context_/config_
-            // fields; no BBState->TetrisNode LUT is required because search()
-            // constructs LandPoint directly from BBState.
-            using Context = MoveGenContext<RuleSpec,
-                                           detail::dummy::ExtrasMixin<SpinHook, RuleSpec>>;
-
-            //=== Strategy contract: init ======================================
-            // Cache the Config pointer. TetrisContext is no longer needed.
-            static void init(Context &ctx, Config const *config)
+            // Shared by search / search_eval: spawn-row states of spawn.t,
+            // dropped and deduped by CellsKey, in emission order.
+            static void collect_landings(map_t const &board, State const &spawn, std::vector<State> &out)
             {
-                ctx.config_ = config;
-            }
-
-            //=== Strategy contract: search ====================================
-            // Enumerate all spawn-row rotation states for `spawn.t`, drop each
-            // onto the board via the bitboard usable-row table, dedup by cell
-            // signature, and emit distinct landings into ctx.land_point_cache_.
-            static std::vector<LandPoint> const *
-            search(Context &ctx, map_t const &map, TetrisBlockStatus const &spawn, std::size_t depth)
-            {
-                (void)depth;
-                ctx.land_point_cache_.clear();
-                if (piece_info_t::index_of(spawn.t) < 0)
-                    return &ctx.land_point_cache_;
-                map_t const &board = map;
+                out.clear();
+                char piece_t = static_cast<char>(spawn.t);
+                if (piece_info_t::index_of(piece_t) < 0)
+                    return;
                 std::array<map_t, kMaxR> usable_arr{};
-                Helpers::build_usable_for_piece(spawn.t, board, usable_arr);
+                Helpers::build_usable_for_piece(piece_t, board, usable_arr);
+                if (!Helpers::usable_at(spawn.r, spawn.xb, spawn.yb, usable_arr))
+                    return;
 
                 std::array<map_t, kMaxR> inbounds_arr{};
-                Helpers::build_inbounds_for_piece(spawn.t, inbounds_arr);
+                Helpers::build_inbounds_for_piece(piece_t, inbounds_arr);
+                std::vector<State> spawn_states;
+                Helpers::enumerate_spawn_row_states(piece_t, spawn, inbounds_arr, spawn_states);
 
-                bb::BBState entry = Helpers::state_from_status(
-                    spawn.t, static_cast<std::uint8_t>(spawn.r), spawn.x, spawn.y);
-
-                if (!Helpers::usable_at_bb(entry.r, entry.xb, entry.yb, usable_arr))
-                    return &ctx.land_point_cache_;
-
-                std::vector<bb::BBState> spawn_states;
-                Helpers::enumerate_spawn_row_states(spawn.t, entry, inbounds_arr, spawn_states);
-
-                std::vector<bb::CellsKey> emitted_keys;
-                emitted_keys.reserve(8);
-
-                for (auto const &rot_state : spawn_states)
+                std::vector<CellsKey> emitted_keys;
+                emitted_keys.reserve(spawn_states.size());
+                for (State const &rot_state : spawn_states)
                 {
-                    auto sunk = Helpers::drop_bb_state(rot_state, usable_arr);
+                    auto sunk = Helpers::drop(rot_state, usable_arr);
                     if (!sunk)
                         continue;
-                    bb::CellsKey k = Helpers::cells_key_for_state(*sunk);
+                    CellsKey k = Helpers::cells_key_for_state(*sunk);
                     bool dup = false;
-                    for (bb::CellsKey ek : emitted_keys)
+                    for (CellsKey const &ek : emitted_keys)
                     {
                         if (ek == k)
                         {
@@ -142,10 +118,91 @@ namespace m_tetris2
                     if (dup)
                         continue;
                     emitted_keys.push_back(k);
-                    LandPoint lp(*sunk);
+                    out.push_back(*sunk);
+                }
+            }
+
+            // Runtime (t, r) -> compile-time <T, R> for the eval callback.
+            template<char T, class EvalCallback, class LP, std::size_t... Rs>
+            static void dispatch_r(LP const &lp, EvalCallback &on_land, std::index_sequence<Rs...>)
+            {
+                (void)((static_cast<std::uint8_t>(Rs) == lp.state.r
+                            ? (on_land.template operator()<T, static_cast<std::uint8_t>(Rs)>(lp), true)
+                            : false) ||
+                       ...);
+            }
+
+            template<class EvalCallback, class LP>
+            static void dispatch_typed(LP const &lp, EvalCallback &on_land)
+            {
+                char t = static_cast<char>(lp.state.t);
+                [&]<std::size_t... Is>(std::index_sequence<Is...>)
+                {
+                    (void)((piece_info_t::type_at(Is) == t
+                                ? (dispatch_r<piece_info_t::type_at(Is)>(lp, on_land, std::make_index_sequence<Helpers::template rcount_v<piece_info_t::type_at(Is)>()>{}), true)
+                                : false) ||
+                           ...);
+                }(std::make_index_sequence<kPieceCount>{});
+            }
+
+        public:
+            using LandPoint = typename SpinHook::LandPoint;
+            using Config = typename SpinHook::Config;
+
+            //=== Strategy contract: Context type alias ========================
+            // DummyStrategy only needs land_point_cache_ / config_; no BFS
+            // queue is required because it never runs run_bfs.
+            using Context = MoveGenContext<RuleSpec,
+                                           detail::dummy::ExtrasMixin<SpinHook, RuleSpec>>;
+
+            //=== Strategy contract: init ======================================
+            static void init(Context &ctx, Config const *config)
+            {
+                ctx.config_ = config;
+            }
+
+            //=== Strategy contract: search ====================================
+            // Searcher::search(map, TetrisBlockStatus, depth) converts the
+            // status to a State via Helpers::state_from_status and forwards
+            // here. MapIn is TetrisMap<W,H> or anything Helpers::build_board
+            // accepts.
+            template<class MapIn>
+            static std::vector<LandPoint> const *
+            search(Context &ctx, MapIn const &map, State const &spawn, std::size_t depth)
+            {
+                (void)depth;
+                ctx.land_point_cache_.clear();
+                std::vector<State> landings;
+                collect_landings(Helpers::build_board(map), spawn, landings);
+                for (State const &s : landings)
+                {
+                    LandPoint lp;
+                    lp.state = s;
                     ctx.land_point_cache_.push_back(lp);
                 }
                 return &ctx.land_point_cache_;
+            }
+
+            //=== Strategy contract: search_eval ===============================
+            // Hot path used by TetrisTreeNode::run: every landing is handed to
+            // on_land.template operator()<T, R>(land_point) with T / R as
+            // compile-time constants, instead of being materialised in a
+            // vector.
+            template<class EvalCallback>
+            static void search_eval(Context &ctx, TetrisMap<RuleSpec::width, RuleSpec::height> const &board,
+                                    State const &spawn, std::size_t depth,
+                                    EvalCallback &on_land)
+            {
+                (void)ctx;
+                (void)depth;
+                std::vector<State> landings;
+                collect_landings(board, spawn, landings);
+                for (State const &s : landings)
+                {
+                    LandPoint lp;
+                    lp.state = s;
+                    dispatch_typed(lp, on_land);
+                }
             }
 
             //=== Strategy contract: make_path =================================
@@ -153,7 +210,7 @@ namespace m_tetris2
             // landing was reached by spawn -> drop; this strategy is for
             // documentation / sanity-check purposes only.
             static std::vector<char>
-            make_path(Context &ctx, bb::BBState const &spawn,
+            make_path(Context &ctx, State const &spawn,
                       LandPoint const &land_point,
                       TetrisMap<RuleSpec::width, RuleSpec::height> const &board)
             {
@@ -165,7 +222,6 @@ namespace m_tetris2
                 path.push_back('D');
                 return path;
             }
-
         };
     } // namespace movegen
 

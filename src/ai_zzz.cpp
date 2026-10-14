@@ -148,7 +148,7 @@ namespace ai_zzz
             int *row_bit_count = row_bit_count_global + y;
             for (int x = 1, ex = width - 2; x < ex; ++x)
             {
-                if (((~row0 >> x) & 1) & (((~row1 >> x) & 3) == 3) & ((~row2 >> x) & 1) & !((row3 >> x) & 7) & (((~row4 >> x) & 6) == 6))
+                if (((~row0 >> x) & 1) && (((~row1 >> x) & 3) == 3) && ((~row2 >> x) & 1) && !((row3 >> x) & 7) && (((~row4 >> x) & 6) == 6))
                 {
                     int t3_count = 0;
                     if (row_bit_count[0] == width - 1)
@@ -207,7 +207,7 @@ namespace ai_zzz
             }
             for (int x = 0, ex = width - 3; x < ex; ++x)
             {
-                if (((~row0 >> x) & 4) & (((~row1 >> x) & 6) == 6) & ((~row2 >> x) & 4) & !((row3 >> x) & 7) & (((~row4 >> x) & 3) == 3))
+                if (((~row0 >> x) & 4) && (((~row1 >> x) & 6) == 6) && ((~row2 >> x) & 4) && !((row3 >> x) & 7) && (((~row4 >> x) & 3) == 3))
                 {
                     int t3_count = 0;
                     if (row_bit_count[0] == width - 1)

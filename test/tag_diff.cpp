@@ -20,13 +20,14 @@
 #include "../oracle/rule_srs.h"
 #include "../oracle/ai_easy.h"
 #include "../src/ai_zzz.h"
-#include "../src/bb_state.h"
+#include "../src/movegen_state.h"
 #include "../src/movegen_searcher.h"
 #include "../src/rule_srs.h"
 #include "../src/search_tag.h"
 #include "../src/search_tspin.h"
 
 #include <cstdio>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -55,7 +56,7 @@ namespace
     {
         static OracleEngine e;
         static bool prepared = []()
-        { return e.prepare(10, 40); }();
+        { return e.prepare(10, 40) && tetris_diff::repair_oracle_wall_kicks(e.context().get()); }();
         (void)prepared;
         return e;
     }

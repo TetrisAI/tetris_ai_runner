@@ -2,8 +2,8 @@
 //
 // 二阶段比对协议:
 //   Phase A: oracle.search() 与 candidate.search() 的 LandPoint 集 (键 =
-//            index_filtered, NoSpin 路径无 spin/last 元数据故 spin=0/last=-1)
-//            做 set-equal 比对.
+//            cells_key, NoSpin 路径无 spin/last 元数据故 spin=0/last=-1)
+//            做 oracle ⊆ candidate 比对.
 //   Phase B: 对两侧 key 集合的交集逐 key 跑 oracle.make_path / candidate.make_path,
 //            字符串 byte-equal 比对.
 //
@@ -23,6 +23,7 @@
 #include "../src/search_tspin.h"
 
 #include <cstdio>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -31,6 +32,16 @@ namespace
     using NewMap = tetris_diff::NewMap;
     using LpEntry = tetris_diff::LpEntry;
     using LpKey = tetris_diff::LpKey;
+
+    using Helpers = m_tetris2::Helpers<rule_srs::TetrisRule::rule_spec>;
+
+    inline std::uint64_t cells_key_to_u64(m_tetris2::CellsKey const &k)
+    {
+        std::uint64_t v = 0;
+        static_assert(sizeof(k) == sizeof(v), "CellsKey size mismatch");
+        std::memcpy(&v, &k, sizeof(v));
+        return v;
+    }
 
     using OracleEngine =
         m_tetris::TetrisEngine<rule_srs_oracle::TetrisRule, ai_easy::AI, search_tspin_oracle::Search>;
@@ -41,7 +52,7 @@ namespace
     {
         static OracleEngine e;
         static bool prepared = []()
-        { return e.prepare(10, 40); }();
+        { return e.prepare(10, 40) && tetris_diff::repair_oracle_wall_kicks(e.context().get()); }();
         (void)prepared;
         return e;
     }
@@ -106,24 +117,23 @@ namespace
     //  调用会清空 land_point_cache_, 故必须早 copy). 私有命名空间作用域
     //  static 即可, 上下两个 case 之间共享并重用.
     auto g_oracle_lps = std::vector<decltype(static_cast<m_tetris::TetrisContext const *>(nullptr)->generate('I'))>();
-    std::vector<m_tetris2::TetrisLandPoint> g_candidate_lps;
+    std::vector<NewSearcher::LandPoint> g_candidate_lps;
 
     tetris_diff::CaseProbe probe(char piece, NewMap const &board,
                                  std::string const & /*board_name*/, bool /*is_20g*/)
     {
         tetris_diff::CaseProbe cp;
         m_tetris::TetrisContext const *oracle_ctx = oracle_engine().context().get();
-        m_tetris2::TetrisContext const *new_ctx = new_engine().context().get();
-        if (!oracle_ctx || !new_ctx)
+        if (!oracle_ctx)
             return cp;
         m_tetris::TetrisMap oracle_map;
         NewMap new_map = board;
         tetris_diff::copy_to_oracle_map(board, oracle_map);
         auto oracle_spawn = oracle_ctx->generate(piece);
-        auto new_spawn = new_ctx->generate(piece);
-        // new_spawn->check() 要求旧 TetrisMap，test fixture 保证入口为空，跳过此守门。
-        if (!oracle_spawn || !new_spawn || !oracle_spawn->check(oracle_map))
+        if (!oracle_spawn || !oracle_spawn->check(oracle_map))
             return cp;
+        auto [sx, sy] = rule_srs::TetrisRule::rule_spec::spawn(piece, 10, 40);
+        m_tetris2::TetrisBlockStatus new_spawn{piece, static_cast<int8_t>(sx), static_cast<int8_t>(sy), 0};
 
         g_oracle_lps.clear();
         g_candidate_lps.clear();
@@ -135,7 +145,7 @@ namespace
                 if (n)
                     g_oracle_lps.push_back(n);
         }
-        auto *candidate_result = new_search_obj().search(new_map, new_spawn->status, 0);
+        auto *candidate_result = new_search_obj().search(new_map, new_spawn, 0);
         if (candidate_result)
         {
             g_candidate_lps.reserve(candidate_result->size());
@@ -154,17 +164,30 @@ namespace
                           static_cast<int>(n->status.x),
                           static_cast<int>(n->status.y),
                           n->open(oracle_map) ? 1 : 0);
-            cp.oracle_lps.push_back(LpEntry{LpKey{static_cast<int>(n->index_filtered),
-                                                  0, -1},
-                                            i, std::string(buf)});
+            std::uint64_t ck = cells_key_to_u64(Helpers::cells_key_from_oracle(
+                n->status.t,
+                static_cast<std::uint8_t>(n->status.r),
+                n->status.x,
+                n->status.y));
+            cp.oracle_lps.push_back(LpEntry{LpKey{ck, 0, -1}, i, std::string(buf)});
         }
-        // TODO: rewrite candidate_lps construction using TetrisLandPoint / CellsKey
-        // (Helpers<rule_spec>::cells_key_for_state) once LpKey migrates off int index_filtered.
+        cp.candidate_lps.reserve(g_candidate_lps.size());
+        for (std::size_t i = 0; i < g_candidate_lps.size(); ++i)
+        {
+            m_tetris2::State const &s = g_candidate_lps[i].state;
+            char buf[64];
+            std::snprintf(buf, sizeof(buf), "r=%d,xb=%d,yb=%d",
+                          static_cast<int>(s.r),
+                          static_cast<int>(s.xb),
+                          static_cast<int>(s.yb));
+            std::uint64_t ck = cells_key_to_u64(Helpers::cells_key_for_state(s));
+            cp.candidate_lps.push_back(LpEntry{LpKey{ck, 0, -1}, i, std::string(buf)});
+        }
 
         m_tetris::TetrisMap oracle_map_copy = oracle_map;
         NewMap new_map_copy = new_map;
         auto oracle_spawn_copy = oracle_spawn;
-        auto new_spawn_copy = new_spawn;
+        m_tetris2::TetrisBlockStatus new_spawn_copy = new_spawn;
         cp.oracle_make_path = [oracle_spawn_copy, oracle_map_copy](LpEntry const &e) -> std::string
         {
             if (e.index >= g_oracle_lps.size())
@@ -172,12 +195,16 @@ namespace
             std::vector<char> v = oracle_search_obj().make_path(oracle_spawn_copy, g_oracle_lps[e.index], oracle_map_copy);
             return std::string(v.begin(), v.end());
         };
-        // TODO: rewrite using g_candidate_lps[e.index] (TetrisLandPoint) directly.
-        cp.candidate_make_path = [new_spawn_copy, new_map_copy](LpEntry const & /*e*/) -> std::string
+        cp.candidate_make_path = [new_spawn_copy, new_map_copy](LpEntry const &e) -> std::string
         {
-            (void)new_spawn_copy;
-            (void)new_map_copy;
-            return std::string();
+            if (e.index >= g_candidate_lps.size())
+                return std::string();
+            auto board = m_tetris2::build_board_for_search<NewSearcher::rule_spec>(new_map_copy);
+            auto spawn = Helpers::state_from_status(new_spawn_copy.t,
+                static_cast<std::uint8_t>(new_spawn_copy.r),
+                new_spawn_copy.x, new_spawn_copy.y);
+            std::vector<char> v = new_search_obj().make_path(spawn, g_candidate_lps[e.index], board);
+            return std::string(v.begin(), v.end());
         };
         return cp;
     }

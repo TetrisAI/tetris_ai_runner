@@ -665,6 +665,70 @@ namespace tetris_diff
     }
 
     //=======================================================================
+    // repair_oracle_wall_kicks: 修正 oracle 指针网里继承来的 stale 旋转指针.
+    //   根因 (oracle/tetris_core.cpp:328-381 + 466-493): prepare 以 "拷贝邻居
+    //   节点" 造新节点 (ROTATE / MOVE / move_down_multi), 连带拷走邻居已赋值的
+    //   rotate_*; 本节点自身旋转出界失败时 ROTATE 不清空, 留下指向别处 (常为
+    //   出生行 y=21) 的旧指针. rotate_X 与 wall_kick_X[0] 是 union, WALL_KICK
+    //   把它当 kick#0 保留, search 取首个可放置 kick 即 break, 于是真实 SRS
+    //   kick 永不尝试 (tspin 1g 丢 last-rotate), 20g 下落地块被 "旋转" 传送回
+    //   高处 (oracle-only 不可达落点).
+    //   这里按 WALL_KICK 原意重建: [原地旋转 (在界内时)] + op.wall_kick_X 中
+    //   在界内的偏移, nullptr 结尾; rotate_X (union 别名) 随之为首个在界内候选.
+    //   不改 oracle/ 源码, 仅在 prepare() 之后、任何 Search::init 之前修 context.
+    //=======================================================================
+    inline bool repair_oracle_wall_kicks(m_tetris::TetrisContext const *ctx)
+    {
+        if (ctx == nullptr)
+            return false;
+        using m_tetris::TetrisNode;
+        using RotateFn = bool (*)(TetrisNode &, m_tetris::TetrisContext const *);
+        auto rebuild = [ctx](TetrisNode const &node, RotateFn rotate,
+                             m_tetris::TetrisWallKickOpertion const &kicks, TetrisNode const **out)
+        {
+            std::size_t n = 0;
+            constexpr std::size_t kMax = static_cast<std::size_t>(m_tetris::max_wall_kick);
+            if (rotate != nullptr)
+            {
+                TetrisNode plain = node;
+                if (rotate(plain, ctx))
+                    if (TetrisNode const *p = ctx->get(plain.status))
+                        out[n++] = p;
+                // 目标朝向与 WALL_KICK 同法取: 对出生节点施加同一旋转.
+                TetrisNode spawn_rot = *ctx->generate(node.status.t);
+                rotate(spawn_rot, ctx);
+                for (std::size_t i = 0; i < kicks.length && n + 1 < kMax; ++i)
+                    if (TetrisNode const *p = ctx->get(node.status.t,
+                                                       static_cast<std::int8_t>(node.status.x + kicks.data[i].x),
+                                                       static_cast<std::int8_t>(node.status.y + kicks.data[i].y),
+                                                       spawn_rot.status.r))
+                        out[n++] = p;
+            }
+            for (; n < kMax; ++n)
+                out[n] = nullptr;
+        };
+        for (std::size_t ti = 0; ti < ctx->type_max(); ++ti)
+        {
+            char t = ctx->convert(ti);
+            for (int r = 0; r < 4; ++r)
+                for (int x = -4; x < ctx->width() + 4; ++x)
+                    for (int y = -4; y < ctx->height() + 4; ++y)
+                    {
+                        TetrisNode const *cn = ctx->get(t, static_cast<std::int8_t>(x), static_cast<std::int8_t>(y),
+                                                        static_cast<std::uint8_t>(r));
+                        if (cn == nullptr)
+                            continue;
+                        // context 节点存于非 const 的 node_storage_, const_cast 合法.
+                        TetrisNode &node = const_cast<TetrisNode &>(*cn);
+                        rebuild(node, node.op.rotate_clockwise, node.op.wall_kick_clockwise, node.wall_kick_clockwise);
+                        rebuild(node, node.op.rotate_counterclockwise, node.op.wall_kick_counterclockwise, node.wall_kick_counterclockwise);
+                        rebuild(node, node.op.rotate_opposite, node.op.wall_kick_opposite, node.wall_kick_opposite);
+                    }
+        }
+        return true;
+    }
+
+    //=======================================================================
     // 简化的 unified-diff 工具: phase A 的 LpKey set 差异 + phase B 的字符串
     //   差异. 都仅 stderr 输出, 上下文 ±3.
     //=======================================================================
