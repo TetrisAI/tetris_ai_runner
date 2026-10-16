@@ -470,6 +470,10 @@ add_executable(ai_zzz_io_test test/ai_zzz_io_test.cpp)
 target_link_libraries(ai_zzz_io_test PRIVATE ai_zzz_io tetris_core)
 add_test(NAME tetris_ai_zzz_io COMMAND ai_zzz_io_test)
 
+add_executable(ai_zzz_io_spin_slots_test test/ai_zzz_io_spin_slots_test.cpp)
+target_link_libraries(ai_zzz_io_spin_slots_test PRIVATE tetris_core)
+add_test(NAME tetris_ai_zzz_io_spin_slots COMMAND ai_zzz_io_spin_slots_test)
+
 # ---------------------------------------------------------------------------
 # io_pso / io_sim_test: TETR.IO S2 match simulator (src/io_sim.*) and the PSO
 # trainer over ai_zzz::IO parameters. Train with a Release build.

@@ -240,41 +240,12 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
 
     using SpinRule = search_amini::Search::SpinRule;
 
-    // The search classifies spins exactly for four rules; the others are searched with the rule whose spin positions
-    // are closest, and the difference is logged (tetrio.js IsTSpin).
     SpinRule search_spin_rule(int bot_id, io_rules::SpinBonuses spinbonuses)
     {
-        using io_rules::SpinBonuses;
-        auto approximate = [&](SpinRule rule, std::string_view difference)
-        {
-            log(bot_id, "warning: spinbonuses {} is searched as {}", io_rules::kSpinBonusesNames[static_cast<std::size_t>(spinbonuses)], difference);
-            return rule;
-        };
-        switch (spinbonuses)
-        {
-        case SpinBonuses::TSpins:
-            return SpinRule::TSpins;
-        case SpinBonuses::TSpinsPlus:
-            return SpinRule::TSpinsPlus;
-        case SpinBonuses::AllMini:
-            return SpinRule::AllMini;
-        case SpinBonuses::AllMiniPlus:
-            return SpinRule::AllMiniPlus;
-        case SpinBonuses::All:
-            return approximate(SpinRule::AllMini, "all-mini (the room scores immobile non-T spins as full spins)");
-        case SpinBonuses::AllPlus:
-            return approximate(SpinRule::AllMiniPlus, "all-mini+ (the room scores immobile non-T spins as full spins)");
-        case SpinBonuses::MiniOnly:
-            return approximate(SpinRule::AllMiniPlus, "all-mini+ (the room scores every spin, T included, as a mini)");
-        case SpinBonuses::Handheld:
-            return approximate(SpinRule::AllMiniPlus, "all-mini+ (the room scores S/Z/L/J corner spins, halved)");
-        case SpinBonuses::Stupid:
-            return approximate(SpinRule::AllMiniPlus, "all-mini+ (the room scores every rotation that cannot move down)");
-        case SpinBonuses::None:
-            return approximate(SpinRule::TSpins, "T-spins (the room scores no spins)");
-        }
-        assert(false);
-        return SpinRule::AllMiniPlus;
+        ai_zzz::IO::SearchSpinRule const mapped = ai_zzz::IO::search_spin_rule(spinbonuses);
+        if (!mapped.approximation.empty())
+            log(bot_id, "warning: spinbonuses {} is searched as {}", io_rules::kSpinBonusesNames[static_cast<std::size_t>(spinbonuses)], mapped.approximation);
+        return mapped.rule;
     }
 
     struct MoveState

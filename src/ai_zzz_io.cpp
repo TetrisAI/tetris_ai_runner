@@ -29,20 +29,18 @@ namespace ai_zzz
             field("hole_depth", &IO::Param::hole_depth, 0, 256),
             field("b2b", &IO::Param::b2b, 0, 1024),
             field("attack", &IO::Param::attack, 0, 8),
-            field("hold_t", &IO::Param::hold_t, -16, 16),
             field("hold_i", &IO::Param::hold_i, -16, 16),
-            field("waste_t", &IO::Param::waste_t, -16, 16),
             field("waste_i", &IO::Param::waste_i, -16, 16),
             field("clear_1", &IO::Param::clear_1, -16, 16),
             field("clear_2", &IO::Param::clear_2, -16, 16),
             field("clear_3", &IO::Param::clear_3, -16, 16),
             field("clear_4", &IO::Param::clear_4, -16, 16),
-            field("t2_slot", &IO::Param::t2_slot, 0, 8),
-            field("t3_slot", &IO::Param::t3_slot, 0, 8),
-            field("tspin_mini", &IO::Param::tspin_mini, -16, 16),
-            field("tspin_1", &IO::Param::tspin_1, -16, 32),
-            field("tspin_2", &IO::Param::tspin_2, -16, 32),
-            field("tspin_3", &IO::Param::tspin_3, -16, 48),
+            field("mini_1", &IO::Param::mini_1, -16, 16),
+            field("mini_2", &IO::Param::mini_2, -16, 16),
+            field("mini_3", &IO::Param::mini_3, -16, 16),
+            field("full_1", &IO::Param::full_1, -16, 32),
+            field("full_2", &IO::Param::full_2, -16, 32),
+            field("full_3", &IO::Param::full_3, -16, 48),
             field("combo", &IO::Param::combo, 0, 128),
             field("ratio", &IO::Param::ratio, 1, 2.5),
             field("surge", &IO::Param::surge, 0, 16),
@@ -52,8 +50,13 @@ namespace ai_zzz
             field("opponent_surge", &IO::Param::opponent_surge, 0, 2),
             field("kill", &IO::Param::kill, 0, 64),
             field("spin_garbage", &IO::Param::spin_garbage, -16, 16),
-            field("allspin", &IO::Param::allspin, -16, 16),
+            field("slot_b2b", &IO::Param::slot_b2b, 0, 16),
+            field("slot_attack", &IO::Param::slot_attack, 0, 8),
+            field("slot_decay", &IO::Param::slot_decay, 0, 1),
         }};
+
+        // A piece in neither hold nor preview counts as one 7-bag away.
+        constexpr int kUnseenSlotDistance = 7;
 
         std::string_view trim(std::string_view text)
         {
@@ -191,8 +194,7 @@ namespace ai_zzz
         result.b2b_gained += rules.b2bcharging ? b2b_gain : (status.btb == 0 && result.btb > 0 ? 1 : 0);
         result.max_combo = std::max(result.combo, result.max_combo);
 
-        bool const t_piece = eval_result.piece == 'T';
-        double const waste = (eval_result.piece == 'I' ? p.waste_i : 0) + (t_piece ? p.waste_t : 0);
+        double const waste = eval_result.piece == 'I' ? p.waste_i : 0;
         switch (eval_result.clear)
         {
         case 0:
@@ -204,12 +206,13 @@ namespace ai_zzz
         case 3:
             if (eval_result.spin == io_rules::Spin::Mini)
             {
-                result.like += t_piece ? p.tspin_mini : p.allspin;
+                std::array<double, 3> const mini = {p.mini_1, p.mini_2, p.mini_3};
+                result.like += mini[eval_result.clear - 1];
             }
             else if (eval_result.spin == io_rules::Spin::Full)
             {
-                std::array<double, 3> const tspin = {p.tspin_1, p.tspin_2, p.tspin_3};
-                result.like += tspin[eval_result.clear - 1];
+                std::array<double, 3> const full = {p.full_1, p.full_2, p.full_3};
+                result.like += full[eval_result.clear - 1];
             }
             else
             {
@@ -223,8 +226,6 @@ namespace ai_zzz
         }
         if (eval_result.clear > 0 && eval_result.spin != io_rules::Spin::None && garbage_cleared > 0)
             result.like += p.spin_garbage;
-        if (env.hold == 'T' && eval_result.spin == io_rules::Spin::None)
-            result.like += p.hold_t;
         if (env.hold == 'I' && eval_result.clear != 4)
             result.like += p.hold_i;
         result.like += result.sent;
@@ -246,28 +247,16 @@ namespace ai_zzz
                 result.death = true;
         }
 
-        int const t_expect = [&]
-        {
-            if (env.hold == 'T')
-                return 0;
-            for (size_t i = 0; i < env.length; ++i)
-            {
-                if (env.next[i] == 'T')
-                    return static_cast<int>(i);
-            }
-            return 13;
-        }();
         double const rate = 1. / static_cast<double>(depth + 1) + 3;
         double const fullness = std::max(0.05, (full_count_ - eval_result.cells - result.map_rise * (width_ - 1)) / static_cast<double>(full_count_));
         int const placement_attack = attack.total();
         double const offense = result.sent * 256 * rate * p.attack +
                                result.cancelled * 256 * p.cancel +
-                               eval_result.t2_value * (t_expect < 4 ? (3 - t_expect) * 256 : 128) * p.t2_slot +
-                               eval_result.t3_value * (t_expect < 2 ? 64 : 32) * p.t3_slot +
                                (b2b_gain > 0 ? placement_attack * 16 * (22 - eval_result.roof) : 0) +
                                chain_value(p, rules, result.btb, multiplier) +
                                result.b2b_gained * 256 * p.b2b_gain +
-                               result.like * 32;
+                               result.like * 32 +
+                               spin_slot_value(eval_result.spin_slots, env) * 256;
 
         double incoming = result.pending.total();
         if (config.opponent.known)
@@ -281,5 +270,32 @@ namespace ai_zzz
                        (kill ? p.kill * 4096 + result.root_chain : 0) -
                        (result.death ? 999999999.0 : 0);
         return result;
+    }
+
+    double IO::spin_slot_value(std::array<SpinSlot, kPieceTypes> const &slots, AIEnv const &env) const
+    {
+        Param const &p = config_->param;
+        std::array<int, kPieceTypes> distance;
+        distance.fill(kUnseenSlotDistance);
+        for (size_t i = env.length; i-- > 0;)
+        {
+            int const index = piece_index_[static_cast<unsigned char>(env.next[i])];
+            if (index >= 0)
+                distance[index] = std::min(static_cast<int>(i), kUnseenSlotDistance);
+        }
+        if (int const index = piece_index_[static_cast<unsigned char>(env.hold)]; index >= 0)
+            distance[index] = 0;
+        std::array<double, kUnseenSlotDistance + 1> decay{};
+        decay[0] = 1;
+        for (int d = 1; d <= kUnseenSlotDistance; ++d)
+            decay[d] = decay[d - 1] * p.slot_decay;
+        double value = 0;
+        for (int i = 0; i < kPieceTypes; ++i)
+        {
+            SpinSlot const slot = slots[i];
+            if (slot.spin != io_rules::Spin::None)
+                value += (p.slot_b2b + p.slot_attack * io_rules::kBaseAttack[slot.lines][static_cast<int>(slot.spin)]) * decay[distance[i]];
+        }
+        return value;
     }
 }

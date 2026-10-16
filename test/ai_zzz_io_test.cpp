@@ -1,5 +1,5 @@
-// ai_zzz_io_test: host-visible behaviour of ai_zzz::IO without a search — spawn-overlap death (rules.md §2)
-// and the param text format.
+// ai_zzz_io_test: host-visible behaviour of ai_zzz::IO without a search — spawn-overlap death (rules.md §2),
+// the param text format, and how spin slots are discounted by when their piece can be played.
 
 #include "../src/rule_io.h"
 #include "../src/ai_zzz_io.h"
@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <span>
 #include <string>
+#include <string_view>
 
 namespace
 {
@@ -127,6 +128,40 @@ namespace
         expect(chain_value(flat, 0) == 0 && chain_value(flat, 1) > 0, "without charging an active chain has value");
         expect(chain_value(flat, 1) == chain_value(flat, 3) && chain_value(flat, 3) == chain_value(flat, 21), "without charging the chain value does not grow with B2B");
     }
+
+    double value_with_s_slot(ai_zzz::IO const &ai, ai_zzz::IO::Config const &config, std::string_view next, char hold)
+    {
+        Map after;
+        ai_zzz::IO::Result result = place_o(ai, Map{}, 0, 0, after);
+        result.spin_slots = {};
+        for (std::size_t i = 0; i < m_tetris2::ai_rule_spec::piece_count<Spec>(); ++i)
+        {
+            if (m_tetris2::ai_rule_spec::piece_type_at<Spec>(i) == 'S')
+                result.spin_slots[i] = {io_rules::Spin::Mini, 1};
+        }
+        m_tetris2::AIEnv const env{next.data(), next.size(), 'O', hold, false};
+        return ai.get(result, 0, ai_zzz::IO::make_root_status({}, config), env).value;
+    }
+
+    void test_spin_slot_availability()
+    {
+        ai_zzz::IO ai;
+        ai_zzz::IO::Config config;
+        config.param.slot_b2b = 1;
+        config.param.slot_attack = 0;
+        config.param.slot_decay = 0.5;
+        ai.init<Spec>(&config);
+
+        double const next = value_with_s_slot(ai, config, "SZT", ' ');
+        double const third = value_with_s_slot(ai, config, "ZTSLS", ' ');
+        double const unseen = value_with_s_slot(ai, config, "ZTL", ' ');
+        expect(next > third && third > unseen, "a slot is worth more the sooner its piece comes");
+        expect(value_with_s_slot(ai, config, "ZTL", 'S') == next, "the held piece is as available as the next one");
+        expect(value_with_s_slot(ai, config, "ZTSSSSSSSS", ' ') == third, "the first occurrence in the preview counts");
+
+        config.param.slot_b2b = 0;
+        expect(value_with_s_slot(ai, config, "SZT", ' ') == value_with_s_slot(ai, config, "ZTL", ' '), "zero slot weights ignore slots");
+    }
 }
 
 int main()
@@ -134,6 +169,7 @@ int main()
     test_spawn_death();
     test_params();
     test_chain_value();
+    test_spin_slot_availability();
     if (g_failures != 0)
     {
         std::fprintf(stderr, "%d failure(s)\n", g_failures);

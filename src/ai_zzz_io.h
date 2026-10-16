@@ -4,10 +4,12 @@
 #include "search_amini.h"
 #include "io_rules.h"
 #include "ai_rule_spec_utils.h"
+#include "ai_zzz_io_spin_slots.h"
 
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -29,42 +31,44 @@ namespace ai_zzz
         static constexpr int kPieceTypes = 7;
         static constexpr std::size_t kPendingCapacity = 8;
 
-        // Defaults: io_pso run of 2026-10-14 (5.7 h, warm-started from the ZZZTOJ fork weights).
+        // Defaults: io_pso run of 2026-10-15 (12 h, 10 generations, pps 4, 10 previews), warm-started from generation 1
+        // of a pps 2 / 5-preview run. Measured at pps 4 / 10 previews: 0.59 against the pre-refactor bot (768 games),
+        // 0.60 against itself with the spin-slot weights zeroed (1,536 games).
         struct Param
         {
-            double roof = 201.64031562636276;
-            double col_trans = 444.72788983567006;
-            double row_trans = 296.43251672384974;
-            double hole_count = 397.73882805061425;
-            double hole_line = 551.24888660549459;
-            double well_depth = 113.21002819785599;
-            double hole_depth = 6.9972285469587199;
-            double b2b = 118.02590775401444;
-            double attack = 1.7167399013449522;
-            double hold_t = 8.9781352655085147;
-            double hold_i = 5.6293284154870946;
-            double waste_t = -2.5804974934026754;
-            double waste_i = 10.853589009080654;
-            double clear_1 = 9.8457221342590611;
-            double clear_2 = -0.20957165621825569;
-            double clear_3 = -13.658951915651661;
-            double clear_4 = -0.054761944646760874;
-            double t2_slot = 1.7822381149634958;
-            double t3_slot = 2.5004370689413844;
-            double tspin_mini = -2.1380804346753739;
-            double tspin_1 = 10.200368930833605;
-            double tspin_2 = 29.876992082653906;
-            double tspin_3 = 19.140936760546992;
-            double combo = 4.7024903120157218;
-            double ratio = 1.1889452853075886;
-            double surge = 1.3195020571807554;
-            double b2b_gain = 5.4766387040480176;
-            double cancel = 7.800077755772266;
-            double pending = 1.0138414555273567;
-            double opponent_surge = 0.78052237159543703;
-            double kill = 15.72307734635335;
-            double spin_garbage = -1.2506027129174573;
-            double allspin = 11.279518371943739;
+            double roof = 102.60425653876652;
+            double col_trans = 509.44159257853119;
+            double row_trans = 58.499579620235664;
+            double hole_count = 458.62048656186698;
+            double hole_line = 944.53693733827822;
+            double well_depth = 125.48913965866971;
+            double hole_depth = 9.7224397817965809;
+            double b2b = 151.09086207135269;
+            double attack = 1.7709245276742853;
+            double hold_i = -0.85713194201499388;
+            double waste_i = 9.0785891351183103;
+            double clear_1 = 2.7779922784428548;
+            double clear_2 = 6.5261632233071261;
+            double clear_3 = -9.3744869806692108;
+            double clear_4 = 2.977058825591949;
+            double mini_1 = 1.2173095350260459;
+            double mini_2 = -4.0446396874214789;
+            double mini_3 = -2.3100796482700794;
+            double full_1 = 13.022473712221116;
+            double full_2 = 23.077924189993393;
+            double full_3 = 23.422217182429904;
+            double combo = 47.218957936550723;
+            double ratio = 1.0027630977026101;
+            double surge = 0;
+            double b2b_gain = 7.863437790314511;
+            double cancel = 3.4688673802342511;
+            double pending = 2.8124517258007424;
+            double opponent_surge = 1.419574850445857;
+            double kill = 13.332286548675969;
+            double spin_garbage = 11.841627759780454;
+            double slot_b2b = 0.068994639972527805;
+            double slot_attack = 6.177615077515096;
+            double slot_decay = 0.51460052709832438;
         };
 
         struct ParamField
@@ -83,6 +87,44 @@ namespace ai_zzz
         static std::string format_params(Param const &param);
         static bool load_params(std::string const &path, Param &param);
         static bool save_params(std::string const &path, Param const &param);
+
+        // The search classifies spins exactly for four TETR.IO spin rules; the others are searched with the rule whose
+        // spin positions are closest, and `approximation` names it with the difference (tetrio.js IsTSpin).
+        struct SearchSpinRule
+        {
+            search_amini::Search::SpinRule rule;
+            std::string_view approximation;
+        };
+        static constexpr SearchSpinRule search_spin_rule(io_rules::SpinBonuses spinbonuses)
+        {
+            using io_rules::SpinBonuses;
+            using SpinRule = search_amini::Search::SpinRule;
+            switch (spinbonuses)
+            {
+            case SpinBonuses::TSpins:
+                return {SpinRule::TSpins, {}};
+            case SpinBonuses::TSpinsPlus:
+                return {SpinRule::TSpinsPlus, {}};
+            case SpinBonuses::AllMini:
+                return {SpinRule::AllMini, {}};
+            case SpinBonuses::AllMiniPlus:
+                return {SpinRule::AllMiniPlus, {}};
+            case SpinBonuses::All:
+                return {SpinRule::AllMini, "all-mini (the room scores immobile non-T spins as full spins)"};
+            case SpinBonuses::AllPlus:
+                return {SpinRule::AllMiniPlus, "all-mini+ (the room scores immobile non-T spins as full spins)"};
+            case SpinBonuses::MiniOnly:
+                return {SpinRule::AllMiniPlus, "all-mini+ (the room scores every spin, T included, as a mini)"};
+            case SpinBonuses::Handheld:
+                return {SpinRule::AllMiniPlus, "all-mini+ (the room scores S/Z/L/J corner spins, halved)"};
+            case SpinBonuses::Stupid:
+                return {SpinRule::AllMiniPlus, "all-mini+ (the room scores every rotation that cannot move down)"};
+            case SpinBonuses::None:
+                return {SpinRule::TSpins, "T-spins (the room scores no spins)"};
+            }
+            assert(false);
+            return {SpinRule::AllMiniPlus, {}};
+        }
 
         struct PendingGarbage
         {
@@ -122,10 +164,10 @@ namespace ai_zzz
             int clear;
             int cells;
             int roof;
-            int t2_value;
-            int t3_value;
             // Per piece index, bit r set iff tanking r rows makes its spawn overlap the stack or the risen garbage.
             std::array<std::uint64_t, kPieceTypes> spawn_blocked;
+            // Per piece index: the best line-clearing spin the board offers that piece.
+            std::array<SpinSlot, kPieceTypes> spin_slots;
             io_rules::Spin spin;
             char piece;
             bool all_clear;
@@ -174,8 +216,9 @@ namespace ai_zzz
         template<class Spec, std::size_t I = 0>
         void fill_spawn_cells();
 
-        template<class MapT>
-        static void detect_t_slots(MapT const &map, int roof, int &t2_value, int &t3_value);
+        template<class Spec>
+        static std::array<SpinSlot, kPieceTypes> detect_spin_slots(typename m_tetris2::Helpers<Spec>::map_t const &map, io_rules::Options const &rules);
+        double spin_slot_value(std::array<SpinSlot, kPieceTypes> const &slots, m_tetris2::AIEnv const &env) const;
 
         Config const *config_ = nullptr;
         int width_ = 0;
@@ -216,85 +259,29 @@ namespace ai_zzz
         fill_spawn_cells<Spec>();
     }
 
-    template<class MapT>
-    void IO::detect_t_slots(MapT const &map, int roof, int &t2_value, int &t3_value)
+    template<class Spec>
+    std::array<SpinSlot, IO::kPieceTypes> IO::detect_spin_slots(typename m_tetris2::Helpers<Spec>::map_t const &map, io_rules::Options const &rules)
     {
-        constexpr int kW = MapT::width;
-        constexpr int kH = MapT::height;
-        auto row_at = [&](int y) -> std::uint32_t
-        { return y < kH ? static_cast<std::uint32_t>(map.row(y)) : 0u; };
-        // TST slot, overhang on either side: 4-column masks of rows y..y+4.
-        struct T3Shape
+        using SpinRule = search_amini::Search::SpinRule;
+        auto find = [&]<SpinRule Rule>()
         {
-            std::uint32_t floor, wall, roof_a, roof_b;
+            auto const found = find_spin_slots<Spec, m_tetris2::AMiniRuleHook<Rule>>(map, rules.allow180);
+            std::array<SpinSlot, kPieceTypes> slots{};
+            std::copy(found.begin(), found.end(), slots.begin());
+            return slots;
         };
-        static constexpr std::array<T3Shape, 2> kShapes = {{{11, 8, 4, 12}, {13, 1, 3, 1}}};
-        t2_value = 0;
-        t3_value = 0;
-        bool finding2 = true;
-        bool finding3 = true;
-        for (int y = 0; (finding2 || finding3) && y < roof - 2; ++y)
+        switch (search_spin_rule(rules.spinbonuses).rule)
         {
-            std::uint32_t const row0 = row_at(y);
-            std::uint32_t const row1 = row_at(y + 1);
-            std::uint32_t const row2 = row_at(y + 2);
-            std::uint32_t const row3 = row_at(y + 3);
-            std::uint32_t const row4 = row_at(y + 4);
-            int const count0 = std::popcount(row0);
-            int const count1 = std::popcount(row1);
-            for (int x = 0; finding2 && x < kW - 2; ++x)
-            {
-                if (((row0 >> x) & 7) == 5 && ((row1 >> x) & 7) == 0 && count0 == kW - 1)
-                {
-                    t2_value += 1;
-                    if (count1 == kW - 3)
-                    {
-                        t2_value += 2;
-                        std::uint32_t const row2_check = (row2 >> x) & 7;
-                        if (row2_check == 1 || row2_check == 4)
-                            t2_value += 2;
-                        finding2 = false;
-                    }
-                }
-            }
-            for (int x = 0; finding3 && x < kW - 3; ++x)
-            {
-                for (T3Shape const &shape : kShapes)
-                {
-                    if (((row0 >> x) & 15) != shape.floor || ((row1 >> x) & 15) != 9)
-                        continue;
-                    int value = 0;
-                    if (count0 == kW - 1)
-                    {
-                        value += 1;
-                        if (count1 == kW - 2)
-                        {
-                            value += 1;
-                            if (((row2 >> x) & 15) == shape.floor)
-                            {
-                                value += 2;
-                                if (std::popcount(row2) == kW - 1)
-                                    value += 2;
-                            }
-                            std::uint32_t const row3_check = (row3 >> x) & 15;
-                            if (row3_check == shape.wall || row3_check == 0)
-                            {
-                                value += row3_check != 0 ? 1 : 0;
-                                std::uint32_t const row4_check = (row4 >> x) & 15;
-                                value += row4_check == shape.roof_a || row4_check == shape.roof_b ? 1 : -2;
-                            }
-                            else
-                            {
-                                value = 0;
-                            }
-                        }
-                    }
-                    t3_value += value;
-                    if (value > 3)
-                        finding3 = false;
-                }
-            }
+        case SpinRule::TSpins:
+            return find.template operator()<SpinRule::TSpins>();
+        case SpinRule::TSpinsPlus:
+            return find.template operator()<SpinRule::TSpinsPlus>();
+        case SpinRule::AllMini:
+            return find.template operator()<SpinRule::AllMini>();
+        case SpinRule::AllMiniPlus:
+            break;
         }
+        return find.template operator()<SpinRule::AllMiniPlus>();
     }
 
     template<class Details>
@@ -374,8 +361,6 @@ namespace ai_zzz
         for (int i = 0; i < hole_rows; ++i, rate *= 0.25)
             result.value -= clear_width[i] * rate;
 
-        detect_t_slots(map, roof, result.t2_value, result.t3_value);
-
         // Tanking r rows moves board(x, y - r) into spawn cell (x, y). For r > y the cell holds a garbage row; hole
         // columns are unknown to the search, so such a cell counts as blocked.
         for (int i = 0; i < kPieceTypes; ++i)
@@ -394,6 +379,7 @@ namespace ai_zzz
             }
             result.spawn_blocked[i] = blocked;
         }
+        result.spin_slots = detect_spin_slots<Spec>(map, config_->rules);
         result.cells = map.popcount();
         result.roof = roof;
         result.clear = static_cast<int>(clear);
