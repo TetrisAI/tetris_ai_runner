@@ -1224,27 +1224,30 @@ namespace m_tetris2
             size_t clear = 0;
             if (row_min <= row_max)
             {
-                // 利用 Map::line_clears() + clear_lines() 批量处理.
-                // 但这两个操作针对全图，而方块只影响 [row_min, row_max]。
-                // 为正确处理消行后整体下移，仍走全图路径（clear_lines 实现是双指针遍历，
-                // 对 W=10 H=40 仅约 40 次行复制，不是热路径）.
+                // Boards never hold a full row before the piece lands, so only the piece's rows can clear.
                 using row_t_local = typename map_t::row_t;
                 constexpr row_t_local full = map_t::row_full;
-                // 手动统计清除行数并重建 map（和 clear_lines 等价但可获取 clear 数）.
-                map_t result{};
-                int dst = 0;
-                for (int y = 0; y < kH; ++y)
+                std::uint64_t full_rows = 0;
+                for (int y = row_min; y <= row_max; ++y)
+                    if (map.row(y) == full)
+                        full_rows |= std::uint64_t{1} << (y - row_min);
+                if (full_rows != 0)
                 {
-                    auto r_ = map.row(y);
-                    if (r_ == full)
+                    int dst = row_min;
+                    for (int y = row_min; y < kH; ++y)
                     {
-                        ++clear;
-                        continue;
+                        auto r_ = map.row(y);
+                        if (y <= row_max && ((full_rows >> (y - row_min)) & 1))
+                        {
+                            ++clear;
+                            continue;
+                        }
+                        map.set_row(dst, r_);
+                        ++dst;
                     }
-                    result.set_row(dst, r_);
-                    ++dst;
+                    for (; dst < kH; ++dst)
+                        map.set_row(dst, 0);
                 }
-                map = result;
             }
 
             return clear;

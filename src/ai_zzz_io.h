@@ -322,6 +322,8 @@ namespace ai_zzz
         std::array<int, kW> hole_num{};
         std::array<int, kW> well_num{};
         std::array<int, kH> clear_width{};
+        // Bit 63 - y set iff cell (x, y) is occupied, so `>> (63 - y)` puts board(x, y - r) at bit r.
+        std::array<std::uint64_t, kW> flipped_columns{};
         int hole_rows = 0;
         std::uint32_t cover = 0;
         for (int y = roof - 1; y >= 0; --y)
@@ -344,6 +346,7 @@ namespace ai_zzz
             }
             for (int x = 0; x < kW; ++x)
             {
+                flipped_columns[x] |= std::uint64_t((r >> x) & 1u) << (63 - y);
                 if ((line_hole >> x) & 1u)
                     hole_depth += ++hole_num[x];
                 else
@@ -371,11 +374,7 @@ namespace ai_zzz
             {
                 int const y = cells.y[c];
                 blocked |= ~((std::uint64_t(2) << y) - 1);
-                for (int k = std::min(y, roof - 1); k >= 0; --k)
-                {
-                    if ((row(k) >> cells.x[c]) & 1u)
-                        blocked |= std::uint64_t(1) << (y - k);
-                }
+                blocked |= flipped_columns[cells.x[c]] >> (63 - y);
             }
             result.spawn_blocked[i] = blocked;
         }

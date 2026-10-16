@@ -17,6 +17,7 @@
 #include "tetris_shape.h"
 
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
@@ -300,6 +301,8 @@ namespace m_tetris2
                 //  旋转扩展. 这样旋转扩展时 search[r] 已是当前的 "所有可由当前已知
                 //  source 平移到的位置", 与 master cover_if 在 BFS 序里"先到先得 ' ', 旋转
                 //  cover_if 把已 ' ' 标记的格子升级为 'z'/'c'/'x'" 的语义对齐.
+                // Kicks from a cell depend only on the cell, so each round rotates only cells not rotated before.
+                std::array<map_t, R_count> rotated_from{};
                 for (;;)
                 {
                     bool changed = false;
@@ -311,11 +314,14 @@ namespace m_tetris2
                         {
                             if (search[r].none())
                                 continue;
-                            map_t expand = (search[r].template shifted<-1, 0>() |
-                                            search[r].template shifted<1, 0>() |
-                                            soft_drop(moves, search[r], usable_arr[r], landable_arr[r])) &
-                                           usable_arr[r];
-                            map_t next = search[r] | expand;
+                            map_t const &usable = usable_arr[r];
+                            map_t const &from = search[r];
+                            map_t down = fill<0, -1>(from, usable, std::make_index_sequence<kFillStepsY>{});
+                            if (!moves.soft_drop_step)
+                                down &= landable_arr[r];
+                            map_t next = from | down |
+                                         fill<-1, 0>(from, usable, std::make_index_sequence<kFillStepsX>{}) |
+                                         fill<1, 0>(from, usable, std::make_index_sequence<kFillStepsX>{});
                             if (next != search[r])
                             {
                                 search[r] = next;
@@ -324,7 +330,7 @@ namespace m_tetris2
                             }
                         }
                     } while (inner_changed);
-                    bool rot_changed = expand_rotations(search, usable_arr, rot_state, moves.rotate_180);
+                    bool rot_changed = expand_rotations(search, usable_arr, rot_state, moves.rotate_180, rotated_from);
                     changed = changed || rot_changed;
                     if (!changed)
                         break;
@@ -422,6 +428,19 @@ namespace m_tetris2
                 landable_out[R] = landable_map(usable_out[R]);
             }
 
+            static constexpr std::size_t kFillStepsX = std::bit_width(static_cast<unsigned>(W - 1));
+            static constexpr std::size_t kFillStepsY = std::bit_width(static_cast<unsigned>(H - 1));
+
+            // Every cell of `usable` reachable from `from` by repeated (Dx, Dy) steps, in log2 shifts (occluded fill).
+            template<int Dx, int Dy, std::size_t... Ks>
+            static map_t fill(map_t from, map_t usable, std::index_sequence<Ks...>) noexcept
+            {
+                ((from |= usable & from.template shifted<Dx * (1 << Ks), Dy * (1 << Ks)>(),
+                  usable &= usable.template shifted<Dx * (1 << Ks), Dy * (1 << Ks)>()),
+                 ...);
+                return from;
+            }
+
             //软降一步可到达的格子: 单行软降, 或 (instant soft drop) 只能直落到底.
             static map_t soft_drop(MoveSet const &moves, map_t const &from, map_t const &usable,
                                    map_t const &landable) noexcept
@@ -445,12 +464,13 @@ namespace m_tetris2
             template<class RotState>
             static bool expand_rotations(std::array<map_t, R_count> &search,
                                          std::array<map_t, R_count> const &usable,
-                                         RotState &rot_state, bool rotate_180)
+                                         RotState &rot_state, bool rotate_180,
+                                         std::array<map_t, R_count> &rotated_from)
             {
                 bool changed = false;
                 [&]<std::size_t... Rs>(std::index_sequence<Rs...>)
                 {
-                    ((changed |= try_rotate_all<static_cast<std::uint8_t>(Rs)>(search, usable, rot_state, rotate_180)), ...);
+                    ((changed |= try_rotate_all<static_cast<std::uint8_t>(Rs)>(search, usable, rot_state, rotate_180, rotated_from)), ...);
                 }(std::make_index_sequence<R_count>{});
                 return changed;
             }
@@ -458,22 +478,27 @@ namespace m_tetris2
             template<std::uint8_t R, class RotState>
             static bool try_rotate_all(std::array<map_t, R_count> &search,
                                        std::array<map_t, R_count> const &usable,
-                                       RotState &rot_state, bool rotate_180)
+                                       RotState &rot_state, bool rotate_180,
+                                       std::array<map_t, R_count> &rotated_from)
             {
+                map_t const src = search[R] & ~rotated_from[R];
+                if (src.none())
+                    return false;
+                rotated_from[R] |= src;
                 bool changed = false;
                 //CW
                 constexpr std::uint8_t cw = shape::target_cw<Spec, T, R>;
                 if constexpr (cw != kOpRotateNone)
                 {
                     changed |= apply_kicks<R, cw, shape::wk_cw<Spec, T, R>, KickDir::Cw>(
-                        search, usable, rot_state);
+                        src, search, usable, rot_state);
                 }
                 //CCW
                 constexpr std::uint8_t ccw = shape::target_ccw<Spec, T, R>;
                 if constexpr (ccw != kOpRotateNone)
                 {
                     changed |= apply_kicks<R, ccw, shape::wk_ccw<Spec, T, R>, KickDir::Ccw>(
-                        search, usable, rot_state);
+                        src, search, usable, rot_state);
                 }
                 //OPP (180)
                 constexpr std::uint8_t opp = shape::target_opp<Spec, T, R>;
@@ -481,12 +506,12 @@ namespace m_tetris2
                 {
                     if (rotate_180)
                         changed |= apply_kicks<R, opp, shape::wk_opp<Spec, T, R>, KickDir::Opp>(
-                            search, usable, rot_state);
+                            src, search, usable, rot_state);
                 }
                 return changed;
             }
 
-            //应用踢墙: 把 search[src_r] 按踢墙 offset 平移, 与 usable[dst_r] 做交集,
+            //应用踢墙: 把 src (search[src_r] 中尚未旋转过的格子) 按踢墙 offset 平移, 与 usable[dst_r] 做交集,
             //加入 search[dst_r]. 返回是否有新增.
             //
             //KickList 的 (dx, dy) 是 master `status` (4x4 top-left) 坐标系下的 kick 偏移
@@ -499,7 +524,7 @@ namespace m_tetris2
             //  master_y = new_y + origin.y   ⇒  new_dy = kick.y + (origin_src.y - origin_dst.y)
             //  注意 x / y 的 origin 公式符号相反 (cells_impl 里 origin.y = H-1-cy_min).
             template<std::uint8_t SrcR, std::uint8_t DstR, class KickList, KickDir Dir, class RotState>
-            static bool apply_kicks(std::array<map_t, R_count> &search,
+            static bool apply_kicks(map_t src, std::array<map_t, R_count> &search,
                                     std::array<map_t, R_count> const &usable,
                                     RotState &rot_state)
             {
@@ -507,7 +532,6 @@ namespace m_tetris2
                                           shape::piece_cells<Spec, T, SrcR>.origin.x;
                 constexpr int dy_origin = shape::piece_cells<Spec, T, SrcR>.origin.y -
                                           shape::piece_cells<Spec, T, DstR>.origin.y;
-                map_t src = search[SrcR];
                 if (src.none())
                     return false;
                 map_t added{};
@@ -521,57 +545,29 @@ namespace m_tetris2
                 //  目标格升级为旋转 (tag='z'); 因此 hook 收到的是 *所有* 经由本次旋转
                 //  kick 到达的格子 (按测试序号 k 分开: 0 = 无踢墙, k = 第 k-1 个列表 kick),
                 //  而不是仅 search[DstR] 之外的新格.
-                std::size_t total_kicks = KickList::length + 1;
-                for (std::size_t k = 0; k < total_kicks; ++k)
+                auto try_kick = [&]<std::size_t K>()
                 {
-                    int dx, dy;
-                    if (k == 0)
-                    {
-                        dx = dx_origin;
-                        dy = dy_origin;
-                    }
-                    else
-                    {
-                        dx = KickList::data[(k - 1) * 2] + dx_origin;
-                        dy = KickList::data[(k - 1) * 2 + 1] + dy_origin;
-                    }
-                    map_t shifted = shift_runtime(src, dx, dy);
-                    map_t legal = shifted & usable[DstR];
+                    constexpr int dx = (K == 0 ? 0 : KickList::data[(K - 1) * 2]) + dx_origin;
+                    constexpr int dy = (K == 0 ? 0 : KickList::data[(K - 1) * 2 + 1]) + dy_origin;
+                    map_t legal = src.template shifted<dx, dy>() & usable[DstR];
                     if constexpr (kCheckTSpin)
                         Hook::template on_rotate_reach<map_t, R_count>(
-                            Dir, DstR, static_cast<std::uint8_t>(k), legal, rot_state);
+                            Dir, DstR, static_cast<std::uint8_t>(K), legal, rot_state);
                     added |= legal & ~search[DstR];
                     //first-kick-wins: 只要某 src cell 经过本 kick 几何可放, 后续 kick 不再
                     //  尝试该 src cell (与 master "成功一次就 break" 等价).
-                    src &= ~shift_runtime(legal, -dx, -dy);
-                }
+                    src &= ~legal.template shifted<-dx, -dy>();
+                };
+                [&]<std::size_t... Ks>(std::index_sequence<Ks...>)
+                {
+                    (try_kick.template operator()<Ks>(), ...);
+                }(std::make_index_sequence<KickList::length + 1>{});
                 if (added.any())
                 {
                     search[DstR] |= added;
                     return true;
                 }
                 return false;
-            }
-
-            //运行期 Map shift -- 逐行双循环, 适用于踢墙 (offset 编译期未知).
-            static map_t shift_runtime(map_t const &m, int dx, int dy) noexcept
-            {
-                map_t result{};
-                using row_t = typename map_t::row_t;
-                constexpr row_t full = map_t::row_full;
-                for (int y = 0; y < H; ++y)
-                {
-                    int src_y = y - dy;
-                    if (src_y < 0 || src_y >= H)
-                        continue;
-                    row_t r = m.row(src_y);
-                    if (dx > 0)
-                        r = static_cast<row_t>((r << dx) & full);
-                    else if (dx < 0)
-                        r = static_cast<row_t>(r >> (-dx));
-                    result.set_row(y, r);
-                }
-                return result;
             }
         };
     }
