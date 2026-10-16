@@ -56,7 +56,10 @@ Icon
 /Release
 /ppt_pso.exe
 /build
+/build-rel
 /.vscode
 /.vs
 /x64/Release
 /compile_commands.json
+/io_pso_out
+/.research
