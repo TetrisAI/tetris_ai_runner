@@ -169,6 +169,7 @@ m_tetris2::Helpers<RuleSpec>;` 显式调用 `Helpers::xxx(...)`. 官方 strategy
 | `usable_at(r, xb, yb, usable)` | 直接查 usable 表 |
 | `drop(state, usable)` | 沿 column 扫到地面后的新 `State` (越界返 nullopt) |
 | `first_kick(t, dir, state, usable)` | wall-kick 链返回首个 fits 的 `State` |
+| `first_kick_hit(t, dir, state, usable)` | 同 `first_kick`, 另返回成功的测试序号 `KickHit::test` (0 = 无踢墙, i = 第 i-1 个列表 kick) |
 | `rotate_no_kick_bb(t, dir, state)` | 仅做 0-kick 旋转, 失败返 nullopt |
 | `enumerate_spawn_row_states(t, entry, inbounds, out)` | 列出 spawn 行上该 piece 的全部旋转状态 |
 | `cells_key_for_state(s)` | 4-cell 绝对签名 `CellsKey`, 等价 oracle IndexFilter |

@@ -3,6 +3,7 @@
 
 #include "integer_utils.h"
 #include "search_aspin.h"
+#include "search_amini.h"
 #include "search_tspin.h"
 #include "tetris_active_policy.h"
 #include "tetris_core.h"
@@ -51,11 +52,11 @@ namespace m_tetris2
     //   * 旧形态 3 种 (NoTSpinPayload / TSpinPayload / ASpinPayload) 合并到 2 种.
     //   * EmptyPayload   : NoHook / NoSpinHook / CautiousHook 共用. 0 字节,
     //     与 [[no_unique_address]] 配合让 LandingPosT<Hook>::extra 不付字节.
-    //   * SpinTypePayload: TSpinHook / ASpinHook 共用. 字段排布与旧 TSpinPayload
+    //   * SpinTypePayload: TSpinHook / ASpinHook / AMiniHook 共用. 字段排布与旧 TSpinPayload
     //     byte-byte 等价 (rename spin -> type). type 编码:
     //         0 = None
-    //         1 = TSpinMini
-    //         2 = TSpinFull
+    //         1 = TSpinMini (AMiniHook: Mini)
+    //         2 = TSpinFull (AMiniHook: Full)
     //         3 = ASpin
     //     其余 4 字段 (last_x/last_y/last_r/has_last_rot) 仅 TSpinHook 实写,
     //     ASpinHook 路径下保持 0. 与旧 TSpinPayload 同布局, oracle_diff
@@ -232,13 +233,14 @@ namespace m_tetris2
         }
 
         template<class MapT, std::size_t R_count, class RS>
-        static void on_rotate_reach(std::uint8_t, MapT const &, RS &) noexcept
+        static void on_rotate_reach(KickDir, std::uint8_t, std::uint8_t, MapT const &, RS &) noexcept
         {
         }
 
         template<class Spec, char T, class LP, class MapT, std::size_t R_count,
                  class OriginArr, class Fn, class RS>
         static void on_emit(MapT const &, int, RS const &,
+                            std::array<MapT, R_count> const &,
                             std::array<MapT, R_count> const &,
                             std::array<MapT, R_count> const &,
                             OriginArr const &, OriginArr const &, Fn &&) noexcept
@@ -452,7 +454,7 @@ namespace m_tetris2
 
         //=== 2. last_rotate_arr 累积 ===
         template<class MapT, std::size_t R_count>
-        static void on_rotate_reach(std::uint8_t dst_r, MapT const &reached,
+        static void on_rotate_reach(KickDir, std::uint8_t dst_r, std::uint8_t /*test*/, MapT const &reached,
                                     RotState<MapT, R_count> &rs) noexcept
         {
             rs.last_rotate_arr[dst_r] |= reached;
@@ -464,6 +466,7 @@ namespace m_tetris2
         static void on_emit(MapT const &landings, int r, RotState<MapT, R_count> const &rs,
                             std::array<MapT, R_count> const &search,
                             std::array<MapT, R_count> const &usable_arr,
+                            std::array<MapT, R_count> const & /*moved*/,
                             OriginArr const &origin_xs, OriginArr const &origin_ys, Fn &&fn)
         {
             MapT ready = landings & rs.last_rotate_arr[r] & rs.corners3_arr[r];
@@ -529,6 +532,7 @@ namespace m_tetris2
             {
                 node_ex.last = *last_state;
             }
+            assign_spin_type(node_ex);
         }
 
         //=== Payload trait: 让 strategy 能查询 "本次 emit 是否需要解 last 节点".
@@ -580,14 +584,25 @@ namespace m_tetris2
             bool is_blocked = rs.blocked_arr[r].get(xb, yb);
             node_ex.is_ready = is_ready;
             node_ex.is_mini_ready = is_ready && is_blocked;
+            assign_spin_type(node_ex);
         }
 
     private:
+        // The class a one-line clear would score (oracle ai_zzz get); AIs re-derive it per clear count.
+        static void assign_spin_type(LandPoint &node_ex) noexcept
+        {
+            using Search = ::search_tspin::Search;
+            node_ex.type = !node_ex.is_last_rotate ? Search::None
+                           : node_ex.is_mini_ready ? Search::TSpinMini
+                           : node_ex.is_ready      ? Search::TSpin
+                                                   : Search::None;
+        }
+
         template<class MapT, int Cx, int Cy>
         static MapT corner_ct(MapT const &board) noexcept
         {
-            MapT shifted = board.template shifted<-Cx, -Cy>();
-            return ~shifted;
+            MapT out_of_bounds = ~MapT(MapT::all_mask()).template shifted<-Cx, -Cy>();
+            return board.template shifted<-Cx, -Cy>() | out_of_bounds;
         }
 
         template<class Spec, char T, class MapT, std::size_t R_count, std::uint8_t R>
@@ -945,7 +960,7 @@ namespace m_tetris2
         }
 
         template<class MapT, std::size_t R_count>
-        static void on_rotate_reach(std::uint8_t, MapT const &,
+        static void on_rotate_reach(KickDir, std::uint8_t, std::uint8_t, MapT const &,
                                     RotState<MapT, R_count> &) noexcept
         {
         }
@@ -966,6 +981,7 @@ namespace m_tetris2
         static void on_emit(MapT const &landings, int r, RotState<MapT, R_count> const &,
                             std::array<MapT, R_count> const & /*search*/,
                             std::array<MapT, R_count> const &usable_arr,
+                            std::array<MapT, R_count> const & /*moved*/,
                             OriginArr const &origin_xs, OriginArr const &origin_ys, Fn &&fn)
         {
             MapT const &u = usable_arr[r];
@@ -1063,6 +1079,257 @@ namespace m_tetris2
 
     //向后兼容旧名:
     using DefaultASpinHook = ASpinHook;
+
+    //=========================================================================
+    // AMiniRuleHook<Rule>: TETR.IO spin detection (rules.md §6, tetrio.js IsTSpin) for
+    // movegen::AMiniStrategy (search_amini.h); AMiniHook is the all-mini+ instance.
+    //
+    // A spin exists only if the final action is a rotation that ends grounded, so a
+    // landing's class depends on how it is entered. MoveGen reports every rotation
+    // per successful test (first legal kick per predecessor); on_emit then emits one
+    // LandingPos per class the cells can be entered with: None (entered by a move,
+    // by spawning, or by a non-qualifying rotation) and the best spin class.
+    //=========================================================================
+    template<::search_amini::Search::SpinRule Rule>
+    struct AMiniRuleHook
+    {
+        using AMiniType = ::search_amini::Search::AMiniType;
+        using SpinRule = ::search_amini::Search::SpinRule;
+        using Payload = SpinTypePayload;
+        using LandPoint = ::search_amini::Search::TetrisNodeWithAMiniType;
+        using Config = ::search_amini::Search::Config;
+
+        template<SpinRule R>
+        using ForRule = AMiniRuleHook<R>;
+
+        // A 3-corner T is Full when listed kick index 3 succeeds; test 0 is the plain rotation.
+        static constexpr std::uint8_t kUpgradeTest = 4;
+
+        // Whether an immobile piece that fails the T corner test still scores a Mini.
+        template<char T>
+        static constexpr bool kImmobileMini = T == 'T' ? Rule == SpinRule::TSpinsPlus || Rule == SpinRule::AllMiniPlus
+                                                       : Rule == SpinRule::AllMini || Rule == SpinRule::AllMiniPlus;
+
+        template<class MapT, std::size_t R_count>
+        struct RotState
+        {
+            std::array<MapT, R_count> rotated{};
+            std::array<MapT, R_count> upgraded{};
+            std::array<MapT, R_count> corners3{};
+            std::array<MapT, R_count> front2{};
+        };
+
+        template<char T, class Policy = void>
+        static constexpr bool active_for_piece = []() constexpr
+        {
+            if constexpr (std::is_void_v<Policy>)
+                return true;
+            else
+                return Policy::template value<T>;
+        }();
+
+        template<class Spec, char T, class MapT, std::size_t R_count>
+        static void on_init_rotations(MapT const &board, RotState<MapT, R_count> &rs)
+        {
+            if constexpr (T == 'T')
+            {
+                [&]<std::size_t... Rs>(std::index_sequence<Rs...>)
+                {
+                    (build_t_corners<Spec, MapT, R_count, static_cast<std::uint8_t>(Rs)>(board, rs), ...);
+                }(std::make_index_sequence<R_count>{});
+            }
+        }
+
+        template<class MapT, std::size_t R_count>
+        static void on_rotate_reach(KickDir, std::uint8_t dst_r, std::uint8_t test, MapT const &reached,
+                                    RotState<MapT, R_count> &rs) noexcept
+        {
+            rs.rotated[dst_r] |= reached;
+            if (test == kUpgradeTest)
+                rs.upgraded[dst_r] |= reached;
+        }
+
+        template<class Spec, char T, class LP, class MapT, std::size_t R_count,
+                 class OriginArr, class Fn>
+        static void on_emit(MapT const &landings, int r, RotState<MapT, R_count> const &rs,
+                            std::array<MapT, R_count> const & /*search*/,
+                            std::array<MapT, R_count> const &usable_arr,
+                            std::array<MapT, R_count> const &moved,
+                            OriginArr const &origin_xs, OriginArr const &origin_ys, Fn &&fn)
+        {
+            [&]<std::size_t... Rs>(std::index_sequence<Rs...>)
+            {
+                ((Rs == static_cast<std::size_t>(r)
+                      ? (emit_rotation<Spec, T, LP, MapT, R_count, static_cast<std::uint8_t>(Rs)>(
+                             landings, rs, usable_arr, moved, origin_xs[Rs], origin_ys[Rs], fn),
+                         true)
+                      : false) ||
+                 ...);
+            }(std::make_index_sequence<R_count>{});
+        }
+
+        // Class TETR.IO stores when a rotation (successful test `test`) ends at `to`.
+        template<class Spec, char T, class MapT, std::size_t N>
+        static AMiniType classify_rotation(MapT const &board, std::array<MapT, N> const &usable_arr,
+                                           State const &to, std::uint8_t test)
+        {
+            auto blocked = [&](int dx, int dy)
+            {
+                int x = to.xb + dx;
+                int y = to.yb + dy;
+                return !MapT::is_ok_x(x) || !MapT::is_ok_y(y) || !usable_arr[to.r].get(x, y);
+            };
+            if (!blocked(0, -1))
+                return AMiniType::None;
+            if constexpr (T == 'T')
+            {
+                AMiniType corner = AMiniType::None;
+                [&]<std::size_t... Rs>(std::index_sequence<Rs...>)
+                {
+                    ((Rs == to.r
+                          ? (corner = t_corner_class<Spec, MapT, static_cast<std::uint8_t>(Rs)>(board, to.xb, to.yb,
+                                                                                                test),
+                             true)
+                          : false) ||
+                     ...);
+                }(std::make_index_sequence<shape::rotation_count<Spec, 'T'>>{});
+                if (corner != AMiniType::None)
+                    return corner;
+            }
+            return kImmobileMini<T> && blocked(-1, 0) && blocked(1, 0) && blocked(0, 1) ? AMiniType::Mini
+                                                                                        : AMiniType::None;
+        }
+
+    private:
+        // Offsets of the two corners on the side the T points to, relative to its pivot.
+        struct FrontCorners
+        {
+            int x0, y0, x1, y1;
+        };
+
+        template<class Spec, std::uint8_t R>
+        static consteval FrontCorners t_front_corners()
+        {
+            constexpr auto cells = shape::piece_cells<Spec, 'T', R>;
+            auto has = [&](int dx, int dy)
+            {
+                for (std::size_t i = 0; i < cells.count; ++i)
+                    if (cells.cells[i].x - cells.pivot.x == dx && cells.cells[i].y - cells.pivot.y == dy)
+                        return true;
+                return false;
+            };
+            for (std::size_t i = 0; i < cells.count; ++i)
+            {
+                int nx = cells.cells[i].x - cells.pivot.x;
+                int ny = cells.cells[i].y - cells.pivot.y;
+                if ((nx != 0 || ny != 0) && !has(-nx, -ny))
+                {
+                    int px = nx == 0 ? 1 : 0;
+                    int py = nx == 0 ? 0 : 1;
+                    return {nx - px, ny - py, nx + px, ny + py};
+                }
+            }
+            return {0, 0, 0, 0};
+        }
+
+        template<class MapT, int Cx, int Cy>
+        static MapT occupied_or_outside(MapT const &board) noexcept
+        {
+            MapT outside = ~MapT(MapT::all_mask()).template shifted<-Cx, -Cy>();
+            return board.template shifted<-Cx, -Cy>() | outside;
+        }
+
+        template<class Spec, class MapT, std::size_t R_count, std::uint8_t R>
+        static void build_t_corners(MapT const &board, RotState<MapT, R_count> &rs)
+        {
+            constexpr int px = shape::piece_cells<Spec, 'T', R>.pivot.x;
+            constexpr int py = shape::piece_cells<Spec, 'T', R>.pivot.y;
+            constexpr FrontCorners f = t_front_corners<Spec, R>();
+            MapT bl = occupied_or_outside<MapT, px - 1, py - 1>(board);
+            MapT br = occupied_or_outside<MapT, px + 1, py - 1>(board);
+            MapT tl = occupied_or_outside<MapT, px - 1, py + 1>(board);
+            MapT tr = occupied_or_outside<MapT, px + 1, py + 1>(board);
+            rs.corners3[R] = (bl & br & (tl | tr)) | (tl & tr & (bl | br));
+            rs.front2[R] = occupied_or_outside<MapT, px + f.x0, py + f.y0>(board) &
+                           occupied_or_outside<MapT, px + f.x1, py + f.y1>(board);
+        }
+
+        template<class Spec, class MapT, std::uint8_t R>
+        static AMiniType t_corner_class(MapT const &board, int xb, int yb, std::uint8_t test)
+        {
+            constexpr int px = shape::piece_cells<Spec, 'T', R>.pivot.x;
+            constexpr int py = shape::piece_cells<Spec, 'T', R>.pivot.y;
+            constexpr FrontCorners f = t_front_corners<Spec, R>();
+            auto occupied = [&](int dx, int dy)
+            {
+                int x = xb + px + dx;
+                int y = yb + py + dy;
+                return !MapT::is_ok_x(x) || !MapT::is_ok_y(y) || board.get(x, y);
+            };
+            int corners = occupied(-1, -1) + occupied(1, -1) + occupied(-1, 1) + occupied(1, 1);
+            if (corners < 3)
+                return AMiniType::None;
+            bool front = occupied(f.x0, f.y0) && occupied(f.x1, f.y1);
+            return front || test == kUpgradeTest ? AMiniType::Full : AMiniType::Mini;
+        }
+
+        template<class MapT>
+        static MapT immobile(MapT const &usable) noexcept
+        {
+            return ~usable.template shifted<0, 1>() & ~usable.template shifted<0, -1>() &
+                   ~usable.template shifted<1, 0>() & ~usable.template shifted<-1, 0>();
+        }
+
+        // Rotations sharing R's footprint (S/Z/I) cover the same cells at the same bbox origin.
+        template<class Spec, char T, std::uint8_t A, std::uint8_t B>
+        static constexpr bool kSameFootprint =
+            shape::piece_cells<Spec, T, A>.same_geometry(shape::piece_cells<Spec, T, B>);
+
+        template<class Spec, char T, class LP, class MapT, std::size_t R_count, std::uint8_t R, class Fn>
+        static void emit_rotation(MapT const &landings, RotState<MapT, R_count> const &rs,
+                                  std::array<MapT, R_count> const &usable_arr,
+                                  std::array<MapT, R_count> const &moved_arr,
+                                  std::int8_t origin_x, std::int8_t origin_y, Fn &&fn)
+        {
+            MapT rotated{};
+            MapT upgraded{};
+            MapT moved{};
+            [&]<std::size_t... Rs>(std::index_sequence<Rs...>)
+            {
+                ((kSameFootprint<Spec, T, R, static_cast<std::uint8_t>(Rs)>
+                      ? (rotated |= rs.rotated[Rs], upgraded |= rs.upgraded[Rs], moved |= moved_arr[Rs], void())
+                      : void()),
+                 ...);
+            }(std::make_index_sequence<R_count>{});
+            MapT qualifying{};
+            if constexpr (kImmobileMini<T>)
+                qualifying = immobile(usable_arr[R]);
+            MapT full{};
+            if constexpr (T == 'T')
+            {
+                qualifying |= rs.corners3[R];
+                full = landings & rotated & rs.corners3[R] & (rs.front2[R] | upgraded);
+            }
+            MapT mini = landings & rotated & qualifying & ~full;
+            MapT none = landings & (moved | (rotated & ~qualifying));
+            auto emit = [&](MapT const &set, AMiniType type)
+            {
+                set.for_each_set_bit([&](int x, int y)
+                                     {
+                    LP lp{};
+                    lp.x = static_cast<std::int8_t>(x - origin_x);
+                    lp.y = static_cast<std::int8_t>(y + origin_y);
+                    lp.r = R;
+                    lp.extra.type = type;
+                    fn(lp); });
+            };
+            emit(full, AMiniType::Full);
+            emit(mini, AMiniType::Mini);
+            emit(none, AMiniType::None);
+        }
+    };
+
+    using AMiniHook = AMiniRuleHook<::search_amini::Search::SpinRule::AllMiniPlus>;
 
     //=========================================================================
     // CautiousHook: c2_ai 走 MoveGenSearch 时挂的 hook 变体. 不计算任何 spin/last

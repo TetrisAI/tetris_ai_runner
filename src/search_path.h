@@ -109,7 +109,7 @@ namespace m_tetris2
                     [&]<std::size_t... Is>(std::index_sequence<Is...>)
                     {
                         (((!dispatched && piece_info_t::type_at(Is) == t20)
-                              ? (run_piece_20g<piece_info_t::type_at(Is)>(ctx, board, depth), dispatched = true)
+                              ? (run_piece_20g<piece_info_t::type_at(Is)>(ctx, board, spawn, depth), dispatched = true)
                               : false),
                          ...);
                     }(std::make_index_sequence<kPieceCount>{});
@@ -124,7 +124,7 @@ namespace m_tetris2
                 [&]<std::size_t... Is>(std::index_sequence<Is...>)
                 {
                     (((!dispatched && piece_info_t::type_at(Is) == t)
-                          ? (run_piece<piece_info_t::type_at(Is)>(ctx, board, depth), dispatched = true)
+                          ? (run_piece<piece_info_t::type_at(Is)>(ctx, board, spawn, depth), dispatched = true)
                           : false),
                      ...);
                 }(std::make_index_sequence<kPieceCount>{});
@@ -151,7 +151,7 @@ namespace m_tetris2
                     {
                         (((!dispatched && piece_info_t::type_at(Is) == t20)
                               ? (run_piece_20g<piece_info_t::type_at(Is), EvalCallback>(
-                                     ctx, board, depth, &on_land),
+                                     ctx, board, spawn, depth, &on_land),
                                  dispatched = true)
                               : false),
                          ...);
@@ -168,7 +168,7 @@ namespace m_tetris2
                 {
                     (((!dispatched && piece_info_t::type_at(Is) == t)
                           ? (run_piece<piece_info_t::type_at(Is), EvalCallback>(
-                                 ctx, board, depth, &on_land),
+                                 ctx, board, spawn, depth, &on_land),
                              dispatched = true)
                           : false),
                      ...);
@@ -201,7 +201,7 @@ namespace m_tetris2
             //   传入 void（默认）时退化为原有 push_back 行为。
             //==================================================================
             template<char T, class EvalCallback = void>
-            static void run_piece(Context &ctx, map_t const &board, std::size_t depth,
+            static void run_piece(Context &ctx, map_t const &board, State const &start, std::size_t depth,
                                   EvalCallback *on_land = nullptr)
             {
                 constexpr bool EnableMini = []() constexpr {
@@ -270,9 +270,7 @@ namespace m_tetris2
                     }(std::make_index_sequence<Helpers::template rcount_v<T>()>{});
                     (void)emitted;
                 };
-                constexpr auto sp_run = RuleSpec::spawn(T, kW, kH);
-                movegen::MoveGen<RuleSpec, T, SpinHook>::generate(
-                    board, sp_run.first, sp_run.second, collect);
+                movegen::MoveGen<RuleSpec, T, SpinHook>::generate(board, start, collect);
             }
 
             //==================================================================
@@ -465,7 +463,7 @@ namespace m_tetris2
             };
 
             template<char T, class EvalCallback = void>
-            static void run_piece_20g(Context &ctx, map_t const &board, std::size_t depth,
+            static void run_piece_20g(Context &ctx, map_t const &board, State const &start, std::size_t depth,
                                       EvalCallback *on_land = nullptr)
             {
                 constexpr bool EnableT = []() constexpr {
@@ -489,9 +487,7 @@ namespace m_tetris2
                     SpinHook::template on_init_rotations<RuleSpec, T, map_t, kMaxR>(board, rot_state);
                     SpinHook::template compute_mini_blocked_arr<RuleSpec, T, map_t, kMaxR>(usable_arr, rot_state);
                 }
-                constexpr auto sp = RuleSpec::spawn(T, kW, kH);
-                State spawn_bb = Helpers::template build_state_from_master<T, 0>(sp.first, sp.second);
-                auto sunk_opt = Helpers::drop(spawn_bb, usable_arr);
+                auto sunk_opt = Helpers::drop(start, usable_arr);
                 if (!sunk_opt)
                     return;
                 State start_state = *sunk_opt;
@@ -1236,8 +1232,9 @@ namespace path
 // search_path.h 的核心类型已定义完成，其他搜索标签可在此之后补全顶层命名空间。
 #define TETRIS_AI_RUNNER_SEARCH_PATH_TAGS_READY_
 
-// 重新包含 search_aspin.h 与 search_tspin.h，使依赖 PathStrategy 的顶层搜索标签在这里展开。
+// 重新包含 search_aspin.h / search_tspin.h / search_amini.h，使依赖 PathStrategy 的顶层搜索标签在这里展开。
 #include "search_aspin.h"
 #include "search_tspin.h"
+#include "search_amini.h"
 
 #endif // TETRIS_AI_RUNNER_SEARCH_PATH_H_

@@ -326,6 +326,26 @@ target_include_directories(${PROJECT_NAME} PRIVATE src)
 target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core)
 
 # ---------------------------------------------------------------------------
+# engine_regression_test: TetrisEngine env queue (4-arg get, hold swap, iterate
+# + held tail), TSpinHook spin types and corner polarity, attach. Built with
+# ASan/UBSan where available so out-of-bounds queue reads fail the test.
+# ---------------------------------------------------------------------------
+project(engine_regression_test)
+add_executable(${PROJECT_NAME}
+    src/ai_zzz.cpp
+    src/integer_utils.cpp
+    src/random.cpp
+    test/engine_regression_test.cpp
+)
+target_include_directories(${PROJECT_NAME} PRIVATE src)
+target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core)
+if(NOT MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
+    target_link_libraries(${PROJECT_NAME} PRIVATE -fsanitize=address,undefined)
+endif()
+add_test(NAME tetris_engine_regression COMMAND engine_regression_test)
+
+# ---------------------------------------------------------------------------
 # ctest 注册. 名字前缀 tetris_diff_* 让 `ctest -R tetris_diff_` 能一键勾选.
 #
 # 严格 driver: binary exit 非零即 ctest 失败 (默认 PASS_REGULAR_EXPRESSION /
@@ -408,3 +428,72 @@ target_include_directories(vs PRIVATE src)
 if(NOT WIN32)
     target_link_libraries(vs PRIVATE dl)
 endif()
+
+# ---------------------------------------------------------------------------
+# io_uds: TETR.IO bot server for botconnect (protocol v2, AF_UNIX socket, POSIX only).
+# Off by default: it downloads nlohmann_json, which the CI `tetris_ai` build must not need.
+# ---------------------------------------------------------------------------
+option(TETRIS_IO_UDS "Build the io_uds TETR.IO socket server (downloads nlohmann_json)" OFF)
+if(TETRIS_IO_UDS)
+    if(WIN32)
+        message(FATAL_ERROR "io_uds needs AF_UNIX stream sockets (POSIX only)")
+    endif()
+    if(CMAKE_VERSION VERSION_LESS 3.14)
+        message(FATAL_ERROR "io_uds needs CMake >= 3.14 for FetchContent_MakeAvailable")
+    endif()
+    if(POLICY CMP0135)
+        cmake_policy(SET CMP0135 NEW)
+    endif()
+    include(FetchContent)
+    FetchContent_Declare(nlohmann_json
+        URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
+        URL_HASH SHA256=42f6e95cad6ec532fd372391373363b62a14af6d771056dbfc86160e6dfff7aa
+    )
+    FetchContent_MakeAvailable(nlohmann_json)
+
+    add_executable(io_uds src/io_uds.cpp)
+    target_link_libraries(io_uds PRIVATE ai_zzz_io tetris_core nlohmann_json::nlohmann_json Threads::Threads)
+endif()
+
+# ---------------------------------------------------------------------------
+# TETR.IO Season 2: io_rules (header-only rules logic) and the ai_zzz::IO AI.
+# Hosts (io_uds, io_sim, io_pso) link ai_zzz_io.
+# ---------------------------------------------------------------------------
+add_library(ai_zzz_io STATIC src/ai_zzz_io.cpp)
+target_link_libraries(ai_zzz_io PUBLIC tetris_core)
+
+add_executable(io_rules_test test/io_rules_test.cpp)
+target_link_libraries(io_rules_test PRIVATE tetris_core)
+add_test(NAME tetris_io_rules COMMAND io_rules_test)
+
+add_executable(ai_zzz_io_test test/ai_zzz_io_test.cpp)
+target_link_libraries(ai_zzz_io_test PRIVATE ai_zzz_io tetris_core)
+add_test(NAME tetris_ai_zzz_io COMMAND ai_zzz_io_test)
+
+# ---------------------------------------------------------------------------
+# io_pso / io_sim_test: TETR.IO S2 match simulator (src/io_sim.*) and the PSO
+# trainer over ai_zzz::IO parameters. Train with a Release build.
+# ---------------------------------------------------------------------------
+add_executable(io_pso src/io_pso.cpp src/io_sim.cpp)
+target_link_libraries(io_pso PRIVATE ai_zzz_io tetris_core Threads::Threads)
+
+add_executable(io_sim_test test/io_sim_test.cpp src/io_sim.cpp)
+target_link_libraries(io_sim_test PRIVATE ai_zzz_io tetris_core)
+add_test(NAME tetris_io_sim COMMAND io_sim_test)
+
+# ---------------------------------------------------------------------------
+# amini tests: rule_io + amini::Search against an independent TETR.IO model
+# (test/_amini_reference.h). amini_witness_test also uses the diff fixtures.
+# ---------------------------------------------------------------------------
+add_executable(amini_witness_test
+    src/integer_utils.cpp
+    src/random.cpp
+    test/amini_witness_test.cpp
+)
+target_include_directories(amini_witness_test PRIVATE src oracle)
+target_link_libraries(amini_witness_test PRIVATE tetris_oracle)
+add_test(NAME tetris_amini_witness COMMAND amini_witness_test)
+
+add_executable(amini_classification_test test/amini_classification_test.cpp)
+target_link_libraries(amini_classification_test PRIVATE tetris_core)
+add_test(NAME tetris_amini_classification COMMAND amini_classification_test)

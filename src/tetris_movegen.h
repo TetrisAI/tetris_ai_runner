@@ -38,6 +38,14 @@ namespace m_tetris2
 
     namespace movegen
     {
+        //MoveGen 的按键能力. soft_drop_step=false: 软降不能停在半空 (instant soft drop),
+        //  只能一次落到底.
+        struct MoveSet
+        {
+            bool rotate_180 = true;
+            bool soft_drop_step = true;
+        };
+
         //=== usable_map 构造 ===
         //对给定旋转 R 和棋盘 board, 构造"基准点可放置位图":
         //即 piece 的每个 cell(相对偏移 (cx, cy)) 都不与 board 碰撞.
@@ -247,17 +255,14 @@ namespace m_tetris2
         public:
             //输出回调: fn(LandingPos) for each reachable landing.
             //
-            //spawn_x / spawn_y 为游戏出生位置 (Map 坐标, y-up), 与
-            //  TetrisBlockStatus(PT, x, y, 0) 第 2/3 参数同形.
-            //  调用方应当通过 RuleSpec::spawn(PT, W, H) 取值; SRS 系默认 (3, 21),
-            //  非 SRS rule 在自家 specialization 上覆盖.
-            //  注意: 这与 OpDesc::spawn_x/spawn_y (piece-local 初始化锚点)
-            //  完全不同, 不要混用.
-            //
-            //找不到合法 spawn 位置 (例如顶部塞死) 时直接返回, 不输出任何落点.
+            //start: 活动块的起始位板状态 (rotation + bbox 左下角), 即 Helpers::state_from_status
+            //  对宿主给出的 TetrisBlockStatus 的换算; 新块出生时取 RuleSpec::spawn 换算的状态.
+            //找不到合法起点 (例如顶部塞死) 时直接返回, 不输出任何落点.
+            //moves: 默认 = 单行软降 + 180 旋转 (全部现有 search 的语义).
             template<class Fn>
-            static void generate(map_t const &board, int spawn_x, int spawn_y, Fn &&fn)
+            static void generate(map_t const &board, State const &start, Fn &&fn, MoveSet moves = {})
             {
+                assert(start.r < R_count);
                 //1. 构建 usable / landable (每个旋转独立)
                 std::array<map_t, R_count> usable_arr{};
                 std::array<map_t, R_count> landable_arr{};
@@ -273,22 +278,22 @@ namespace m_tetris2
                     Hook::template on_init_rotations<Spec, T, map_t, R_count>(board, rot_state);
                 }
 
-                //2. seed: spawn 位置, 只在 R=0 处点亮.
-                //   若 spawn 处不可放, 沿 y 向上探至棋盘顶部 (cobra Slow init 思路).
+                //2. seed: 起点只在 start.r 处点亮.
+                //   若起点不可放, 沿 y 向上探至棋盘顶部 (cobra Slow init 思路).
                 map_t seed{};
-                if (map_t::is_ok_x(spawn_x))
+                if (map_t::is_ok_x(start.xb))
                 {
-                    int sy = spawn_y;
-                    while (sy < H && !usable_arr[0].get(spawn_x, sy))
+                    int sy = start.yb;
+                    while (sy < H && !usable_arr[start.r].get(start.xb, sy))
                         ++sy;
                     if (sy < H)
-                        seed.set(spawn_x, sy);
+                        seed.set(start.xb, sy);
                 }
                 if (seed.none())
                     return;
 
                 std::array<map_t, R_count> search{};
-                search[0] = seed & usable_arr[0];
+                search[start.r] = seed & usable_arr[start.r];
 
                 //3. BFS 主循环: 平移收敛 + 旋转扩展, 反复直到不再变化.
                 //  *关键* 每轮先把所有 r 的平移扩展到收敛 (内层 do/while), 再做一次
@@ -308,7 +313,7 @@ namespace m_tetris2
                                 continue;
                             map_t expand = (search[r].template shifted<-1, 0>() |
                                             search[r].template shifted<1, 0>() |
-                                            search[r].template shifted<0, -1>()) &
+                                            soft_drop(moves, search[r], usable_arr[r], landable_arr[r])) &
                                            usable_arr[r];
                             map_t next = search[r] | expand;
                             if (next != search[r])
@@ -319,7 +324,7 @@ namespace m_tetris2
                             }
                         }
                     } while (inner_changed);
-                    bool rot_changed = expand_rotations(search, usable_arr, rot_state);
+                    bool rot_changed = expand_rotations(search, usable_arr, rot_state, moves.rotate_180);
                     changed = changed || rot_changed;
                     if (!changed)
                         break;
@@ -338,6 +343,16 @@ namespace m_tetris2
                 //     - kCheckTSpin = true:  调用 Hook::on_emit, 由 hook 自己分类
                 //       Full / Mini / None 并回填 last 前驱.
                 std::array<std::uint64_t, kFilteredWords> filtered_mark{};
+                //hook 需要区分 "最后一步是旋转" 与 "经平移/软降/出生到达" 的格子.
+                std::array<map_t, R_count> moved{};
+                if constexpr (kCheckTSpin)
+                {
+                    for (int r = 0; r < R_count; ++r)
+                        moved[r] = search[r] & (search[r].template shifted<-1, 0>() |
+                                                search[r].template shifted<1, 0>() |
+                                                soft_drop(moves, search[r], usable_arr[r], landable_arr[r]));
+                    moved[start.r] |= search[start.r] & seed;
+                }
                 for (int k = 0; k < R_count; ++k)
                 {
                     int r = static_cast<int>(kCcwVisit[k]);
@@ -369,7 +384,7 @@ namespace m_tetris2
                     {
                         Hook::template on_emit<Spec, T, LandingPosT<Hook>, map_t, R_count,
                                                decltype(kOriginXs)>(
-                            landings, r, rot_state, search, usable_arr,
+                            landings, r, rot_state, search, usable_arr, moved,
                             kOriginXs, kOriginYs, fn);
                     }
                     else
@@ -407,19 +422,35 @@ namespace m_tetris2
                 landable_out[R] = landable_map(usable_out[R]);
             }
 
+            //软降一步可到达的格子: 单行软降, 或 (instant soft drop) 只能直落到底.
+            static map_t soft_drop(MoveSet const &moves, map_t const &from, map_t const &usable,
+                                   map_t const &landable) noexcept
+            {
+                map_t fall = from.template shifted<0, -1>() & usable;
+                if (moves.soft_drop_step)
+                    return fall;
+                for (;;)
+                {
+                    map_t next = fall | (fall.template shifted<0, -1>() & usable);
+                    if (next == fall)
+                        return fall & landable;
+                    fall = next;
+                }
+            }
+
             //旋转扩展: 对每个 rotation, 尝试 CW/CCW/OPP 踢墙.
             //  rot_state: per-rotation spin 元数据由 hook 维护, MoveGen 仅在
-            //  apply_kicks 内通过 Hook::on_rotate_reach 把"本次旋转新到达 cell" 抛给它.
+            //  apply_kicks 内按 (方向, 测试序号) 通过 Hook::on_rotate_reach 把本次旋转到达的 cell 抛给它.
             //  NoHook 路径下 rot_state 是 EmptyRotState, on_rotate_reach 空实现.
             template<class RotState>
             static bool expand_rotations(std::array<map_t, R_count> &search,
                                          std::array<map_t, R_count> const &usable,
-                                         RotState &rot_state)
+                                         RotState &rot_state, bool rotate_180)
             {
                 bool changed = false;
                 [&]<std::size_t... Rs>(std::index_sequence<Rs...>)
                 {
-                    ((changed |= try_rotate_all<static_cast<std::uint8_t>(Rs)>(search, usable, rot_state)), ...);
+                    ((changed |= try_rotate_all<static_cast<std::uint8_t>(Rs)>(search, usable, rot_state, rotate_180)), ...);
                 }(std::make_index_sequence<R_count>{});
                 return changed;
             }
@@ -427,29 +458,30 @@ namespace m_tetris2
             template<std::uint8_t R, class RotState>
             static bool try_rotate_all(std::array<map_t, R_count> &search,
                                        std::array<map_t, R_count> const &usable,
-                                       RotState &rot_state)
+                                       RotState &rot_state, bool rotate_180)
             {
                 bool changed = false;
                 //CW
                 constexpr std::uint8_t cw = shape::target_cw<Spec, T, R>;
                 if constexpr (cw != kOpRotateNone)
                 {
-                    changed |= apply_kicks<R, cw, shape::wk_cw<Spec, T, R>>(
+                    changed |= apply_kicks<R, cw, shape::wk_cw<Spec, T, R>, KickDir::Cw>(
                         search, usable, rot_state);
                 }
                 //CCW
                 constexpr std::uint8_t ccw = shape::target_ccw<Spec, T, R>;
                 if constexpr (ccw != kOpRotateNone)
                 {
-                    changed |= apply_kicks<R, ccw, shape::wk_ccw<Spec, T, R>>(
+                    changed |= apply_kicks<R, ccw, shape::wk_ccw<Spec, T, R>, KickDir::Ccw>(
                         search, usable, rot_state);
                 }
                 //OPP (180)
                 constexpr std::uint8_t opp = shape::target_opp<Spec, T, R>;
                 if constexpr (opp != kOpRotateNone)
                 {
-                    changed |= apply_kicks<R, opp, shape::wk_opp<Spec, T, R>>(
-                        search, usable, rot_state);
+                    if (rotate_180)
+                        changed |= apply_kicks<R, opp, shape::wk_opp<Spec, T, R>, KickDir::Opp>(
+                            search, usable, rot_state);
                 }
                 return changed;
             }
@@ -466,7 +498,7 @@ namespace m_tetris2
             //  master_x = new_x - origin.x   ⇒  new_dx = kick.x + (origin_dst.x - origin_src.x)
             //  master_y = new_y + origin.y   ⇒  new_dy = kick.y + (origin_src.y - origin_dst.y)
             //  注意 x / y 的 origin 公式符号相反 (cells_impl 里 origin.y = H-1-cy_min).
-            template<std::uint8_t SrcR, std::uint8_t DstR, class KickList, class RotState>
+            template<std::uint8_t SrcR, std::uint8_t DstR, class KickList, KickDir Dir, class RotState>
             static bool apply_kicks(std::array<map_t, R_count> &search,
                                     std::array<map_t, R_count> const &usable,
                                     RotState &rot_state)
@@ -479,7 +511,6 @@ namespace m_tetris2
                 if (src.none())
                     return false;
                 map_t added{};
-                map_t rotate_reached{};
                 //master 在 BFS 时把 wall_kick_*[0] 设为 0-kick (即 rotate_##func 缓存),
                 //  随后才 append KickList 内的 (dx, dy). 这里也要把 0-kick 当作
                 //  KickList::length+1 个 kick 中的第 0 个先 try, 否则像 r=1→r=0 (JLSTZ
@@ -487,8 +518,9 @@ namespace m_tetris2
                 //  在新 BFS 上不会被 last_rotate 标记 -> spin 漏标.
                 //
                 //另外 master 的 cover_if(' ' -> 'z') 允许把先前由平移到达 (tag=' ') 的
-                //  目标格升级为旋转 (tag='z'); 因此 last_rotate_arr 应吃掉 *所有* 经由
-                //  本次旋转 kick 第一次到达的格子, 而不是仅 search[DstR] 之外的新格.
+                //  目标格升级为旋转 (tag='z'); 因此 hook 收到的是 *所有* 经由本次旋转
+                //  kick 到达的格子 (按测试序号 k 分开: 0 = 无踢墙, k = 第 k-1 个列表 kick),
+                //  而不是仅 search[DstR] 之外的新格.
                 std::size_t total_kicks = KickList::length + 1;
                 for (std::size_t k = 0; k < total_kicks; ++k)
                 {
@@ -506,16 +538,12 @@ namespace m_tetris2
                     map_t shifted = shift_runtime(src, dx, dy);
                     map_t legal = shifted & usable[DstR];
                     if constexpr (kCheckTSpin)
-                        rotate_reached |= legal;
+                        Hook::template on_rotate_reach<map_t, R_count>(
+                            Dir, DstR, static_cast<std::uint8_t>(k), legal, rot_state);
                     added |= legal & ~search[DstR];
                     //first-kick-wins: 只要某 src cell 经过本 kick 几何可放, 后续 kick 不再
                     //  尝试该 src cell (与 master "成功一次就 break" 等价).
                     src &= ~shift_runtime(legal, -dx, -dy);
-                }
-                if constexpr (kCheckTSpin)
-                {
-                    // 最后一次旋转到达信息由 Hook 累积维护。
-                    Hook::template on_rotate_reach<map_t, R_count>(DstR, rotate_reached, rot_state);
                 }
                 if (added.any())
                 {

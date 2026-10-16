@@ -436,7 +436,7 @@ namespace m_tetris2
         template<class TreeNode, bool EnableEnv>
         struct TetrisSelectGet<TreeNode, EnableEnv, 4>
         {
-            typedef std::false_type enable_next_c;
+            typedef std::true_type enable_next_c;
             static void get(typename TreeNode::Context *context, TreeNode *node, TreeNode *parent)
             {
                 node->status.set(TetrisCallGet<TetrisAI>::get(*context->ai,
@@ -560,7 +560,7 @@ namespace m_tetris2
             typedef TetrisNext<TetrisAI, typename TetrisAIHasIterate<TetrisAI>::type> next_t;
 
         public:
-            Context(std::deque<TetrisTreeNode> *_node_storage) : version(), is_complete(), is_open_hold(), node_storage(_node_storage), free_list(nullptr), free_count(0), current_t('\0'), width(), total(), avg()
+            Context(std::deque<TetrisTreeNode> *_node_storage) : version(), is_complete(), is_open_hold(), max_length(), node_storage(_node_storage), free_list(nullptr), free_count(0), current_t('\0'), width(), total(), avg()
             {
             }
 
@@ -586,6 +586,7 @@ namespace m_tetris2
             size_t free_count;
             std::vector<Status const *> iterate_cache;
             char current_t;
+            m_tetris2::State root_start{};
             std::vector<next_t> next;
             std::vector<char> next_c;
             std::vector<double> width_cache;
@@ -752,13 +753,18 @@ namespace m_tetris2
         //   LandPoint (TetrisLandPoint / TetrisNodeWith*SpinType): 用 {t, xb, yb, r}
         //   构造伪 TetrisBlockStatus。yb 为底行（非真实 status.y 顶行），但在
         //   同一 LandPoint 类型的同一个 map 内，唯一性与真实 status 等价。
+        //   amini emits the same state once per spin class, so the class goes into r's spare high bits
+        //   (rotation counts are < 32).
         template<class LP>
         static TetrisBlockStatus lp_key(LP const &lp) noexcept
         {
+            std::uint8_t r = lp.state.r;
+            if constexpr (requires { lp.type; })
+                r = static_cast<std::uint8_t>(r | (static_cast<std::uint8_t>(lp.type) << 5));
             return TetrisBlockStatus{static_cast<char>(lp.state.t),
                                      static_cast<int8_t>(lp.state.xb),
                                      static_cast<int8_t>(lp.state.yb),
-                                     lp.state.r};
+                                     r};
         }
         // lp_type: 提取 piece-type char（用于 convert / is_hold 比较）。
         template<class LP>
@@ -831,11 +837,43 @@ namespace m_tetris2
             }
             return next;
         }
-        TetrisTreeNode *update(Context *context, map_t const &_map, Status const &status, char _t, char const *_next, size_t _next_length)
+        static m_tetris2::State spawn_state(char t)
         {
+            using SearchSpec = typename SearchRuleSpecOf<TetrisSearch>::type;
+            auto sp = SearchSpec::spawn(t, SearchSpec::width, SearchSpec::height);
+            return m_tetris2::Helpers<SearchSpec>::state_from_status(t, 0, sp.first, sp.second);
+        }
+        // Only the root's active piece starts from the host's position; held and preview pieces enter at spawn.
+        m_tetris2::State start_state(Context const *context, char t) const
+        {
+            return parent == nullptr && t == context->current_t ? context->root_start : spawn_state(t);
+        }
+        // Children of the active piece depend on its start (reachability and spin class), so a new start drops them.
+        bool restart(Context *context, bool searched_as_root, TetrisBlockStatus const &active)
+        {
+            using SearchSpec = typename SearchRuleSpecOf<TetrisSearch>::type;
+            auto start = m_tetris2::Helpers<SearchSpec>::state_from_status(active.t, static_cast<std::uint8_t>(active.r), active.x, active.y);
+            bool changed = !m_tetris2::StateEqual{}(start, searched_as_root ? context->root_start : spawn_state(active.t));
+            context->root_start = start;
+            if (changed)
+            {
+                for (auto it = children; it != nullptr; it = it->children_next)
+                {
+                    context->dealloc(it);
+                }
+                children = nullptr;
+                node_flag.clear();
+                is_dead = false;
+            }
+            return changed;
+        }
+        TetrisTreeNode *update(Context *context, map_t const &_map, Status const &status, TetrisBlockStatus const &active, char const *_next, size_t _next_length)
+        {
+            char _t = active.t;
             TetrisTreeNode *root = update_root(context, _map);
+            bool restarted = root->restart(context, root == this, active);
             std::vector<next_t> next = process_next(_next, _next_length, _t);
-            if (root != this || (context->current_t == '\0' || _t != root->node) || context->is_open_hold || next != context->next)
+            if (restarted || root != this || (context->current_t == '\0' || _t != root->node) || context->is_open_hold || next != context->next)
             {
                 context->is_complete = false;
                 context->max_length = next.size() - 1;
@@ -860,11 +898,13 @@ namespace m_tetris2
             context->width_cache.clear();
             return root;
         }
-        TetrisTreeNode *update(Context *context, map_t const &_map, Status const &status, char _t, char _hold, bool _hold_lock, char const *_next, size_t _next_length)
+        TetrisTreeNode *update(Context *context, map_t const &_map, Status const &status, TetrisBlockStatus const &active, char _hold, bool _hold_lock, char const *_next, size_t _next_length)
         {
+            char _t = active.t;
             TetrisTreeNode *root = update_root(context, _map);
+            bool restarted = root->restart(context, root == this, active);
             std::vector<next_t> next = process_next(_next, _next_length, _t);
-            if (root != this || (context->current_t == '\0' || _t != root->node) || !context->is_open_hold || next != context->next || _hold != root->hold || !!_hold_lock != root->is_hold_lock)
+            if (restarted || root != this || (context->current_t == '\0' || _t != root->node) || !context->is_open_hold || next != context->next || _hold != root->hold || !!_hold_lock != root->is_hold_lock)
             {
                 context->is_complete = false;
                 context->max_length = next.size() - 1;
@@ -919,10 +959,8 @@ namespace m_tetris2
         void search(Context *context, char search_t, bool is_hold)
         {
             using SearchSpec = typename SearchRuleSpecOf<TetrisSearch>::type;
-            using SearchHelpers = m_tetris2::Helpers<SearchSpec>;
-            auto sp = SearchSpec::spawn(search_t, SearchSpec::width, SearchSpec::height);
             auto board = m_tetris2::build_board_for_search<SearchSpec>(map);
-            auto spawn = SearchHelpers::state_from_status(search_t, 0, sp.first, sp.second);
+            auto spawn = start_state(context, search_t);
             if (node_flag.empty())
             {
                 node_flag.set(search_t);
@@ -972,12 +1010,9 @@ namespace m_tetris2
         void search(Context *context, char search_t, char hold_t)
         {
             using SearchSpec = typename SearchRuleSpecOf<TetrisSearch>::type;
-            using SearchHelpers = m_tetris2::Helpers<SearchSpec>;
-            auto s_sp = SearchSpec::spawn(search_t, SearchSpec::width, SearchSpec::height);
-            auto h_sp = SearchSpec::spawn(hold_t, SearchSpec::width, SearchSpec::height);
             auto board = m_tetris2::build_board_for_search<SearchSpec>(map);
-            auto search_spawn = SearchHelpers::state_from_status(search_t, 0, s_sp.first, s_sp.second);
-            auto hold_spawn = hold_t != '\0' ? SearchHelpers::state_from_status(hold_t, 0, h_sp.first, h_sp.second) : m_tetris2::State{};
+            auto search_spawn = start_state(context, search_t);
+            auto hold_spawn = hold_t != '\0' ? start_state(context, hold_t) : m_tetris2::State{};
             if (search_t == hold_t)
             {
                 return search(context, search_t, false);
@@ -1181,7 +1216,8 @@ namespace m_tetris2
                 AIEnv result =
                     {
                         nullptr, 0, lp_type(tree_node->identity), tree_node->is_hold ? node : hold};
-                result.length = std::distance(next, context->next.cend());
+                auto queue_begin = tree_node->is_hold && hold == ' ' ? std::next(next) : next;
+                result.length = std::distance(queue_begin, context->next.cend());
                 if (result.length == 0)
                 {
                     result.next = nullptr;
@@ -1217,7 +1253,7 @@ namespace m_tetris2
             {
                 Core::template get<true>(context, it, this);
             }
-            if (TetrisAIHasIterate<TetrisAI>::type::value && context->next[level].get_vp())
+            if (TetrisAIHasIterate<TetrisAI>::type::value && level < context->next.size() && context->next[level].get_vp())
             {
                 for (auto it = children; it != nullptr; it = it->children_next)
                 {
@@ -1635,8 +1671,7 @@ namespace m_tetris2
                     size_t attach(LP const &lp, map_t &map) const
         {
             using Spec = typename SearchRuleSpecOf<TetrisSearch>::type;
-            auto bb_map = m_tetris2::build_board_for_search<Spec>(map);
-            return m_tetris2::Helpers<Spec>::attach_to_map(lp.state, bb_map);
+            return m_tetris2::Helpers<Spec>::attach_to_map(lp.state, map);
         }
         uint64_t memory_limit() const
         {
@@ -1720,7 +1755,7 @@ namespace m_tetris2
             using namespace std::chrono;
             auto const &bb_map = map;
             auto now = high_resolution_clock::now(), end = now + std::chrono::milliseconds(limit);
-            root_ = root_->update(&local_context_, bb_map, status_, status.t, next, next_length);
+            root_ = root_->update(&local_context_, bb_map, status_, status, next, next_length);
             do
             {
                 if (root_->template run<false>(&local_context_))
@@ -1737,7 +1772,7 @@ namespace m_tetris2
             using namespace std::chrono;
             auto const &bb_map = map;
             auto now = high_resolution_clock::now(), end = now + std::chrono::milliseconds(limit);
-            root_ = root_->update(&local_context_, bb_map, status_, status.t, hold, !hold_free, next, next_length);
+            root_ = root_->update(&local_context_, bb_map, status_, status, hold, !hold_free, next, next_length);
             do
             {
                 if (root_->template run<true>(&local_context_))

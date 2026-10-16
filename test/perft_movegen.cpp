@@ -129,8 +129,8 @@ namespace
     // 列差距通过 BFS slow-init 自动消化 (沿 y 向上探), 因此这里只要选一个安全的
     // 高位 y 即可. 取 y = 20 (留 4 行空间), x = 3 (cobra SPAWN_X = 4 减 1, 因为我们的
     // 基准点偏左一格).
-    constexpr int kSpawnX = 3;
-    constexpr int kSpawnY = 20;
+    template<char T>
+    constexpr m_tetris2::State kSpawn{static_cast<std::uint8_t>(T), 0, 3, 20};
 
     template<char T>
     int dump_piece(bool enable_mini)
@@ -143,7 +143,7 @@ namespace
             landings.reserve(64);
             auto collect = [&](m_tetris2::LandingPosT<Hook> p)
             { landings.push_back(p); };
-            m_tetris2::movegen::MoveGen<Rule, T, Hook>::generate(board, kSpawnX, kSpawnY, collect);
+            m_tetris2::movegen::MoveGen<Rule, T, Hook>::generate(board, kSpawn<T>, collect);
             std::sort(landings.begin(), landings.end(),
                       [](auto const &a, auto const &b)
                       {
@@ -171,7 +171,7 @@ namespace
             landings.reserve(64);
             auto collect = [&](m_tetris2::LandingPosT<Hook> p)
             { landings.push_back(p); };
-            m_tetris2::movegen::MoveGen<Rule, T, Hook>::generate(board, kSpawnX, kSpawnY, collect);
+            m_tetris2::movegen::MoveGen<Rule, T, Hook>::generate(board, kSpawn<T>, collect);
             std::sort(landings.begin(), landings.end(),
                       [](auto const &a, auto const &b)
                       {

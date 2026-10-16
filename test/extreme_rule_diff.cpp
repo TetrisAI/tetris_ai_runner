@@ -71,7 +71,8 @@ namespace
                               static_cast<int>(p.y)});
         };
         auto sp = NewRule::spawn(T, kW, kH);
-        m_tetris2::movegen::MoveGen<NewRule, T, Hook>::generate(board, sp.first, sp.second, collect);
+        auto start = m_tetris2::Helpers<NewRule>::state_from_status(T, 0, sp.first, sp.second);
+        m_tetris2::movegen::MoveGen<NewRule, T, Hook>::generate(board, start, collect);
         std::sort(out.begin(), out.end());
         out.erase(std::unique(out.begin(), out.end()), out.end());
         return out;

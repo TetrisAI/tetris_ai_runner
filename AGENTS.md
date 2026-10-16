@@ -5,7 +5,7 @@ C++20 Tetris bot engine. It builds shared libraries (`tetris_ai`, `tetris_ai_run
 
 Two engines:
 - `src/` (namespace `m_tetris2`): the live rewrite and the only place for new code. Rules are compile-time; searches use a Searcher + Strategy + Mixin + Hook design.
-- `oracle/` (namespace `m_tetris`): the old pointer-graph engine (`TetrisContext` / `TetrisNode*`). It is the behaviour baseline for the diff tests. **Frozen: never edit `oracle/`.**
+- `oracle/` (namespace `m_tetris`): the old pointer-graph engine (`TetrisContext` / `TetrisNode*`). It is the behaviour baseline for the diff tests. **Frozen: never edit `oracle/`.** The only post-freeze change is the `check_ready` corner-polarity fix (see Known state).
 
 **Scope: only `ai_zzz` matters** (`src/ai_zzz.h/.cpp`). Ignore the other AIs (`ai_tag`, `ai_misaka`, `ai_farter`, `ai_ax`) and the code that serves only them (`tag::Search`, `the_ai_games`, `demo`). ai_zzz runs on:
 
@@ -17,6 +17,7 @@ Two engines:
 | `QQTetrisAI` | `rule_qq` | `qq::Attack` | `QQTetrisSearch` (simple/simulate/path) |
 | `C2TetrisAI` | `rule_c2` | `C2` | `cautious` |
 | `pso`, `top_pso` | `rule_srs` | `TOJ` | `PathStrategy` + `TSpinHook` |
+| `io_uds`, `io_pso` (TETR.IO Season 2) | `rule_io` | `IO` (`src/ai_zzz_io.*`) | `amini` |
 
 ## Architecture & Data Flow
 ```mermaid
@@ -63,6 +64,14 @@ AIs live in `src/ai_*.h/.cpp`. The engine detects members with SFINAE and `requi
 - A Searcher holds state, so use one instance per thread.
 - `search()` is the hot path; `make_path()` is not.
 
+### TETR.IO Season 2 bot
+- Game rules: `.research/tetrio-s2-rules/rules.md` (verified against the live client and a ranked replay). Code follows it, not wikis or Triangle.js.
+- `src/rule_io.h`: SRS+ kicks incl. 180°, spawn flat row = board row 21. `src/search_amini.h` (`amini::Search`): spin classes `None/Mini/Full` per runtime `Config::spin_rule` (`TSpins`, `TSpinsPlus`, `AllMini`, `AllMiniPlus`); one LandPoint per realizable class at the same cells, and `make_path` reproduces exactly that class.
+- `src/io_rules.h`: all S2 arithmetic (attack, B2B/surge, combo, all clear, garbage queue/cap/opener, multiplier ramp, Park–Miller bag and hole RNG). The AI, simulator and server never re-implement it.
+- `ai_zzz::IO` host API: `IO::make_root_status(RootState, Config)`, then `engine.update()` before every search (the engine does not compare Status/Config). `RootState::frame` is the frame at which the root placement **locks**; pending-garbage timers count from that frame. B2B/combo use TETR.IO client counters (Triangle `stats.b2b + 1`, `stats.combo + 1`).
+- `src/io_sim.*` + `src/io_pso.cpp`: S2 1v1 simulator and PSO trainer over `IO::param_fields()`; `best.params` files load with `IO::load_params`.
+- `src/io_uds.cpp`: protocol v2 socket server for `../botconnect` (bot client; `src/services/ipc/protocol.ts` documents the JSON) and its TEST-field player (`bun run play-test`, `src/browser/`). Each `prepare` builds a fresh engine. How to run everything: `../botconnect/CHEATSHEET.md`.
+
 ## Key Directories
 - `src/` prefix rules:
   - `movegen_*`: neutral shared machinery.
@@ -77,10 +86,14 @@ AIs live in `src/ai_*.h/.cpp`. The engine detects members with SFINAE and `requi
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug      # Debug is required for tests: Release defines NDEBUG and adds -flto
 cmake --build build -j                            # every target, including the diff drivers and dummy_strategy_compile_check
 cmake --build build -j --target tetris_ai         # the only target CI builds
-ctest --test-dir build --output-on-failure        # 13 tests, about 10 s
+ctest --test-dir build --output-on-failure        # all registered tests
 ctest --test-dir build -R '^tetris_diff_tspin_diff$' --output-on-failure
 TETRIS_DIFF_VERBOSE_INFO=1 ./build/aspin_diff     # also dump the [INFO] set differences
 ./build/perft_movegen all | sort | uniq           # inspect move generation
+cmake -S . -B build-rel -DCMAKE_BUILD_TYPE=Release -DTETRIS_IO_UDS=ON   # io_uds downloads nlohmann_json; off by default
+cmake --build build-rel -j --target io_uds io_pso
+TETRIS_AI_SOCKET=tetris_ai ./build-rel/io_uds --think-ms 100   # param file: prepare.params (botconnect: env TETRIS_AI_PARAMS)
+./build-rel/io_pso --hours 6 --out io_pso_out [--init best.params]   # train in Release; see --help
 ```
 
 - `-DORACLE=ON` builds the production DLLs from `oracle/` instead of `src/`; include order then makes `"tetris_core.h"` resolve to the oracle copy.
@@ -88,6 +101,7 @@ TETRIS_DIFF_VERBOSE_INFO=1 ./build/aspin_diff     # also dump the [INFO] set dif
 - CMake is the only build system, Windows included. Non-Debug, non-MSVC builds append `-flto`.
 
 ## Code Conventions & Common Patterns
+- **Simplicity:** write simple code. Prefer simplicity over complexity, and keep the codebase easy to maintain.
 - **Formatting:** `.clang-format` applies.
   - `SortIncludes: Never`: never reorder includes. `.clang-format-ignore` skips `oracle/` and `src/chash*.h`.
   - clang-format still mangles `requires` expressions nested in `enable_if_t` template arguments (`src/tetris_core.h`, `src/movegen_hook.h`) and fold expressions over immediately-invoked lambdas. Format only the lines you touched and check the result.
@@ -99,8 +113,8 @@ TETRIS_DIFF_VERBOSE_INFO=1 ./build/aspin_diff     # also dump the [INFO] set dif
 - **Compile-time dispatch:** everything is templated on piece `T` and rotation `R`. Use fold expressions inside each strategy and `[&]<char T, uint8_t R>` callbacks into `TetrisCallEval::call_eval_typed` (`src/tetris_eval_dispatch.h`).
 - **SIMD:** `simd::BoardVec` is a plain `std::array` with element-wise loops that the compiler auto-vectorises. No intrinsics, no `-march` flags; it must build on macOS arm64.
 - **Include-order traps:**
-  - `tetris_eval_dispatch.h` must be included outside any namespace (see `tetris_core.h`). Its `TSpinType` / `ASpinType` enums must mirror `search_tspin.h` / `search_aspin.h`.
-  - `search_tspin.h` and `search_aspin.h` are included twice on purpose. The second pass expands their tags after `TETRIS_AI_RUNNER_SEARCH_PATH_TAGS_READY_` is defined.
+  - `tetris_eval_dispatch.h` must be included outside any namespace (see `tetris_core.h`). Its `TSpinType` / `ASpinType` / `AMiniType` enums must mirror `search_tspin.h` / `search_aspin.h` / `search_amini.h`.
+  - `search_tspin.h`, `search_aspin.h` and `search_amini.h` are included twice on purpose. The second pass expands their tags after `TETRIS_AI_RUNNER_SEARCH_PATH_TAGS_READY_` is defined.
 - **Banned:** reintroducing the `Hook::is_simple_search` / `is_simulate_search` flags, and moving a strategy's own Neighbors / Dedup / Visitor into shared `movegen_*` code.
 - **Path keys:** `l r d L R D z c x`. Trailing `d`/`D` are stripped; the DLL appends `v` for hold and `V` as the terminator.
 
@@ -126,8 +140,14 @@ TETRIS_DIFF_VERBOSE_INFO=1 ./build/aspin_diff     # also dump the [INFO] set dif
   2. Implement a `CaseProbe` that fills `oracle_lps` and `candidate_lps` with `LpEntry`, plus `*_make_path` closures for Phase B, and call `run_diff_main` from `main`.
   3. Add `<name>_diff` to **both** `foreach` lists in `CMakeLists.txt` (build and `add_test`). It registers as `tetris_diff_<name>_diff`.
 - **Adding a unit test:** `add_executable` it (without `EXCLUDE_FROM_ALL`), link `tetris_core`, and register it with `add_test(NAME tetris_<x> COMMAND x)`.
+- `tetris_engine_regression` (`test/engine_regression_test.cpp`) is built with ASan/UBSan on non-MSVC compilers. It covers the `AIEnv` queue seen by 4-arg `get` (hold swaps, `iterate` with a held tail), T-spin `LandPoint.type`, the 3-corner table, `TetrisEngine::attach`, and a lowered active piece (path and amini).
+- **Search start:** `run` / `run_hold` search the root's active piece from the passed `TetrisBlockStatus` (x, y, r); held and preview pieces start at `RuleSpec::spawn`. `MoveGen::generate` takes that start as a bitboard `State`. A new start drops the root's cached children.
 - **Failing diffs:** never hide an unexpected failure with `XfailSet` entries. Investigate and report it.
-- **Known state (2026-10):** all 13 ctest tests pass. Open issues, not fixed:
+- **T-spin classification:** a corner counts when it is occupied or out of bounds. `TSpinHook` stores in `LandPoint.type` the class a one-line clear would score: Mini if `is_mini_ready`, else TSpin if `is_ready`, and only when `is_last_rotate`. `TOJ` / `TOJ_PC` / `TOJ_v08` convert it per clear count with `ai_zzz::tspin_for_clear` (no clear → None, Mini on 2+ lines → TSpin), matching the oracle AIs' `get`.
+- **Oracle corner fix (2026-10):** `check_ready` in `oracle/search_tspin.cpp` and `oracle/search_tag.cpp` counted set bits of the 1=empty oracle map, which means empty corners. `src/` had the same inversion in `TSpinHook::corner_ct`, so `tspin_diff` / `tag_diff` agreed on the wrong answer. Both sides now count occupied corners (`~map.row` in the oracle). The diff summaries are unchanged.
+- **Known state (2026-10):** all ctest tests pass. Open issues, not fixed:
   - the board-size limitation above;
-  - `src/movegen_hook.h:687-722` `try_kick_pred` can record an `lp.last` source whose real rotation lands elsewhere. Nothing compares this field, and it only matters when `last_rotate` is enabled, which no production config does;
-  - `aspin_diff` has 34 uninvestigated `[INFO]` candidate-only landings (12 T in 1g).
+  - `TSpinHook::try_kick_pred` (`src/movegen_hook.h`) can record an `lp.last` source whose real rotation lands elsewhere. Nothing compares this field, and it only matters when `last_rotate` is enabled, which no production config does;
+  - `aspin_diff` has 34 uninvestigated `[INFO]` candidate-only landings (12 T in 1g);
+  - `amini`: an O spawning inside an enclosed pocket can rotate in place for a Mini in TETR.IO; `rule_io` gives O no rotation, so that spin is never found. Paths ignore the 15 lock-reset limit and gravity between keys;
+  - root search with hold: when the held (or, with an empty hold, the next) piece has the active piece's type, only the active piece's own position is searched, not a fresh spawn of the same type.

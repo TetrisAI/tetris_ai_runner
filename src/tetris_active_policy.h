@@ -22,6 +22,14 @@ namespace m_tetris2
         static constexpr bool value = (T == 'T');
     };
 
+    // A spin enum may select its policy itself by specialising this next to the enum
+    // (search_amini.h: AMiniType -> ActiveAllPolicy). void = deduce from AI::TSpinType / AI::ASpinType.
+    template<class SpinT>
+    struct SpinTypePolicy
+    {
+        using type = void;
+    };
+
     namespace detail
     {
         template<class AI, class = void>
@@ -87,15 +95,19 @@ namespace m_tetris2
         {
         private:
             using SpinT = typename AI::EvalSpinType;
+            using OwnPolicy = typename SpinTypePolicy<SpinT>::type;
 
         public:
             using type = std::conditional_t<
-                match_t_spin_type<AI, SpinT>::value,
-                ActiveTOnlyPolicy,
+                !std::is_void_v<OwnPolicy>,
+                OwnPolicy,
                 std::conditional_t<
-                    match_a_spin_type<AI, SpinT>::value,
-                    ActiveAllPolicy,
-                    ActiveNonePolicy>>;
+                    match_t_spin_type<AI, SpinT>::value,
+                    ActiveTOnlyPolicy,
+                    std::conditional_t<
+                        match_a_spin_type<AI, SpinT>::value,
+                        ActiveAllPolicy,
+                        ActiveNonePolicy>>>;
         };
     } // namespace detail
 

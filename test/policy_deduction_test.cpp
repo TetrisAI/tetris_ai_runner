@@ -12,11 +12,15 @@
 //   3. TSpinHook::active_for_piece 单参向后兼容
 //   4. NoSpinHook::active_for_piece Policy 参数下永远 false
 //   5. TetrisEngine<Rule, TOJ, tspin::Search> == TetrisEngine + manual rebind_policy
+//   6. EvalSpinType == search_amini::Search::AMiniType → ActiveAllPolicy (no AI alias needed);
+//      AMiniHook 对所有 piece 激活, amini::Search 的 rebind_policy 透传到 Searcher
 
 #include "../src/tetris_core.h"
 #include "../src/ai_zzz.h"
 #include "../src/movegen_hook.h"
+#include "../src/rule_io.h"
 #include "../src/rule_srs.h"
+#include "../src/search_amini.h"
 #include "../src/search_path.h"
 #include "../src/search_tspin.h"
 
@@ -43,6 +47,23 @@ static_assert(std::is_same_v<DeduceSpinPolicy<ai_zzz::Botris_PC>, ActiveAllPolic
 // → DeduceSpinPolicy 应推导出 ActiveNonePolicy
 static_assert(std::is_same_v<DeduceSpinPolicy<ai_zzz::qq::Attack>, ActiveNonePolicy>,
     "ai_zzz::qq::Attack (TetrisNode<Details,monostate> only) must deduce ActiveNonePolicy");
+
+// 只声明 EvalSpinType 的 AI: AMiniType 自带 SpinTypePolicy 特化.
+struct AMiniAI
+{
+    using EvalSpinType = search_amini::Search::AMiniType;
+};
+static_assert(std::is_same_v<DeduceSpinPolicy<AMiniAI>, ActiveAllPolicy>,
+              "EvalSpinType == AMiniType must deduce ActiveAllPolicy");
+static_assert(AMiniHook::active_for_piece<'T', ActiveAllPolicy> && AMiniHook::active_for_piece<'I', ActiveAllPolicy> &&
+                  AMiniHook::active_for_piece<'O', ActiveAllPolicy>,
+              "AMiniHook + ActiveAllPolicy: every piece is active");
+static_assert(!AMiniHook::active_for_piece<'S', ActiveNonePolicy>,
+              "AMiniHook + ActiveNonePolicy: no piece is active");
+static_assert(std::is_same_v<amini::Search::rebind_policy<ActiveAllPolicy>::type<rule_io::TetrisRule>,
+                             movegen::Searcher<movegen::AMiniStrategy, AMiniHook, rule_io::TetrisRule::rule_spec,
+                                               ActiveAllPolicy>>,
+              "amini::Search::rebind_policy must reach the Searcher's Policy");
 
 // ─── 2. TSpinHook::active_for_piece 双参行为 ─────────────────────────────────
 

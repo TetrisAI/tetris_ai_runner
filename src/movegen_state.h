@@ -172,6 +172,14 @@ namespace m_tetris2
             Opp
         };
 
+        // A successful rotation: the resulting State plus which test succeeded
+        // (0 = plain rotation, i >= 1 = listed kick i-1 of the WallKickList).
+        struct KickHit
+        {
+            State state;
+            std::uint8_t test;
+        };
+
         //==================================================================
         // Helpers<RuleSpec>: piece-aware 静态 helper / 数据结构 / 编译期常量.
         // MoveGenSearch private 继承之, using Base::xxx 把名字注入类作用域,
@@ -816,23 +824,23 @@ namespace m_tetris2
             }
 
             template<char T, std::uint8_t Target, class WkList>
-            static std::optional<State> try_kick_chain_TR_bb(int status_x, int status_y,
+            static std::optional<KickHit> try_kick_chain_TR_bb(int status_x, int status_y,
                                                                std::array<map_t, kMaxR> const &usable_arr)
             {
                 if (check_TR<T, Target>(status_x, status_y, usable_arr))
-                    return build_state_from_master<T, Target>(status_x, status_y);
+                    return KickHit{build_state_from_master<T, Target>(status_x, status_y), 0};
                 for (std::size_t i = 0; i < WkList::length; ++i)
                 {
                     int nx = status_x + WkList::data[2 * i];
                     int ny = status_y + WkList::data[2 * i + 1];
                     if (check_TR<T, Target>(nx, ny, usable_arr))
-                        return build_state_from_master<T, Target>(nx, ny);
+                        return KickHit{build_state_from_master<T, Target>(nx, ny), static_cast<std::uint8_t>(i + 1)};
                 }
                 return std::nullopt;
             }
 
             template<char T, std::uint8_t R, KickDir Dir>
-            static std::optional<State> try_kick_TRD_bb(State const &cs,
+            static std::optional<KickHit> try_kick_TRD_bb(State const &cs,
                                                           std::array<map_t, kMaxR> const &usable_arr)
             {
                 constexpr auto orig = shape::piece_cells<RuleSpec, T, R>.origin;
@@ -868,10 +876,10 @@ namespace m_tetris2
             }
 
             template<char T, KickDir Dir>
-            static std::optional<State> try_kick_TD_bb(State const &cs,
+            static std::optional<KickHit> try_kick_TD_bb(State const &cs,
                                                          std::array<map_t, kMaxR> const &usable_arr)
             {
-                std::optional<State> ret;
+                std::optional<KickHit> ret;
                 std::uint8_t cur_r = cs.r;
                 [&]<std::size_t... Rs>(std::index_sequence<Rs...>)
                 {
@@ -881,10 +889,10 @@ namespace m_tetris2
             }
 
             template<KickDir Dir>
-            static std::optional<State> first_passing_kick_dir_bb(char t, State const &cs,
+            static std::optional<KickHit> first_passing_kick_dir_bb(char t, State const &cs,
                                                                     std::array<map_t, kMaxR> const &usable_arr)
             {
-                std::optional<State> ret;
+                std::optional<KickHit> ret;
                 [&]<std::size_t... Is>(std::index_sequence<Is...>)
                 {
                     bool hit = false;
@@ -896,10 +904,10 @@ namespace m_tetris2
                 return ret;
             }
 
-            static std::optional<State> first_kick(char t,
-                                                                KickDir dir,
-                                                                State const &cs,
-                                                                std::array<map_t, kMaxR> const &usable_arr)
+            static std::optional<KickHit> first_kick_hit(char t,
+                                                         KickDir dir,
+                                                         State const &cs,
+                                                         std::array<map_t, kMaxR> const &usable_arr)
             {
                 switch (dir)
                 {
@@ -910,6 +918,16 @@ namespace m_tetris2
                 case KickDir::Opp:
                     return first_passing_kick_dir_bb<KickDir::Opp>(t, cs, usable_arr);
                 }
+                return std::nullopt;
+            }
+
+            static std::optional<State> first_kick(char t,
+                                                   KickDir dir,
+                                                   State const &cs,
+                                                   std::array<map_t, kMaxR> const &usable_arr)
+            {
+                if (auto hit = first_kick_hit(t, dir, cs, usable_arr))
+                    return hit->state;
                 return std::nullopt;
             }
 

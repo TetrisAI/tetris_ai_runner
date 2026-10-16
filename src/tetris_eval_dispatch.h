@@ -58,14 +58,14 @@ namespace m_tetris2
     //----------------------------------------------------------------------
     // SpinType — independent definitions
     //
-    // These values match the spin enums used by search_tspin::Search and
-    // search_aspin::Search. The enumerators are used in
+    // These values match the spin enums used by search_tspin::Search,
+    // search_aspin::Search and search_amini::Search. The enumerators are used in
     // TetrisNode<Details,SpinT>.spin and in concept probes below.
     //
     // NOTE: Do NOT use the search_*::Search::*SpinType aliases here; those
     // headers cannot be included without triggering the circular-include
     // cycle described above. Any change to the enumerator layout in
-    // search_tspin.h / search_aspin.h must be mirrored here.
+    // search_tspin.h / search_aspin.h / search_amini.h must be mirrored here.
     //----------------------------------------------------------------------
     enum TSpinType : uint8_t
     {
@@ -77,6 +77,12 @@ namespace m_tetris2
     {
         ASpinNone = 0,
         ASpin = 1
+    };
+    enum AMiniType : uint8_t
+    {
+        AMiniNone = 0,
+        AMiniMini = 1,
+        AMiniFull = 2
     };
 
     //----------------------------------------------------------------------

@@ -475,6 +475,17 @@ namespace ai_zzz
         int col_mask_, row_mask_;
     };
 
+    // TSpinHook emits the one-line-clear class; the oracle AIs derived the class per clear count in get.
+    inline search_tspin::Search::TSpinType tspin_for_clear(search_tspin::Search::TSpinType spin, size_t clear)
+    {
+        using Search = search_tspin::Search;
+        if (clear == 0)
+        {
+            return Search::None;
+        }
+        return spin == Search::TSpinMini && clear != 1 ? Search::TSpin : spin;
+    }
+
     class TOJ_PC
     {
     public:
@@ -550,7 +561,7 @@ namespace ai_zzz
             result.value = (roof > 4 ? 0 : 10000) - ColTrans * 3 - RowTrans * 2;
             result.clear = clear;
             result.roof = roof;
-            result.t_spin = lp.spin;
+            result.t_spin = tspin_for_clear(lp.spin, clear);
             return result;
         }
         Status get(Result const &eval_result, size_t depth, Status const &status) const;
@@ -904,7 +915,7 @@ namespace ai_zzz
                     }
                 }
             }
-            result.t_spin = lp.spin;
+            result.t_spin = tspin_for_clear(lp.spin, clear);
             result.top_out = lp.row() >= 20;
             return result;
         }
@@ -1266,7 +1277,7 @@ namespace ai_zzz
             return config_->param.ratio;
         }
         template<class Details>
-        Result eval(m_tetris2::TetrisNode<Details, std::monostate> const &lp, typename Details::map_type const &map, typename Details::map_type const &, size_t clear) const
+        Result eval(m_tetris2::TetrisNode<Details, TSpinType> const &lp, typename Details::map_type const &map, typename Details::map_type const &, size_t clear) const
         {
             using MapT = typename Details::map_type;
             constexpr int map_width = MapT::width;
@@ -1355,6 +1366,7 @@ namespace ai_zzz
             result.top_out = lp.row() >= 20;
             result.roof = roof;
             result.piece_type = m_tetris2::TetrisNodeBase<Details>::T;
+            result.t_spin = tspin_for_clear(lp.spin, clear);
             // Pre-compute safe_cache for all piece types.
             using Spec = typename Details::spec_type;
             for (size_t i = 0; i < m_tetris2::ai_rule_spec::piece_count<Spec>() && i < 8; ++i)

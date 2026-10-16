@@ -122,7 +122,7 @@ namespace m_tetris2
                 [&]<std::size_t... Is>(std::index_sequence<Is...>)
                 {
                     (((!dispatched && piece_info_t::type_at(Is) == t)
-                          ? (run_piece<piece_info_t::type_at(Is)>(ctx, board, depth), dispatched = true)
+                          ? (run_piece<piece_info_t::type_at(Is)>(ctx, board, spawn, depth), dispatched = true)
                           : false),
                      ...);
                 }(std::make_index_sequence<kPieceCount>{});
@@ -147,7 +147,7 @@ namespace m_tetris2
                 {
                     (((!dispatched && piece_info_t::type_at(Is) == t)
                           ? (run_piece<piece_info_t::type_at(Is), EvalCallback>(
-                                 ctx, board, depth, &on_land),
+                                 ctx, board, spawn, depth, &on_land),
                              dispatched = true)
                           : false),
                      ...);
@@ -176,7 +176,7 @@ namespace m_tetris2
             //
             // EvalCallback（可选）：与 PathStrategy::run_piece 同形，参见其注释。
             template<char T, class EvalCallback = void>
-            static void run_piece(Context &ctx, map_t const &board, std::size_t depth,
+            static void run_piece(Context &ctx, map_t const &board, State const &start, std::size_t depth,
                                   EvalCallback *on_land = nullptr)
             {
                 constexpr bool EnableMini = []() constexpr {
@@ -244,9 +244,7 @@ namespace m_tetris2
                     }(std::make_index_sequence<Helpers::template rcount_v<T>()>{});
                     (void)emitted;
                 };
-                constexpr auto sp_run = RuleSpec::spawn(T, kW, kH);
-                movegen::MoveGen<RuleSpec, T, SpinHook>::generate(
-                    board, sp_run.first, sp_run.second, collect);
+                movegen::MoveGen<RuleSpec, T, SpinHook>::generate(board, start, collect);
             }
 
             //==================================================================
