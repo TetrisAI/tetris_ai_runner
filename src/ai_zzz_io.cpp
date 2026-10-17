@@ -48,7 +48,7 @@ namespace ai_zzz
             field("cancel", &IO::Param::cancel, 0, 8),
             field("pending", &IO::Param::pending, 0, 8),
             field("opponent_surge", &IO::Param::opponent_surge, 0, 2),
-            field("kill", &IO::Param::kill, 0, 64),
+            field("surge_release", &IO::Param::surge_release, 0, 1),
             field("spin_garbage", &IO::Param::spin_garbage, -16, 16),
             field("slot_b2b", &IO::Param::slot_b2b, 0, 16),
             field("slot_attack", &IO::Param::slot_attack, 0, 8),
@@ -57,6 +57,9 @@ namespace ai_zzz
 
         // A piece in neither hold nor preview counts as one 7-bag away.
         constexpr int kUnseenSlotDistance = 7;
+
+        // Below the death penalty: killing and then dying is still death.
+        constexpr double kKillValue = 1e8;
 
         std::string_view trim(std::string_view text)
         {
@@ -162,7 +165,6 @@ namespace ai_zzz
         status.pieces_placed = root.pieces_placed;
         status.lines_sent = root.lines_sent;
         status.garbage_rows = root.garbage_rows;
-        status.root_chain = chain_value(config.param, config.rules, root.btb, io_rules::garbage_multiplier(config.rules, root.frame));
         return status;
     }
 
@@ -189,7 +191,9 @@ namespace ai_zzz
         result.combo = attack.counters.combo;
         result.map_rise += exchange.tanked;
         result.sent += exchange.sent;
+        result.surge_sent += exchange.surge_sent;
         result.cancelled += exchange.cancelled;
+        double const valued_sent = result.sent - (1 - p.surge_release) * result.surge_sent;
         int const b2b_gain = std::max(0, result.btb - status.btb);
         result.b2b_gained += rules.b2bcharging ? b2b_gain : (status.btb == 0 && result.btb > 0 ? 1 : 0);
         result.max_combo = std::max(result.combo, result.max_combo);
@@ -228,7 +232,7 @@ namespace ai_zzz
             result.like += p.spin_garbage;
         if (env.hold == 'I' && eval_result.clear != 4)
             result.like += p.hold_i;
-        result.like += result.sent;
+        result.like += valued_sent;
 
         if (eval_result.all_clear && !config.allow_pc)
             result.death = true;
@@ -250,7 +254,7 @@ namespace ai_zzz
         double const rate = 1. / static_cast<double>(depth + 1) + 3;
         double const fullness = std::max(0.05, (full_count_ - eval_result.cells - result.map_rise * (width_ - 1)) / static_cast<double>(full_count_));
         int const placement_attack = attack.total();
-        double const offense = result.sent * 256 * rate * p.attack +
+        double const offense = valued_sent * 256 * rate * p.attack +
                                result.cancelled * 256 * p.cancel +
                                (b2b_gain > 0 ? placement_attack * 16 * (22 - eval_result.roof) : 0) +
                                chain_value(p, rules, result.btb, multiplier) +
@@ -262,12 +266,12 @@ namespace ai_zzz
         if (config.opponent.known)
             incoming += p.opponent_surge * io_rules::surge_amount(rules, config.opponent.btb, multiplier);
         double const uncovered = std::max(0.0, incoming - io_rules::surge_amount(rules, result.btb, multiplier));
-        bool const kill = config.opponent.known && config.opponent.pending + result.sent >= config.opponent.free_rows;
+        result.kill = depth == 0 ? result.sent < 64 && ((config.opponent.lethal_sent >> result.sent) & 1) != 0 : status.kill;
 
         result.value = eval_result.value + offense * fullness +
                        result.max_combo * (result.max_combo - 1) * (status.btb <= result.btb ? placement_attack : 0) * p.combo -
                        uncovered * 256 * p.pending +
-                       (kill ? p.kill * 4096 + result.root_chain : 0) -
+                       (result.kill ? kKillValue : 0) -
                        (result.death ? 999999999.0 : 0);
         return result;
     }

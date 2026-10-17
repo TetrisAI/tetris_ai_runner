@@ -4,6 +4,7 @@
 #include "search_path.h"
 #include "io_rules.h"
 #include "ai_zzz_io.h"
+#include "ai_zzz_io_lethal.h"
 
 #include <nlohmann/json.hpp>
 
@@ -39,27 +40,30 @@ namespace
     using Spec = rule_io::TetrisRule::rule_spec;
     using Helpers = m_tetris2::Helpers<Spec>;
 
-    constexpr int kProtocolVersion = 2;
+    constexpr int kProtocolVersion = 3;
     constexpr int kDefaultThinkMs = 50;
+    constexpr int kDefaultLethalFreePieces = 2;
     constexpr std::uint64_t kMemoryLimit = 512ull << 20;
     constexpr std::string_view kPieces = "IJLOSTZ";
     constexpr int kMaxNext = 64;
 
-    constexpr char kUsage[] = R"(Usage: io_uds [--think-ms N] [--verbose]
+    constexpr char kUsage[] = R"(Usage: io_uds [--think-ms N] [--lethal-free-pieces N] [--verbose]
 
-TETR.IO bot server for botconnect (protocol v2): newline-delimited JSON over an AF_UNIX stream socket.
+TETR.IO bot server for botconnect (protocol v3): newline-delimited JSON over an AF_UNIX stream socket.
 
 Socket:
   $HOME/$TETRIS_AI_SOCKET (default $HOME/tetris_ai); a stale socket file is replaced.
 
 Options:
-  --think-ms N   search time per move in milliseconds (default 50; env TETRIS_AI_THINK_MS)
-  --verbose      log every request and reply
-  --help         show this help
+  --think-ms N            search time per move in milliseconds (default 50; env TETRIS_AI_THINK_MS)
+  --lethal-free-pieces N  opponent placements assumed to lock before our garbage can enter their board, when
+                          judging a certain kill; covers garbagespeed, latency and snapshot age (default 2)
+  --verbose               log every request and reply
+  --help                  show this help
 
 Commands (one JSON object per line: {"bot_id", "command", "data"}):
   create    start a bot engine for bot_id
-  prepare   data = {"protocol": 2, "options": <TETR.IO round options>, "pps": <pieces/s>, "params": <param file>?}
+  prepare   data = {"protocol": 3, "options": <TETR.IO round options>, "pps": <pieces/s>, "params": <param file>?}
   move      data = board state; replies {"bot_id", "command": "move", "data": "<path>V"}
   dismiss   drop the bot
 Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V = hard drop.
@@ -68,6 +72,7 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
     struct ServerSettings
     {
         int think_ms = kDefaultThinkMs;
+        int lethal_free_pieces = kDefaultLethalFreePieces;
         bool verbose = false;
     };
     ServerSettings settings;
@@ -142,6 +147,38 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
             return false;
         out = text[0];
         return kPieces.find(out) != std::string_view::npos || (allow_none && out == ' ');
+    }
+
+    bool read_board(Json const &object, Map &out)
+    {
+        auto board = object.find("board");
+        if (board == object.end() || !board->is_array() || board->size() != Map::height)
+            return false;
+        for (int y = 0; y < Map::height; ++y)
+        {
+            int row = 0;
+            if (!read_value((*board)[y], row) || row < 0 || row > Map::row_full)
+                return false;
+            out.set_row(y, static_cast<Map::row_t>(row));
+        }
+        return true;
+    }
+
+    bool read_garbage(Json const &object, std::vector<ai_zzz::IO::PendingGarbage> &out)
+    {
+        auto garbage = object.find("garbage");
+        if (garbage == object.end() || !garbage->is_array())
+            return false;
+        out.clear();
+        for (auto const &entry : *garbage)
+        {
+            ai_zzz::IO::PendingGarbage packet{};
+            if (!entry.is_object() || !read_field(entry, "amount", packet.amount) || packet.amount < 0 ||
+                !read_field(entry, "frames_until_active", packet.frames_until_active) || packet.frames_until_active < 0)
+                return false;
+            out.push_back(packet);
+        }
+        return true;
     }
 
     struct OptionField
@@ -266,6 +303,10 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         ai_zzz::IO::Config config;
         MoveState move;
         std::vector<ai_zzz::IO::PendingGarbage> pending;
+        ai_zzz::IOLethal lethal;
+        ai_zzz::IOLethal::Opponent opponent;
+        std::string opponent_pieces;
+        std::vector<ai_zzz::IO::PendingGarbage> opponent_pending;
 
         Bot()
         {
@@ -351,22 +392,38 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
             bot.config.pps, json_text(data, "params"));
     }
 
+    bool parse_opponent(Json const &data, Bot &bot)
+    {
+        auto &opponent = bot.opponent;
+        char active = ' ';
+        auto queue = data.find("queue");
+        if (!read_board(data, opponent.board) || !read_field(data, "garbage_rows", opponent.garbage_rows) ||
+            opponent.garbage_rows < 0 || opponent.garbage_rows > Map::height || !read_piece(data, "active", active, false) ||
+            !read_piece(data, "hold", opponent.hold, true) || !read_field(data, "can_hold", opponent.can_hold) ||
+            queue == data.end() || !queue->is_string())
+            return false;
+        auto const &pieces = queue->get_ref<std::string const &>();
+        bot.opponent_pieces.assign(1, active);
+        bot.opponent_pieces.append(pieces, 0, std::min(pieces.size(), static_cast<std::size_t>(kMaxNext)));
+        if (bot.opponent_pieces.find_first_not_of(kPieces) != std::string::npos ||
+            !read_field(data, "b2b", opponent.counters.btb) || opponent.counters.btb < 0 ||
+            !read_field(data, "combo", opponent.counters.combo) || opponent.counters.combo < 0 ||
+            !read_field(data, "pieces_placed", opponent.pieces_placed) || opponent.pieces_placed < 0 ||
+            !read_garbage(data, bot.opponent_pending))
+            return false;
+        opponent.pieces = bot.opponent_pieces;
+        opponent.pending = bot.opponent_pending;
+        return true;
+    }
+
     // Returns the first missing or invalid field of a move request, or an empty view.
     std::string_view parse_move(Json const &data, Bot &bot)
     {
         auto &move = bot.move;
         auto &root = move.root;
 
-        auto board = data.find("board");
-        if (board == data.end() || !board->is_array() || board->size() != Map::height)
+        if (!read_board(data, move.board))
             return "board";
-        for (int y = 0; y < Map::height; ++y)
-        {
-            int row = 0;
-            if (!read_value((*board)[y], row) || row < 0 || row > Map::row_full)
-                return "board";
-            move.board.set_row(y, static_cast<Map::row_t>(row));
-        }
         if (!read_field(data, "garbage_rows", root.garbage_rows) || root.garbage_rows < 0 || root.garbage_rows > Map::height)
             return "garbage_rows";
         if (!read_piece(data, "active", move.active, false))
@@ -406,18 +463,8 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         if (!read_field(data, "lines_sent", root.lines_sent) || root.lines_sent < 0)
             return "lines_sent";
 
-        auto garbage = data.find("garbage");
-        if (garbage == data.end() || !garbage->is_array())
+        if (!read_garbage(data, bot.pending))
             return "garbage";
-        bot.pending.clear();
-        for (auto const &entry : *garbage)
-        {
-            ai_zzz::IO::PendingGarbage packet{};
-            if (!entry.is_object() || !read_field(entry, "amount", packet.amount) || packet.amount < 0 ||
-                !read_field(entry, "frames_until_active", packet.frames_until_active) || packet.frames_until_active < 0)
-                return "garbage";
-            bot.pending.push_back(packet);
-        }
         root.pending = bot.pending;
 
         auto &opponent = bot.config.opponent;
@@ -425,10 +472,10 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         auto opponent_json = data.find("opponent");
         if (opponent_json != data.end())
         {
-            if (!opponent_json->is_object() || !read_field(*opponent_json, "free_rows", opponent.free_rows) ||
-                !read_field(*opponent_json, "pending", opponent.pending) || !read_field(*opponent_json, "b2b", opponent.btb))
+            if (!opponent_json->is_object() || !parse_opponent(*opponent_json, bot))
                 return "opponent";
             opponent.known = true;
+            opponent.btb = bot.opponent.counters.btb;
         }
         return {};
     }
@@ -448,6 +495,8 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
             return "V";
         }
 
+        if (bot.config.opponent.known)
+            bot.config.opponent.lethal_sent = bot.lethal.lethal_sent(bot.opponent, bot.config.rules, move.root.frame, settings.lethal_free_pieces);
         *engine.ai_config() = bot.config;
         *engine.status() = ai_zzz::IO::make_root_status(move.root, bot.config);
         engine.update();
@@ -680,6 +729,11 @@ int main(int argc, char *argv[])
             settings.verbose = true;
         }
         else if (arg == "--think-ms" && i + 1 < argc && parse_int(argv[i + 1], settings.think_ms) && settings.think_ms > 0)
+        {
+            ++i;
+        }
+        else if (arg == "--lethal-free-pieces" && i + 1 < argc && parse_int(argv[i + 1], settings.lethal_free_pieces) &&
+                 settings.lethal_free_pieces >= 0)
         {
             ++i;
         }

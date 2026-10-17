@@ -9,6 +9,7 @@
 // processed in frame order, seat 0 first on ties. Attacks reach the opponent's queue instantly and become active
 // `garbagespeed` frames later; with instant delivery nothing is ever in flight, so zero passthrough reduces to
 // cancelling against the own queue. All attack and garbage arithmetic comes from io_rules (rules.md §7-§9).
+// Each plan gets the opponent's kill mask (IOLethal).
 //
 // Time limit: at `max_frames` the match is adjudicated by a continuous margin (seat 0 minus seat 1) of
 //     health = (20 - stack height) - pending garbage + releasable surge (io_rules::surge_amount at the end frame)
@@ -20,13 +21,14 @@
 #include "rule_io.h"
 #include "io_rules.h"
 #include "ai_zzz_io.h"
+#include "ai_zzz_io_lethal.h"
 
 #include <array>
 #include <cstdint>
 #include <memory>
 #include <optional>
 #include <span>
-#include <vector>
+#include <string>
 
 namespace io_sim
 {
@@ -177,7 +179,8 @@ namespace io_sim
         }
 
     private:
-        int lock_frame(int seat) const;
+        int lock_frame(int seat, int ahead = 0) const;
+        std::uint64_t lethal_sent(int seat, int root_lock_frame);
         bool plan(int seat, int frame);
         void finish(int loser, EndReason reason, int frame);
 
@@ -187,6 +190,9 @@ namespace io_sim
         std::array<Side, 2> sides_;
         std::array<LandPoint, 2> planned_{};
         std::vector<ai_zzz::IO::PendingGarbage> projected_pending_;
+        ai_zzz::IOLethal lethal_;
+        std::string opponent_pieces_;
+        std::vector<ai_zzz::IO::PendingGarbage> opponent_pending_;
         std::array<int, 2> placements_{};
         MatchResult result_;
         bool finished_ = false;

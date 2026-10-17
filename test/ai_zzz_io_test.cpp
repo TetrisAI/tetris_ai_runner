@@ -1,8 +1,9 @@
 // ai_zzz_io_test: host-visible behaviour of ai_zzz::IO without a search — spawn-overlap death (rules.md §2),
-// the param text format, and how spin slots are discounted by when their piece can be played.
+// the param text format, how spin slots are discounted by when their piece can be played, and certain kills (IOLethal).
 
 #include "../src/rule_io.h"
 #include "../src/ai_zzz_io.h"
+#include "../src/ai_zzz_io_lethal.h"
 
 #include <array>
 #include <cstdio>
@@ -111,22 +112,78 @@ namespace
         expect(same, "format/parse round trip is exact");
     }
 
-    double chain_value(ai_zzz::IO::Config const &config, int btb)
+    double value_at_btb(ai_zzz::IO::Config const &config, int btb)
     {
+        ai_zzz::IO ai;
+        ai.init<Spec>(&config);
+        Map after;
+        ai_zzz::IO::Result const result = place_o(ai, Map{}, 0, 0, after);
         ai_zzz::IO::RootState root;
         root.btb = btb;
-        return ai_zzz::IO::make_root_status(root, config).root_chain;
+        char next[] = "T";
+        m_tetris2::AIEnv const env{next, 1, 'O', ' ', false};
+        return ai.get(result, 0, ai_zzz::IO::make_root_status(root, config), env).value;
     }
 
     void test_chain_value()
     {
         ai_zzz::IO::Config charging;
-        expect(chain_value(charging, 21) > chain_value(charging, 6) && chain_value(charging, 6) > chain_value(charging, 3), "with charging the chain value grows with B2B");
+        expect(value_at_btb(charging, 21) > value_at_btb(charging, 6) && value_at_btb(charging, 6) > value_at_btb(charging, 3), "with charging the chain value grows with B2B");
 
         ai_zzz::IO::Config flat;
         flat.rules.b2bcharging = false;
-        expect(chain_value(flat, 0) == 0 && chain_value(flat, 1) > 0, "without charging an active chain has value");
-        expect(chain_value(flat, 1) == chain_value(flat, 3) && chain_value(flat, 3) == chain_value(flat, 21), "without charging the chain value does not grow with B2B");
+        expect(value_at_btb(flat, 1) > value_at_btb(flat, 0), "without charging an active chain has value");
+        expect(value_at_btb(flat, 1) == value_at_btb(flat, 3) && value_at_btb(flat, 3) == value_at_btb(flat, 21), "without charging the chain value does not grow with B2B");
+    }
+
+    void test_kill_credit()
+    {
+        ai_zzz::IO ai;
+        ai_zzz::IO::Config config;
+        config.opponent.lethal_sent = 1; // sending nothing kills
+        ai.init<Spec>(&config);
+        Map after;
+        ai_zzz::IO::Result const result = place_o(ai, Map{}, 0, 0, after);
+        char next[] = "T";
+        m_tetris2::AIEnv const env{next, 1, 'O', ' ', false};
+        ai_zzz::IO::Status const root = ai_zzz::IO::make_root_status({}, config);
+        expect(ai.get(result, 0, root, env).kill, "a root placement sending a lethal amount kills");
+        expect(!ai.get(result, 1, root, env).kill, "only the root placement's garbage counts for a kill");
+    }
+
+    // No piece can clear a line: every hole is covered, the top row has one at each wall.
+    Map sealed_stack(int top)
+    {
+        Map board;
+        for (int y = 0; y < top; ++y)
+            board.set_row(y, static_cast<Map::row_t>(Map::row_full & ~(1u << (y % 2 == 0 ? 9 : 8))));
+        board.set_row(top, static_cast<Map::row_t>(Map::row_full & ~(1u | (1u << 9))));
+        return board;
+    }
+
+    std::uint64_t lethal(Map const &board, std::string_view pieces, std::span<ai_zzz::IO::PendingGarbage const> pending = {})
+    {
+        ai_zzz::IOLethal search;
+        ai_zzz::IOLethal::Opponent const opponent{board, 0, pieces, ' ', true, {}, 20, pending};
+        return search.lethal_sent(opponent, io_rules::Options::tetra_league(), 0, 0);
+    }
+
+    void test_lethal()
+    {
+        // Columns 3-5 reach row 16, so 5+ rows lift them into the T spawn at row 21.
+        expect(lethal(sealed_stack(16), "TTTTTTTT") == ~std::uint64_t(0) << 5, "a sealed stack dies to 5 or more rows");
+        std::array<ai_zzz::IO::PendingGarbage, 1> const queued = {{{3, 0}}};
+        expect(lethal(sealed_stack(16), "TTTTTTTT", queued) == ~std::uint64_t(0) << 2, "garbage already queued enters first");
+
+        Map well;
+        for (int y = 0; y <= 16; ++y)
+            well.set_row(y, static_cast<Map::row_t>(Map::row_full & ~(1u << 9)));
+        expect(lethal(well, "IIIIIIII") == 0, "an I in an open well digs out of any amount");
+
+        // Only 2 rows lift (3,19) into the T spawn.
+        Map overhang = sealed_stack(2);
+        overhang.set(3, 19);
+        expect(lethal(overhang, "TTTTTTTT") == std::uint64_t(1) << 2, "a kill can need an exact amount");
     }
 
     double value_with_s_slot(ai_zzz::IO const &ai, ai_zzz::IO::Config const &config, std::string_view next, char hold)
@@ -169,6 +226,8 @@ int main()
     test_spawn_death();
     test_params();
     test_chain_value();
+    test_kill_credit();
+    test_lethal();
     test_spin_slot_availability();
     if (g_failures != 0)
     {

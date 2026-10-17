@@ -15,6 +15,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace ai_zzz
 {
@@ -64,7 +65,7 @@ namespace ai_zzz
             double cancel = 3.4688673802342511;
             double pending = 2.8124517258007424;
             double opponent_surge = 1.419574850445857;
-            double kill = 13.332286548675969;
+            double surge_release = 1;
             double spin_garbage = 11.841627759780454;
             double slot_b2b = 0.068994639972527805;
             double slot_attack = 6.177615077515096;
@@ -134,9 +135,8 @@ namespace ai_zzz
         struct OpponentView
         {
             bool known = false;
-            int free_rows = 0; // 20 - visible stack height
-            int pending = 0;   // garbage queued against the opponent, active or not
-            int btb = 0;       // client counter
+            int btb = 0; // client counter
+            std::uint64_t lethal_sent = 0; // bit X: sending X lines kills (IOLethal)
         };
         struct RootState
         {
@@ -177,7 +177,6 @@ namespace ai_zzz
         {
             io_rules::PendingQueue<kPendingCapacity> pending;
             double frame = 0;
-            double root_chain = 0;
             double like = 0;
             double value = 0;
             int btb = 0;
@@ -187,14 +186,25 @@ namespace ai_zzz
             int garbage_rows = 0;
             int map_rise = 0;
             int sent = 0;
+            int surge_sent = 0;
             int cancelled = 0;
             int b2b_gained = 0;
             int max_combo = 0;
             bool death = false;
+            bool kill = false;
             bool operator<(Status const &other) const;
         };
 
         static Status make_root_status(RootState const &root, Config const &config);
+
+        struct SpawnCells
+        {
+            int count = 0;
+            std::array<std::int8_t, 4> x{};
+            std::array<std::int8_t, 4> y{};
+        };
+        template<class Spec>
+        static consteval std::array<SpawnCells, kPieceTypes> make_spawn_cells();
 
         template<class Spec>
         void init(Config const *config);
@@ -206,16 +216,6 @@ namespace ai_zzz
         Status get(Result const &eval_result, size_t depth, Status const &status, m_tetris2::AIEnv const &env) const;
 
     private:
-        struct SpawnCells
-        {
-            int count = 0;
-            std::array<std::int8_t, 4> x{};
-            std::array<std::int8_t, 4> y{};
-        };
-
-        template<class Spec, std::size_t I = 0>
-        void fill_spawn_cells();
-
         template<class Spec>
         static std::array<SpinSlot, kPieceTypes> detect_spin_slots(typename m_tetris2::Helpers<Spec>::map_t const &map, io_rules::Options const &rules);
         double spin_slot_value(std::array<SpinSlot, kPieceTypes> const &slots, m_tetris2::AIEnv const &env) const;
@@ -227,24 +227,29 @@ namespace ai_zzz
         std::array<SpawnCells, kPieceTypes> spawn_cells_{};
     };
 
-    template<class Spec, std::size_t I>
-    void IO::fill_spawn_cells()
+    template<class Spec>
+    consteval std::array<IO::SpawnCells, IO::kPieceTypes> IO::make_spawn_cells()
     {
-        if constexpr (I < m_tetris2::ai_rule_spec::piece_count<Spec>())
+        std::array<SpawnCells, kPieceTypes> out{};
+        [&]<std::size_t... Is>(std::index_sequence<Is...>)
         {
-            constexpr char kType = m_tetris2::ai_rule_spec::piece_type_at<Spec>(I);
-            constexpr auto kCells = m_tetris2::shape::piece_cells<Spec, kType, 0>;
-            constexpr auto kSpawn = Spec::spawn(kType, Spec::width, Spec::height);
-            static_assert(kCells.count <= 4);
-            SpawnCells &out = spawn_cells_[I];
-            out.count = static_cast<int>(kCells.count);
-            for (std::size_t i = 0; i < kCells.count; ++i)
-            {
-                out.x[i] = static_cast<std::int8_t>(kSpawn.first + kCells.origin.x + kCells.cells[i].x);
-                out.y[i] = static_cast<std::int8_t>(kSpawn.second - kCells.origin.y + kCells.cells[i].y);
-            }
-            fill_spawn_cells<Spec, I + 1>();
-        }
+            ([&]
+             {
+                 constexpr char kType = m_tetris2::ai_rule_spec::piece_type_at<Spec>(Is);
+                 constexpr auto kCells = m_tetris2::shape::piece_cells<Spec, kType, 0>;
+                 constexpr auto kSpawn = Spec::spawn(kType, Spec::width, Spec::height);
+                 static_assert(kCells.count <= 4);
+                 SpawnCells &cells = out[Is];
+                 cells.count = static_cast<int>(kCells.count);
+                 for (std::size_t i = 0; i < kCells.count; ++i)
+                 {
+                     cells.x[i] = static_cast<std::int8_t>(kSpawn.first + kCells.origin.x + kCells.cells[i].x);
+                     cells.y[i] = static_cast<std::int8_t>(kSpawn.second - kCells.origin.y + kCells.cells[i].y);
+                 }
+             }(),
+             ...);
+        }(std::make_index_sequence<m_tetris2::ai_rule_spec::piece_count<Spec>()>{});
+        return out;
     }
 
     template<class Spec>
@@ -256,7 +261,7 @@ namespace ai_zzz
         width_ = static_cast<int>(Spec::width);
         full_count_ = width_ * 24;
         m_tetris2::ai_rule_spec::fill_piece_index_cache<Spec>(piece_index_);
-        fill_spawn_cells<Spec>();
+        spawn_cells_ = make_spawn_cells<Spec>();
     }
 
     template<class Spec>

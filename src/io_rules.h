@@ -514,6 +514,7 @@ namespace io_rules
     struct ExchangeResult
     {
         int sent = 0;
+        int surge_sent = 0; // part of `sent`
         int cancelled = 0;
         int tanked = 0;
         std::array<int, 5> parts{}; // amounts actually sent, one incoming entry each for the opponent
@@ -541,6 +542,7 @@ namespace io_rules
             if (part > 0)
                 fight(part);
         }
+        r.surge_sent = r.sent;
         if (attack.blocks)
             fight(attack.lines);
         if (attack.all_clear > 0)

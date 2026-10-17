@@ -430,7 +430,7 @@ if(NOT WIN32)
 endif()
 
 # ---------------------------------------------------------------------------
-# io_uds: TETR.IO bot server for botconnect (protocol v2, AF_UNIX socket, POSIX only).
+# io_uds: TETR.IO bot server for botconnect (protocol v3, AF_UNIX socket, POSIX only).
 # Off by default: it downloads nlohmann_json, which the CI `tetris_ai` build must not need.
 # ---------------------------------------------------------------------------
 option(TETRIS_IO_UDS "Build the io_uds TETR.IO socket server (downloads nlohmann_json)" OFF)
@@ -456,10 +456,10 @@ if(TETRIS_IO_UDS)
 endif()
 
 # ---------------------------------------------------------------------------
-# TETR.IO Season 2: io_rules (header-only rules logic) and the ai_zzz::IO AI.
+# TETR.IO Season 2: io_rules (header-only rules logic), the ai_zzz::IO AI and its kill check (IOLethal).
 # Hosts (io_uds, io_sim, io_pso) link ai_zzz_io.
 # ---------------------------------------------------------------------------
-add_library(ai_zzz_io STATIC src/ai_zzz_io.cpp)
+add_library(ai_zzz_io STATIC src/ai_zzz_io.cpp src/ai_zzz_io_lethal.cpp)
 target_link_libraries(ai_zzz_io PUBLIC tetris_core)
 
 add_executable(io_rules_test test/io_rules_test.cpp)

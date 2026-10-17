@@ -239,7 +239,7 @@ namespace
         int sent_total = 0;
         Attack const surge = resolve({1, Spin::None, false, false}, 9, 0);
         ExchangeResult x = exchange(kTL, surge, queue, 40, sent_total, 8);
-        expect(x.cancelled == 3 && x.sent == 5 && x.tanked == 0, "each surge part cancels own pending first");
+        expect(x.cancelled == 3 && x.sent == 5 && x.surge_sent == 5 && x.tanked == 0, "each surge part cancels own pending first");
         expect(x.part_count == 2 && x.parts[0] == 3 && x.parts[1] == 2, "sent parts keep send order");
 
         queue.push(6, 0);
@@ -258,6 +258,7 @@ namespace
         x = exchange(kTL, pc, pc_queue, 40, sent_total, 8);
         expect(x.cancelled == 2 && x.sent == 8 && x.part_count == 2 && x.parts[0] == 3 && x.parts[1] == 5, "PC attack is fought after the line attack");
         expect(sent_total == 8, "lines_sent counts lines actually sent");
+        expect(x.surge_sent == 0, "line and PC attacks are not surge");
     }
 
     void test_rng()

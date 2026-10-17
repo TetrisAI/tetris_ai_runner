@@ -196,9 +196,32 @@ namespace io_sim
         }
     }
 
-    int Match::lock_frame(int seat) const
+    int Match::lock_frame(int seat, int ahead) const
     {
-        return static_cast<int>(std::floor((placements_[seat] + 1) * kFramesPerSecond / config_.pps[seat] + 1e-9));
+        return static_cast<int>(std::floor((placements_[seat] + 1 + ahead) * kFramesPerSecond / config_.pps[seat] + 1e-9));
+    }
+
+    std::uint64_t Match::lethal_sent(int seat, int root_lock_frame)
+    {
+        int const other = 1 - seat;
+        Side const &opponent = sides_[other];
+        opponent_pieces_.clear();
+        if (planned_[other].state.t != 0)
+            opponent_pieces_ += static_cast<char>(planned_[other].state.t);
+        opponent_pieces_ += opponent.current();
+        auto const preview = opponent.preview();
+        opponent_pieces_.append(preview.begin(), preview.end());
+        opponent_pending_.clear();
+        for (auto const &entry : opponent.pending.entries())
+            opponent_pending_.push_back({entry.amount, std::max(0, entry.frames_until_active)});
+        int const active_frame = root_lock_frame + config_.rules.garbagespeed;
+        int free_placements = 0;
+        while (lock_frame(other, free_placements) < active_frame)
+            ++free_placements;
+        // The planned piece may already have held; allowing hold again only adds replies.
+        ai_zzz::IOLethal::Opponent const view{opponent.board, opponent.garbage_rows, opponent_pieces_, opponent.hold, true,
+                                              opponent.counters, opponent.pieces_placed, opponent_pending_};
+        return lethal_.lethal_sent(view, config_.rules, root_lock_frame, free_placements);
     }
 
     bool Match::plan(int seat, int frame)
@@ -211,14 +234,14 @@ namespace io_sim
             return false;
         me.sync(frame);
 
+        int root_lock_frame = lock_frame(seat);
         ai_zzz::IO::Config &ai_config = *engine.ai_config();
         ai_config.rules = config_.rules;
         ai_config.pps = config_.pps[seat];
         ai_config.allow_pc = true;
-        ai_config.opponent = ai_zzz::IO::OpponentView{true, std::max(0, kVisibleRows - opponent.stack_height()), opponent.pending.total(), opponent.counters.btb};
+        ai_config.opponent = ai_zzz::IO::OpponentView{true, opponent.counters.btb, lethal_sent(seat, root_lock_frame)};
         ai_config.param = params_[seat];
 
-        int root_lock_frame = lock_frame(seat);
         projected_pending_.clear();
         for (auto const &entry : me.pending.entries())
             projected_pending_.push_back({entry.amount, std::max(0, entry.frames_until_active - (root_lock_frame - frame))});
