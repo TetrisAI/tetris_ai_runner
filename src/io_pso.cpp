@@ -49,8 +49,8 @@ namespace
         int pop_opponents = 4;
         int seeds = 3;
         double spread = 0.15;
-        double pps = 2.0;
-        int next_count = 5;
+        double pps = 4.0;
+        int next_count = 10;
         int iterations = io_sim::SearchBudget{}.iterations;
         int think_ms = 0;
         double max_minutes = 8;
