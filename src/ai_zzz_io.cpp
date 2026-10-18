@@ -149,6 +149,19 @@ namespace ai_zzz
         return value < other.value;
     }
 
+    std::uint64_t IO::Status::transposition_key() const
+    {
+        std::uint64_t key = std::bit_cast<std::uint64_t>(frame);
+        for (int field : {btb, combo, pieces_placed, lines_sent, garbage_rows, map_rise, int(death), int(kill)})
+            key = m_tetris2::hash_combine(key, static_cast<std::uint64_t>(field));
+        for (auto const &entry : pending.entries())
+        {
+            key = m_tetris2::hash_combine(key, static_cast<std::uint64_t>(entry.amount));
+            key = m_tetris2::hash_combine(key, static_cast<std::uint64_t>(entry.frames_until_active));
+        }
+        return key;
+    }
+
     std::string IO::ai_name() const
     {
         return "ZZZ TETR.IO S2";

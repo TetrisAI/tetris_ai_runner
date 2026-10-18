@@ -193,6 +193,9 @@ namespace ai_zzz
             bool death = false;
             bool kill = false;
             bool operator<(Status const &other) const;
+            // Every field but the score accumulators (like, value, sent, surge_sent, cancelled, b2b_gained, max_combo):
+            // the beam expands only the first node it pops among those at one depth that differ in them alone.
+            std::uint64_t transposition_key() const;
         };
 
         static Status make_root_status(RootState const &root, Config const &config);

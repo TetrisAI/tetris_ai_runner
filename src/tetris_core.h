@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cassert>
 #include <cstring>
 #include <deque>
@@ -90,6 +91,16 @@ namespace m_tetris2
         char hold;
         bool is_hold;
     };
+
+    // One step of an order-sensitive 64-bit hash (splitmix64 finalizer). Transposition keys are compared by this hash
+    // alone, so it must mix well.
+    constexpr std::uint64_t hash_combine(std::uint64_t seed, std::uint64_t value) noexcept
+    {
+        std::uint64_t x = seed ^ (value + 0x9E3779B97F4A7C15ull);
+        x = (x ^ (x >> 30)) * 0xBF58476D1CE4E5B9ull;
+        x = (x ^ (x >> 27)) * 0x94D049BB133111EBull;
+        return x ^ (x >> 31);
+    }
 
 
     template<class TetrisAI>
@@ -499,6 +510,8 @@ namespace m_tetris2
     {
         typedef TetrisCore<TetrisAI, TetrisSearch> Core;
         using LandPoint = typename Core::LandPoint;
+        // Opt-in: Status::transposition_key() hashes the status fields that shape later placements.
+        static constexpr bool kTranspositions = requires(Status const &value) { value.transposition_key(); };
         struct Context
         {
         public:
@@ -573,6 +586,7 @@ namespace m_tetris2
             TetrisSearch *search;
             std::vector<value_heap_t> sort;
             std::vector<value_heap_t> wait;
+            std::vector<chash_set<std::uint64_t>> expanded_keys;
             children_map_t old;
             identity_set_t uniq;
             bool is_complete;
@@ -581,9 +595,18 @@ namespace m_tetris2
             bool unused_bool;
             size_t max_length;
             size_t width;
+            size_t scored = 0;
             std::deque<TetrisTreeNode> *node_storage;
             TetrisTreeNode *free_list;
             size_t free_count;
+            // A discarded subtree root, whose sibling link may still lead into the live tree, or with `siblings` a
+            // whole children list.
+            struct Discarded
+            {
+                TetrisTreeNode *node;
+                bool siblings;
+            };
+            std::vector<Discarded> discarded;
             std::vector<Status const *> iterate_cache;
             char current_t;
             m_tetris2::State root_start{};
@@ -597,6 +620,10 @@ namespace m_tetris2
             TetrisTreeNode *alloc(TetrisTreeNode *parent)
             {
                 TetrisTreeNode *node;
+                if (free_list == nullptr)
+                {
+                    reclaim(1);
+                }
                 if (free_list != nullptr)
                 {
                     node = free_list;
@@ -612,21 +639,38 @@ namespace m_tetris2
                 node->parent = parent;
                 return node;
             }
+            // O(1): freeing a whole subtree at once costs ~0.1 us per node, tens of ms for a widened tree, so its
+            // nodes move to the free list one by one, as alloc needs them or through reclaim.
             void dealloc(TetrisTreeNode *node)
             {
-                for (auto it = node->children; it != nullptr; it = it->children_next)
+                discarded.push_back({node, false});
+            }
+            // Moves up to `count` discarded nodes to the free list, touching each once; true while some remain.
+            bool reclaim(size_t count)
+            {
+                for (; count > 0 && !discarded.empty(); --count)
                 {
-                    dealloc(it);
+                    auto const [node, siblings] = discarded.back();
+                    discarded.pop_back();
+                    if (siblings && node->children_next != nullptr)
+                    {
+                        discarded.push_back({node->children_next, true});
+                    }
+                    if (node->children != nullptr)
+                    {
+                        discarded.push_back({node->children, true});
+                    }
+                    node->children = nullptr;
+                    node->node_flag.clear();
+                    node->flag = 0;
+                    node->node = ' ';
+                    node->hold = ' ';
+                    node->level = 1;
+                    node->parent = free_list;
+                    free_list = node;
+                    ++free_count;
                 }
-                node->children = nullptr;
-                node->node_flag.clear();
-                node->flag = 0;
-                node->node = ' ';
-                node->hold = ' ';
-                node->level = 1;
-                node->parent = free_list;
-                free_list = node;
-                ++free_count;
+                return !discarded.empty();
             }
         };
         struct TetrisNodeFlag
@@ -807,16 +851,51 @@ namespace m_tetris2
             context->dealloc(this);
             return new_root;
         }
+        // Keeps only the child placed at `target`; false, tree unchanged, if there is none. The beam must restart
+        // afterwards: its queues may still hold the dropped nodes.
+        bool keep_only(Context *context, LandPoint const &target)
+        {
+            auto const key = lp_key(target).status;
+            TetrisTreeNode *kept = children;
+            while (kept != nullptr && lp_key(kept->identity).status != key)
+            {
+                kept = kept->children_next;
+            }
+            if (kept == nullptr)
+            {
+                return false;
+            }
+            for (TetrisTreeNode *it = children, *sibling; it != nullptr; it = sibling)
+            {
+                sibling = it->children_next;
+                if (it != kept)
+                {
+                    context->dealloc(it);
+                }
+            }
+            kept->children_next = nullptr;
+            children = kept;
+            return true;
+        }
         void update_version(Context *context)
         {
             ++context->version;
             context->total += context->width;
             context->avg = context->total / context->version;
             context->width = 0;
+            context->scored = 0;
             context->wait.clear();
             context->sort.clear();
             context->wait.resize(context->max_length + 1);
             context->sort.resize(context->max_length + 1);
+            if constexpr (kTranspositions)
+            {
+                context->expanded_keys.resize(context->max_length + 1);
+                for (auto &keys : context->expanded_keys)
+                {
+                    keys.clear();
+                }
+            }
         }
         static std::vector<next_t> process_next(char const *_next, size_t _next_length, char _t)
         {
@@ -1252,6 +1331,7 @@ namespace m_tetris2
             for (auto it = children; it != nullptr; it = it->children_next)
             {
                 Core::template get<true>(context, it, this);
+                ++context->scored;
             }
             if (TetrisAIHasIterate<TetrisAI>::type::value && level < context->next.size() && context->next[level].get_vp())
             {
@@ -1355,6 +1435,19 @@ namespace m_tetris2
                 search(context, node, false);
             }
         }
+        // Nodes of one depth with equal keys reach the same board, hold, queue position and AI state, hence the same
+        // future. Keys are compared by hash alone.
+        std::uint64_t transposition_key(Context const *context) const
+        {
+            auto const queue = is_hold && parent->hold == ' ' ? std::next(parent->next) : parent->next;
+            std::uint64_t key = status.get_raw().transposition_key();
+            for (auto lane : map.data.data)
+            {
+                key = hash_combine(key, lane);
+            }
+            key = hash_combine(key, static_cast<unsigned char>(is_hold ? parent->node : parent->hold));
+            return hash_combine(key, static_cast<std::uint64_t>(std::distance(context->next.cbegin(), queue)));
+        }
         template<bool EnableHold>
         bool run(Context *context)
         {
@@ -1406,6 +1499,15 @@ namespace m_tetris2
                 {
                     TetrisTreeNode *child = wait->top();
                     wait->pop();
+                    if constexpr (kTranspositions)
+                    {
+                        // Only the first node of a position popped at this depth is expanded; later copies are dropped,
+                        // even better-valued ones a later widening produces.
+                        if (!context->expanded_keys[next_length + 1].insert(child->transposition_key(context)).second)
+                        {
+                            return;
+                        }
+                    }
                     sort->push(child);
                     for (auto it = child->build_children<EnableHold>(context); it != nullptr; it = it->children_next)
                     {
@@ -1555,6 +1657,25 @@ namespace m_tetris2
         TetrisSearch search_;
         typename Core::Status status_;
         uint64_t memory_limit_;
+
+        // Nodes freed per background step; a foreground call waits for at most one step, about 0.4 ms of freeing.
+        static constexpr size_t kReclaimBatch = 4096;
+
+        // One step of the argument-free runs: free discarded nodes first, then widen the beam of the last searched
+        // position (there is none before the first search).
+        template<bool EnableHold>
+        bool widen()
+        {
+            if (local_context_.reclaim(kReclaimBatch))
+            {
+                return false;
+            }
+            if (local_context_.current_t != '\0' && memory_usage() < memory_limit_)
+            {
+                return root_->template run<EnableHold>(&local_context_);
+            }
+            return true;
+        }
 
     public:
         typedef typename Core::Status Status;
@@ -1724,30 +1845,25 @@ namespace m_tetris2
         void update()
         {
             local_context_.is_complete = false;
-            ++local_context_.version;
-            local_context_.total += local_context_.width;
-            local_context_.avg = local_context_.total / local_context_.version;
-            local_context_.width = 0;
-            local_context_.wait.clear();
-            local_context_.sort.clear();
-            local_context_.wait.resize(local_context_.max_length + 1);
-            local_context_.sort.resize(local_context_.max_length + 1);
+            root_->update_version(&local_context_);
+        }
+        // Positions scored (AI::get calls) since the beam last restarted.
+        size_t scored() const
+        {
+            return local_context_.scored;
+        }
+        // The beam has expanded every node it holds; widening adds nothing more.
+        bool complete() const
+        {
+            return local_context_.is_complete;
         }
         bool run()
         {
-            if (TreeNode::lp_is_valid(root_->identity) && memory_usage() < memory_limit_)
-            {
-                return root_->template run<false>(&local_context_);
-            }
-            return true;
+            return widen<false>();
         }
         bool run_hold()
         {
-            if (TreeNode::lp_is_valid(root_->identity) && memory_usage() < memory_limit_)
-            {
-                return root_->template run<true>(&local_context_);
-            }
-            return true;
+            return widen<true>();
         }
         //run!
         RunResult run(map_t const &map, TetrisBlockStatus const &status, char const *next, size_t next_length, time_t limit = 100)
@@ -1788,6 +1904,17 @@ namespace m_tetris2
             {
                 auto best = root_->get_best(&local_context_);
                 return best.first != nullptr ? RunResult(best, best.first != nullptr && best.first->is_hold) : RunResult(false);
+            }
+        }
+        // The host plays `result`: the other root moves are dropped, so further widening (the background thinking of
+        // TetrisThreadEngine) explores only the position after it, which the next search reuses if the board matches.
+        // A later search of the same position can only return `result`.
+        void commit(RunResult const &result)
+        {
+            if (TreeNode::lp_is_valid(result.target) && root_->keep_only(&local_context_, result.target))
+            {
+                local_context_.is_complete = false;
+                root_->update_version(&local_context_);
             }
         }
         //根据run的结果得到一个操作路径
@@ -1879,8 +2006,10 @@ namespace m_tetris2
         std::chrono::high_resolution_clock::time_point stop_;
         std::condition_variable cv_;
         bool with_hold_;
-        bool backgrond_;
+        // Cleared without the mutex: that is how a foreground call gets the worker to release it.
+        std::atomic<bool> backgrond_;
         bool running_;
+        bool update_pending_ = false;
 
         struct PauseBackground
         {
@@ -1896,6 +2025,8 @@ namespace m_tetris2
             {
                 self->backgrond_ = true;
                 self->mutex_.unlock();
+                // The worker may have gone back to waiting while paused; without a wake-up it idles until its timeout.
+                self->cv_.notify_all();
             }
         };
 
@@ -1927,6 +2058,20 @@ namespace m_tetris2
             cv_.notify_all();
         }
 
+        // Hands the host's status and configs to the engine. A pending update() restarts the beam only here, after the
+        // copy: restarted earlier, the worker could rebuild it with the old ones, and a run on the same position keeps
+        // those nodes.
+        void apply_host_state()
+        {
+            ai_config_.assign(engine_.ai_config());
+            search_config_.assign(engine_.search_config());
+            *engine_.status() = status_;
+            if (std::exchange(update_pending_, false))
+            {
+                engine_.update();
+            }
+        }
+
     public:
         typedef typename Engine::Status Status;
         typedef typename Engine::RunResult RunResult;
@@ -1940,8 +2085,10 @@ namespace m_tetris2
         {
             if (running_)
             {
-                running_ = false;
-                cv_.notify_all();
+                {
+                    PauseBackground pause(this);
+                    running_ = false;
+                }
                 worker_.join();
             }
         }
@@ -1992,6 +2139,7 @@ namespace m_tetris2
         }
         void memory_limit(uint64_t value)
         {
+            PauseBackground pause(this);
             engine_.memory_limit(value);
         }
         uint64_t memory_usage() const
@@ -2035,15 +2183,13 @@ namespace m_tetris2
         void update()
         {
             PauseBackground pause(this);
-            engine_.update();
+            update_pending_ = true;
         }
         //run!
         RunResult run(typename Engine::map_t const &map, TetrisBlockStatus const &status, char const *next, size_t next_length, time_t limit = 100)
         {
             PauseBackground pause(this);
-            ai_config_.assign(engine_.ai_config());
-            search_config_.assign(engine_.search_config());
-            *engine_.status() = status_;
+            apply_host_state();
             auto run_result = engine_.run(map, status, next, next_length, limit);
             start_work(false);
             return run_result;
@@ -2052,12 +2198,16 @@ namespace m_tetris2
         RunResult run_hold(typename Engine::map_t const &map, TetrisBlockStatus const &status, char hold, bool hold_free, char const *next, size_t next_length, time_t limit = 100)
         {
             PauseBackground pause(this);
-            ai_config_.assign(engine_.ai_config());
-            search_config_.assign(engine_.search_config());
-            *engine_.status() = status_;
+            apply_host_state();
             auto run_result = engine_.run_hold(map, status, hold, hold_free, next, next_length, limit);
             start_work(true);
             return run_result;
+        }
+        // TetrisEngine::commit; background thinking then continues on the position after `result`.
+        void commit(RunResult const &result)
+        {
+            PauseBackground pause(this);
+            engine_.commit(result);
         }
         //根据run的结果得到一个操作路径
         std::vector<char> make_path(TetrisBlockStatus const &status, typename Engine::LandPoint const &land_point, typename Engine::map_t const &map, bool cut_drop = true)

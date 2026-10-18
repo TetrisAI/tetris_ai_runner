@@ -258,8 +258,10 @@ namespace io_sim
         }
         else
         {
-            for (int i = 0; i < std::max(1, config_.budget.iterations); ++i)
+            do
+            {
                 result = engine.run_hold(me.board, *spawn, me.hold, true, preview.data(), preview.size(), 0);
+            } while (!engine.complete() && engine.scored() < static_cast<std::size_t>(config_.budget.nodes));
         }
         if (result.target == nullptr)
             return false;

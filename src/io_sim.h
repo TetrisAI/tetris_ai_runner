@@ -45,8 +45,10 @@ namespace io_sim
 
     struct SearchBudget
     {
-        int iterations = 64; // beam widenings per placement, deterministic; ~15 ms on an M4 Pro core (Release)
-        int think_ms = 0;    // > 0: wall-clock budget per placement instead (not reproducible)
+        // Positions scored per placement (Engine::scored): deterministic, and the same cost at any `ratio`; ~8 ms on one
+        // M4 Pro core (Release).
+        int nodes = 32768;
+        int think_ms = 0; // > 0: wall-clock budget per placement instead (not reproducible)
     };
 
     struct MatchConfig

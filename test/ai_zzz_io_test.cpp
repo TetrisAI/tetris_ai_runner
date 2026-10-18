@@ -1,5 +1,6 @@
 // ai_zzz_io_test: host-visible behaviour of ai_zzz::IO without a search — spawn-overlap death (rules.md §2),
-// the param text format, how spin slots are discounted by when their piece can be played, and certain kills (IOLethal).
+// the param text format, how spin slots are discounted by when their piece can be played, certain kills (IOLethal),
+// and which status fields the transposition key covers.
 
 #include "../src/rule_io.h"
 #include "../src/ai_zzz_io.h"
@@ -219,6 +220,45 @@ namespace
         config.param.slot_b2b = 0;
         expect(value_with_s_slot(ai, config, "SZT", ' ') == value_with_s_slot(ai, config, "ZTL", ' '), "zero slot weights ignore slots");
     }
+
+    // The beam expands one node per key at each depth, so the key must ignore the score accumulators and split on
+    // everything that shapes later placements.
+    void test_transposition_key()
+    {
+        using Status = ai_zzz::IO::Status;
+        std::array<ai_zzz::IO::PendingGarbage, 1> const pending = {{{3, 20}}};
+        ai_zzz::IO::RootState root;
+        root.btb = 2;
+        root.combo = 1;
+        root.pending = pending;
+        Status const base = ai_zzz::IO::make_root_status(root, {});
+
+        Status scored = base;
+        scored.like += 5;
+        scored.value += 100;
+        scored.sent += 2;
+        scored.surge_sent += 1;
+        scored.cancelled += 1;
+        scored.b2b_gained += 1;
+        scored.max_combo += 1;
+        expect(scored.transposition_key() == base.transposition_key(), "score accumulators keep the transposition key");
+
+        for (int Status::*counter : {&Status::btb, &Status::combo, &Status::lines_sent, &Status::garbage_rows, &Status::map_rise})
+        {
+            Status other = base;
+            ++(other.*counter);
+            expect(other.transposition_key() != base.transposition_key(), "B2B, combo, lines sent, garbage rows and tanked rows split the key");
+        }
+        for (bool Status::*flag : {&Status::death, &Status::kill})
+        {
+            Status other = base;
+            other.*flag = true;
+            expect(other.transposition_key() != base.transposition_key(), "death and kill split the transposition key");
+        }
+        Status more_garbage = base;
+        more_garbage.pending.push(1, 40);
+        expect(more_garbage.transposition_key() != base.transposition_key(), "more pending garbage splits the transposition key");
+    }
 }
 
 int main()
@@ -229,6 +269,7 @@ int main()
     test_kill_credit();
     test_lethal();
     test_spin_slot_availability();
+    test_transposition_key();
     if (g_failures != 0)
     {
         std::fprintf(stderr, "%d failure(s)\n", g_failures);

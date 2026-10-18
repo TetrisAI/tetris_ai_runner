@@ -19,7 +19,7 @@ namespace
     io_sim::MatchConfig quick_config()
     {
         io_sim::MatchConfig config;
-        config.budget.iterations = 1;
+        config.budget.nodes = 1;
         return config;
     }
 

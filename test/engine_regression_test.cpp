@@ -10,10 +10,17 @@
 #include "../src/rule_botris.h"
 #include "../src/rule_io.h"
 
+#include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <iterator>
+#include <map>
+#include <set>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -387,6 +394,245 @@ namespace
         engine.attach(first, map);
         expect(run_from(lowered, "lowered start, reused child root").state.xb > wall_x, "reused root drops spawn-start children");
     }
+
+    template<class LP>
+    bool same_move(LP const &a, LP const &b)
+    {
+        return a.state.t == b.state.t && a.state.r == b.state.r && a.state.xb == b.state.xb && a.state.yb == b.state.yb;
+    }
+
+    // run_hold() without a position widens the last searched one, also when that root came from no placement.
+    void widening_continues_the_first_search()
+    {
+        using Engine = m_tetris2::TetrisEngine<rule_srs::TetrisRule, LeftmostProbe, path::Search>;
+        using Spec = rule_srs::TetrisRule::rule_spec;
+        Engine engine;
+        expect(engine.prepare(Spec::width, Spec::height), "widening prepare");
+        expect(engine.run_hold() && engine.scored() == 0, "nothing to widen before the first search");
+        Engine::map_t map{};
+        engine.run_hold(map, spawn_of<Spec>('T'), ' ', true, "OIL", 3, 0);
+        size_t const scored = engine.scored();
+        engine.run_hold();
+        std::printf("widening the first search: %zu -> %zu positions scored\n", scored, engine.scored());
+        expect(engine.scored() > scored, "run_hold() widens the first searched position");
+    }
+
+    // LeftmostProbe that counts evaluations: nodes reused from earlier widening need none.
+    class CountingProbe : public LeftmostProbe
+    {
+    public:
+        mutable size_t evals = 0;
+        template<class Details>
+        Result eval(m_tetris2::TetrisNode<Details, std::monostate> const &lp, typename Details::map_type const &map, typename Details::map_type const &src, size_t clear) const
+        {
+            ++evals;
+            return LeftmostProbe::eval(lp, map, src, clear);
+        }
+    };
+
+    // commit() keeps only the move the host plays: the position then has no other answer, and the search of the
+    // position after the move starts from what was widened under it.
+    void commit_keeps_the_played_move()
+    {
+        using Engine = m_tetris2::TetrisEngine<rule_srs::TetrisRule, CountingProbe, path::Search>;
+        using Spec = rule_srs::TetrisRule::rule_spec;
+        Engine engine;
+        expect(engine.prepare(Spec::width, Spec::height), "commit prepare");
+        Engine::map_t map{};
+        TetrisBlockStatus const spawn = spawn_of<Spec>('T');
+        auto const choice = engine.run_hold(map, spawn, ' ', true, "OIL", 3, 0);
+        std::vector<Engine::LandPoint> landings;
+        engine.search(spawn, map, landings);
+        Engine::RunResult played;
+        played.target = *std::max_element(landings.begin(), landings.end(), [](auto const &a, auto const &b)
+                                          { return a.state.xb < b.state.xb; });
+        expect(!same_move(played.target, choice.target), "the host plays another move than the engine's");
+        engine.commit(played);
+        for (int i = 0; i < 20; ++i)
+        {
+            engine.run_hold();
+        }
+        auto const again = engine.run_hold(map, spawn, ' ', true, "OIL", 3, 0);
+        expect(same_move(again.target, played.target) && !again.change_hold, "a committed position answers only the played move");
+
+        engine.attach(played.target, map);
+        TetrisBlockStatus const next_spawn = spawn_of<Spec>('O');
+        size_t const before = engine.ai()->evals;
+        engine.run_hold(map, next_spawn, ' ', true, "IL", 2, 0);
+        size_t const reused = engine.ai()->evals - before;
+        Engine fresh;
+        fresh.prepare(Spec::width, Spec::height);
+        fresh.run_hold(map, next_spawn, ' ', true, "IL", 2, 0);
+        std::printf("commit: the next position's first widening evaluates %zu positions, %zu on a fresh engine\n", reused, fresh.ai()->evals);
+        expect(reused < fresh.ai()->evals, "the next position starts from the nodes widened under the played move");
+    }
+
+    // Leftmost landing first; every node carries the tag of the root status it was scored under.
+    class TagProbe
+    {
+    public:
+        struct Config
+        {
+        };
+        using Result = int;
+        struct Status
+        {
+            double value = 0;
+            int tag = 0;
+            bool operator<(Status const &other) const
+            {
+                return value < other.value;
+            }
+        };
+        static inline std::atomic<size_t> gets{0};
+
+        template<class Spec>
+        void init(Config const *)
+        {
+        }
+        std::string ai_name() const
+        {
+            return "TagProbe";
+        }
+        template<class Details>
+        Result eval(m_tetris2::TetrisNode<Details, std::monostate> const &lp, typename Details::map_type const &, typename Details::map_type const &, size_t) const
+        {
+            return -int(lp.x);
+        }
+        Status get(Result const &result, size_t, Status const &status) const
+        {
+            gets.fetch_add(1, std::memory_order_relaxed);
+            return {status.value + result, status.tag};
+        }
+    };
+
+    // update() then a search of the same position with a new status: background steps in between must not leave
+    // nodes scored under the old status in the beam that search continues.
+    void search_after_update_uses_the_new_status()
+    {
+        using Engine = m_tetris2::TetrisThreadEngine<rule_srs::TetrisRule, TagProbe, path::Search>;
+        using Spec = rule_srs::TetrisRule::rule_spec;
+        Engine engine;
+        expect(engine.prepare(Spec::width, Spec::height), "tag prepare");
+        Engine::map_t const map{};
+        TetrisBlockStatus const spawn = spawn_of<Spec>('T');
+        engine.status()->tag = 1;
+        engine.run_hold(map, spawn, ' ', true, "OIL", 3, 0);
+        engine.update();
+        size_t const gets = TagProbe::gets.load();
+        auto const deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+        while (TagProbe::gets.load() == gets && std::chrono::steady_clock::now() < deadline)
+        {
+            std::this_thread::yield();
+        }
+        expect(TagProbe::gets.load() != gets, "the background thread keeps working after update()");
+        engine.status()->tag = 2;
+        auto const result = engine.run_hold(map, spawn, ' ', true, "OIL", 3, 0);
+        std::printf("search after update(): best node scored under root status tag %d\n", result.status.tag);
+        expect(result.status.tag == 2, "a search after update() scores every node with the new status");
+    }
+
+    // Scores boards alone and records the position (board, hold, queue left) of every node the beam expands.
+    template<bool kTranspositionKey>
+    class ExpansionProbe
+    {
+    public:
+        struct Config
+        {
+        };
+        struct Result
+        {
+            int score;
+            std::uint64_t board;
+        };
+        struct Status
+        {
+            double value = 0;
+            std::uint64_t position = 0;
+            std::uint64_t id = 0;
+            bool operator<(Status const &other) const
+            {
+                return value < other.value;
+            }
+            std::uint64_t transposition_key() const
+                requires kTranspositionKey
+            {
+                return 0;
+            }
+        };
+        // Per depth: id -> position of every expanded node.
+        mutable std::vector<std::map<std::uint64_t, std::uint64_t>> expanded;
+        mutable std::uint64_t ids = 0;
+
+        template<class Spec>
+        void init(Config const *)
+        {
+        }
+        std::string ai_name() const
+        {
+            return "ExpansionProbe";
+        }
+        template<class Details>
+        Result eval(m_tetris2::TetrisNode<Details, std::monostate> const &, typename Details::map_type const &map, typename Details::map_type const &, size_t clear) const
+        {
+            std::uint64_t board = 0;
+            for (int y = 0; y < Details::map_type::height; ++y)
+            {
+                board = m_tetris2::hash_combine(board, map.row(y));
+            }
+            return {int(clear) * 10 - (map.none() ? 0 : map.max_y()), board};
+        }
+        Status get(Result const &result, size_t depth, Status const &status, m_tetris2::AIEnv const &env) const
+        {
+            if (expanded.size() <= depth)
+            {
+                expanded.resize(depth + 1);
+            }
+            expanded[depth][status.id] = status.position;
+            std::uint64_t const position = m_tetris2::hash_combine(m_tetris2::hash_combine(result.board, static_cast<unsigned char>(env.hold)), env.length);
+            return {status.value + result.score, position, ++ids};
+        }
+        // Expanded nodes whose position was already expanded at their depth.
+        size_t repeats() const
+        {
+            size_t count = 0;
+            for (auto const &level : expanded)
+            {
+                std::set<std::uint64_t> positions;
+                for (auto const &[id, position] : level)
+                {
+                    count += !positions.insert(position).second;
+                }
+            }
+            return count;
+        }
+    };
+
+    template<bool kTranspositionKey>
+    size_t expansion_repeats()
+    {
+        using Engine = m_tetris2::TetrisEngine<rule_srs::TetrisRule, ExpansionProbe<kTranspositionKey>, path::Search>;
+        using Spec = rule_srs::TetrisRule::rule_spec;
+        Engine engine;
+        expect(engine.prepare(Spec::width, Spec::height), "expansion prepare");
+        typename Engine::map_t map{};
+        for (int i = 0; i < 30; ++i)
+        {
+            engine.run_hold(map, spawn_of<Spec>('T'), 'I', true, "OLJSZ", 5, 0);
+        }
+        return engine.ai()->repeats();
+    }
+
+    // Holding reorders placements, so nodes of one depth often reach the same position; with
+    // Status::transposition_key() the beam expands each position once per depth.
+    void beam_expands_each_position_once_per_depth()
+    {
+        size_t const plain = expansion_repeats<false>();
+        size_t const keyed = expansion_repeats<true>();
+        std::printf("repeated expansions: %zu without transposition_key, %zu with\n", plain, keyed);
+        expect(plain > 0, "the probe position has hold transpositions");
+        expect(keyed == 0, "the beam expands each position once per depth");
+    }
 } // namespace
 
 int main()
@@ -402,6 +648,10 @@ int main()
     iterate_with_held_tail();
     lowered_active_piece_searches_from_its_position<rule_srs::TetrisRule, path::Search>("rule_srs path");
     lowered_active_piece_searches_from_its_position<rule_io::TetrisRule, amini::Search>("rule_io amini");
+    widening_continues_the_first_search();
+    commit_keeps_the_played_move();
+    search_after_update_uses_the_new_status();
+    beam_expands_each_position_once_per_depth();
     std::printf("%s (%d failures)\n", g_failures == 0 ? "PASS" : "FAIL", g_failures);
     return g_failures == 0 ? 0 : 1;
 }

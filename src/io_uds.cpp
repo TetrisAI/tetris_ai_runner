@@ -523,6 +523,7 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         if (move.can_hold)
         {
             auto const result = engine.run_hold(move.board, status, move.hold, true, move.next.data(), move.next.size(), settings.think_ms);
+            engine.commit(result);
             if (result.change_hold)
             {
                 path += 'v';
@@ -545,6 +546,7 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         else
         {
             auto const result = engine.run(move.board, status, move.next.data(), move.next.size(), settings.think_ms);
+            engine.commit(result);
             if (result.target != nullptr)
                 append_path(status, result);
             else

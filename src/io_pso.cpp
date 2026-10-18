@@ -51,7 +51,7 @@ namespace
         double spread = 0.15;
         double pps = 4.0;
         int next_count = 10;
-        int iterations = io_sim::SearchBudget{}.iterations;
+        int nodes = io_sim::SearchBudget{}.nodes;
         int think_ms = 0;
         double max_minutes = 8;
         std::uint64_t seed = 1;
@@ -95,10 +95,10 @@ namespace
                      "  --next N           preview pieces visible to the AI (default "
                   << d.next_count
                   << ")\n"
-                     "  --iterations N     deterministic think budget: beam widenings per placement (default "
-                  << d.iterations
+                     "  --nodes N          deterministic think budget: positions scored per placement (default "
+                  << d.nodes
                   << ")\n"
-                     "  --think-ms MS      wall-clock think budget per placement instead of --iterations\n"
+                     "  --think-ms MS      wall-clock think budget per placement instead of --nodes\n"
                      "  --max-minutes M    game time limit before adjudication (default "
                   << d.max_minutes
                   << ")\n"
@@ -154,8 +154,8 @@ namespace
                 o.pps = std::atof(value);
             else if (arg == "--next")
                 o.next_count = std::atoi(value);
-            else if (arg == "--iterations")
-                o.iterations = std::atoi(value);
+            else if (arg == "--nodes")
+                o.nodes = std::atoi(value);
             else if (arg == "--think-ms")
                 o.think_ms = std::atoi(value);
             else if (arg == "--max-minutes")
@@ -173,7 +173,7 @@ namespace
             }
         }
         if (o.workers < 1 || o.population < 2 || o.pop_opponents < 0 || o.pop_opponents >= o.population || o.seeds < 1 || o.pps <= 0 ||
-            o.next_count < 1 || o.iterations < 1 || o.think_ms < 0 || o.max_minutes <= 0 || o.hours <= 0)
+            o.next_count < 1 || o.nodes < 1 || o.think_ms < 0 || o.max_minutes <= 0 || o.hours <= 0)
         {
             std::cerr << "invalid option value (see --help)\n";
             return false;
@@ -522,7 +522,7 @@ int main(int argc, char const *argv[])
     io_sim::MatchConfig config;
     config.pps = {options.pps, options.pps};
     config.next_count = options.next_count;
-    config.budget = {options.iterations, options.think_ms};
+    config.budget = {options.nodes, options.think_ms};
     config.max_frames = static_cast<int>(options.max_minutes * 60 * io_sim::kFramesPerSecond);
     if (!io_sim::fits_pending_capacity(config))
     {
@@ -533,8 +533,8 @@ int main(int argc, char const *argv[])
     log.line(format("io_pso %s: population %zu, %zu dims, anchors %zu, pop opponents %d, seeds %d, workers %d, pps %.2f, next %d, "
                     "budget %s %d, max %.1f min, budget %.2f h, out %s",
                     options.resume ? "resume" : "start", population, fields().size(), anchors.size(), pop_opponents, options.seeds,
-                    options.workers, options.pps, options.next_count, options.think_ms > 0 ? "ms" : "iterations",
-                    options.think_ms > 0 ? options.think_ms : options.iterations, options.max_minutes, options.hours, options.out.c_str()));
+                    options.workers, options.pps, options.next_count, options.think_ms > 0 ? "ms" : "nodes",
+                    options.think_ms > 0 ? options.think_ms : options.nodes, options.max_minutes, options.hours, options.out.c_str()));
 
     auto start = Clock::now();
     auto deadline = start + std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(options.hours * 3600));

@@ -56,11 +56,15 @@ AIs live in `src/ai_*.h/.cpp`. The engine detects members with SFINAE and `requi
   - a templated const `eval(node, map_after, map_src, clear)`;
   - exactly one non-template const `get(...)`. Its arity selects which extras are passed: `(result, depth)`, plus parent `Status`, plus `AIEnv`.
 - `Status` needs `operator<`.
-- **Optional:** `Config`, `ratio()`, `iterate()`, `EvalSpinType`.
+- **Optional:** `Config`, `ratio()`, `iterate()`, `EvalSpinType`, `Status::transposition_key()`.
+- `Status::transposition_key()` hashes the status fields that shape later placements (not the score accumulators). With it, the beam expands per depth only the first node of each position it pops (board, hold, queue position and that key); later copies are dropped, even better-valued ones a later widening produces. This is heuristic pruning, and keys are compared by hash alone.
 - Template members go in the header. `get`, `ai_name` and `Status::operator<` go in the `.cpp`.
 
 ### Runtime details
-- `TetrisThreadEngine` keeps a background search running. Wrap every foreground call in the `PauseBackground` RAII guard.
+- `TetrisThreadEngine` keeps a background search running. Wrap every foreground call in the `PauseBackground` RAII guard; its destructor wakes the worker. The argument-free `run()` / `run_hold()` widen the last searched position. Its `update()` takes effect at the next `run` / `run_hold`, after the host's status and configs are copied in; earlier, the worker could rebuild the beam with the old ones.
+- `commit(result)` tells the engine the host plays `result`: the other root moves are dropped, so background thinking explores only the position after it, and the next search reuses that subtree when the board matches. Hosts that search the same position twice (the PC engines in `src/ai.cpp`) must not commit in between.
+- `TetrisEngine::scored()` counts positions scored (`AI::get` calls) since the beam last restarted; `complete()` says widening adds nothing more.
+- Discarded subtrees are freed lazily (freeing costs ~0.1 µs per node): `alloc` splits them into the free list as it needs nodes, and each argument-free `run()` / `run_hold()` frees a batch before widening. `memory_usage()` counts them until then.
 - A Searcher holds state, so use one instance per thread.
 - `search()` is the hot path; `make_path()` is not.
 
@@ -71,8 +75,8 @@ AIs live in `src/ai_*.h/.cpp`. The engine detects members with SFINAE and `requi
 - `ai_zzz::IO` host API: `IO::make_root_status(RootState, Config)`, then `engine.update()` before every search (the engine does not compare Status/Config). `RootState::frame` is the frame at which the root placement **locks**; pending-garbage timers count from that frame. B2B/combo use TETR.IO client counters (Triangle `stats.b2b + 1`, `stats.combo + 1`).
 - `ai_zzz::IO` evaluation treats every piece's spins alike, as the S2 rules do: spin rewards are keyed by class × lines (`mini_k`, `full_k`), never by piece. Spin opportunities come from `src/ai_zzz_io_spin_slots.h` (line-clearing spins reachable by hard drop + one rotation, classified by the search's own `AMiniRuleHook`), valued as `slot_b2b + slot_attack · io_rules::kBaseAttack` and discounted by `slot_decay` per piece of distance in hold/preview. `IO::search_spin_rule` is the single `spinbonuses` → `SpinRule` mapping (io_uds and the detector). Rationale and measurements: `.research/s2-allspin-eval/plan.md`.
 - Kills: `src/ai_zzz_io_lethal.h` (`IOLethal`) searches the opponent's replies and returns `OpponentView::lethal_sent`, a bitmask over lines our root placement sends (bit X = certain kill); unmodelled cases count as survival. `IO::get` credits a kill only at depth 0 and adds a fixed `kKillValue` (no chain refund). Surge sent to the opponent is valued at `surge_release` × attack; cancelled surge keeps `cancel`.
-- `src/io_sim.*` + `src/io_pso.cpp`: S2 1v1 simulator and PSO trainer over `IO::param_fields()`; `best.params` files load with `IO::load_params`.
-- `src/io_uds.cpp`: protocol v3 socket server for `../botconnect` (bot client; `src/services/ipc/protocol.ts` documents the JSON) and its TEST-field player (`bun run play-test`, `src/browser/`). Each `prepare` builds a fresh engine. `--lethal-free-pieces N` (default 2) is how many opponent placements may lock before our garbage can enter. How to run everything: `../botconnect/CHEATSHEET.md`.
+- `src/io_sim.*` + `src/io_pso.cpp`: S2 1v1 simulator and PSO trainer over `IO::param_fields()`; `best.params` files load with `IO::load_params`. The think budget is positions scored per placement (`--nodes`), deterministic and equal for every `ratio`.
+- `src/io_uds.cpp`: protocol v3 socket server for `../botconnect` (bot client; `src/services/ipc/protocol.ts` documents the JSON) and its TEST-field player (`bun run play-test`, `src/browser/`). Each `prepare` builds a fresh engine; every move it plays is committed, so background thinking runs on the next position. `--lethal-free-pieces N` (default 2) is how many opponent placements may lock before our garbage can enter. How to run everything: `../botconnect/CHEATSHEET.md`.
 
 ## Key Directories
 - `src/` prefix rules:
@@ -142,7 +146,7 @@ TETRIS_AI_SOCKET=tetris_ai ./build-rel/io_uds --think-ms 100   # param file: pre
   2. Implement a `CaseProbe` that fills `oracle_lps` and `candidate_lps` with `LpEntry`, plus `*_make_path` closures for Phase B, and call `run_diff_main` from `main`.
   3. Add `<name>_diff` to **both** `foreach` lists in `CMakeLists.txt` (build and `add_test`). It registers as `tetris_diff_<name>_diff`.
 - **Adding a unit test:** `add_executable` it (without `EXCLUDE_FROM_ALL`), link `tetris_core`, and register it with `add_test(NAME tetris_<x> COMMAND x)`.
-- `tetris_engine_regression` (`test/engine_regression_test.cpp`) is built with ASan/UBSan on non-MSVC compilers. It covers the `AIEnv` queue seen by 4-arg `get` (hold swaps, `iterate` with a held tail), T-spin `LandPoint.type`, the 3-corner table, `TetrisEngine::attach`, and a lowered active piece (path and amini).
+- `tetris_engine_regression` (`test/engine_regression_test.cpp`) is built with ASan/UBSan on non-MSVC compilers. It covers the `AIEnv` queue seen by 4-arg `get` (hold swaps, `iterate` with a held tail), T-spin `LandPoint.type`, the 3-corner table, `TetrisEngine::attach`, a lowered active piece (path and amini), widening from a fresh engine's first search, `commit`, and per-depth transposition skipping.
 - **Search start:** `run` / `run_hold` search the root's active piece from the passed `TetrisBlockStatus` (x, y, r); held and preview pieces start at `RuleSpec::spawn`. `MoveGen::generate` takes that start as a bitboard `State`. A new start drops the root's cached children.
 - **Failing diffs:** never hide an unexpected failure with `XfailSet` entries. Investigate and report it.
 - **T-spin classification:** a corner counts when it is occupied or out of bounds. `TSpinHook` stores in `LandPoint.type` the class a one-line clear would score: Mini if `is_mini_ready`, else TSpin if `is_ready`, and only when `is_last_rotate`. `TOJ` / `TOJ_PC` / `TOJ_v08` convert it per clear count with `ai_zzz::tspin_for_clear` (no clear → None, Mini on 2+ lines → TSpin), matching the oracle AIs' `get`.
