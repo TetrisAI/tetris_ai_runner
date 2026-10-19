@@ -76,7 +76,7 @@ AIs live in `src/ai_*.h/.cpp`. The engine detects members with SFINAE and `requi
 - `ai_zzz::IO` evaluation treats every piece's spins alike, as the S2 rules do: spin rewards are keyed by class × lines (`mini_k`, `full_k`), never by piece. Spin opportunities come from `src/ai_zzz_io_spin_slots.h` (line-clearing spins reachable by hard drop + one rotation, classified by the search's own `AMiniRuleHook`), valued as `slot_b2b + slot_attack · io_rules::kBaseAttack` and discounted by `slot_decay` per piece of distance in hold/preview. `IO::search_spin_rule` is the single `spinbonuses` → `SpinRule` mapping (io_uds and the detector). Rationale and measurements: `.research/s2-allspin-eval/plan.md`.
 - Kills: `src/ai_zzz_io_lethal.h` (`IOLethal`) searches the opponent's replies and returns `OpponentView::lethal_sent`, a bitmask over lines our root placement sends (bit X = certain kill); unmodelled cases count as survival. `IO::get` credits a kill only at depth 0 and adds a fixed `kKillValue` (no chain refund). Surge sent to the opponent is valued at `surge_release` × attack; cancelled surge keeps `cancel`.
 - `src/io_sim.*` + `src/io_pso.cpp`: S2 1v1 simulator and PSO trainer over `IO::param_fields()`; `best.params` files load with `IO::load_params`. The think budget is positions scored per placement (`--nodes`), deterministic and equal for every `ratio`.
-- `src/io_uds.cpp`: protocol v3 socket server for `../botconnect` (bot client; `src/services/ipc/protocol.ts` documents the JSON) and its TEST-field player (`bun run play-test`, `src/browser/`). Each `prepare` builds a fresh engine; every move it plays is committed, so background thinking runs on the next position. `--lethal-free-pieces N` (default 2) is how many opponent placements may lock before our garbage can enter. How to run everything: `../botconnect/CHEATSHEET.md`.
+- `src/io_uds.cpp`: protocol v4 socket server for `../botconnect` (bot client; `src/services/ipc/protocol.ts` documents the JSON) and its TEST-field player (`bun run play-test`, `src/browser/`). Each `prepare` builds a fresh engine; every move it plays is committed, so background thinking runs on the next position. Speed belongs to the client: each move carries `pps` (the speed evaluation plans for) and `think_ms` (the most time from reading the request to sending the reply; the search gets what is left after parsing and the kill analysis, minus a 2 ms reserve). `--lethal-free-pieces N` (default 2) is how many opponent placements may lock before our garbage can enter. How to run everything: `../botconnect/CHEATSHEET.md` (`bun start` there launches `build-rel/io_uds`).
 
 ## Key Directories
 - `src/` prefix rules:
@@ -98,7 +98,7 @@ TETRIS_DIFF_VERBOSE_INFO=1 ./build/aspin_diff     # also dump the [INFO] set dif
 ./build/perft_movegen all | sort | uniq           # inspect move generation
 cmake -S . -B build-rel -DCMAKE_BUILD_TYPE=Release -DTETRIS_IO_UDS=ON   # io_uds downloads nlohmann_json; off by default
 cmake --build build-rel -j --target io_uds io_pso
-TETRIS_AI_SOCKET=tetris_ai ./build-rel/io_uds --think-ms 100   # param file: prepare.params (botconnect: env TETRIS_AI_PARAMS)
+TETRIS_AI_SOCKET=tetris_ai ./build-rel/io_uds   # param file: prepare.params (botconnect: env TETRIS_AI_PARAMS); botconnect's `bun start` runs it
 ./build-rel/io_pso --hours 6 --out io_pso_out [--init best.params]   # train in Release; see --help
 ```
 

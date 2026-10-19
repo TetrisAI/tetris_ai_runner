@@ -17,6 +17,7 @@
 #include <cassert>
 #include <cerrno>
 #include <charconv>
+#include <chrono>
 #include <csignal>
 #include <cstdlib>
 #include <cstring>
@@ -40,38 +41,42 @@ namespace
     using Spec = rule_io::TetrisRule::rule_spec;
     using Helpers = m_tetris2::Helpers<Spec>;
 
-    constexpr int kProtocolVersion = 3;
-    constexpr int kDefaultThinkMs = 50;
+    using Clock = std::chrono::steady_clock;
+
+    constexpr int kProtocolVersion = 4;
     constexpr int kDefaultLethalFreePieces = 2;
+    // Taken off a move's think_ms for what follows the search: committing the move, building the path, sending.
+    constexpr auto kReplyReserve = std::chrono::milliseconds(2);
     constexpr std::uint64_t kMemoryLimit = 512ull << 20;
     constexpr std::string_view kPieces = "IJLOSTZ";
     constexpr int kMaxNext = 64;
 
-    constexpr char kUsage[] = R"(Usage: io_uds [--think-ms N] [--lethal-free-pieces N] [--verbose]
+    constexpr char kUsage[] = R"(Usage: io_uds [--lethal-free-pieces N] [--verbose]
 
-TETR.IO bot server for botconnect (protocol v3): newline-delimited JSON over an AF_UNIX stream socket.
+TETR.IO bot server for botconnect (protocol v4): newline-delimited JSON over an AF_UNIX stream socket.
 
 Socket:
   $HOME/$TETRIS_AI_SOCKET (default $HOME/tetris_ai); a stale socket file is replaced.
 
 Options:
-  --think-ms N            search time per move in milliseconds (default 50; env TETRIS_AI_THINK_MS)
   --lethal-free-pieces N  opponent placements assumed to lock before our garbage can enter their board, when
                           judging a certain kill; covers garbagespeed, latency and snapshot age (default 2)
   --verbose               log every request and reply
   --help                  show this help
 
+Speed is set by the client per move: "pps" is the speed the search plans for, "think_ms" the most milliseconds
+from receiving the move to sending its reply.
+
 Commands (one JSON object per line: {"bot_id", "command", "data"}):
   create    start a bot engine for bot_id
-  prepare   data = {"protocol": 3, "options": <TETR.IO round options>, "pps": <pieces/s>, "params": <param file>?}
-  move      data = board state; replies {"bot_id", "command": "move", "data": "<path>V"}
+  prepare   data = {"protocol": 4, "options": <TETR.IO round options>, "params": <param file>?}
+  move      data = board state, "pps", "think_ms"; replies {"bot_id", "command": "move", "data": "<path>V"}
   dismiss   drop the bot
 Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V = hard drop.
 )";
 
     struct ServerSettings
     {
-        int think_ms = kDefaultThinkMs;
         int lethal_free_pieces = kDefaultLethalFreePieces;
         bool verbose = false;
     };
@@ -294,6 +299,7 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         bool can_hold = true;
         std::string next;
         ai_zzz::IO::RootState root{};
+        double think_ms = 0; // most milliseconds from receiving the move to sending its reply
     };
 
     struct Bot
@@ -371,12 +377,6 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
             bot.config.rules = parse_options(bot_id, *options);
         }
 
-        double pps = 0;
-        if (read_field(data, "pps", pps) && pps > 0)
-            bot.config.pps = pps;
-        else
-            log(bot_id, "error: prepare pps {} is not a positive number; keeping {}", json_text(data, "pps"), bot.config.pps);
-
         bot.config.param = ai_zzz::IO::Param{};
         auto params = data.find("params");
         if (params != data.end())
@@ -387,9 +387,9 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
 
         auto const &rules = bot.config.rules;
         bot.reset_engine(rules.allow180, search_spin_rule(bot_id, rules.spinbonuses));
-        log(bot_id, "prepared: spinbonuses {}, allow180 {}, b2bcharging {}, pps {}, params {}",
+        log(bot_id, "prepared: spinbonuses {}, allow180 {}, b2bcharging {}, params {}",
             io_rules::kSpinBonusesNames[static_cast<std::size_t>(rules.spinbonuses)], rules.allow180, rules.b2bcharging,
-            bot.config.pps, json_text(data, "params"));
+            json_text(data, "params"));
     }
 
     bool parse_opponent(Json const &data, Bot &bot)
@@ -462,6 +462,10 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
             return "pieces_placed";
         if (!read_field(data, "lines_sent", root.lines_sent) || root.lines_sent < 0)
             return "lines_sent";
+        if (!read_field(data, "pps", bot.config.pps) || bot.config.pps <= 0)
+            return "pps";
+        if (!read_field(data, "think_ms", move.think_ms) || move.think_ms <= 0)
+            return "think_ms";
 
         if (!read_garbage(data, bot.pending))
             return "garbage";
@@ -480,7 +484,9 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         return {};
     }
 
-    std::string run_move(int bot_id, Bot &bot)
+    // The search gets what is left of the move's think_ms, counted from when the request was read, after parsing and
+    // the kill analysis, minus kReplyReserve. The engine checks its deadline between widening steps.
+    std::string run_move(int bot_id, Bot &bot, Clock::time_point received)
     {
         auto &engine = *bot.engine;
         auto const &move = bot.move;
@@ -500,6 +506,8 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         *engine.ai_config() = bot.config;
         *engine.status() = ai_zzz::IO::make_root_status(move.root, bot.config);
         engine.update();
+        auto const deadline = received + std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double, std::milli>(move.think_ms)) - kReplyReserve;
+        time_t const limit_ms = std::max<time_t>(1, std::chrono::duration_cast<std::chrono::milliseconds>(deadline - Clock::now()).count());
 
         std::string path;
         // An empty path means "hard drop from the start"; anything else that yields no keys is a make_path failure.
@@ -522,7 +530,7 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         { log(bot_id, "error: the search found no placement for {}", move.active); };
         if (move.can_hold)
         {
-            auto const result = engine.run_hold(move.board, status, move.hold, true, move.next.data(), move.next.size(), settings.think_ms);
+            auto const result = engine.run_hold(move.board, status, move.hold, true, move.next.data(), move.next.size(), limit_ms);
             engine.commit(result);
             if (result.change_hold)
             {
@@ -545,7 +553,7 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         }
         else
         {
-            auto const result = engine.run(move.board, status, move.next.data(), move.next.size(), settings.think_ms);
+            auto const result = engine.run(move.board, status, move.next.data(), move.next.size(), limit_ms);
             engine.commit(result);
             if (result.target != nullptr)
                 append_path(status, result);
@@ -556,7 +564,7 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         return path;
     }
 
-    std::string handle_move(int bot_id, Json const &data)
+    std::string handle_move(int bot_id, Json const &data, Clock::time_point received)
     {
         auto bot = find_bot(bot_id);
         if (!bot)
@@ -575,11 +583,11 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
             log(bot_id, "error: move field {} is missing or invalid: {}", field, json_text(data, field));
             return "V";
         }
-        return run_move(bot_id, *bot);
+        return run_move(bot_id, *bot, received);
     }
 
-    // Handles one request line; `reply` is left empty for commands without a reply.
-    void handle_message(std::string_view line, std::vector<int> &owned_bots, std::string &reply)
+    // Handles one request line read at `received`; `reply` is left empty for commands without a reply.
+    void handle_message(std::string_view line, Clock::time_point received, std::vector<int> &owned_bots, std::string &reply)
     {
         reply.clear();
         Json const message = Json::parse(line, nullptr, false);
@@ -632,9 +640,9 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         }
         else if (name == "move")
         {
-            reply = Json{{"bot_id", bot_id}, {"command", "move"}, {"data", handle_move(bot_id, data)}}.dump();
+            reply = Json{{"bot_id", bot_id}, {"command", "move"}, {"data", handle_move(bot_id, data, received)}}.dump();
             if (settings.verbose)
-                log(bot_id, "-> {}", reply);
+                log(bot_id, "-> {} after {:.1f} ms", reply, std::chrono::duration<double, std::milli>(Clock::now() - received).count());
         }
         else if (name == "dismiss")
         {
@@ -675,11 +683,12 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
                 continue;
             if (received <= 0)
                 break;
+            auto const read_at = Clock::now();
             buffer.append(chunk, static_cast<std::size_t>(received));
             std::size_t start = 0;
             for (std::size_t end; connected && (end = buffer.find('\n', start)) != std::string::npos; start = end + 1)
             {
-                handle_message(std::string_view(buffer).substr(start, end - start), owned_bots, reply);
+                handle_message(std::string_view(buffer).substr(start, end - start), read_at, owned_bots, reply);
                 if (!reply.empty())
                 {
                     reply += '\n';
@@ -713,11 +722,6 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
 
 int main(int argc, char *argv[])
 {
-    if (char const *think = std::getenv("TETRIS_AI_THINK_MS"); think && (!parse_int(think, settings.think_ms) || settings.think_ms <= 0))
-    {
-        std::cerr << "io_uds: TETRIS_AI_THINK_MS must be a positive integer\n";
-        return 2;
-    }
     for (int i = 1; i < argc; ++i)
     {
         std::string_view const arg = argv[i];
@@ -729,10 +733,6 @@ int main(int argc, char *argv[])
         if (arg == "--verbose" || arg == "-v")
         {
             settings.verbose = true;
-        }
-        else if (arg == "--think-ms" && i + 1 < argc && parse_int(argv[i + 1], settings.think_ms) && settings.think_ms > 0)
-        {
-            ++i;
         }
         else if (arg == "--lethal-free-pieces" && i + 1 < argc && parse_int(argv[i + 1], settings.lethal_free_pieces) &&
                  settings.lethal_free_pieces >= 0)
@@ -779,7 +779,7 @@ int main(int argc, char *argv[])
         std::cerr << "io_uds: cannot listen on " << path << ": " << std::strerror(errno) << '\n';
         return 1;
     }
-    std::cout << "io_uds: listening on " << path << " (think " << settings.think_ms << " ms)" << std::endl;
+    std::cout << "io_uds: listening on " << path << std::endl;
 
     for (;;)
     {
