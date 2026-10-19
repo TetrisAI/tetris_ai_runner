@@ -53,14 +53,15 @@ namespace
 
     constexpr char kUsage[] = R"(Usage: io_uds [--lethal-free-pieces N] [--verbose]
 
-TETR.IO bot server for botconnect (protocol v4): newline-delimited JSON over an AF_UNIX stream socket.
+TETR.IO bot server for the bot client (protocol v4): newline-delimited JSON over an AF_UNIX stream socket.
 
 Socket:
   $HOME/$TETRIS_AI_SOCKET (default $HOME/tetris_ai); a stale socket file is replaced.
 
 Options:
   --lethal-free-pieces N  opponent placements assumed to lock before our garbage can enter their board, when
-                          judging a certain kill; covers garbagespeed, latency and snapshot age (default 2)
+                          judging a certain kill; covers garbagespeed, latency and snapshot age (default 2).
+                          A move's optional "lethal_free_pieces" overrides it for that move
   --verbose               log every request and reply
   --help                  show this help
 
@@ -70,7 +71,7 @@ from receiving the move to sending its reply.
 Commands (one JSON object per line: {"bot_id", "command", "data"}):
   create    start a bot engine for bot_id
   prepare   data = {"protocol": 4, "options": <TETR.IO round options>, "params": <param file>?}
-  move      data = board state, "pps", "think_ms"; replies {"bot_id", "command": "move", "data": "<path>V"}
+  move      data = board state, "pps", "think_ms", "lethal_free_pieces"?; replies {"bot_id", "command": "move", "data": "<path>V"}
   dismiss   drop the bot
 Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V = hard drop.
 )";
@@ -300,6 +301,7 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         std::string next;
         ai_zzz::IO::RootState root{};
         double think_ms = 0; // most milliseconds from receiving the move to sending its reply
+        int lethal_free_pieces = 0;
     };
 
     struct Bot
@@ -466,6 +468,10 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
             return "pps";
         if (!read_field(data, "think_ms", move.think_ms) || move.think_ms <= 0)
             return "think_ms";
+        move.lethal_free_pieces = settings.lethal_free_pieces;
+        if (data.contains("lethal_free_pieces") &&
+            (!read_field(data, "lethal_free_pieces", move.lethal_free_pieces) || move.lethal_free_pieces < 0))
+            return "lethal_free_pieces";
 
         if (!read_garbage(data, bot.pending))
             return "garbage";
@@ -502,7 +508,7 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         }
 
         if (bot.config.opponent.known)
-            bot.config.opponent.lethal_sent = bot.lethal.lethal_sent(bot.opponent, bot.config.rules, move.root.frame, settings.lethal_free_pieces);
+            bot.config.opponent.lethal_sent = bot.lethal.lethal_sent(bot.opponent, bot.config.rules, move.root.frame, move.lethal_free_pieces);
         *engine.ai_config() = bot.config;
         *engine.status() = ai_zzz::IO::make_root_status(move.root, bot.config);
         engine.update();

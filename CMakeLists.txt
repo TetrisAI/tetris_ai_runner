@@ -430,7 +430,7 @@ if(NOT WIN32)
 endif()
 
 # ---------------------------------------------------------------------------
-# io_uds: TETR.IO bot server for botconnect (protocol v4, AF_UNIX socket, POSIX only).
+# io_uds: TETR.IO bot server for the bot client (protocol v4, AF_UNIX socket, POSIX only).
 # Off by default: it downloads nlohmann_json, which the CI `tetris_ai` build must not need.
 # ---------------------------------------------------------------------------
 option(TETRIS_IO_UDS "Build the io_uds TETR.IO socket server (downloads nlohmann_json)" OFF)
