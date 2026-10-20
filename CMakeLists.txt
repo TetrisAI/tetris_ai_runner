@@ -457,7 +457,7 @@ endif()
 
 # ---------------------------------------------------------------------------
 # TETR.IO Season 2: io_rules (header-only rules logic), the ai_zzz::IO AI and its kill check (IOLethal).
-# Hosts (io_uds, io_sim, io_pso) link ai_zzz_io.
+# Hosts (io_uds, io_sim, io_cmaes) link ai_zzz_io.
 # ---------------------------------------------------------------------------
 add_library(ai_zzz_io STATIC src/ai_zzz_io.cpp src/ai_zzz_io_lethal.cpp)
 target_link_libraries(ai_zzz_io PUBLIC tetris_core)
@@ -475,15 +475,20 @@ target_link_libraries(ai_zzz_io_spin_slots_test PRIVATE tetris_core)
 add_test(NAME tetris_ai_zzz_io_spin_slots COMMAND ai_zzz_io_spin_slots_test)
 
 # ---------------------------------------------------------------------------
-# io_pso / io_sim_test: TETR.IO S2 match simulator (src/io_sim.*) and the PSO
-# trainer over ai_zzz::IO parameters. Train with a Release build.
+# io_cmaes / io_sim_test / io_cmaes_test: TETR.IO S2 match simulator (src/io_sim.*)
+# and the sep-CMA-ES trainer over ai_zzz::IO parameters (src/io_cmaes.*). Train
+# with a Release build.
 # ---------------------------------------------------------------------------
-add_executable(io_pso src/io_pso.cpp src/io_sim.cpp)
-target_link_libraries(io_pso PRIVATE ai_zzz_io tetris_core Threads::Threads)
+add_executable(io_cmaes src/io_cmaes.cpp src/io_sim.cpp)
+target_link_libraries(io_cmaes PRIVATE ai_zzz_io tetris_core Threads::Threads)
 
 add_executable(io_sim_test test/io_sim_test.cpp src/io_sim.cpp)
 target_link_libraries(io_sim_test PRIVATE ai_zzz_io tetris_core)
 add_test(NAME tetris_io_sim COMMAND io_sim_test)
+
+add_executable(io_cmaes_test test/io_cmaes_test.cpp)
+target_link_libraries(io_cmaes_test PRIVATE tetris_core)
+add_test(NAME tetris_io_cmaes COMMAND io_cmaes_test)
 
 # ---------------------------------------------------------------------------
 # amini tests: rule_io + amini::Search against an independent TETR.IO model

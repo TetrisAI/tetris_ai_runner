@@ -79,7 +79,6 @@ namespace ai_zzz
             double default_value;
             double lower;
             double upper;
-            double max_velocity;
         };
         static std::span<ParamField const> param_fields();
         // Text form: one `name = value` per line, `#` starts a comment. Names not in the text keep their value;

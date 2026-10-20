@@ -54,8 +54,8 @@ namespace io_sim
     struct MatchConfig
     {
         io_rules::Options rules = io_rules::Options::tetra_league();
-        std::array<double, 2> pps{2.0, 2.0};
-        int next_count = 5;
+        std::array<double, 2> pps{4.0, 4.0};
+        int next_count = 10;
         SearchBudget budget;
         int max_frames = 8 * 60 * kFramesPerSecond;
     };

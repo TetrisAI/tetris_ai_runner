@@ -61,5 +61,5 @@ Icon
 /.vs
 /x64/Release
 /compile_commands.json
-/io_pso_out
+/io_cmaes_out
 /.research

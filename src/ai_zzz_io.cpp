@@ -16,7 +16,7 @@ namespace ai_zzz
     {
         constexpr IO::ParamField field(std::string_view name, double IO::Param::*member, double lower, double upper)
         {
-            return {name, member, IO::Param{}.*member, lower, upper, (upper - lower) * 0.2};
+            return {name, member, IO::Param{}.*member, lower, upper};
         }
 
         constexpr std::array<IO::ParamField, 33> kParamFields = {{
