@@ -73,7 +73,7 @@ namespace ai_zzz
 
                 const int width_m1 = map_width - 1;
                 int ColTrans = 2 * (map_height - roof);
-                int RowTrans = 0;
+                int RowTrans = roof == map_height ? 0 : map_width;
                 for (int y = 0; y < roof; ++y)
                 {
                     uint32_t occ_row = static_cast<uint32_t>(map.row(y));
@@ -86,7 +86,9 @@ namespace ai_zzz
                 // bottom boundary: empty count
                 RowTrans += ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(0)));
                 // top boundary: occupied (if full) or empty count
-                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)));
+                RowTrans += roof == map_height
+                                ? ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)))
+                                : ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(roof - 1)));
                 struct
                 {
                     int HoleCount;
@@ -305,15 +307,20 @@ namespace ai_zzz
             // ColTrans: start with 2 transitions per empty row above roof (left+right wall).
             size_t ColTrans = static_cast<size_t>(2 * (H - roof));
 
-            // RowTrans (档位 A 真理): 左/右/底墙 occupied，顶墙 empty。
-            //   - 底墙项: popcount(empty bits of row[0]) = popcount(full ^ row[0])
-            //   - 顶墙项: popcount(occupied bits of row[roof-1]) = popcount(map.row(roof-1))
-            //   - roof < H 时的 "无穷空行到顶" 不贡献，因此 init = 0，无 += W 兜底。
+            // RowTrans: boundary transitions at bottom (row[0] vs floor) and top (row[roof-1] vs ceiling).
+            // In 1=occupied semantics:
+            //   - bottom boundary: number of occupied cells in row[0] (each occupied cell transitions with the empty floor)
+            //   - top boundary (roof==H): number of occupied cells in row[roof-1]
+            //   - top boundary (roof<H):  number of empty cells in row[roof-1]
+            //     (in old 1=empty code: map.row[roof-1] & mask = empty bits; here: full ^ map.row(roof-1))
             size_t RowTrans = 0;
             if (roof > 0)
             {
                 RowTrans = static_cast<size_t>(ZZZ_BitCount(static_cast<uint32_t>(full ^ map.row(0))));
-                RowTrans += static_cast<size_t>(ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1))));
+                if (roof == H)
+                    RowTrans += static_cast<size_t>(ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1))));
+                else
+                    RowTrans += static_cast<size_t>(ZZZ_BitCount(static_cast<uint32_t>(full ^ map.row(roof - 1))));
             }
 
             for (int y = 0; y < roof; ++y)
@@ -528,7 +535,7 @@ namespace ai_zzz
             int roof = map.none() ? 0 : (map.max_y() + 1);
 
             int ColTrans = 2 * (map_height - roof);
-            int RowTrans = 0;
+            int RowTrans = roof == map_height ? 0 : map_width;
             if (roof > 0)
             {
                 for (int y = 0; y < roof; ++y)
@@ -540,8 +547,14 @@ namespace ai_zzz
                         RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(y - 1)) ^ static_cast<uint32_t>(map.row(y)));
                     }
                 }
-                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(0)));
-                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)));
+                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(0)));
+                RowTrans += roof == map_height
+                                ? ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(roof - 1)))
+                                : ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)));
+            }
+            else
+            {
+                RowTrans += map_width;
             }
 
             Result result;
@@ -608,7 +621,7 @@ namespace ai_zzz
 
             const int width_m1 = map_width - 1;
             int ColTrans = 2 * (map_height - roof);
-            int RowTrans = 0;
+            int RowTrans = roof == map_height ? 0 : map_width;
             if (roof > 0)
             {
                 for (int y = 0; y < roof; ++y)
@@ -620,8 +633,14 @@ namespace ai_zzz
                         RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(y - 1)) ^ static_cast<uint32_t>(map.row(y)));
                     }
                 }
-                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(0)));
-                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)));
+                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(0)));
+                RowTrans += roof == map_height
+                                ? ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(roof - 1)))
+                                : ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)));
+            }
+            else
+            {
+                RowTrans += map_width;
             }
 
             Result result;
@@ -695,7 +714,7 @@ namespace ai_zzz
 
             const int width_m1 = map_width - 1;
             int ColTrans = 2 * (map_height - roof);
-            int RowTrans = 0;
+            int RowTrans = roof == map_height ? 0 : map_width;
             for (int y = 0; y < roof; ++y)
             {
                 uint32_t occ_row = static_cast<uint32_t>(map.row(y));
@@ -703,8 +722,10 @@ namespace ai_zzz
                 if (y != 0)
                     RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(y - 1)) ^ occ_row);
             }
-            RowTrans += ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(0)));
-            RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)));
+            RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(0)));
+            RowTrans += roof == map_height
+                            ? ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)))
+                            : ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(roof - 1)));
             struct
             {
                 int HoleCount;
@@ -987,7 +1008,7 @@ namespace ai_zzz
 
             const int width_m1 = map_width - 1;
             int ColTrans = 2 * (map_height - roof);
-            int RowTrans = 0;
+            int RowTrans = roof == map_height ? 0 : map_width;
             if (roof > 0)
             {
                 for (int y = 0; y < roof; ++y)
@@ -999,8 +1020,14 @@ namespace ai_zzz
                         RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(y - 1)) ^ static_cast<uint32_t>(map.row(y)));
                     }
                 }
-                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(0)));
-                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)));
+                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(0)));
+                RowTrans += roof == map_height
+                                ? ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(roof - 1)))
+                                : ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)));
+            }
+            else
+            {
+                RowTrans += map_width;
             }
 
             struct
@@ -1271,7 +1298,7 @@ namespace ai_zzz
 
             const int width_m1 = map_width - 1;
             size_t ColTrans = 2 * (map_height - roof);
-            size_t RowTrans = 0;
+            size_t RowTrans = roof == map_height ? 0 : map_width;
             if (roof > 0)
             {
                 for (int y = 0; y < roof; ++y)
@@ -1281,8 +1308,14 @@ namespace ai_zzz
                     if (y != 0)
                         RowTrans += ZZZ_BitCount(t_rows[y - 1] ^ t_rows[y]);
                 }
-                RowTrans += ZZZ_BitCount(row_full ^ t_rows[0]);
-                RowTrans += ZZZ_BitCount(t_rows[roof - 1]);
+                RowTrans += ZZZ_BitCount(t_rows[0]);
+                RowTrans += roof == map_height
+                                ? ZZZ_BitCount(row_full ^ t_rows[roof - 1])
+                                : ZZZ_BitCount(t_rows[roof - 1]);
+            }
+            else
+            {
+                RowTrans += map_width;
             }
             struct
             {
@@ -1427,7 +1460,7 @@ namespace ai_zzz
 
             const int width_m1 = map_width - 1;
             size_t ColTrans = 2 * (map_height - roof);
-            size_t RowTrans = 0;
+            size_t RowTrans = roof == map_height ? 0 : map_width;
             if (roof > 0)
             {
                 for (int y = 0; y < roof; ++y)
@@ -1443,7 +1476,13 @@ namespace ai_zzz
                     }
                 }
                 RowTrans += ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(0)));
-                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)));
+                RowTrans += roof == map_height
+                                ? ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)))
+                                : ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(roof - 1)));
+            }
+            else
+            {
+                RowTrans += map_width;
             }
             struct
             {

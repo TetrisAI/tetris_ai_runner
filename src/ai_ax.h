@@ -46,7 +46,9 @@ namespace ai_ax
             //                occupied count (roof==height case) = popcount(map.row(roof-1))
             int ColTrans = 2 * (map_height - roof);
             int RowTrans = ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(0))) +
-                           ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)));
+                           (roof == map_height
+                                ? ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)))
+                                : ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(roof - 1))));
             for (int y = 0; y < roof; ++y)
             {
                 uint32_t occ_row = static_cast<uint32_t>(map.row(y)) & static_cast<uint32_t>(row_full);

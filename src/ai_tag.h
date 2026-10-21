@@ -48,7 +48,7 @@ namespace ai_tag
 
             const int width_m1 = map_width - 1;
             int ColTrans = 2 * (map_height - roof);
-            int RowTrans = 0;
+            int RowTrans = roof == map_height ? 0 : map_width;
             for (int y = 0; y < roof; ++y)
             {
                 uint32_t r = static_cast<uint32_t>(map.row(y));
@@ -64,6 +64,10 @@ namespace ai_tag
             {
                 RowTrans += ZZZ_BitCount(~static_cast<uint32_t>(map.row(0)) & row_mask_);
                 RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)) & row_mask_);
+            }
+            else
+            {
+                RowTrans += map_width;
             }
 
             struct
@@ -342,7 +346,7 @@ namespace ai_tag
             Result result;
             const int width_m1 = map_width - 1;
             int ColTrans = 2 * (map_height - roof);
-            int RowTrans = 0;
+            int RowTrans = roof == map_height ? 0 : map_width;
             for (int y = 0; y < roof; ++y)
             {
                 uint32_t r = static_cast<uint32_t>(map.row(y));
@@ -364,6 +368,10 @@ namespace ai_tag
             {
                 RowTrans += ZZZ_BitCount(~static_cast<uint32_t>(map.row(0)) & row_mask_);
                 RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)) & row_mask_);
+            }
+            else
+            {
+                RowTrans += map_width;
             }
             struct
             {

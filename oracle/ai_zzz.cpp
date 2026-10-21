@@ -122,7 +122,7 @@ namespace ai_zzz
 
             const int width_m1 = map.width - 1;
             int ColTrans = 2 * (map.height - map.roof);
-            int RowTrans = 0;
+            int RowTrans = map.roof == map.height ? 0 : map.width;
             for (int y = 0; y < map.roof; ++y)
             {
                 ColTrans += !map.full(0, y) + !map.full(width_m1, y) + ZZZ_BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
@@ -131,8 +131,8 @@ namespace ai_zzz
                     RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
                 }
             }
-            RowTrans += ZZZ_BitCount(~map.row[0] & row_mask_);
-            RowTrans += ZZZ_BitCount(map.row[map.roof - 1] & row_mask_);
+            RowTrans += ZZZ_BitCount(map.row[0]);
+            RowTrans += map.roof == map.height ? ZZZ_BitCount(map.row[map.roof - 1] & row_mask_) : map.width - ZZZ_BitCount(map.row[map.roof - 1]);
             struct
             {
                 int HoleCount;
@@ -372,7 +372,7 @@ namespace ai_zzz
         (void)clear;
         const int width_m1 = map.width - 1;
         size_t ColTrans = 2 * (map.height - map.roof);
-        size_t RowTrans = ZZZ_BitCount(~map.row[0] & row_mask_) + (ZZZ_BitCount(map.row[map.roof - 1] & row_mask_));
+        size_t RowTrans = ZZZ_BitCount(map.row[0]) + (map.roof == map.height ? ZZZ_BitCount(map.row[map.roof - 1] & row_mask_) : map.width - ZZZ_BitCount(map.row[map.roof - 1]));
         for (int y = 0; y < map.roof; ++y)
         {
             ColTrans += !map.full(0, y) + !map.full(width_m1, y) + ZZZ_BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
@@ -737,7 +737,7 @@ namespace ai_zzz
         Status::init_t_value(t_map, result.t2_value, result.t3_value, &t_map);
 
         size_t ColTrans = 2 * (t_map.height - t_map.roof);
-        size_t RowTrans = 0;
+        size_t RowTrans = t_map.roof == t_map.height ? 0 : t_map.width;
         for (int y = 0; y < t_map.roof; ++y)
         {
             ColTrans += !t_map.full(0, y) + !t_map.full(width_m1, y) + ZZZ_BitCount((t_map.row[y] ^ (t_map.row[y] << 1)) & col_mask_);
@@ -746,8 +746,8 @@ namespace ai_zzz
                 RowTrans += ZZZ_BitCount(t_map.row[y - 1] ^ t_map.row[y]);
             }
         }
-        RowTrans += ZZZ_BitCount(~t_map.row[0] & row_mask_);
-        RowTrans += ZZZ_BitCount(t_map.row[t_map.roof - 1] & row_mask_);
+        RowTrans += ZZZ_BitCount(t_map.row[0]);
+        RowTrans += t_map.roof == t_map.height ? ZZZ_BitCount(t_map.row[t_map.roof - 1] & row_mask_) : t_map.width - ZZZ_BitCount(t_map.row[t_map.roof - 1]);
         struct
         {
             int HoleCount;
@@ -1015,7 +1015,7 @@ namespace ai_zzz
         (void)node;
         const int width_m1 = map.width - 1;
         int ColTrans = 2 * (map.height - map.roof);
-        int RowTrans = 0;
+        int RowTrans = map.roof == map.height ? 0 : map.width;
         for (int y = 0; y < map.roof; ++y)
         {
             if (!map.full(0, y))
@@ -1032,8 +1032,8 @@ namespace ai_zzz
                 RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
             }
         }
-        RowTrans += ZZZ_BitCount(~map.row[0] & row_mask_);
-        RowTrans += ZZZ_BitCount(map.row[map.roof - 1] & row_mask_);
+        RowTrans += ZZZ_BitCount(map.row[0]);
+        RowTrans += map.roof == map.height ? ZZZ_BitCount(map.row[map.roof - 1] & row_mask_) : map.width - ZZZ_BitCount(map.row[map.roof - 1]);
 
         Result result;
         result.value = (map.roof > 4 ? 0 : 10000) - ColTrans * 3 - RowTrans * 2;
@@ -1168,7 +1168,7 @@ namespace ai_zzz
         (void)src_map;
         const int width_m1 = map.width - 1;
         int ColTrans = 2 * (map.height - map.roof);
-        int RowTrans = 0;
+        int RowTrans = map.roof == map.height ? 0 : map.width;
         for (int y = 0; y < map.roof; ++y)
         {
             if (!map.full(0, y))
@@ -1185,8 +1185,8 @@ namespace ai_zzz
                 RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
             }
         }
-        RowTrans += ZZZ_BitCount(~map.row[0] & row_mask_);
-        RowTrans += ZZZ_BitCount(map.row[map.roof - 1] & row_mask_);
+        RowTrans += ZZZ_BitCount(map.row[0]);
+        RowTrans += map.roof == map.height ? ZZZ_BitCount(map.row[map.roof - 1] & row_mask_) : map.width - ZZZ_BitCount(map.row[map.roof - 1]);
         struct
         {
             int HoleCount;
@@ -1562,7 +1562,7 @@ namespace ai_zzz
     {
         (void)node;
         int ColTrans = 2 * (map.height - map.roof);
-        int RowTrans = 0;
+        int RowTrans = map.roof == map.height ? 0 : map.width;
         if (map.roof > 0)
         {
             for (int y = 0; y < map.roof; ++y)
@@ -1574,8 +1574,12 @@ namespace ai_zzz
                     RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
                 }
             }
-            RowTrans += ZZZ_BitCount(~map.row[0] & row_mask_);
-            RowTrans += ZZZ_BitCount(map.row[map.roof - 1] & row_mask_);
+            RowTrans += ZZZ_BitCount(map.row[0]);
+            RowTrans += map.roof == map.height ? ZZZ_BitCount(map.row[map.roof - 1] & row_mask_) : map.width - ZZZ_BitCount(map.row[map.roof - 1]);
+        }
+        else
+        {
+            RowTrans += map.width;
         }
 
         Result result;
@@ -1694,7 +1698,7 @@ namespace ai_zzz
         (void)src_map;
         const int width_m1 = map.width - 1;
         int ColTrans = 2 * (map.height - map.roof);
-        int RowTrans = 0;
+        int RowTrans = map.roof == map.height ? 0 : map.width;
         if (map.roof > 0)
         {
             for (int y = 0; y < map.roof; ++y)
@@ -1706,8 +1710,12 @@ namespace ai_zzz
                     RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
                 }
             }
-            RowTrans += ZZZ_BitCount(~map.row[0] & row_mask_);
-            RowTrans += ZZZ_BitCount(map.row[map.roof - 1] & row_mask_);
+            RowTrans += ZZZ_BitCount(map.row[0]);
+            RowTrans += map.roof == map.height ? ZZZ_BitCount(map.row[map.roof - 1] & row_mask_) : map.width - ZZZ_BitCount(map.row[map.roof - 1]);
+        }
+        else
+        {
+            RowTrans += map.width;
         }
 
         struct
@@ -1932,7 +1940,7 @@ namespace ai_zzz
     {
         const int width_m1 = map.width - 1;
         size_t ColTrans = 2 * (map.height - map.roof);
-        size_t RowTrans = 0;
+        size_t RowTrans = map.roof == map.height ? 0 : map.width;
         for (int y = 0; y < map.roof; ++y)
         {
             ColTrans += !map.full(0, y) + !map.full(width_m1, y) + ZZZ_BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
@@ -1941,8 +1949,8 @@ namespace ai_zzz
                 RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
             }
         }
-        RowTrans += ZZZ_BitCount(~map.row[0] & row_mask_);
-        RowTrans += ZZZ_BitCount(map.row[map.roof - 1] & row_mask_);
+        RowTrans += ZZZ_BitCount(map.row[0]);
+        RowTrans += map.roof == map.height ? ZZZ_BitCount(map.row[map.roof - 1] & row_mask_) : map.width - ZZZ_BitCount(map.row[map.roof - 1]);
         struct
         {
             int HoleCountSrc;
