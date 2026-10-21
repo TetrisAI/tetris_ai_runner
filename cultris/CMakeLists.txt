@@ -14,7 +14,7 @@ add_library(cultrisai SHARED
 
 target_include_directories(cultrisai PRIVATE ${TETRIS_AI_ROOT}/src)
 target_compile_features(cultrisai PRIVATE cxx_std_20)
-target_compile_options(cultrisai PRIVATE -Wno-unused-value -O1)
+target_compile_options(cultrisai PRIVATE -Wno-unused-value -O3)
 target_link_libraries(cultrisai PRIVATE Threads::Threads)
 
 find_package(JNI QUIET)

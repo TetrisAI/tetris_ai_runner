@@ -52,7 +52,7 @@ namespace ai_tag
 
         const int width_m1 = map.width - 1;
         int ColTrans = 2 * (map.height - map.roof);
-        int RowTrans = map.roof == map.height ? 0 : map.width;
+        int RowTrans = 0;
         for (int y = 0; y < map.roof; ++y)
         {
             if (!map.full(0, y))
@@ -69,8 +69,8 @@ namespace ai_tag
                 RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
             }
         }
-        RowTrans += ZZZ_BitCount(map.row[0]);
-        RowTrans += map.roof == map.height ? ZZZ_BitCount(map.row[map.roof - 1] & row_mask_) : map.width - ZZZ_BitCount(map.row[map.roof - 1]);
+        RowTrans += ZZZ_BitCount(~map.row[0] & row_mask_);
+        RowTrans += ZZZ_BitCount(map.row[map.roof - 1] & row_mask_);
         struct
         {
             int HoleCount;
@@ -398,7 +398,7 @@ namespace ai_tag
         Result result;
         const int width_m1 = map.width - 1;
         int ColTrans = 2 * (map.height - map.roof);
-        int RowTrans = map.roof == map.height ? 0 : map.width;
+        int RowTrans = 0;
         for (int y = 0; y < map.roof; ++y)
         {
             if (!map.full(0, y))
@@ -415,8 +415,8 @@ namespace ai_tag
                 RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
             }
         }
-        RowTrans += ZZZ_BitCount(map.row[0]);
-        RowTrans += map.roof == map.height ? ZZZ_BitCount(map.row[map.roof - 1] & row_mask_) : map.width - ZZZ_BitCount(map.row[map.roof - 1]);
+        RowTrans += ZZZ_BitCount(~map.row[0] & row_mask_);
+        RowTrans += ZZZ_BitCount(map.row[map.roof - 1] & row_mask_);
         struct
         {
             int HoleCount;

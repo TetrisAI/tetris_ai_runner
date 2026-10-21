@@ -41,21 +41,19 @@ namespace ai_ax
             const int width_m1 = map_width - 1;
 
             // ColTrans/RowTrans: TetrisMap<W,H> uses 1=occupied semantics.
-            // bottom row: occupied count = popcount(map.row(0))  [was ~row[0] & mask in 1=empty]
+            // bottom row: empty count = popcount(row_full ^ map.row(0))
             // top row empty: empty count = popcount(row_full ^ map.row(roof-1))
             //                occupied count (roof==height case) = popcount(map.row(roof-1))
             int ColTrans = 2 * (map_height - roof);
-            int RowTrans = ZZZ_BitCount(static_cast<uint32_t>(map.row(0))) +
-                           (roof == map_height
-                                ? ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)))
-                                : ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(roof - 1))));
+            int RowTrans = ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(0))) +
+                           ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)));
             for (int y = 0; y < roof; ++y)
             {
-                uint32_t occ_row = static_cast<uint32_t>(map.row(y));
-                // Edge transitions: occupied bit at col-0 / col-(W-1)
-                if (occ_row & 1u)
+                uint32_t occ_row = static_cast<uint32_t>(map.row(y)) & static_cast<uint32_t>(row_full);
+                uint32_t empty_row = static_cast<uint32_t>(row_full) ^ occ_row;
+                if (empty_row & 1u)
                     ++ColTrans;
-                if ((occ_row >> width_m1) & 1u)
+                if ((empty_row >> width_m1) & 1u)
                     ++ColTrans;
                 ColTrans += ZZZ_BitCount((occ_row ^ (occ_row << 1)) & static_cast<uint32_t>(col_mask_));
                 if (y != 0)
@@ -71,17 +69,16 @@ namespace ai_ax
                 int WellDepth;
                 int HoleNum[32];
                 int WellNum[32];
-                uint32_t LineCoverBits;  // accumulated empty-bits (1=empty semantics)
-                uint32_t TopHoleBits;    // hole-column bits (1=empty semantics, set where hole exists)
+                uint32_t LineCoverBits;  // accumulated occupied bits
+                uint32_t TopHoleBits;    // hole-column bits (set where a covered empty cell exists)
             } v;
             std::memset(&v, 0, sizeof v);
 
             for (int y = roof - 1; y >= 0; --y)
             {
-                // empty bits (1=empty): TetrisMap<W,H> is 1=occupied, so invert
-                uint32_t inv_row = static_cast<uint32_t>(row_full ^ map.row(y));
-                v.LineCoverBits |= inv_row;
-                int LineHole = v.LineCoverBits ^ inv_row;
+                uint32_t occ_row = static_cast<uint32_t>(map.row(y)) & static_cast<uint32_t>(row_full);
+                v.LineCoverBits |= occ_row;
+                uint32_t LineHole = v.LineCoverBits & ~occ_row & static_cast<uint32_t>(row_full);
                 if (LineHole != 0)
                 {
                     v.HoleCount += ZZZ_BitCount(LineHole);
@@ -98,21 +95,27 @@ namespace ai_ax
                         v.HoleDepth += ++v.HoleNum[x];
                     else
                         v.HoleNum[x] = 0;
-                    if (((v.LineCoverBits >> (x - 1)) & 7) == 5)
+                    if (((occ_row >> (x - 1)) & 7u) == 5u)
                         v.WellDepth += ++v.WellNum[x];
+                    else
+                        v.WellNum[x] = 0;
                 }
                 if (LineHole & 1)
                     v.HoleDepth += ++v.HoleNum[0];
                 else
                     v.HoleNum[0] = 0;
-                if ((v.LineCoverBits & 3) == 2)
+                if ((occ_row & 3u) == 2u)
                     v.WellDepth += ++v.WellNum[0];
+                else
+                    v.WellNum[0] = 0;
                 if ((LineHole >> width_m1) & 1)
                     v.HoleDepth += ++v.HoleNum[width_m1];
                 else
                     v.HoleNum[width_m1] = 0;
-                if (((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
+                if (((occ_row >> (width_m1 - 1)) & 3u) == 1u)
                     v.WellDepth += ++v.WellNum[width_m1];
+                else
+                    v.WellNum[width_m1] = 0;
             }
             if (v.HolePosy != 0)
             {

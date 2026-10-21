@@ -79,7 +79,7 @@ namespace ai_misaka
             // MH == 22 is guaranteed by static_assert above; fill all 22 rows.
             for (int y = 0; y < MH; ++y)
                 r.map_rows[y] = ~static_cast<m_tetris2::row_t>(map.row(y));
-            r.map_count = map.count();
+            r.map_count = map.popcount();
             r.clear = clear;
             r.t_spin = lp.spin;
             return r;
