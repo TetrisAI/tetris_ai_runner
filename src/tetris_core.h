@@ -927,23 +927,14 @@ namespace m_tetris2
         {
             return parent == nullptr && t == context->current_t ? context->root_start : spawn_state(t);
         }
-        // Children of the active piece depend on its start (reachability and spin class), so a new start drops them.
+        // Align with master: a new start publishes the host position to context->root_start;
+        // children stay so the search tree keeps accumulating depth, and update() rotates version instead of dropping children.
         bool restart(Context *context, bool searched_as_root, TetrisBlockStatus const &active)
         {
             using SearchSpec = typename SearchRuleSpecOf<TetrisSearch>::type;
             auto start = m_tetris2::Helpers<SearchSpec>::state_from_status(active.t, static_cast<std::uint8_t>(active.r), active.x, active.y);
             bool changed = !m_tetris2::StateEqual{}(start, searched_as_root ? context->root_start : spawn_state(active.t));
             context->root_start = start;
-            if (changed)
-            {
-                for (auto it = children; it != nullptr; it = it->children_next)
-                {
-                    context->dealloc(it);
-                }
-                children = nullptr;
-                node_flag.clear();
-                is_dead = false;
-            }
             return changed;
         }
         TetrisTreeNode *update(Context *context, map_t const &_map, Status const &status, TetrisBlockStatus const &active, char const *_next, size_t _next_length)
@@ -952,7 +943,7 @@ namespace m_tetris2
             TetrisTreeNode *root = update_root(context, _map);
             bool restarted = root->restart(context, root == this, active);
             std::vector<next_t> next = process_next(_next, _next_length, _t);
-            if (restarted || root != this || (context->current_t == '\0' || _t != root->node) || context->is_open_hold || next != context->next)
+            if (root != this || (context->current_t == '\0' || _t != root->node) || context->is_open_hold || next != context->next)
             {
                 context->is_complete = false;
                 context->max_length = next.size() - 1;
@@ -967,7 +958,7 @@ namespace m_tetris2
                 root->node = _t;
                 root->next = std::next(context->next.begin());
             }
-            else if (context->current_t != _t)
+            else if (context->current_t != _t || restarted)
             {
                 context->is_complete = false;
                 ++context->version;
@@ -983,7 +974,7 @@ namespace m_tetris2
             TetrisTreeNode *root = update_root(context, _map);
             bool restarted = root->restart(context, root == this, active);
             std::vector<next_t> next = process_next(_next, _next_length, _t);
-            if (restarted || root != this || (context->current_t == '\0' || _t != root->node) || !context->is_open_hold || next != context->next || _hold != root->hold || !!_hold_lock != root->is_hold_lock)
+            if (root != this || (context->current_t == '\0' || _t != root->node) || !context->is_open_hold || next != context->next || _hold != root->hold || !!_hold_lock != root->is_hold_lock)
             {
                 context->is_complete = false;
                 context->max_length = next.size() - 1;
@@ -1005,7 +996,7 @@ namespace m_tetris2
                 root->is_hold_lock = _hold_lock;
                 root->next = std::next(context->next.begin());
             }
-            else if (context->current_t != _t)
+            else if (context->current_t != _t || restarted)
             {
                 context->is_complete = false;
                 ++context->version;
