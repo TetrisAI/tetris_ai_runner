@@ -528,13 +528,6 @@ namespace m_tetris2
                 template<class Emit>
                 void expand(State const &cur, Emit emit)
                 {
-                    if (disable_d)
-                    {
-                        auto D = Helpers::drop(cur, *usable_arr);
-                        if (D)
-                            emit(*D, 'D');
-                        return;
-                    }
                     if (allow_180)
                     {
                         auto wk = Helpers::first_kick(piece_t, KickDir::Opp, cur, *usable_arr);
@@ -633,23 +626,26 @@ namespace m_tetris2
                             emit(nR_state, 'R');
                         }
                     }
-                    if (allow_d)
+                    if (!disable_d)
                     {
-                        State nd = cur;
-                        nd.yb = static_cast<std::int8_t>(nd.yb - 1);
-                        EnqueueDecision dd = emit(nd, 'd');
-                        if (dd == EnqueueDecision::MarkAndEnqueue && allow_D)
+                        if (allow_d)
+                        {
+                            State nd = cur;
+                            nd.yb = static_cast<std::int8_t>(nd.yb - 1);
+                            EnqueueDecision dd = emit(nd, 'd');
+                            if (dd == EnqueueDecision::MarkAndEnqueue && allow_D)
+                            {
+                                auto D = Helpers::drop(cur, *usable_arr);
+                                if (D)
+                                    emit(*D, 'D');
+                            }
+                        }
+                        else if (allow_D)
                         {
                             auto D = Helpers::drop(cur, *usable_arr);
                             if (D)
                                 emit(*D, 'D');
                         }
-                    }
-                    else if (allow_D)
-                    {
-                        auto D = Helpers::drop(cur, *usable_arr);
-                        if (D)
-                            emit(*D, 'D');
                     }
                 }
             };
@@ -665,6 +661,14 @@ namespace m_tetris2
                 bool requires_last_rotate;
                 State found{};
                 bool hit = false;
+                // 阶段 1 drop-match 支持 (对齐 c1aaa706 两阶段 BFS 第一阶段语义):
+                //  spawn 在空中时, 第一轮 BFS 关闭 d/D 邻居, 但命中条件改为
+                //  "cells_key(drop(s)) == target_cells_key" — 允许 "横移/旋转到空
+                //  中位置, HARD_DROP 收尾" 的路径. c1aaa706 用 drop(node).index_filtered
+                //  做同一件事. 阶段 2 (disable_d=false) 不启用, 走原 cells_key 直比,
+                //  避免 TSpin last-rotate 判定被 drop-match 污染.
+                std::array<map_t, kMaxR> const *usable_arr = nullptr;
+                bool enable_drop_match = false;
 
                 bool check_hit(State const &s) const
                 {
@@ -673,6 +677,18 @@ namespace m_tetris2
                         return true;
                     if (requires_last_rotate && k == index_landpoint)
                         return true;
+                    if (enable_drop_match && usable_arr)
+                    {
+                        auto drop_res = Helpers::drop(s, *usable_arr);
+                        if (drop_res)
+                        {
+                            CellsKey gk = Helpers::cells_key_for_state(*drop_res);
+                            if (gk == index)
+                                return true;
+                            if (requires_last_rotate && gk == index_landpoint)
+                                return true;
+                        }
+                    }
                     return false;
                 }
 
@@ -929,6 +945,16 @@ namespace m_tetris2
                     std::reverse(path.begin(), path.end());
                     if (cur_key != index_landpoint)
                     {
+                        // 方案 A 的 BFS 阶段 1 drop-match 允许 BFS 以"空中 state"命中,
+                        //  其 cells_key 必然 != index_landpoint, 进入本分支补 last-rotate.
+                        //  CautiousHook / NoSpinHook 等 SpinHook::get_last_state 返回
+                        //  nullptr, 原代码 `*land_last` 会 BAD_ACCESS. c1aaa706 的
+                        //  对应路径不补 last-rotate, 直接由 adapter 的 HARD_DROP 收尾.
+                        //  这里以 null guard 对齐该语义: 没有 last_state 时 return path,
+                        //  上层 (c2_adapter) 发现 path 结尾不带 last-rotate 字符时会
+                        //  自动发 HARD_DROP.
+                        if (land_last == nullptr)
+                            return path;
                         State last_state = *land_last;
                         if (allow_180 &&
                             Helpers::try_kick_chain_to(piece_t, KickDir::Opp, last_state, index_landpoint, usable_arr))
@@ -951,15 +977,18 @@ namespace m_tetris2
                 };
 
                 bool disable_d = false;
-                // 是否需要最后一次旋转由 lp_requires_last_rotate 统一判定。
-                //  此处 "非 T-spin landpoint" 走开盘 spawn-fast-drop 启发式 —
-                //  TSpin 命中且 cfg->last_rotate 时不可走 (会丢失 last 旋转步).
-                //  ASpin / NoSpin / Cautious 现在都享受这一优化，旧版 ASpin 路径曾被错误排除。
+                // 对齐 c1aaa706:src/search_cautious.cpp:Search::make_path 的两阶段
+                //  BFS 第一阶段触发条件: 仅在 "spawn 不是贴地" (node->drop(map)!=node)
+                //  时启用. 旧的 `spawn_low>=roof && open_state(target)` 过于保守,
+                //  对平地落点几乎都 false → 阶段 1 从不生效 → 阶段 2 全扩展 BFS 把 D
+                //  当一步最短路径, 导致 path[0] 恒为 D (SOFT_DROP_LOCK) — 这就是用户
+                //  "总是先触发 D" 的现象. TSpin 场景保留 requires_last 守卫.
+                //  配合 MakePath1gVisitor::enable_drop_match 完成 c1aaa706 的
+                //  "drop(cur).index_filtered == target.index_filtered" 命中语义.
                 if (!requires_last)
                 {
-                    int spawn_low = Helpers::spawn_min_cell_y_dispatch_state(spawn);
-                    int roof = Helpers::board_roof(board);
-                    if (spawn_low >= roof && Helpers::open_state(land_point.state, board))
+                    auto spawn_drop = Helpers::drop(spawn, usable_arr);
+                    if (spawn_drop && spawn_drop->yb != spawn.yb)
                         disable_d = true;
                 }
 
@@ -971,9 +1000,24 @@ namespace m_tetris2
                     //  从 (!is_landpoint_none(lp) && config_last_rotate(cfg)) 合并为
                     //  lp_requires_last_rotate(cfg, lp) — 后者已内联 last_rotate
                     //  检查与 lp.type 检查.
-                    if (Helpers::index_filtered_eq_state(entry_state, index) ||
-                        (requires_last &&
-                         Helpers::cells_key_for_state(entry_state) == index_landpoint))
+                    //  disable_d (阶段 1) 下额外接受 "drop(spawn) == target" 的早返,
+                    //  对齐 c1aaa706 入口早返 (node->index_filtered == land_point->
+                    //  index_filtered) 的 drop-match 语义.
+                    bool entry_hit = Helpers::index_filtered_eq_state(entry_state, index) ||
+                                     (requires_last &&
+                                      Helpers::cells_key_for_state(entry_state) == index_landpoint);
+                    if (!entry_hit && disable_d)
+                    {
+                        auto entry_drop = Helpers::drop(entry_state, usable_arr);
+                        if (entry_drop)
+                        {
+                            CellsKey ek = Helpers::cells_key_for_state(*entry_drop);
+                            if (ek == index ||
+                                (requires_last && ek == index_landpoint))
+                                entry_hit = true;
+                        }
+                    }
+                    if (entry_hit)
                     {
                         path_mark_set_state_root(pm, entry_state, '\0');
                         return build_path(entry_state);
@@ -991,7 +1035,9 @@ namespace m_tetris2
                                               index_landpoint,
                                               requires_last,
                                               State{},
-                                              false};
+                                              false,
+                                              &usable_arr,
+                                              disable_d};
                     ctx.node_search_path_.clear();
                     run_bfs(entry_state, neighbors, dedup, visitor, ctx.node_search_path_);
                     if (visitor.hit)

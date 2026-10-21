@@ -308,7 +308,7 @@ namespace ai_zzz
         { return static_cast<std::uint32_t>(map.row(y)); };
 
         int col_trans = 2 * (kH - roof);
-        int row_trans = roof == kH ? 0 : kW;
+        int row_trans = 0;
         for (int y = 0; y < roof; ++y)
         {
             std::uint32_t const r = row(y);
@@ -318,9 +318,12 @@ namespace ai_zzz
             if (y != 0)
                 row_trans += std::popcount(row(y - 1) ^ r);
         }
-        row_trans += std::popcount(kRowMask & ~row(0));
         if (roof != 0)
-            row_trans += std::popcount(roof == kH ? kRowMask & ~row(roof - 1) : row(roof - 1));
+        {
+            // 档位 A 真理：底墙 occupied(贡献 empty bits of row[0])、顶墙 empty(贡献 occupied bits of row[roof-1])。
+            row_trans += std::popcount(kRowMask & ~row(0));
+            row_trans += std::popcount(row(roof - 1) & kRowMask);
+        }
 
         int hole_count = 0;
         int hole_line = 0;

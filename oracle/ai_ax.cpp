@@ -56,7 +56,7 @@ namespace ai_ax
         const int width_m1 = map.width - 1;
         //行列变换
         int ColTrans = 2 * (map.height - map.roof);
-        int RowTrans = ZZZ_BitCount(map.row[0]) + (map.roof == map.height ? ZZZ_BitCount(map.row[map.roof - 1] & row_mask_) : map.width - ZZZ_BitCount(map.row[map.roof - 1]));
+        int RowTrans = ZZZ_BitCount(~map.row[0] & row_mask_) + (ZZZ_BitCount(map.row[map.roof - 1] & row_mask_));
         for (int y = 0; y < map.roof; ++y)
         {
             if (!map.full(0, y))
