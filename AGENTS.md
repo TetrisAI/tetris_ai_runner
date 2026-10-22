@@ -131,7 +131,7 @@ TETRIS_AI_SOCKET=tetris_ai ./build-rel/io_uds   # param file: prepare.params (cl
 - `docs/extending_search.md` and `examples/dummy_strategy.h`: the recipe and worked example for adding a search. They match the current API. `dummy_strategy_compile_check` builds and runs the example under ctest (`tetris_dummy_strategy`), so changing the movegen API without updating them breaks that test.
 
 ## Workflow
-- Commit style: `refactor:` / `fix:` / `build:` prefixes. Don't push without the user's OK.
+- Commit messages follow Conventional Commits. Don't push without the user's OK.
 - `TODO.md` tracks pending work. Record each task you defer under `## Open` as `- [ ] <task>`. When it is done, move it to `## Done` as `- [x] YYYY-MM-DD <task>` (the completion date). Before every commit, delete Done items completed more than 7 days before the commit date.
 
 ## Testing & QA
