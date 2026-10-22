@@ -132,6 +132,7 @@ TETRIS_AI_SOCKET=tetris_ai ./build-rel/io_uds   # param file: prepare.params (cl
 
 ## Workflow
 - Commit style: `refactor:` / `fix:` / `build:` prefixes. Don't push without the user's OK.
+- `TODO.md` tracks pending work. Record each task you defer under `## Open` as `- [ ] <task>`. When it is done, move it to `## Done` as `- [x] YYYY-MM-DD <task>` (the completion date). Before every commit, delete Done items completed more than 7 days before the commit date.
 
 ## Testing & QA
 - Each test is an executable whose `main` returns 0 to pass. Unit tests use `static_assert` and `assert()`, so build them as Debug.
