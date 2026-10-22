@@ -81,7 +81,6 @@ using CultrisHelpers = m_tetris2::Helpers<rule_c2::TetrisRule::rule_spec>;
 
 constexpr int    kBoardW       = 10;
 constexpr int    kEngineH      = 28;
-constexpr int    kC2RuleH      = 21;
 constexpr int    kColMask      = (1 << kBoardW) - 1;   // 0x3FF
 constexpr std::time_t kSearchBudgetMs = 10;
 // c2ai_step may wait for the current 10ms slice on Java's dedicated worker;
@@ -212,7 +211,7 @@ void update_c2_config_per_frame(CultrisEngine& engine, const C2StepInput& in) {
 }
 
 bool fill_map_from_input(CultrisMap& map, const C2StepInput& in) {
-    for (int y = 0; y < kC2RuleH; ++y) {
+    for (int y = 0; y < kEngineH; ++y) {
         map.set_row(y, static_cast<CultrisMap::row_t>(in.row_bits[y] & kColMask));
     }
     return true;
@@ -232,7 +231,7 @@ bool make_current_status(const C2StepInput& in, CultrisMap& map,
     const int java_matrix_top_offset = (cur_c == 'I') ? 0 : 1;
     const int start_y = std::clamp(
         kEngineH - 1 - static_cast<int>(in.cur_y) + java_matrix_top_offset,
-        0, kC2RuleH);
+        0, kEngineH - 1);
 
     std::array<CultrisMap, CultrisHelpers::kMaxR> usable{};
     CultrisHelpers::build_usable_for_piece(cur_c, map, usable);
@@ -264,12 +263,12 @@ bool plan_real(Handle& h, const C2StepInput& in,
 
     if (!h.engine_prepared
         || h.engine_prepared_w != kBoardW
-        || h.engine_prepared_h != kC2RuleH) {
-        if (!h.engine.prepare(kBoardW, kC2RuleH)) return false;
+        || h.engine_prepared_h != kEngineH) {
+        if (!h.engine.prepare(kBoardW, kEngineH)) return false;
         h.engine.memory_limit(1ull << 30);
         h.engine_prepared = true;
         h.engine_prepared_w = kBoardW;
-        h.engine_prepared_h = kC2RuleH;
+        h.engine_prepared_h = kEngineH;
     }
     if (!h.config_installed) {
         install_c2_config_once(h.engine);

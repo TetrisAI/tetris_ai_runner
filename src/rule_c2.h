@@ -82,14 +82,22 @@ namespace rule_c2
 
 #undef T
 
-        using C2Rule = RuleSpec<10, 21, 4,
-                                op_O1,
-                                op_I1, op_I2, op_I3, op_I4,
-                                op_S1, op_S2, op_S3, op_S4,
-                                op_Z1, op_Z2, op_Z3, op_Z4,
-                                op_L1, op_L2, op_L3, op_L4,
-                                op_J1, op_J2, op_J3, op_J4,
-                                op_T1, op_T2, op_T3, op_T4>;
+        using C2RuleBase = RuleSpec<10, 28, 4,
+                                    op_O1,
+                                    op_I1, op_I2, op_I3, op_I4,
+                                    op_S1, op_S2, op_S3, op_S4,
+                                    op_Z1, op_Z2, op_Z3, op_Z4,
+                                    op_L1, op_L2, op_L3, op_L4,
+                                    op_J1, op_J2, op_J3, op_J4,
+                                    op_T1, op_T2, op_T3, op_T4>;
+
+        struct C2Rule : C2RuleBase
+        {
+            static constexpr std::pair<int, int> spawn(char /*PT*/, int /*W*/, int /*H*/)
+            {
+                return {3, 20};
+            }
+        };
     }
 
     class TetrisRule

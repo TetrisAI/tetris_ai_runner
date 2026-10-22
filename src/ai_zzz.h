@@ -1661,13 +1661,12 @@ namespace ai_zzz
         size_t map_in_danger_(M const &map) const
         {
             size_t danger = 0;
-            constexpr int kH = M::height;
             for (size_t i = 0; i < type_max_; ++i)
             {
-                if (map_danger_data_[i].data[0] & static_cast<uint32_t>(map.row(kH - 4)) ||
-                    map_danger_data_[i].data[1] & static_cast<uint32_t>(map.row(kH - 3)) ||
-                    map_danger_data_[i].data[2] & static_cast<uint32_t>(map.row(kH - 2)) ||
-                    map_danger_data_[i].data[3] & static_cast<uint32_t>(map.row(kH - 1)))
+                if (map_danger_data_[i].data[0] & static_cast<uint32_t>(map.row(17)) ||
+                    map_danger_data_[i].data[1] & static_cast<uint32_t>(map.row(18)) ||
+                    map_danger_data_[i].data[2] & static_cast<uint32_t>(map.row(19)) ||
+                    map_danger_data_[i].data[3] & static_cast<uint32_t>(map.row(20)))
                 {
                     ++danger;
                 }
@@ -1781,7 +1780,7 @@ namespace ai_zzz
     {
         config_ = config;
         type_max_ = m_tetris2::ai_rule_spec::piece_count<Spec>();
-        detail::init_spawn_danger_data<Spec, MapInDangerData, static_cast<int>(Spec::height) - 4, 1>(map_danger_data_);
+        detail::init_spawn_danger_data<Spec, MapInDangerData, 17, 1>(map_danger_data_);
         col_mask_ = static_cast<int>(m_tetris2::ai_rule_spec::row_mask<Spec>() & ~1u);
         row_mask_ = static_cast<int>(m_tetris2::ai_rule_spec::row_mask<Spec>());
     }
