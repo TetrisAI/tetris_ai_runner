@@ -269,12 +269,10 @@ namespace m_tetris2
                 return !fits(env, s);
             }
 
-            // Same upward spawn probe as MoveGen::generate, so the bitboard search and the state BFS start alike.
+            // Match MoveGen::generate: if the given start cannot enter as-is, the search is dead.
             static std::optional<State> start_state(Env const &env, State spawn)
             {
-                while (spawn.yb < Helpers::kH && !fits(env, spawn))
-                    ++spawn.yb;
-                if (spawn.yb >= Helpers::kH)
+                if (!fits(env, spawn))
                     return std::nullopt;
                 return env.cfg.is_20g ? Helpers::drop(spawn, env.usable) : spawn;
             }

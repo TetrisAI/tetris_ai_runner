@@ -280,21 +280,17 @@ namespace m_tetris2
                 }
 
                 //2. seed: 起点只在 start.r 处点亮.
-                //   若起点不可放, 沿 y 向上探至棋盘顶部 (cobra Slow init 思路).
+                //   若宿主给出的起点本身不可进入, 直接判死, 不再向上补探 seed.
                 map_t seed{};
-                if (map_t::is_ok_x(start.xb))
+                if (map_t::is_ok_x(start.xb) && map_t::is_ok_y(start.yb) && usable_arr[start.r].get(start.xb, start.yb))
                 {
-                    int sy = start.yb;
-                    while (sy < H && !usable_arr[start.r].get(start.xb, sy))
-                        ++sy;
-                    if (sy < H)
-                        seed.set(start.xb, sy);
+                    seed.set(start.xb, start.yb);
                 }
                 if (seed.none())
                     return;
 
                 std::array<map_t, R_count> search{};
-                search[start.r] = seed & usable_arr[start.r];
+                search[start.r] = seed;
 
                 //3. BFS 主循环: 平移收敛 + 旋转扩展, 反复直到不再变化.
                 //  *关键* 每轮先把所有 r 的平移扩展到收敛 (内层 do/while), 再做一次

@@ -676,43 +676,58 @@ namespace m_tetris2
         struct TetrisNodeFlag
         {
             static constexpr char kVirtualSearchFlag = '~';
-            char flag[2];
-            TetrisNodeFlag()
+
+            enum class Kind : std::uint8_t
             {
-                clear();
+                Empty,
+                Virtual,
+                SingleStart,
+                StartPair,
+            };
+
+            Kind kind = Kind::Empty;
+            m_tetris2::State start[2]{};
+
+            bool empty() const
+            {
+                return kind == Kind::Empty;
             }
-            bool empty()
+            bool check(char virtual_flag) const
             {
-                return flag[0] == '\0';
+                assert(virtual_flag == '~');
+                return kind == Kind::Virtual;
             }
-            bool check(char node1)
+            bool check(m_tetris2::State const &start1) const
             {
-                assert(node1 != '\0');
-                return flag[0] == node1 && flag[1] == '\0';
+                return kind == Kind::SingleStart && m_tetris2::StateEqual{}(start[0], start1);
             }
-            bool check(char node1, char node2)
+            bool check(m_tetris2::State const &start1, m_tetris2::State const &start2) const
             {
-                assert(node1 != '\0');
-                assert(node2 != '\0');
-                return flag[0] == node1 && flag[1] == node2;
+                return kind == Kind::StartPair && m_tetris2::StateEqual{}(start[0], start1) &&
+                       m_tetris2::StateEqual{}(start[1], start2);
             }
-            void set(char node1)
+            void set(char virtual_flag)
             {
-                assert(node1 != '\0');
-                flag[0] = node1;
-                flag[1] = '\0';
+                assert(virtual_flag == '~');
+                kind = Kind::Virtual;
             }
-            void set(char node1, char node2)
+            void set(m_tetris2::State const &start1)
             {
-                assert(node1 != '\0');
-                assert(node2 != '\0');
-                flag[0] = node1;
-                flag[1] = node2;
+                assert(start1.t != 0);
+                start[0] = start1;
+                kind = Kind::SingleStart;
+            }
+            void set(m_tetris2::State const &start1, m_tetris2::State const &start2)
+            {
+                assert(start1.t != 0);
+                assert(start2.t != 0);
+                start[0] = start1;
+                start[1] = start2;
+                kind = Kind::StartPair;
             }
             void clear()
             {
-                flag[0] = '\0';
-                flag[1] = '\0';
+                kind = Kind::Empty;
             }
         };
         template<class, class>
@@ -961,7 +976,7 @@ namespace m_tetris2
             else if (context->current_t != _t || restarted)
             {
                 context->is_complete = false;
-                ++context->version;
+                update_version(context);
                 context->current_t = _t;
             }
             root->status.set(status);
@@ -999,7 +1014,7 @@ namespace m_tetris2
             else if (context->current_t != _t || restarted)
             {
                 context->is_complete = false;
-                ++context->version;
+                update_version(context);
                 context->current_t = _t;
             }
             root->status.set(status);
@@ -1033,7 +1048,7 @@ namespace m_tetris2
             auto spawn = start_state(context, search_t);
             if (node_flag.empty())
             {
-                node_flag.set(search_t);
+                node_flag.set(spawn);
                 auto fresh_cb = [&]<char T, std::uint8_t R>(LandPoint const &land_point_node)
                 {
                     TetrisTreeNode *child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
@@ -1043,9 +1058,9 @@ namespace m_tetris2
                 };
                 context->search->search_eval(board, spawn, level, fresh_cb);
             }
-            else if (!node_flag.check(search_t))
+            else if (!node_flag.check(spawn))
             {
-                node_flag.set(search_t);
+                node_flag.set(spawn);
                 auto &old = context->old;
                 for (auto it = children; it != nullptr; it = it->children_next)
                 {
@@ -1083,15 +1098,144 @@ namespace m_tetris2
             auto board = m_tetris2::build_board_for_search<SearchSpec>(map);
             auto search_spawn = start_state(context, search_t);
             auto hold_spawn = hold_t != '\0' ? start_state(context, hold_t) : m_tetris2::State{};
-            if (search_t == hold_t)
+            if (m_tetris2::StateEqual{}(search_spawn, hold_spawn))
             {
                 return search(context, search_t, false);
+            }
+            if (search_t == hold_t)
+            {
+                if (node_flag.empty())
+                {
+                    node_flag.set(search_spawn, hold_spawn);
+                    auto &uniq = context->uniq;
+                    auto fresh_main_cb = [&]<char T, std::uint8_t R>(LandPoint const &land_point_node)
+                    {
+                        TetrisTreeNode *child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
+                        child->is_hold = false;
+                        child->children_next = children;
+                        children = child;
+                        uniq.insert(lp_key(child->identity));
+                    };
+                    context->search->search_eval(board, search_spawn, level, fresh_main_cb);
+                    if (children != nullptr)
+                    {
+                        auto fresh_hold_cb = [&]<char T, std::uint8_t R>(LandPoint const &land_point_node)
+                        {
+                            if (uniq.find(lp_key(land_point_node)) != uniq.end())
+                            {
+                                return;
+                            }
+                            TetrisTreeNode *child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
+                            child->is_hold = true;
+                            child->children_next = children;
+                            children = child;
+                        };
+                        context->search->search_eval(board, hold_spawn, level, fresh_hold_cb);
+                    }
+                    uniq.clear();
+                }
+                else if (!node_flag.check(search_spawn, hold_spawn))
+                {
+                    auto &old = context->old;
+                    for (auto it = children; it != nullptr; it = it->children_next)
+                    {
+                        old.emplace(lp_key(it->identity), it);
+                    }
+                    children = nullptr;
+                    if (node_flag.check(hold_spawn, search_spawn))
+                    {
+                        node_flag.set(search_spawn, hold_spawn);
+                        auto reversed_main_cb = [&]<char T, std::uint8_t R>(LandPoint const &land_point_node)
+                        {
+                            auto find = old.find(lp_key(land_point_node));
+                            assert(find != old.end());
+                            TetrisTreeNode *child = find->second;
+                            old.erase(find);
+                            child->is_hold = false;
+                            child->children_next = children;
+                            children = child;
+                        };
+                        context->search->search_eval(board, search_spawn, level, reversed_main_cb);
+                        if (children != nullptr)
+                        {
+                            for (auto &pair : old)
+                            {
+                                TetrisTreeNode *child = pair.second;
+                                child->is_hold = true;
+                                child->children_next = children;
+                                children = child;
+                            }
+                        }
+                        else
+                        {
+                            for (auto &pair : old)
+                            {
+                                context->dealloc(pair.second);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        node_flag.set(search_spawn, hold_spawn);
+                        auto &uniq = context->uniq;
+                        auto rescan_main_cb = [&]<char T, std::uint8_t R>(LandPoint const &land_point_node)
+                        {
+                            TetrisTreeNode *child;
+                            auto find = old.find(lp_key(land_point_node));
+                            if (find != old.end())
+                            {
+                                child = find->second;
+                                old.erase(find);
+                            }
+                            else
+                            {
+                                child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
+                            }
+                            child->is_hold = false;
+                            child->children_next = children;
+                            children = child;
+                            uniq.insert(lp_key(child->identity));
+                        };
+                        context->search->search_eval(board, search_spawn, level, rescan_main_cb);
+                        if (children != nullptr)
+                        {
+                            auto rescan_hold_cb = [&]<char T, std::uint8_t R>(LandPoint const &land_point_node)
+                            {
+                                if (uniq.find(lp_key(land_point_node)) != uniq.end())
+                                {
+                                    return;
+                                }
+                                TetrisTreeNode *child;
+                                auto find = old.find(lp_key(land_point_node));
+                                if (find != old.end())
+                                {
+                                    child = find->second;
+                                    old.erase(find);
+                                }
+                                else
+                                {
+                                    child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
+                                }
+                                child->is_hold = true;
+                                child->children_next = children;
+                                children = child;
+                            };
+                            context->search->search_eval(board, hold_spawn, level, rescan_hold_cb);
+                        }
+                        for (auto &pair : old)
+                        {
+                            context->dealloc(pair.second);
+                        }
+                        uniq.clear();
+                    }
+                    old.clear();
+                }
             }
             else
             {
                 if (node_flag.empty())
                 {
-                    node_flag.set(search_t, hold_t);
+                    node_flag.set(search_spawn, hold_spawn);
                     auto fresh_main_cb = [&]<char T, std::uint8_t R>(LandPoint const &land_point_node)
                     {
                         TetrisTreeNode *child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
@@ -1112,13 +1256,11 @@ namespace m_tetris2
                         context->search->search_eval(board, hold_spawn, level, fresh_hold_cb);
                     }
                 }
-                else if (!node_flag.check(search_t, hold_t))
+                else if (!node_flag.check(search_spawn, hold_spawn))
                 {
-                    if (node_flag.check(hold_t, search_t))
+                    if (node_flag.check(hold_spawn, search_spawn))
                     {
-                        node_flag.set(search_t, hold_t);
-                        // 用 search_eval + probe 判断 search_t 是否有任何落点，
-                        // 避免向 search() 传 State（其签名接收 TetrisBlockStatus）。
+                        node_flag.set(search_spawn, hold_spawn);
                         bool search_has_any = false;
                         auto probe_cb = [&]<char T, std::uint8_t R>(LandPoint const &) { search_has_any = true; };
                         context->search->search_eval(board, search_spawn, level, probe_cb);
@@ -1140,7 +1282,7 @@ namespace m_tetris2
                     }
                     else
                     {
-                        node_flag.set(search_t, hold_t);
+                        node_flag.set(search_spawn, hold_spawn);
                         auto &old = context->old;
                         for (auto it = children; it != nullptr; it = it->children_next)
                         {
@@ -1165,7 +1307,6 @@ namespace m_tetris2
                             children = child;
                         };
                         context->search->search_eval(board, search_spawn, level, rescan_main_cb);
-                        // hold_node 落点。
                         auto rescan_hold_cb = [&]<char T, std::uint8_t R>(LandPoint const &land_point_node)
                         {
                             TetrisTreeNode *child;
