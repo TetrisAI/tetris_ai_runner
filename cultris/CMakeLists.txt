@@ -15,6 +15,10 @@ add_library(cultrisai SHARED
 target_include_directories(cultrisai PRIVATE ${TETRIS_AI_ROOT}/src)
 target_compile_features(cultrisai PRIVATE cxx_std_20)
 target_compile_options(cultrisai PRIVATE -Wno-unused-value -O3)
+set(C2AI_SOURCE_REVISION "source-package" CACHE STRING
+    "Native source revision identity (normally injected by build_fat_dylib.sh)")
+target_compile_definitions(cultrisai PRIVATE
+    C2AI_SOURCE_REVISION="${C2AI_SOURCE_REVISION}")
 target_link_libraries(cultrisai PRIVATE Threads::Threads)
 
 find_package(JNI QUIET)

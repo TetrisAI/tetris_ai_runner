@@ -4,6 +4,7 @@
 #include "tetris_core.h"
 #include "integer_utils.h"
 #include "ai_zzz.h"
+#include "c2_combo_table.h"
 #include <cstdint>
 
 using namespace m_tetris2;
@@ -854,70 +855,56 @@ namespace ai_zzz
     {
         Status result;
         result.attack = 0;
-        result.combo = status.combo;
-        result.combo_limit = status.combo_limit > 0 ? status.combo_limit - 1 : 0;
+        result.combo = c2_detail::clamp_combo(status.combo);
+        result.combo_limit = status.combo_limit;
         result.value = eval_result.map;
         if (config_->mode == 0)
         {
-            if (result.combo_limit == 0)
+            // One simulated placement always costs exactly one planning interval.
+            // Match Java's strict pre-lock timeout check: equality remains active.
+            const double bpm = config_->planning_bpm > 0.0 ? config_->planning_bpm : 60.0;
+            const double dt = 60.0 / bpm;
+            if (result.combo_limit < 0.0)
             {
+                result.combo_limit = 0.0;
                 result.combo = 0;
             }
-            if (result.combo_limit < 6 && result.combo < 3)
+            if (result.combo > 0 && result.combo_limit < dt)
             {
                 result.combo = 0;
+                result.combo_limit = 0.0;
             }
-            static const float table[][5] =
-                {
-                    //{     0,  3656,  4875,  6094,  7313},
-                    //{   400,  1728,  2338,  2947,  3556},
-                    //{   800,   707,  1009,  1312,  1614},
-                    //{  1600,   238,   417,   596,   775},
-                    //{  3200,   -41,    78,   198,   318},
-                    //{  6400,  -241,  -155,   -69,    17},
-                    //{ 12800,  -403,  -338,  -272,  -206},
-                    //{ 25600,  -544,  -493,  -441,  -389},
-                    //{ 51200,  -673,  -631,  -589,  -547},
-                    //{102400,  -794,  -759,  -724,  -689},
-                    //{204800,  -910,  -881,  -851,  -821},
-                    //{409600, -1023,  -997,  -971,  -946},
-                    //{819200, -1133, -1110, -1088, -1065},
-                    //{819200, -1241, -1221, -1201, -1181},
-                    //{819200, -1347, -1330, -1312, -1294},
-                    //{819200, -1453, -1437, -1421, -1405},
-                    //{819200, -1557, -1543, -1529, -1514},
-                    //{819200, -1661, -1648, -1635, -1622},
-                    //{819200, -1764, -1753, -1741, -1729},
-                    //{819200, -1867, -1857, -1846, -1835},
-                    {0, -3000, 3000, 4000, 5000},
-                    {500, 500, 1000, 1000, 2000},
-                    {1000, 1000, 500, 500, 500},
-                    {2000, 2000, 1000, 1000, 1000},
-                    {4000, 4000, 2000, 2000, 2000},
-                    {6000, 6000, 3000, 3000, 2500},
-                    {8000, 8000, 4000, 3333, 2500},
-                    {10000, 10000, 5000, 3333, 2500},
-                    {10000, 10000, 5000, 3333, 2500},
-                    {10000, 10000, 5000, 3333, 2500},
-                    {10000, 10000, 5000, 3333, 2500},
-                    {10000, 10000, 5000, 3333, 2500},
-                    {10000, 10000, 5000, 3333, 2500},
-                    {10000, 10000, 5000, 3333, 2500},
-                    {10000, 10000, 5000, 3333, 2500},
-                    {10000, 10000, 5000, 3333, 2500},
-                    {10000, 10000, 5000, 3333, 2500},
-                    {10000, 10000, 5000, 3333, 2500},
-                    {10000, 10000, 5000, 3333, 2500},
-                };
+            const size_t old_combo = result.combo;
+            const size_t clear = c2_detail::clamp_clear(eval_result.clear);
+            const auto &combo_entry = c2_detail::kComboTable[old_combo];
+            const double increment = combo_entry.increment[clear];
+            if (old_combo > 0)
+            {
+                result.combo_limit = result.combo_limit - dt + increment;
+                if (eval_result.clear > 0)
+                    result.combo = c2_detail::clamp_combo(old_combo + 1);
+            }
+            else
+            {
+                result.combo_limit = increment;
+                result.combo = eval_result.clear > 0 ? 1 : 0;
+            }
+            // A child is the next simulated piece's planning root. Java clears only
+            // on strict expiry, so exactly zero remains active while negatives expire.
+            if (result.combo_limit < 0.0)
+            {
+                result.combo_limit = 0.0;
+                result.combo = 0;
+            }
             double fill = eval_result.fill + (config_->danger ? 0.32 : 0);
             double hole = eval_result.hole + (config_->danger ? 0.16 : 0);
             double upstack = std::max<double>(0, 1 - hole * 3.3) * std::max<double>(0, 1 - (fill < 0.4 ? 0 : fill - 0.4) * 4);
             double downstack;
             double length_ratio = (1 << ((env.node != ' ') + env.length)) * 0.5;
-            if (status.combo == 0)
+            if (old_combo == 0)
             {
                 downstack = std::max<double>(0.2, 1 - hole * 3.3) * std::max<double>(0.2, 1 - std::abs(fill - 0.48) * 5);
-                result.attack -= 32000 * eval_result.new_hole;
+                result.attack -= 60000 * eval_result.new_hole;
                 result.attack += eval_result.attack * upstack;
             }
             else
@@ -926,20 +913,19 @@ namespace ai_zzz
             }
             if (eval_result.clear > 0)
             {
-                if (status.combo == 0)
+                if (old_combo == 0)
                 {
                     result.attack -= 8000 * upstack;
-                    result.attack += table[status.combo][eval_result.clear] * downstack;
+                    result.attack += combo_entry.score[clear] * downstack;
                 }
                 else
                 {
-                    result.attack += table[status.combo][eval_result.clear] * downstack * length_ratio;
+                    result.attack += combo_entry.score[clear] * downstack * length_ratio;
                 }
-                result.combo = std::min<size_t>(16, result.combo + 1);
             }
-            else if (status.combo > 0)
+            else if (old_combo > 0)
             {
-                result.attack -= table[status.combo][0] * downstack * length_ratio;
+                result.attack -= combo_entry.score[0] * downstack * length_ratio;
             }
             result.attack += status.attack;
         }

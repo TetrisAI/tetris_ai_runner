@@ -345,6 +345,20 @@ if(NOT MSVC)
 endif()
 add_test(NAME tetris_engine_regression COMMAND engine_regression_test)
 
+# Cultris ABI/dynamic-safe and C2 high-stack new-hole scoring regression.
+project(cultris_safe_regression_test)
+add_executable(${PROJECT_NAME}
+    src/ai_zzz.cpp
+    src/integer_utils.cpp
+    src/random.cpp
+    test/cultris_safe_regression_test.cpp
+)
+target_include_directories(${PROJECT_NAME} PRIVATE src cultris)
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    CULTRIS_SAFE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core Threads::Threads)
+add_test(NAME tetris_cultris_safe_regression COMMAND cultris_safe_regression_test)
+
 # ---------------------------------------------------------------------------
 # ctest 注册. 名字前缀 tetris_diff_* 让 `ctest -R tetris_diff_` 能一键勾选.
 #

@@ -395,13 +395,14 @@ namespace ai_zzz
             int mode;
             int danger;
             int soft_drop;
+            double planning_bpm;
         };
         struct Status
         {
             double attack;
             double map;
             size_t combo;
-            size_t combo_limit;
+            double combo_limit;
             double value;
             bool operator < (Status const &) const;
         };

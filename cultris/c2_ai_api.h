@@ -44,6 +44,14 @@ typedef enum {
     C2_KIND_O = 6
 } C2Kind;
 
+/* C2StepInput.reserved[] 的 ABI 兼容字段索引。 */
+typedef enum {
+    C2_INPUT_SOFT_DROP = 0,       /* 0=禁用逐格软降/tuck，非0=启用 */
+    C2_INPUT_SAFE = 1,            /* C2 evaluator safe rows；限制到 0..3 */
+    C2_INPUT_PLANNING_BPM = 2,    /* 整棵推演的每分钟落块数；<=0 使用安全默认值 */
+    C2_INPUT_COMBO_REMAINING_MS = 3 /* 根 combo 剩余时间，毫秒；限制到非负 */
+} C2InputReservedIndex;
+
 /* 单步输入 */
 typedef struct {
     int32_t api_version;      /* 调用方填 C2_AI_API_VERSION */
@@ -72,9 +80,17 @@ typedef struct {
     int64_t  piece_serial;     /* 每个活动方块唯一 ID；换块时必须变化 */
     int64_t  board_gen;        /* 仅实际盘面变化时递增；结果消费必须匹配 */
 
-    /* 保留字段，调用方填 0 */
+    /* ABI 兼容配置字段：soft_drop、safe、planning BPM、combo 剩余毫秒。 */
     int32_t  reserved[4];
 } C2StepInput;
+
+#ifdef __cplusplus
+static_assert(sizeof(C2StepInput) == 304, "C2StepInput ABI size changed");
+static_assert(offsetof(C2StepInput, reserved) == 288, "C2StepInput reserved offset changed");
+static_assert(C2_INPUT_SOFT_DROP == 0 && C2_INPUT_SAFE == 1
+              && C2_INPUT_PLANNING_BPM == 2 && C2_INPUT_COMBO_REMAINING_MS == 3,
+              "C2StepInput reserved slot ABI changed");
+#endif
 
 /* 单步输出 */
 typedef struct {
@@ -90,6 +106,8 @@ void c2ai_destroy(int64_t handle);
 void c2ai_step(int64_t handle, const C2StepInput* in, C2StepOutput* out);
 void c2ai_set_mode(int64_t handle, int32_t mode);
 void c2ai_reset_plan(int64_t handle);
+/** Stable UTF-8 identity of the algorithm and exact native source build. */
+const char* c2ai_name(void);
 const char* c2ai_version(void);
 
 #ifdef __cplusplus

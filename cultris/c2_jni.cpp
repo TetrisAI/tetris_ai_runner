@@ -16,6 +16,12 @@
 
 extern "C" {
 
+JNIEXPORT jstring JNICALL
+Java_cultris_NativeAi_nativeGetAiName(JNIEnv* env, jclass /*klass*/) {
+    const char* name = c2ai_name();
+    return name == nullptr ? nullptr : env->NewStringUTF(name);
+}
+
 JNIEXPORT jlong JNICALL
 Java_cultris_NativeAi_nativeCreate(JNIEnv* /*env*/, jclass /*klass*/) {
     return static_cast<jlong>(c2ai_create());
@@ -36,6 +42,8 @@ Java_cultris_NativeAi_nativeStep(JNIEnv* env, jclass /*klass*/, jlong handle,
                                  jint nextKind,
                                  jfloat attackCurveScale, jfloat pressureBlend,
                                  jint incomingGarbage, jint comboCount,
+                                 jint planningBpm, jint comboRemainingMs,
+                                 jboolean softDrop, jint safe,
                                  jlong pieceSerial, jlong boardGen) {
     if (handle == 0 || rowBits == nullptr) {
         return -1;
@@ -65,7 +73,11 @@ Java_cultris_NativeAi_nativeStep(JNIEnv* env, jclass /*klass*/, jlong handle,
     in.combo_count        = static_cast<int32_t>(comboCount);
     in.piece_serial       = static_cast<int64_t>(pieceSerial);
     in.board_gen          = static_cast<int64_t>(boardGen);
-    // in.reserved is value-initialised to zero via C2StepInput{}.
+    // Keep the Java API explicit while preserving the C ABI layout.
+    in.reserved[C2_INPUT_SOFT_DROP] = softDrop == JNI_TRUE ? 1 : 0;
+    in.reserved[C2_INPUT_SAFE] = static_cast<int32_t>(safe);
+    in.reserved[C2_INPUT_PLANNING_BPM] = static_cast<int32_t>(planningBpm);
+    in.reserved[C2_INPUT_COMBO_REMAINING_MS] = static_cast<int32_t>(comboRemainingMs);
 
     C2StepOutput out{};
     c2ai_step(static_cast<int64_t>(handle), &in, &out);

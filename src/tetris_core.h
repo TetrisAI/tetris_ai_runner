@@ -892,9 +892,8 @@ namespace m_tetris2
             children = kept;
             return true;
         }
-        void update_version(Context *context)
+        void reset_frontier(Context *context)
         {
-            ++context->version;
             context->total += context->width;
             context->avg = context->total / context->version;
             context->width = 0;
@@ -910,6 +909,54 @@ namespace m_tetris2
                 {
                     keys.clear();
                 }
+            }
+        }
+        void update_version(Context *context)
+        {
+            ++context->version;
+            reset_frontier(context);
+        }
+        typename Context::identity_set_t direct_child_identities() const
+        {
+            typename Context::identity_set_t result;
+            for (auto child = children; child != nullptr; child = child->children_next)
+            {
+                result.insert(lp_key(child->identity));
+            }
+            return result;
+        }
+        bool direct_children_equal(typename Context::identity_set_t const &before) const
+        {
+            size_t count = 0;
+            for (auto child = children; child != nullptr; child = child->children_next)
+            {
+                ++count;
+                if (before.find(lp_key(child->identity)) == before.end())
+                {
+                    return false;
+                }
+            }
+            return count == before.size();
+        }
+        void score_new_root_child(Context *context, TetrisTreeNode *child, bool reused)
+        {
+            if (parent == nullptr && !reused)
+            {
+                Core::template get<true>(context, child, this);
+                ++context->scored;
+            }
+        }
+        // A root rescan may unlink subtrees still referenced by the beam heaps. Clear those heaps before dealloc
+        // marks any removed root child as discarded; priority_queue cannot erase arbitrary stale pointers.
+        void reset_root_frontier_if_children_changed(Context *context,
+                                                     typename Context::identity_set_t const &before,
+                                                     bool &already_reset)
+        {
+            if (parent == nullptr && !already_reset && !direct_children_equal(before))
+            {
+                context->is_complete = false;
+                reset_frontier(context);
+                already_reset = true;
             }
         }
         static std::vector<next_t> process_next(char const *_next, size_t _next_length, char _t)
@@ -976,8 +1023,9 @@ namespace m_tetris2
             else if (context->current_t != _t || restarted)
             {
                 context->is_complete = false;
-                update_version(context);
                 context->current_t = _t;
+                root->status.set(status);
+                root->template search_children<false>(context);
             }
             root->status.set(status);
             context->width_cache.clear();
@@ -1014,8 +1062,9 @@ namespace m_tetris2
             else if (context->current_t != _t || restarted)
             {
                 context->is_complete = false;
-                update_version(context);
                 context->current_t = _t;
+                root->status.set(status);
+                root->template search_children<true>(context);
             }
             root->status.set(status);
             context->width_cache.clear();
@@ -1043,6 +1092,8 @@ namespace m_tetris2
 
         void search(Context *context, char search_t, bool is_hold)
         {
+            auto const root_children_before = parent == nullptr ? direct_child_identities() : typename Context::identity_set_t{};
+            bool root_frontier_reset = false;
             using SearchSpec = typename SearchRuleSpecOf<TetrisSearch>::type;
             auto board = m_tetris2::build_board_for_search<SearchSpec>(map);
             auto spawn = start_state(context, search_t);
@@ -1071,7 +1122,8 @@ namespace m_tetris2
                 {
                     TetrisTreeNode *child;
                     auto find = old.find(lp_key(land_point_node));
-                    if (find != old.end())
+                    bool const reused = find != old.end();
+                    if (reused)
                     {
                         child = find->second;
                         old.erase(find);
@@ -1081,10 +1133,12 @@ namespace m_tetris2
                         child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
                     }
                     child->is_hold = is_hold;
+                    score_new_root_child(context, child, reused);
                     child->children_next = children;
                     children = child;
                 };
                 context->search->search_eval(board, spawn, level, rescan_cb);
+                reset_root_frontier_if_children_changed(context, root_children_before, root_frontier_reset);
                 for (auto &pair : old)
                 {
                     context->dealloc(pair.second);
@@ -1094,6 +1148,8 @@ namespace m_tetris2
         }
         void search(Context *context, char search_t, char hold_t)
         {
+            auto const root_children_before = parent == nullptr ? direct_child_identities() : typename Context::identity_set_t{};
+            bool root_frontier_reset = false;
             using SearchSpec = typename SearchRuleSpecOf<TetrisSearch>::type;
             auto board = m_tetris2::build_board_for_search<SearchSpec>(map);
             auto search_spawn = start_state(context, search_t);
@@ -1168,6 +1224,7 @@ namespace m_tetris2
                         }
                         else
                         {
+                            reset_root_frontier_if_children_changed(context, root_children_before, root_frontier_reset);
                             for (auto &pair : old)
                             {
                                 context->dealloc(pair.second);
@@ -1182,7 +1239,8 @@ namespace m_tetris2
                         {
                             TetrisTreeNode *child;
                             auto find = old.find(lp_key(land_point_node));
-                            if (find != old.end())
+                            bool const reused = find != old.end();
+                            if (reused)
                             {
                                 child = find->second;
                                 old.erase(find);
@@ -1192,6 +1250,7 @@ namespace m_tetris2
                                 child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
                             }
                             child->is_hold = false;
+                            score_new_root_child(context, child, reused);
                             child->children_next = children;
                             children = child;
                             uniq.insert(lp_key(child->identity));
@@ -1207,7 +1266,8 @@ namespace m_tetris2
                                 }
                                 TetrisTreeNode *child;
                                 auto find = old.find(lp_key(land_point_node));
-                                if (find != old.end())
+                                bool const reused = find != old.end();
+                                if (reused)
                                 {
                                     child = find->second;
                                     old.erase(find);
@@ -1217,11 +1277,13 @@ namespace m_tetris2
                                     child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
                                 }
                                 child->is_hold = true;
+                                score_new_root_child(context, child, reused);
                                 child->children_next = children;
                                 children = child;
                             };
                             context->search->search_eval(board, hold_spawn, level, rescan_hold_cb);
                         }
+                        reset_root_frontier_if_children_changed(context, root_children_before, root_frontier_reset);
                         for (auto &pair : old)
                         {
                             context->dealloc(pair.second);
@@ -1273,11 +1335,14 @@ namespace m_tetris2
                         }
                         else
                         {
-                            for (auto it = children; it != nullptr; it = it->children_next)
+                            auto removed = children;
+                            children = nullptr;
+                            reset_root_frontier_if_children_changed(context, root_children_before, root_frontier_reset);
+                            for (auto *it = removed, *next_removed = removed; it != nullptr; it = next_removed)
                             {
+                                next_removed = it->children_next;
                                 context->dealloc(it);
                             }
-                            children = nullptr;
                         }
                     }
                     else
@@ -1293,7 +1358,8 @@ namespace m_tetris2
                         {
                             TetrisTreeNode *child;
                             auto find = old.find(lp_key(land_point_node));
-                            if (find != old.end())
+                            bool const reused = find != old.end();
+                            if (reused)
                             {
                                 child = find->second;
                                 old.erase(find);
@@ -1303,6 +1369,7 @@ namespace m_tetris2
                                 child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
                             }
                             child->is_hold = false;
+                            score_new_root_child(context, child, reused);
                             child->children_next = children;
                             children = child;
                         };
@@ -1311,7 +1378,8 @@ namespace m_tetris2
                         {
                             TetrisTreeNode *child;
                             auto find = old.find(lp_key(land_point_node));
-                            if (find != old.end())
+                            bool const reused = find != old.end();
+                            if (reused)
                             {
                                 child = find->second;
                                 old.erase(find);
@@ -1321,10 +1389,12 @@ namespace m_tetris2
                                 child = this->template alloc_eval_typed<T, R>(context, map, board, land_point_node);
                             }
                             child->is_hold = true;
+                            score_new_root_child(context, child, reused);
                             child->children_next = children;
                             children = child;
                         };
                         context->search->search_eval(board, hold_spawn, level, rescan_hold_cb);
+                        reset_root_frontier_if_children_changed(context, root_children_before, root_frontier_reset);
                         for (auto &pair : old)
                         {
                             context->dealloc(pair.second);
@@ -1911,7 +1981,7 @@ namespace m_tetris2
         }
         uint32_t full() const
         {
-            return 0;
+            return static_cast<uint32_t>(map_t::row_full);
         }
         template<class LP,
                  std::enable_if_t < !std::is_pointer_v<std::remove_cvref_t<LP>> &&
@@ -1983,6 +2053,24 @@ namespace m_tetris2
         size_t scored() const
         {
             return local_context_.scored;
+        }
+        // Current iterative beam width; exposed for deterministic frontier-reset regression tests and diagnostics.
+        size_t search_width() const
+        {
+            return local_context_.width;
+        }
+        size_t search_version() const
+        {
+            return local_context_.version;
+        }
+        std::vector<std::pair<std::uint32_t, size_t>> root_child_versions() const
+        {
+            std::vector<std::pair<std::uint32_t, size_t>> result;
+            for (auto child = root_->children; child != nullptr; child = child->children_next)
+            {
+                result.emplace_back(TreeNode::lp_key(child->identity).status, child->version);
+            }
+            return result;
         }
         // The beam has expanded every node it holds; widening adds nothing more.
         bool complete() const

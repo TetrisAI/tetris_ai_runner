@@ -51,6 +51,7 @@
 #include "tetris_core.h"
 #include "rule_c2.h"
 #include "ai_zzz.h"
+#include "c2_combo_table.h"
 #include "search_cautious.h"
 
 namespace {
@@ -83,6 +84,43 @@ constexpr int    kBoardW       = 10;
 constexpr int    kEngineH      = 28;
 constexpr int    kColMask      = (1 << kBoardW) - 1;   // 0x3FF
 constexpr std::time_t kSearchBudgetMs = 10;
+constexpr int kDefaultPlanningBpm = 60;
+constexpr int kMaxPlanningBpm = 240;
+constexpr int kMaxComboRemainingMs = 3600000;
+
+constexpr bool input_soft_drop_enabled(const C2StepInput& in) noexcept {
+    return in.reserved[C2_INPUT_SOFT_DROP] != 0;
+}
+
+constexpr int input_safe(const C2StepInput& in) noexcept {
+    return std::clamp(static_cast<int>(in.reserved[C2_INPUT_SAFE]), 0, 3);
+}
+
+constexpr int input_planning_bpm(const C2StepInput& in) noexcept {
+    const int raw = static_cast<int>(in.reserved[C2_INPUT_PLANNING_BPM]);
+    return raw <= 0 ? kDefaultPlanningBpm : std::clamp(raw, 1, kMaxPlanningBpm);
+}
+
+constexpr int input_combo_remaining_ms(const C2StepInput& in) noexcept {
+    return std::clamp(static_cast<int>(in.reserved[C2_INPUT_COMBO_REMAINING_MS]),
+                      0, kMaxComboRemainingMs);
+}
+
+static_assert([] {
+    C2StepInput in{};
+    if (input_soft_drop_enabled(in) || input_safe(in) != 0) return false;
+    in.reserved[C2_INPUT_SOFT_DROP] = 1;
+    if (!input_soft_drop_enabled(in) || input_safe(in) != 0) return false;
+    in.reserved[C2_INPUT_SAFE] = 2;
+    return input_soft_drop_enabled(in) && input_safe(in) == 2;
+}(), "C2StepInput reserved[0] soft-drop and reserved[1] safe must be independent");
+static_assert([] {
+    C2StepInput in{};
+    in.reserved[C2_INPUT_SAFE] = -1;
+    if (input_safe(in) != 0) return false;
+    in.reserved[C2_INPUT_SAFE] = 4;
+    return input_safe(in) == 3;
+}(), "C2StepInput safe must clamp to 0..3");
 // c2ai_step may wait for the current 10ms slice on Java's dedicated worker;
 // the game frame thread remains non-blocking.
 
@@ -188,26 +226,53 @@ void install_c2_config_once(CultrisEngine& engine) {
         -1.00066, 49.7899, -1.23986, 391.808, -4.30493, 91.0623,
         -1.60608, 67.7934, 2.36365, 46016.9, 34.2515, 0.285739,
     };
-    cfg->p_rate    = 1;
-    cfg->safe      = 4;
-    cfg->mode      = 0;
-    cfg->soft_drop = 0;
+    cfg->p_rate = 1;
+    cfg->safe   = 0;
+    cfg->mode   = 0;
+    cfg->danger = 0;
+    cfg->planning_bpm = kDefaultPlanningBpm;
 
+    // Dynamic soft-drop state is installed from every C2StepInput below.
     engine.search_config()->fast_move_down = true;
 
     auto* st = engine.status();
     st->combo       = 0;
-    st->combo_limit = 20;
+    st->combo_limit = 0.0;
     st->value       = 0;
 }
 
-void update_c2_config_per_frame(CultrisEngine& engine, const C2StepInput& in) {
+bool update_c2_config_per_frame(CultrisEngine& engine, const C2StepInput& in) {
     auto* cfg = engine.ai_config();
-    cfg->danger = (in.incoming_garbage >= 4) ? 1 : 0;
+    auto* st = engine.status();
+    const decltype(st->combo) new_combo = static_cast<decltype(st->combo)>(
+        ai_zzz::c2_detail::clamp_combo(static_cast<std::size_t>(
+            std::max(0, in.combo_count))));
+    const double new_combo_remaining =
+        static_cast<double>(input_combo_remaining_ms(in)) / 1000.0;
+    const decltype(cfg->danger) new_danger = (in.incoming_garbage >= 4) ? 1 : 0;
+    const decltype(cfg->soft_drop) new_soft_drop =
+        input_soft_drop_enabled(in) ? 1 : 0;
+    const decltype(cfg->safe) new_safe = input_safe(in);
+    const double new_planning_bpm = static_cast<double>(input_planning_bpm(in));
+    const bool new_fast_move_down = new_soft_drop == 0;
+    const bool changed = cfg->danger != new_danger
+        || cfg->soft_drop != new_soft_drop
+        || cfg->safe != new_safe
+        || cfg->planning_bpm != new_planning_bpm
+        || engine.search_config()->fast_move_down != new_fast_move_down;
+    // combo/combo_limit are a root snapshot latched by c2ai_step. Reassigning the
+    // already-latched values here is stable and does not invalidate the search.
+    st->combo = new_combo;
+    st->combo_limit = new_combo_remaining;
+    cfg->danger = new_danger;
+    cfg->soft_drop = new_soft_drop;
+    cfg->safe = new_safe;
+    cfg->planning_bpm = new_planning_bpm;
+    // Cautious make_path emits stepwise 'd' neighbours only when this is false.
+    engine.search_config()->fast_move_down = new_fast_move_down;
     (void)in.pressure_blend;
     (void)in.attack_curve_scale;
-    auto* st = engine.status();
-    st->combo = in.combo_count;
+    return changed;
 }
 
 bool fill_map_from_input(CultrisMap& map, const C2StepInput& in) {
@@ -274,7 +339,7 @@ bool plan_real(Handle& h, const C2StepInput& in,
         install_c2_config_once(h.engine);
         h.config_installed = true;
     }
-    update_c2_config_per_frame(h.engine, in);
+    const bool dynamic_config_changed = update_c2_config_per_frame(h.engine, in);
     h.engine.ai_config()->mode = h.ai_mode.load(std::memory_order_acquire);
 
     CultrisMap map{};
@@ -291,6 +356,7 @@ bool plan_real(Handle& h, const C2StepInput& in,
         next.push_back('?');
     }
 
+    if (dynamic_config_changed) h.engine.update();
     auto result = h.engine.run(map, status, next.data(), next.size(), kSearchBudgetMs);
     if (!CultrisEngine::TreeNode::lp_is_valid(result.target)) return false;
 
@@ -524,8 +590,20 @@ extern "C" void c2ai_step(std::int64_t handle,
     std::uint64_t current_piece_generation = 0;
     {
         std::unique_lock<std::mutex> ilk(h->input_mutex);
-        identity_changed = in->piece_serial != h->last_piece_serial
-            || in->cur_kind != h->last_kind;
+        const bool had_input = h->have_input;
+        const bool root_epoch_changed = !had_input
+            || in->piece_serial != h->last_piece_serial
+            || in->cur_kind != h->last_kind
+            || in->board_gen != h->latest_input.board_gen;
+        const bool soft_drop_changed = had_input
+            && in->reserved[C2_INPUT_SOFT_DROP]
+                != h->latest_input.reserved[C2_INPUT_SOFT_DROP];
+        const bool safe_changed = had_input
+            && input_safe(*in) != input_safe(h->latest_input);
+        const bool bpm_changed = had_input
+            && input_planning_bpm(*in) != input_planning_bpm(h->latest_input);
+        identity_changed = root_epoch_changed || soft_drop_changed
+            || safe_changed || bpm_changed;
         if (identity_changed) {
             std::unique_lock<std::mutex> rlk(h->result_mutex);
             h->last_piece_serial = in->piece_serial;
@@ -536,7 +614,19 @@ extern "C" void c2ai_step(std::int64_t handle,
             ++h->piece_generation;
             clear_result_locked(*h);
         }
-        h->latest_input = *in;
+        C2StepInput next_input = *in;
+        next_input.combo_count = static_cast<std::int32_t>(
+            ai_zzz::c2_detail::clamp_combo(static_cast<std::size_t>(
+                std::max(0, next_input.combo_count))));
+        if (had_input && !root_epoch_changed) {
+            next_input.combo_count = h->latest_input.combo_count;
+            next_input.reserved[C2_INPUT_COMBO_REMAINING_MS] =
+                h->latest_input.reserved[C2_INPUT_COMBO_REMAINING_MS];
+        }
+        next_input.reserved[C2_INPUT_PLANNING_BPM] = input_planning_bpm(next_input);
+        next_input.reserved[C2_INPUT_COMBO_REMAINING_MS] =
+            input_combo_remaining_ms(next_input);
+        h->latest_input = next_input;
         h->have_input = true;
         ++h->input_gen;
         current_piece_generation = h->piece_generation;
@@ -702,6 +792,17 @@ extern "C" void c2ai_step(std::int64_t handle,
                      (int)target_x_java, (int)target_y_java,
                      (int)effective_target_r, path.size());
     }
+}
+
+#ifndef C2AI_SOURCE_REVISION
+#define C2AI_SOURCE_REVISION "source-package"
+#endif
+
+extern "C" const char* c2ai_name(void) {
+    // Process-lifetime storage: callers may cache this stable UTF-8/ASCII identity.
+    static const char kName[] =
+        "C2 ZZZ / combo-table-16 / 8.4.0-generation-10ms / " C2AI_SOURCE_REVISION;
+    return kName;
 }
 
 extern "C" const char* c2ai_version(void) {

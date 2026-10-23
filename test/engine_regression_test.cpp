@@ -401,6 +401,103 @@ namespace
         return a.state.t == b.state.t && a.state.r == b.state.r && a.state.xb == b.state.xb && a.state.yb == b.state.yb;
     }
 
+    class EqualProbe
+    {
+    public:
+        struct Config
+        {
+        };
+        using Result = int;
+        mutable size_t root_gets = 0;
+        struct Status
+        {
+            bool operator<(Status const &) const
+            {
+                return false;
+            }
+        };
+        template<class Spec>
+        void init(Config const *)
+        {
+        }
+        std::string ai_name() const
+        {
+            return "EqualProbe";
+        }
+        template<class Details>
+        Result eval(m_tetris2::TetrisNode<Details, std::monostate> const &, typename Details::map_type const &,
+                    typename Details::map_type const &, size_t) const
+        {
+            return 0;
+        }
+        Status get(Result const &, size_t depth, Status const &) const
+        {
+            root_gets += depth == 0;
+            return {};
+        }
+    };
+
+    void active_rescan_resets_only_for_changed_reachability()
+    {
+        using Engine = m_tetris2::TetrisEngine<rule_srs::TetrisRule, EqualProbe, path::Search>;
+        using Spec = rule_srs::TetrisRule::rule_spec;
+        TetrisBlockStatus const spawn = spawn_of<Spec>('O');
+        TetrisBlockStatus const shifted(spawn.t, static_cast<int8_t>(spawn.x + 1), spawn.y, spawn.r);
+
+        Engine same;
+        expect(same.prepare(Spec::width, Spec::height), "same-set prepare");
+        Engine::map_t empty{};
+        same.run(empty, spawn, "", 0, 0);
+        expect(same.search_width() == 2, "first root search starts at width two");
+        auto const same_version = same.search_version();
+        auto const same_root_gets = same.ai()->root_gets;
+        auto same_child_versions = same.root_child_versions();
+        std::sort(same_child_versions.begin(), same_child_versions.end());
+        same.run(empty, shifted, "", 0, 0);
+        auto shifted_child_versions = same.root_child_versions();
+        std::sort(shifted_child_versions.begin(), shifted_child_versions.end());
+        std::printf("same reachable set keeps beam width/version: %zu/%zu\n",
+                    same.search_width(), same.search_version());
+        expect(same.search_version() == same_version, "active movement does not change context version");
+        expect(same.search_width() == 3, "same reachable set preserves and widens the frontier");
+        expect(same.ai()->root_gets == same_root_gets, "same reachable set reuses root get cache");
+        expect(shifted_child_versions == same_child_versions, "same reachable set preserves child versions");
+
+        Engine changed;
+        expect(changed.prepare(Spec::width, Spec::height), "changed-set prepare");
+        auto spawn_state = m_tetris2::Helpers<Spec>::state_from_status('O', 0, spawn.x, spawn.y);
+        Engine::map_t wall{};
+        int const wall_x = spawn_state.xb - 1;
+        for (int y = 0; y < spawn_state.yb; ++y)
+        {
+            wall.set(wall_x, y);
+        }
+        TetrisBlockStatus const lowered(spawn.t, spawn.x, static_cast<int8_t>(spawn.y - 1), spawn.r);
+        changed.run(wall, lowered, "", 0, 0);
+        changed.run(wall, spawn, "", 0, 0);
+        std::printf("changed root landings reset beam width: %zu\n", changed.search_width());
+        expect(changed.search_width() == 2, "changed root landings reset the frontier");
+        auto const changed_version = changed.search_version();
+        auto const changed_root_gets = changed.ai()->root_gets;
+        auto before_removal = changed.root_child_versions();
+        std::sort(before_removal.begin(), before_removal.end());
+        changed.run(wall, lowered, "", 0, 0);
+        auto after_removal = changed.root_child_versions();
+        std::sort(after_removal.begin(), after_removal.end());
+        std::printf("removed root landings reset beam width/version: %zu/%zu\n",
+                    changed.search_width(), changed.search_version());
+        expect(changed.search_version() == changed_version, "removed root landings do not change context version");
+        expect(changed.search_width() == 2, "removed root landings reset the frontier");
+        expect(changed.ai()->root_gets == changed_root_gets, "removed root landings reuse retained root get cache");
+        bool retained_versions_match = !after_removal.empty() && after_removal.size() < before_removal.size();
+        for (auto const &entry : after_removal)
+        {
+            retained_versions_match = retained_versions_match
+                && std::binary_search(before_removal.begin(), before_removal.end(), entry);
+        }
+        expect(retained_versions_match, "removed root landings preserve retained child versions");
+    }
+
     // run_hold() without a position widens the last searched one, also when that root came from no placement.
     void widening_continues_the_first_search()
     {
@@ -648,6 +745,7 @@ int main()
     iterate_with_held_tail();
     lowered_active_piece_searches_from_its_position<rule_srs::TetrisRule, path::Search>("rule_srs path");
     lowered_active_piece_searches_from_its_position<rule_io::TetrisRule, amini::Search>("rule_io amini");
+    active_rescan_resets_only_for_changed_reachability();
     widening_continues_the_first_search();
     commit_keeps_the_played_move();
     search_after_update_uses_the_new_status();

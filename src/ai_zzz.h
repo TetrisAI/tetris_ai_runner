@@ -1389,13 +1389,14 @@ namespace ai_zzz
             int mode;
             int danger;
             int soft_drop;
+            double planning_bpm;
         };
         struct Status
         {
             double attack;
             double map;
             size_t combo;
-            size_t combo_limit;
+            double combo_limit; // Combo remaining time in seconds.
             double value;
             bool operator<(Status const &) const;
         };
@@ -1420,13 +1421,18 @@ namespace ai_zzz
             using MapT = typename Details::map_type;
             constexpr int map_width = MapT::width;
             constexpr int map_height = MapT::height;
+            // C2's evaluator was tuned against the legacy 21-row engine. The
+            // bitboard rule keeps 28 rows for movement/spawn, but scoring must
+            // retain the original 21-row feature scale.
+            constexpr int eval_height = 21;
+            static_assert(map_height >= eval_height);
             constexpr uint32_t row_full = static_cast<uint32_t>(MapT::row_full);
 
             int roof = map.none() ? 0 : (map.max_y() + 1);
             int src_roof = src_map.none() ? 0 : (src_map.max_y() + 1);
 
             const int width_m1 = map_width - 1;
-            size_t ColTrans = 2 * (map_height - roof);
+            size_t ColTrans = 2 * (eval_height - roof);
             size_t RowTrans = 0;
             if (roof > 0)
             {
@@ -1592,7 +1598,7 @@ namespace ai_zzz
             }
 
             double BoardDeadZone = map_in_danger_(map);
-            if (roof == map_height)
+            if (roof == eval_height)
             {
                 BoardDeadZone += 70;
             }
@@ -1613,21 +1619,42 @@ namespace ai_zzz
             result.clear = clear;
             {
                 int map_count = map.popcount();
-                result.fill = float(map_count) / (map_width * (map_height - config_->safe));
+                result.fill = float(map_count) / (map_width * (eval_height - config_->safe));
             }
-            result.hole = float(v.HoleCountSrc) / (map_height - config_->safe);
-            result.new_hole = v.HoleCount > v.HoleCountSrc ? float(v.HoleCount - v.HoleCountSrc) / map_height : 0;
-            // open() equivalent: piece can free-fall iff for each column j,
-            // the piece's bottom row (y-up) >= src_map.top[col+j].
-            // kLines is y-down (i=0=top, i=kHeight-1=bottom).
+            result.hole = float(v.HoleCountSrc) / (eval_height - config_->safe);
+            result.new_hole = v.HoleCount > v.HoleCountSrc ? float(v.HoleCount - v.HoleCountSrc) / eval_height : 0;
+            // Free fall is possible only when every occupied piece column's
+            // bottom cell is on or above its source-board column top.
+            // kLines keeps the SRS 4x4 padding, whereas col()/row()/kWidth are
+            // the trimmed bounding box, so normalize both padding offsets.
             bool need_soft_drop = false;
+            int shape_bottom = lp.kHeight;
+            int shape_left = lp.kHeight;
+            for (int i = 0; i < lp.kHeight; ++i)
+            {
+                if (lp.kLines[i] != 0)
+                {
+                    shape_bottom = i;
+                    break;
+                }
+            }
+            for (int i = 0; i < lp.kHeight; ++i)
+            {
+                for (int x = 0; x < lp.kHeight; ++x)
+                {
+                    if ((lp.kLines[i] >> x) & 1)
+                    {
+                        shape_left = std::min(shape_left, x);
+                        break;
+                    }
+                }
+            }
             for (int j = 0; j < lp.kWidth; ++j)
             {
-                for (int i = lp.kHeight - 1; i >= 0; --i)
+                for (int i = 0; i < lp.kHeight; ++i)
                 {
-                    if ((lp.kLines[i] >> j) & 1)
+                    if ((lp.kLines[i] >> (j + shape_left)) & 1)
                     {
-                        // compute src_top for column lp.col()+j on demand
                         int col = lp.col() + j;
                         int src_top_col = 0;
                         for (int y = src_roof - 1; y >= 0; --y)
@@ -1636,11 +1663,13 @@ namespace ai_zzz
                                 src_top_col = y + 1;
                                 break;
                             }
-                        if (lp.row() + (lp.kHeight - 1 - i) < src_top_col)
+                        if (lp.row() + (i - shape_bottom) < src_top_col)
                             need_soft_drop = true;
                         break;
                     }
                 }
+                if (need_soft_drop)
+                    break;
             }
             result.soft_drop = need_soft_drop;
             return result;

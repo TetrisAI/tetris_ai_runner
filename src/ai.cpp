@@ -758,8 +758,10 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
     c2_ai.ai_config()->mode = mode;
     c2_ai.ai_config()->danger = danger;
     c2_ai.ai_config()->soft_drop = soft_drop;
+    c2_ai.ai_config()->planning_bpm = 60.0;
     c2_ai.status()->combo = combo;
-    c2_ai.status()->combo_limit = combo_limit;
+    // Legacy ABI keeps the integer field; interpret it as whole remaining seconds.
+    c2_ai.status()->combo_limit = std::max(0, combo_limit);
     c2_ai.status()->value = 0;
     m_tetris2::TetrisBlockStatus status(nextPiece[0], curX, curY, curR);
     size_t next_length = nextPiece[1] == ' ' ? 0 : 1;
