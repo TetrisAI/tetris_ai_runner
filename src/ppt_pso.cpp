@@ -401,12 +401,13 @@ struct test_ai
                 map.set_row(y, map.row(y - line));
             }
             using row_t = typename Engine::map_t::row_t;
-            row_t row = static_cast<row_t>(Engine::map_t::row_full ^ (row_t(1) << std::uniform_int_distribution<uint32_t>(0, ai.width() - 1)(r_garbage)));
+            // dev uses 0=occupied/1=empty：垃圾行原始值只保留洞位 1。
+            row_t row = static_cast<row_t>(row_t(1) << std::uniform_int_distribution<uint32_t>(0, ai.width() - 1)(r_garbage));
             for (int y = 0; y < line; ++y)
             {
                 map.set_row(y, row);
                 if (std::uniform_int_distribution<uint32_t>(0, 9)(r_garbage) >= 7)
-                    row = static_cast<row_t>(Engine::map_t::row_full ^ (row_t(1) << std::uniform_int_distribution<uint32_t>(0, ai.width() - 1)(r_garbage)));
+                    row = static_cast<row_t>(row_t(1) << std::uniform_int_distribution<uint32_t>(0, ai.width() - 1)(r_garbage));
             }
         }
     }

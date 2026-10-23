@@ -87,7 +87,8 @@ struct tetris_game
         }
         for (int y = 0; y < static_cast<int>(line); ++y)
         {
-            map.set_row(y, 0);
+            // dev uses 0=occupied/1=empty：先写空行，再用 set 写入垃圾块。
+            map.set_row(y, decltype(map)::row_full);
             for (int x = 0; x < w; ++x)
             {
                 if ((x + y) % 2 != 0)
@@ -135,7 +136,8 @@ struct tetris_game
         H::build_usable_for_piece(status.t, board, usable_arr);
         auto cs = H::state_from_status(status.t, status.r, status.x, status.y);
         // game over 检测：顶行有方块 或 初始位置不合法
-        if (map.row(tetris_ai.height() - 1) != 0 || !H::usable_at(cs.r, cs.xb, cs.yb, usable_arr))
+        // dev uses 0=occupied/1=empty：顶行不是 row_full 才表示有方块。
+        if (map.row(tetris_ai.height() - 1) != decltype(map)::row_full || !H::usable_at(cs.r, cs.xb, cs.yb, usable_arr))
         {
             return -1;
         }

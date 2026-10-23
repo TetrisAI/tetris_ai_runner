@@ -109,4 +109,27 @@ Java_cultris_NativeAi_nativeResetPlan(JNIEnv* /*env*/, jclass /*klass*/, jlong h
     c2ai_reset_plan(static_cast<int64_t>(handle));
 }
 
+JNIEXPORT void JNICALL
+Java_cultris_NativeAi_nativeSetIterateRange(JNIEnv* /*env*/, jclass /*klass*/,
+                                            jlong handle, jint low, jint high) {
+    if (handle == 0) {
+        return;
+    }
+    c2ai_set_iterate_range(static_cast<int64_t>(handle),
+                           static_cast<int32_t>(low),
+                           static_cast<int32_t>(high));
+}
+
+JNIEXPORT void JNICALL
+Java_cultris_NativeAi_nativeSetNextMode(JNIEnv* /*env*/, jclass /*klass*/,
+                                        jlong handle,
+                                        jboolean virtualFlag, jboolean preview) {
+    if (handle == 0) {
+        return;
+    }
+    c2ai_set_next_mode(static_cast<int64_t>(handle),
+                       virtualFlag == JNI_TRUE ? 1 : 0,
+                       preview == JNI_TRUE ? 1 : 0);
+}
+
 } // extern "C"

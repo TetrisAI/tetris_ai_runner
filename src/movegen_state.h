@@ -1138,7 +1138,7 @@ namespace m_tetris2
             static map_t build_board(MapIn const &m);
 
                     };
-        // 新重载：TetrisMap<W,H> 直接传入，无需转换（已经是 1=占 极性）。
+        // dev uses 0=occupied/1=empty: TetrisMap 输入已使用 dev 极性，无需再转换。
         template<class RuleSpec>
         inline TetrisMap<RuleSpec::width, RuleSpec::height> build_board_for_search(
             TetrisMap<RuleSpec::width, RuleSpec::height> const &map)
@@ -1199,7 +1199,7 @@ namespace m_tetris2
             int xb = static_cast<int>(s.xb);
             int yb = static_cast<int>(s.yb);
 
-            // 1. 写方块 cell 到 TetrisMap<W,H>（极性: 1=占，直接 set）.
+            // dev uses 0=occupied/1=empty: 满行原始存储为 0，顶部补空行用 row_full。
             for (std::size_t i = 0; i < cells.count; ++i)
             {
                 int ax = xb + static_cast<int>(cells.cells[i].x);
@@ -1208,7 +1208,7 @@ namespace m_tetris2
                     map.set(ax, ay);
             }
 
-            // 2. 消行（满行 = row(y) == row_full，即低 W 位全 1）.
+            // 2. 消行（满行 = row(y) == 0，即低 W 位全 0）.
             //    确定方块行范围 [row_min, row_max].
             int row_min = kH, row_max = -1;
             for (std::size_t i = 0; i < cells.count; ++i)
@@ -1229,7 +1229,7 @@ namespace m_tetris2
                 constexpr row_t_local full = map_t::row_full;
                 std::uint64_t full_rows = 0;
                 for (int y = row_min; y <= row_max; ++y)
-                    if (map.row(y) == full)
+                    if (map.row(y) == row_t_local(0))
                         full_rows |= std::uint64_t{1} << (y - row_min);
                 if (full_rows != 0)
                 {
@@ -1246,7 +1246,7 @@ namespace m_tetris2
                         ++dst;
                     }
                     for (; dst < kH; ++dst)
-                        map.set_row(dst, 0);
+                        map.set_row(dst, full);
                 }
             }
 

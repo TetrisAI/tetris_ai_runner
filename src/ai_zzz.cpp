@@ -945,74 +945,34 @@ namespace ai_zzz
         result.value = 0;
         result.combo_limit = 0;
         static constexpr double max_val = 1e20;
-        double
-            lower1 = +max_val,
-            lower2 = +max_val,
-            lower3 = +max_val;
-        for (size_t i = 0; i < status_length; ++i)
+        if (status_length == 0)
         {
-            double v = status[i] == nullptr ? -max_val : status[i]->value;
-            result.value += v;
-            if (v < lower1)
-            {
-                if (lower1 < lower2)
-                {
-                    if (lower2 < lower3)
-                    {
-                        lower3 = lower2;
-                    }
-                    lower2 = lower1;
-                }
-                lower1 = v;
-            }
-            else if (v < lower2)
-            {
-                if (lower2 < lower3)
-                {
-                    lower3 = lower2;
-                }
-                lower2 = v;
-            }
-            else if (v < lower3)
-            {
-                lower3 = v;
-            }
+            return result;
         }
-        result.value = (result.value - lower1 - lower2 - lower3) / 4;
-        //double
-        //    upper1 = -max_val,
-        //    upper2 = -max_val,
-        //    upper3 = -max_val;
-        //for (size_t i = 0; i < status_length; ++i)
-        //{
-        //    double v = status[i] == nullptr ? -max_val : status[i]->value;
-        //    result.value += v;
-        //    if (v > upper1)
-        //    {
-        //        if (upper1 > upper2)
-        //        {
-        //            if (upper2 > upper3)
-        //            {
-        //                upper3 = upper2;
-        //            }
-        //            upper2 = upper1;
-        //        }
-        //        upper1 = v;
-        //    }
-        //    else if (v > upper2)
-        //    {
-        //        if (upper2 > upper3)
-        //        {
-        //            upper3 = upper2;
-        //        }
-        //        upper2 = v;
-        //    }
-        //    else if (v > upper3)
-        //    {
-        //        upper3 = v;
-        //    }
-        //}
-        //result.value = (upper1 + upper2 + upper3) / 3;
+        // Collect scores (null children treated as -inf, matching the legacy fast path).
+        std::array<double, 32> scores{};
+        const size_t n = std::min(status_length, scores.size());
+        for (size_t i = 0; i < n; ++i)
+        {
+            scores[i] = status[i] == nullptr ? -max_val : status[i]->value;
+        }
+        std::sort(scores.begin(), scores.begin() + n);
+        // Clamp configured [low, high] (1-indexed, ascending-sorted ranks)
+        // into [1, n], then average the inclusive slice.
+        const int n_int = static_cast<int>(n);
+        int low = config_->iterate_low;
+        int high = config_->iterate_high;
+        if (low < 1) low = 1;
+        if (high < 1) high = 1;
+        if (low > n_int) low = n_int;
+        if (high > n_int) high = n_int;
+        if (low > high) low = high;
+        double sum = 0.0;
+        for (int i = low - 1; i < high; ++i)
+        {
+            sum += scores[i];
+        }
+        result.value = sum / static_cast<double>(high - low + 1);
         return result;
     }
 

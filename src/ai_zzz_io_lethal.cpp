@@ -149,7 +149,7 @@ namespace ai_zzz
         Helpers::attach_to_map(lp.state, piece);
         int garbage_cleared = 0;
         for (int y = 0; y < node.garbage_rows; ++y)
-            garbage_cleared += (node.board.row(y) | piece.row(y)) == Map::row_full;
+            garbage_cleared += (node.board.occupied_row(y) | piece.occupied_row(y)) == Map::row_full;
         io_rules::Placement const placement{lines, static_cast<io_rules::Spin>(lp.type), after.none(), garbage_cleared > 0};
         io_rules::Attack const attack = io_rules::resolve_attack(*rules_, node.counters, placement, multiplier_);
         Node child{after, node.queue, attack.counters, node.garbage_rows - garbage_cleared, node.ours_cancelled, next, hold};

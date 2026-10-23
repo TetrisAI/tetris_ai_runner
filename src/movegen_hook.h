@@ -470,7 +470,7 @@ namespace m_tetris2
                             OriginArr const &origin_xs, OriginArr const &origin_ys, Fn &&fn)
         {
             MapT ready = landings & rs.last_rotate_arr[r] & rs.corners3_arr[r];
-            MapT blocked_all = MapT(MapT::all_mask());
+            MapT blocked_all = MapT::all_occupied();
             target_blocked_mask<Spec, T, MapT, R_count>(r, usable_arr, blocked_all);
             MapT mini_set = ready & blocked_all;
             MapT full_set = ready & ~mini_set;
@@ -601,7 +601,7 @@ namespace m_tetris2
         template<class MapT, int Cx, int Cy>
         static MapT corner_ct(MapT const &board) noexcept
         {
-            MapT out_of_bounds = ~MapT(MapT::all_mask()).template shifted<-Cx, -Cy>();
+            MapT out_of_bounds = ~MapT::all_occupied().template shifted<-Cx, -Cy>();
             return board.template shifted<-Cx, -Cy>() | out_of_bounds;
         }
 
@@ -777,7 +777,7 @@ namespace m_tetris2
         template<class Spec, char T, class MapT, std::size_t R_count, std::uint8_t R>
         static void build_mini_blocked(std::array<MapT, R_count> const &usable_arr, MapT &out)
         {
-            out = MapT(MapT::all_mask());
+            out = MapT::all_occupied();
             constexpr std::uint8_t cw = shape::target_cw<Spec, T, R>;
             constexpr std::uint8_t ccw = shape::target_ccw<Spec, T, R>;
             constexpr std::uint8_t opp = shape::target_opp<Spec, T, R>;
@@ -839,8 +839,8 @@ namespace m_tetris2
         {
             using Op = shape::find_op<Spec, T, R>;
             constexpr auto cells = shape::op_cells<Op>;
-            MapT result = MapT(MapT::all_mask());
-            MapT all_ones = MapT(MapT::all_mask());
+            MapT result = MapT::all_occupied();
+            MapT all_ones = MapT::all_occupied();
             ((result &= all_ones.template shifted<-cells.cells[Is].x, -cells.cells[Is].y>()), ...);
             return result;
         }
@@ -857,12 +857,13 @@ namespace m_tetris2
                 int src_y = y - dy;
                 if (src_y < 0 || src_y >= H)
                     continue;
-                row_t r = m.row(src_y);
+                // dev uses 0=occupied/1=empty: shift the 1=occupied view so vacated cells stay empty.
+                row_t occupied = m.occupied_row(src_y);
                 if (dx > 0)
-                    r = static_cast<row_t>((r << dx) & full);
+                    occupied = static_cast<row_t>((occupied << dx) & full);
                 else if (dx < 0)
-                    r = static_cast<row_t>(r >> (-dx));
-                result.set_row(y, r);
+                    occupied = static_cast<row_t>(occupied >> (-dx));
+                result.set_row(y, static_cast<row_t>(full ^ occupied));
             }
             return result;
         }
@@ -1235,7 +1236,7 @@ namespace m_tetris2
         template<class MapT, int Cx, int Cy>
         static MapT occupied_or_outside(MapT const &board) noexcept
         {
-            MapT outside = ~MapT(MapT::all_mask()).template shifted<-Cx, -Cy>();
+            MapT outside = ~MapT::all_occupied().template shifted<-Cx, -Cy>();
             return board.template shifted<-Cx, -Cy>() | outside;
         }
 

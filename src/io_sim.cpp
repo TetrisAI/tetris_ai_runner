@@ -87,10 +87,11 @@ namespace io_sim
 
     bool Side::push_garbage_row(int hole)
     {
-        if (board.row(kHeight - 1) == Map::row_full)
+        // dev uses 0=occupied/1=empty：顶行非空即无法上推，垃圾行仅洞位为 1。
+        if (board.row(kHeight - 1) != Map::row_full)
             return false;
         board = board.shifted<0, 1>();
-        board.set_row(0, static_cast<Map::row_t>(Map::row_full & ~(Map::row_t(1) << hole)));
+        board.set_row(0, static_cast<Map::row_t>(Map::row_t(1) << hole));
         garbage_rows = std::min(garbage_rows + 1, kHeight);
         return true;
     }
@@ -105,7 +106,8 @@ namespace io_sim
         engine.attach(lp, piece);
         for (int y = 0; y < kHeight; ++y)
         {
-            if ((board.row(y) | piece.row(y)) == Map::row_full)
+            // dev board is 0=occupied; compare explicit occupied views with the 1=piece mask.
+            if ((board.occupied_row(y) | piece.occupied_row(y)) == Map::row_full)
             {
                 ++r.lines;
                 r.garbage_lines += y < garbage_rows;

@@ -183,7 +183,7 @@ namespace ai_zzz
                 for (int i = 0; i < kBelow; ++i)
                     rows[i] = kSolid;
                 for (int y = 0; y <= top; ++y)
-                    rows[y + kBelow] = (static_cast<std::uint32_t>(map.row(y)) << 1) | kWalls;
+                    rows[y + kBelow] = (static_cast<std::uint32_t>(map.occupied_row(y)) << 1) | kWalls;
                 for (int i = top + 1 + kBelow; i <= top + kBelow + 4; ++i)
                     rows[i] = kWalls;
                 for (int y = 0; y <= top; ++y)

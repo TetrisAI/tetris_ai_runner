@@ -56,7 +56,7 @@ namespace ai_zzz
                 {
                     top[x] = 0;
                     for (int y = map_height - 1; y >= 0; --y)
-                        if ((static_cast<uint32_t>(map.row(y)) >> x) & 1u)
+                        if ((static_cast<uint32_t>(map.occupied_row(y)) >> x) & 1u)
                         {
                             top[x] = y + 1;
                             break;
@@ -76,17 +76,17 @@ namespace ai_zzz
                 int RowTrans = 0;
                 for (int y = 0; y < roof; ++y)
                 {
-                    uint32_t occ_row = static_cast<uint32_t>(map.row(y));
+                    uint32_t occ_row = static_cast<uint32_t>(map.occupied_row(y));
                     // Wall transitions occur where the edge cell is empty.
                     uint32_t empty_row = static_cast<uint32_t>(row_full) ^ occ_row;
                     ColTrans += (empty_row & 1u) + ((empty_row >> width_m1) & 1u) + ZZZ_BitCount((occ_row ^ (occ_row << 1)) & static_cast<uint32_t>(col_mask_));
                     if (y != 0)
-                        RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(y - 1)) ^ occ_row);
+                        RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(y - 1)) ^ occ_row);
                 }
                 // bottom boundary: empty count
-                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(0)));
+                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.occupied_row(0)));
                 // top boundary: occupied (if full) or empty count
-                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)));
+                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(roof - 1)));
                 struct
                 {
                     int HoleCount;
@@ -106,7 +106,7 @@ namespace ai_zzz
 
                 for (int y = roof - 1; y >= 0; --y)
                 {
-                    uint32_t occ_row = static_cast<uint32_t>(map.row(y)) & static_cast<uint32_t>(row_full);
+                    uint32_t occ_row = static_cast<uint32_t>(map.occupied_row(y)) & static_cast<uint32_t>(row_full);
                     v.LineCoverBits |= occ_row;
                     uint32_t LineHole = v.LineCoverBits & ~occ_row & static_cast<uint32_t>(row_full);
                     if (LineHole != 0)
@@ -146,7 +146,7 @@ namespace ai_zzz
                     for (int y = v.HolePosy; y < roof; ++y)
                     {
                         // TopHoleBits is 1=empty; compare against empty bits of current row
-                        uint32_t CheckLine = v.TopHoleBits & static_cast<uint32_t>(row_full ^ map.row(y));
+                        uint32_t CheckLine = v.TopHoleBits & static_cast<uint32_t>(row_full ^ map.occupied_row(y));
                         if (CheckLine == 0)
                             break;
                         v.HolePiece += (y + 1) * ZZZ_BitCount(CheckLine);
@@ -174,16 +174,16 @@ namespace ai_zzz
                 for (int y = roof - 1; y >= low_y; --y)
                 {
                     // check_line_1_/2_ are stored in 1=occupied semantics (see init())
-                    uint32_t occ_row = static_cast<uint32_t>(map.row(y));
+                    uint32_t occ_row = static_cast<uint32_t>(map.occupied_row(y));
                     if (std::binary_search<uint32_t const *>(check_line_1_, check_line_1_end_, occ_row))
                     {
-                        if (y + 1 < map_height && std::binary_search<uint32_t const *>(check_line_2_, check_line_2_end_, static_cast<uint32_t>(map.row(y + 1))))
+                        if (y + 1 < map_height && std::binary_search<uint32_t const *>(check_line_2_, check_line_2_end_, static_cast<uint32_t>(map.occupied_row(y + 1))))
                             v.AttackDepth += 20;
                         else
                             v.AttackDepth += 16;
                         for (--y; y >= low_y; --y)
                         {
-                            if (std::binary_search<uint32_t const *>(check_line_1_, check_line_1_end_, static_cast<uint32_t>(map.row(y))))
+                            if (std::binary_search<uint32_t const *>(check_line_1_, check_line_1_end_, static_cast<uint32_t>(map.occupied_row(y))))
                                 v.AttackDepth += 3;
                             else
                                 v.AttackDepth -= 5;
@@ -230,10 +230,10 @@ namespace ai_zzz
                 size_t danger = 0;
                 for (size_t i = 0; i < type_max_; ++i)
                 {
-                    uint32_t occ0 = static_cast<uint32_t>(map.row(H - 4));
-                    uint32_t occ1 = static_cast<uint32_t>(map.row(H - 3));
-                    uint32_t occ2 = static_cast<uint32_t>(map.row(H - 2));
-                    uint32_t occ3 = static_cast<uint32_t>(map.row(H - 1));
+                    uint32_t occ0 = static_cast<uint32_t>(map.occupied_row(H - 4));
+                    uint32_t occ1 = static_cast<uint32_t>(map.occupied_row(H - 3));
+                    uint32_t occ2 = static_cast<uint32_t>(map.occupied_row(H - 2));
+                    uint32_t occ3 = static_cast<uint32_t>(map.occupied_row(H - 1));
                     if (static_cast<uint32_t>(map_danger_data_[i].data[0]) & occ0 ||
                         static_cast<uint32_t>(map_danger_data_[i].data[1]) & occ1 ||
                         static_cast<uint32_t>(map_danger_data_[i].data[2]) & occ2 ||
@@ -307,25 +307,25 @@ namespace ai_zzz
 
             // RowTrans (档位 A 真理): 左/右/底墙 occupied，顶墙 empty。
             //   - 底墙项: popcount(empty bits of row[0]) = popcount(full ^ row[0])
-            //   - 顶墙项: popcount(occupied bits of row[roof-1]) = popcount(map.row(roof-1))
+            //   - 顶墙项: popcount(occupied bits of row[roof-1]) = popcount(map.occupied_row(roof-1))
             //   - roof < H 时的 "无穷空行到顶" 不贡献，因此 init = 0，无 += W 兜底。
             size_t RowTrans = 0;
             if (roof > 0)
             {
-                RowTrans = static_cast<size_t>(ZZZ_BitCount(static_cast<uint32_t>(full ^ map.row(0))));
-                RowTrans += static_cast<size_t>(ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1))));
+                RowTrans = static_cast<size_t>(ZZZ_BitCount(static_cast<uint32_t>(full ^ map.occupied_row(0))));
+                RowTrans += static_cast<size_t>(ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(roof - 1))));
             }
 
             for (int y = 0; y < roof; ++y)
             {
                 // empty_row: bits set where the cell is empty (inverse of occupied).
-                row_t empty_row = static_cast<row_t>(full ^ map.row(y));
+                row_t empty_row = static_cast<row_t>(full ^ map.occupied_row(y));
                 // ColTrans: left wall (x=0 is empty), right wall (x=width_m1 is empty),
                 // adjacent-column transitions within the row.
                 ColTrans += static_cast<size_t>((empty_row & 1)) + static_cast<size_t>((static_cast<uint32_t>(empty_row) >> width_m1) & 1u) + static_cast<size_t>(ZZZ_BitCount(static_cast<uint32_t>(static_cast<row_t>(empty_row ^ static_cast<row_t>(empty_row << 1)) & col_mask)));
                 if (y != 0)
                 {
-                    RowTrans += static_cast<size_t>(ZZZ_BitCount(static_cast<uint32_t>(map.row(y - 1) ^ map.row(y))));
+                    RowTrans += static_cast<size_t>(ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(y - 1) ^ map.occupied_row(y))));
                 }
             }
 
@@ -351,11 +351,11 @@ namespace ai_zzz
 
             // LineCoverBits tracks occupied bits seen so far (scanning top-down).
             // A hole at column x in row y means: LineCoverBits has x set (occupied above y)
-            // but map.row(y) does NOT have x set (empty at y).
+            // but map.occupied_row(y) does NOT have x set (empty at y).
             // In 1=occupied: LineCoverBits = union of occupied bits; LineHole = covered but empty here.
             for (int y = roof - 1; y >= 0; --y)
             {
-                uint32_t occ_row = static_cast<uint32_t>(map.row(y));
+                uint32_t occ_row = static_cast<uint32_t>(map.occupied_row(y));
                 v.LineCoverBits |= static_cast<int>(occ_row);
                 int LineHole = v.LineCoverBits & ~static_cast<int>(occ_row);
                 if (LineHole != 0)
@@ -366,7 +366,7 @@ namespace ai_zzz
                     for (int hy = y + 1; hy < roof; ++hy)
                     {
                         // CheckLine: the hole bits that are also occupied above (covered overhead).
-                        uint32_t CheckLine = static_cast<uint32_t>(LineHole) & static_cast<uint32_t>(map.row(hy));
+                        uint32_t CheckLine = static_cast<uint32_t>(LineHole) & static_cast<uint32_t>(map.occupied_row(hy));
                         if (CheckLine == 0)
                         {
                             break;
@@ -451,10 +451,10 @@ namespace ai_zzz
             size_t danger = 0;
             for (size_t i = 0; i < type_max_; ++i)
             {
-                uint32_t occ0 = static_cast<uint32_t>(map.row(H - 4));
-                uint32_t occ1 = static_cast<uint32_t>(map.row(H - 3));
-                uint32_t occ2 = static_cast<uint32_t>(map.row(H - 2));
-                uint32_t occ3 = static_cast<uint32_t>(map.row(H - 1));
+                uint32_t occ0 = static_cast<uint32_t>(map.occupied_row(H - 4));
+                uint32_t occ1 = static_cast<uint32_t>(map.occupied_row(H - 3));
+                uint32_t occ2 = static_cast<uint32_t>(map.occupied_row(H - 2));
+                uint32_t occ3 = static_cast<uint32_t>(map.occupied_row(H - 1));
                 if (static_cast<uint32_t>(map_danger_data_[i].data[0]) & occ0 ||
                     static_cast<uint32_t>(map_danger_data_[i].data[1]) & occ1 ||
                     static_cast<uint32_t>(map_danger_data_[i].data[2]) & occ2 ||
@@ -533,15 +533,15 @@ namespace ai_zzz
             {
                 for (int y = 0; y < roof; ++y)
                 {
-                    uint64_t row = static_cast<uint64_t>(map.row(y));
+                    uint64_t row = static_cast<uint64_t>(map.occupied_row(y));
                     ColTrans += ZZZ_BitCount(row ^ (row << 1));
                     if (y != 0)
                     {
-                        RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(y - 1)) ^ static_cast<uint32_t>(map.row(y)));
+                        RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(y - 1)) ^ static_cast<uint32_t>(map.occupied_row(y)));
                     }
                 }
-                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(0)));
-                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)));
+                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.occupied_row(0)));
+                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(roof - 1)));
             }
 
             Result result;
@@ -613,15 +613,15 @@ namespace ai_zzz
             {
                 for (int y = 0; y < roof; ++y)
                 {
-                    uint64_t row = static_cast<uint64_t>(map.row(y));
+                    uint64_t row = static_cast<uint64_t>(map.occupied_row(y));
                     ColTrans += ZZZ_BitCount(row ^ (row << 1));
                     if (y != 0)
                     {
-                        RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(y - 1)) ^ static_cast<uint32_t>(map.row(y)));
+                        RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(y - 1)) ^ static_cast<uint32_t>(map.occupied_row(y)));
                     }
                 }
-                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(0)));
-                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)));
+                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.occupied_row(0)));
+                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(roof - 1)));
             }
 
             Result result;
@@ -698,13 +698,13 @@ namespace ai_zzz
             int RowTrans = 0;
             for (int y = 0; y < roof; ++y)
             {
-                uint32_t occ_row = static_cast<uint32_t>(map.row(y));
-                ColTrans += (occ_row & 1u) + ((occ_row >> width_m1) & 1u) + ZZZ_BitCount((occ_row ^ (occ_row << 1)) & static_cast<uint32_t>(col_mask_));
+                uint32_t occ_row = static_cast<uint32_t>(map.occupied_row(y));
+                ColTrans += !(occ_row & 1u) + !((occ_row >> width_m1) & 1u) + ZZZ_BitCount((occ_row ^ (occ_row << 1)) & static_cast<uint32_t>(col_mask_));
                 if (y != 0)
-                    RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(y - 1)) ^ occ_row);
+                    RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(y - 1)) ^ occ_row);
             }
-            RowTrans += ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(0)));
-            RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)));
+            RowTrans += ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.occupied_row(0)));
+            RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(roof - 1)));
             struct
             {
                 int HoleCount;
@@ -724,8 +724,8 @@ namespace ai_zzz
 
             for (int y = roof - 1; y >= 0; --y)
             {
-                // empty bits (1=empty): invert 1=occupied row
-                uint32_t inv_row = static_cast<uint32_t>(row_full ^ map.row(y));
+                // occupied bits (1=occupied) for hole detection
+                uint32_t inv_row = static_cast<uint32_t>(map.occupied_row(y));
                 v.LineCoverBits |= inv_row;
                 uint32_t LineHole = v.LineCoverBits ^ inv_row;
                 if (LineHole != 0)
@@ -734,8 +734,8 @@ namespace ai_zzz
                     a[v.HolePosyIndex].ClearWidth = 0;
                     for (int hy = y + 1; hy < roof; ++hy)
                     {
-                        // occupied bits at hy: map.row(hy); hole bits are empty above, occupied at hy
-                        uint32_t CheckLine = LineHole & static_cast<uint32_t>(map.row(hy));
+                        // occupied bits at hy: map.occupied_row(hy); hole bits are empty above, occupied at hy
+                        uint32_t CheckLine = LineHole & static_cast<uint32_t>(map.occupied_row(hy));
                         if (CheckLine == 0)
                             break;
                         a[v.HolePosyIndex].ClearWidth += (hy + 1) * ZZZ_BitCount(CheckLine);
@@ -768,7 +768,7 @@ namespace ai_zzz
             // Compute occupied cell count
             int occ_count = 0;
             for (int y = 0; y < roof; ++y)
-                occ_count += ZZZ_BitCount(static_cast<uint32_t>(map.row(y)));
+                occ_count += ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(y)));
 
             Result result;
             result.value = (0. - roof * 128 - ColTrans * 160 - RowTrans * 160 - v.HoleCount * 80 - v.HoleLine * 380 - v.WellDepth * 100 - v.HoleDepth * 40);
@@ -797,11 +797,11 @@ namespace ai_zzz
             for (int y = 0; (finding2 || finding3) && y < roof - 2; ++y)
             {
                 // empty bits (1=empty) for T-spin shape detection
-                int row0 = static_cast<int>(static_cast<uint32_t>(row_full ^ map.row(y)));
-                int row1 = static_cast<int>(static_cast<uint32_t>(row_full ^ map.row(y + 1)));
-                int row2 = y + 2 < map_height ? static_cast<int>(static_cast<uint32_t>(row_full ^ map.row(y + 2))) : 0;
-                int row3 = y + 3 < map_height ? static_cast<int>(static_cast<uint32_t>(row_full ^ map.row(y + 3))) : 0;
-                int row4 = y + 4 < map_height ? static_cast<int>(static_cast<uint32_t>(row_full ^ map.row(y + 4))) : 0;
+                int row0 = static_cast<int>(static_cast<uint32_t>(row_full ^ map.occupied_row(y)));
+                int row1 = static_cast<int>(static_cast<uint32_t>(row_full ^ map.occupied_row(y + 1)));
+                int row2 = y + 2 < map_height ? static_cast<int>(static_cast<uint32_t>(row_full ^ map.occupied_row(y + 2))) : 0;
+                int row3 = y + 3 < map_height ? static_cast<int>(static_cast<uint32_t>(row_full ^ map.occupied_row(y + 3))) : 0;
+                int row4 = y + 4 < map_height ? static_cast<int>(static_cast<uint32_t>(row_full ^ map.occupied_row(y + 4))) : 0;
                 for (int x = 0; finding2 && x < map_width - 2; ++x)
                 {
                     if (((row0 >> x) & 7) == 5 && ((row1 >> x) & 7) == 0)
@@ -921,7 +921,8 @@ namespace ai_zzz
             int MH = static_cast<int>(map.height);
             size_t height = 22 - up;
             auto get_row = [](MapT const &m, int y) -> uint32_t {
-                return static_cast<uint32_t>(m.row(y));
+                // dev uses 0=occupied/1=empty; danger masks require a 1=occupied row.
+                return static_cast<uint32_t>(m.occupied_row(y));
             };
             uint32_t e0 = (height >= 4 && static_cast<int>(height - 4) < MH) ? get_row(map, static_cast<int>(height - 4)) : 0u;
             uint32_t e1 = (height >= 3 && static_cast<int>(height - 3) < MH) ? get_row(map, static_cast<int>(height - 3)) : 0u;
@@ -992,15 +993,15 @@ namespace ai_zzz
             {
                 for (int y = 0; y < roof; ++y)
                 {
-                    uint64_t row = static_cast<uint64_t>(map.row(y));
+                    uint64_t row = static_cast<uint64_t>(map.occupied_row(y));
                     ColTrans += ZZZ_BitCount(row ^ (row << 1));
                     if (y != 0)
                     {
-                        RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(y - 1)) ^ static_cast<uint32_t>(map.row(y)));
+                        RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(y - 1)) ^ static_cast<uint32_t>(map.occupied_row(y)));
                     }
                 }
-                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(0)));
-                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)));
+                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.occupied_row(0)));
+                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(roof - 1)));
             }
 
             struct
@@ -1025,7 +1026,7 @@ namespace ai_zzz
 
             for (int y = roof - 1; y >= 0; --y)
             {
-                uint32_t inv_row = static_cast<uint32_t>(row_full ^ map.row(y));
+                uint32_t inv_row = static_cast<uint32_t>(map.occupied_row(y));
                 v.LineCoverBits |= inv_row;
                 uint32_t LineHole = v.LineCoverBits ^ inv_row;
                 if (LineHole != 0)
@@ -1034,7 +1035,7 @@ namespace ai_zzz
                     a[v.HolePosyIndex].ClearWidth = 0;
                     for (int hy = y + 1; hy < roof; ++hy)
                     {
-                        uint32_t CheckLine = LineHole & static_cast<uint32_t>(map.row(hy));
+                        uint32_t CheckLine = LineHole & static_cast<uint32_t>(map.occupied_row(hy));
                         if (CheckLine == 0)
                         {
                             break;
@@ -1087,7 +1088,7 @@ namespace ai_zzz
             // Compute occupied cell count
             int occ_count = 0;
             for (int y = 0; y < roof; ++y)
-                occ_count += ZZZ_BitCount(static_cast<uint32_t>(map.row(y)));
+                occ_count += ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(y)));
 
             Result result;
             result.value = (0. - roof * 128 - ColTrans * 160 - RowTrans * 160 - v.HoleCount * 80 - v.HoleLine * 380 - v.WellDepth * 100 - v.HoleDepth * 40);
@@ -1136,7 +1137,8 @@ namespace ai_zzz
             int MH = static_cast<int>(map.height);
             size_t height = 22 - up;
             auto get_row = [](MapT const &m, int y) -> uint32_t {
-                return static_cast<uint32_t>(m.row(y));
+                // dev uses 0=occupied/1=empty; danger masks require a 1=occupied row.
+                return static_cast<uint32_t>(m.occupied_row(y));
             };
             uint32_t e0 = (height >= 4 && static_cast<int>(height - 4) < MH) ? get_row(map, static_cast<int>(height - 4)) : 0u;
             uint32_t e1 = (height >= 3 && static_cast<int>(height - 3) < MH) ? get_row(map, static_cast<int>(height - 3)) : 0u;
@@ -1236,7 +1238,7 @@ namespace ai_zzz
             {
                 uint32_t occ_rows[40];
                 for (int y = 0; y < MapT::height; ++y)
-                    occ_rows[y] = static_cast<uint32_t>(map.row(y));
+                    occ_rows[y] = static_cast<uint32_t>(map.occupied_row(y));
                 init_t_value(occ_rows, MapT::width, map.max_y() + (map.none() ? 0 : 1), t2_value_ref, t3_value_ref);
             }
         };
@@ -1265,7 +1267,7 @@ namespace ai_zzz
             // Build a local row array (1=occupied) and compute t-value with in-place overlay.
             uint32_t t_rows[40];
             for (int y = 0; y < roof; ++y)
-                t_rows[y] = static_cast<uint32_t>(map.row(y));
+                t_rows[y] = static_cast<uint32_t>(map.occupied_row(y));
             memset(t_rows + roof, 0, sizeof(uint32_t) * (40 - roof));
             Status::init_t_value(t_rows, map_width, roof, result.t2_value, result.t3_value, t_rows);
 
@@ -1368,7 +1370,8 @@ namespace ai_zzz
             int MH = static_cast<int>(map.height);
             size_t height = 22 - up;
             auto get_row = [](MapT const &m, int y) -> uint32_t {
-                return static_cast<uint32_t>(m.row(y));
+                // dev uses 0=occupied/1=empty; danger masks require a 1=occupied row.
+                return static_cast<uint32_t>(m.occupied_row(y));
             };
             uint32_t e0 = (height >= 4 && static_cast<int>(height - 4) < MH) ? get_row(map, static_cast<int>(height - 4)) : 0u;
             uint32_t e1 = (height >= 3 && static_cast<int>(height - 3) < MH) ? get_row(map, static_cast<int>(height - 3)) : 0u;
@@ -1390,6 +1393,12 @@ namespace ai_zzz
             int danger;
             int soft_drop;
             double planning_bpm;
+            // Configurable range for C2::iterate: 1-indexed ranks (lowest=1)
+            // of the per-piece child scores to average after sorting ascending.
+            // Default [4,7] drops the lowest 3 of 7 (= average of top 4),
+            // preserving historical behavior.
+            int iterate_low = 4;
+            int iterate_high = 7;
         };
         struct Status
         {
@@ -1438,18 +1447,18 @@ namespace ai_zzz
             {
                 for (int y = 0; y < roof; ++y)
                 {
-                    uint32_t occ_row = static_cast<uint32_t>(map.row(y));
+                    uint32_t occ_row = static_cast<uint32_t>(map.occupied_row(y));
                     ColTrans += !(occ_row & 1u)
                                 + !((occ_row >> width_m1) & 1u)
                                 + ZZZ_BitCount((occ_row ^ (occ_row << 1))
                                                & static_cast<uint32_t>(col_mask_));
                     if (y != 0)
                     {
-                        RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(y - 1)) ^ occ_row);
+                        RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(y - 1)) ^ occ_row);
                     }
                 }
-                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(0)));
-                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)));
+                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.occupied_row(0)));
+                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(roof - 1)));
             }
             struct
             {
@@ -1476,7 +1485,7 @@ namespace ai_zzz
             for (int y = roof - 1; y >= 0; --y)
             {
                 // bitboard semantics: occupied bits are 1
-                uint32_t inv_row = static_cast<uint32_t>(map.row(y));
+                uint32_t inv_row = static_cast<uint32_t>(map.occupied_row(y));
                 v.LineCoverBits |= inv_row;
                 int LineHole = v.LineCoverBits ^ inv_row;
                 if (LineHole != 0)
@@ -1486,7 +1495,7 @@ namespace ai_zzz
                     for (int hy = y + 1; hy < roof; ++hy)
                     {
                         // bitboard semantics: bit=1 means occupied
-                        uint32_t CheckLine = LineHole & static_cast<uint32_t>(map.row(hy));
+                        uint32_t CheckLine = LineHole & static_cast<uint32_t>(map.occupied_row(hy));
                         if (CheckLine == 0)
                         {
                             break;
@@ -1558,7 +1567,7 @@ namespace ai_zzz
                 if (MaxWellWidth >= 1 && MaxWellWidth <= 6)
                 {
                     // bitboard semantics: empty count = popcount(row_full ^ row)
-                    if (ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.row(y))) == MaxWellWidth)
+                    if (ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.occupied_row(y))) == MaxWellWidth)
                     {
                         v.WideWellDepth[MaxWellWidth - 1] += 2;
                     }
@@ -1692,16 +1701,16 @@ namespace ai_zzz
             size_t danger = 0;
             for (size_t i = 0; i < type_max_; ++i)
             {
-                if (map_danger_data_[i].data[0] & static_cast<uint32_t>(map.row(17)) ||
-                    map_danger_data_[i].data[1] & static_cast<uint32_t>(map.row(18)) ||
-                    map_danger_data_[i].data[2] & static_cast<uint32_t>(map.row(19)) ||
-                    map_danger_data_[i].data[3] & static_cast<uint32_t>(map.row(20)))
+                if (map_danger_data_[i].data[0] & static_cast<uint32_t>(map.occupied_row(17)) ||
+                    map_danger_data_[i].data[1] & static_cast<uint32_t>(map.occupied_row(18)) ||
+                    map_danger_data_[i].data[2] & static_cast<uint32_t>(map.occupied_row(19)) ||
+                    map_danger_data_[i].data[3] & static_cast<uint32_t>(map.occupied_row(20)))
                 {
                     ++danger;
                 }
             }
             // bitboard semantics: row[17] bit=1 means occupied
-            if (static_cast<uint32_t>(map.row(17)) != 0)
+            if (static_cast<uint32_t>(map.occupied_row(17)) != 0)
             {
                 ++danger;
             }

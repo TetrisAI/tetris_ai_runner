@@ -66,8 +66,8 @@ namespace m_tetris2
             constexpr MapT inbounds_for_rotation_impl(std::index_sequence<Is...>) noexcept
             {
                 constexpr auto cells = shape::op_cells<Op>;
-                MapT result = MapT(MapT::all_mask());
-                MapT const all_ones = MapT(MapT::all_mask());
+                MapT result = MapT::all_occupied();
+                MapT const all_ones = MapT::all_occupied();
                 ((result &= all_ones.template shifted<
                             -cells.cells[Is].x, -cells.cells[Is].y>()),
                  ...);
@@ -80,12 +80,12 @@ namespace m_tetris2
             {
                 constexpr auto cells = shape::op_cells<Op>;
                 //all_mask 对应"整个棋盘全空"
-                MapT result = MapT(MapT::all_mask());
+                MapT result = MapT::all_occupied();
                 //per-cell in-bounds mask: 把 "全 1 棋盘" 按 (-cx, -cy) 平移后,
                 //  shift_col_keep_mask 会把"从棋盘外平移进来的位置"清 0, 因此结果
                 //  恰好是"基准点 (px, py) 使该 cell 仍在棋盘内"的位置集合.
                 //  对所有 cell AND 起来 = 整个 piece 在棋盘内的合法基准点集合.
-                MapT const all_ones = MapT(MapT::all_mask());
+                MapT const all_ones = MapT::all_occupied();
                 ((result &= all_ones.template shifted<
                             -cells.cells[Is].x, -cells.cells[Is].y>()),
                  ...);

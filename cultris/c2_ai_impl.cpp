@@ -138,6 +138,14 @@ struct Handle {
     int  engine_prepared_h  = 0;
     bool config_installed   = false;
     std::atomic<int> ai_mode{0};
+    // Configurable C2::iterate rank range (1..7, inclusive). Applied each frame
+    // via update_c2_config_per_frame; defaults match historical behavior.
+    std::atomic<int> iterate_low{4};
+    std::atomic<int> iterate_high{7};
+    // Next-piece preview string construction flags. Defaults match the
+    // historical "?T?" format (both true). See c2ai_set_next_mode in c2_ai_api.h.
+    std::atomic<int> next_virtual{1};
+    std::atomic<int> next_preview{1};
 
     // Main-thread-only piece identity, retained for diagnostics.
     std::int32_t last_kind = -2;
@@ -231,6 +239,8 @@ void install_c2_config_once(CultrisEngine& engine) {
     cfg->mode   = 0;
     cfg->danger = 0;
     cfg->planning_bpm = kDefaultPlanningBpm;
+    cfg->iterate_low = 4;
+    cfg->iterate_high = 7;
 
     // Dynamic soft-drop state is installed from every C2StepInput below.
     engine.search_config()->fast_move_down = true;
@@ -241,7 +251,8 @@ void install_c2_config_once(CultrisEngine& engine) {
     st->value       = 0;
 }
 
-bool update_c2_config_per_frame(CultrisEngine& engine, const C2StepInput& in) {
+bool update_c2_config_per_frame(CultrisEngine& engine, const C2StepInput& in,
+                                int iterate_low = 4, int iterate_high = 7) {
     auto* cfg = engine.ai_config();
     auto* st = engine.status();
     const decltype(st->combo) new_combo = static_cast<decltype(st->combo)>(
@@ -255,10 +266,14 @@ bool update_c2_config_per_frame(CultrisEngine& engine, const C2StepInput& in) {
     const decltype(cfg->safe) new_safe = input_safe(in);
     const double new_planning_bpm = static_cast<double>(input_planning_bpm(in));
     const bool new_fast_move_down = new_soft_drop == 0;
+    const int clamped_low = std::clamp(iterate_low, 1, 7);
+    const int clamped_high = std::clamp(std::max(iterate_high, clamped_low), 1, 7);
     const bool changed = cfg->danger != new_danger
         || cfg->soft_drop != new_soft_drop
         || cfg->safe != new_safe
         || cfg->planning_bpm != new_planning_bpm
+        || cfg->iterate_low != clamped_low
+        || cfg->iterate_high != clamped_high
         || engine.search_config()->fast_move_down != new_fast_move_down;
     // combo/combo_limit are a root snapshot latched by c2ai_step. Reassigning the
     // already-latched values here is stable and does not invalidate the search.
@@ -268,6 +283,8 @@ bool update_c2_config_per_frame(CultrisEngine& engine, const C2StepInput& in) {
     cfg->soft_drop = new_soft_drop;
     cfg->safe = new_safe;
     cfg->planning_bpm = new_planning_bpm;
+    cfg->iterate_low = clamped_low;
+    cfg->iterate_high = clamped_high;
     // Cautious make_path emits stepwise 'd' neighbours only when this is false.
     engine.search_config()->fast_move_down = new_fast_move_down;
     (void)in.pressure_blend;
@@ -277,7 +294,8 @@ bool update_c2_config_per_frame(CultrisEngine& engine, const C2StepInput& in) {
 
 bool fill_map_from_input(CultrisMap& map, const C2StepInput& in) {
     for (int y = 0; y < kEngineH; ++y) {
-        map.set_row(y, static_cast<CultrisMap::row_t>(in.row_bits[y] & kColMask));
+        // dev uses 0=occupied/1=empty；Java row_bits 的 1 表示方块，需在列掩码内取反。
+        map.set_row(y, static_cast<CultrisMap::row_t>((~in.row_bits[y]) & kColMask));
     }
     return true;
 }
@@ -339,7 +357,10 @@ bool plan_real(Handle& h, const C2StepInput& in,
         install_c2_config_once(h.engine);
         h.config_installed = true;
     }
-    const bool dynamic_config_changed = update_c2_config_per_frame(h.engine, in);
+    const bool dynamic_config_changed = update_c2_config_per_frame(
+        h.engine, in,
+        h.iterate_low.load(std::memory_order_acquire),
+        h.iterate_high.load(std::memory_order_acquire));
     h.engine.ai_config()->mode = h.ai_mode.load(std::memory_order_acquire);
 
     CultrisMap map{};
@@ -348,13 +369,14 @@ bool plan_real(Handle& h, const C2StepInput& in,
     if (!make_current_status(in, map, &status, &resolved_piece)) return false;
 
     std::string next;
-    if (in.next_kind >= 0) {
+    const bool next_virtual_flag = h.next_virtual.load(std::memory_order_acquire) != 0;
+    const bool next_preview_flag = h.next_preview.load(std::memory_order_acquire) != 0;
+    if (next_virtual_flag) next.push_back('?');
+    if (next_preview_flag && in.next_kind >= 0) {
         const char nc = kind_to_piece_char(in.next_kind);
-        if (nc != 0) { next.push_back('?'); next.push_back(nc); next.push_back('?'); }
-        else next.push_back('?');
-    } else {
-        next.push_back('?');
+        if (nc != 0) next.push_back(nc);
     }
+    if (next_virtual_flag) next.push_back('?');
 
     if (dynamic_config_changed) h.engine.update();
     auto result = h.engine.run(map, status, next.data(), next.size(), kSearchBudgetMs);
@@ -571,6 +593,38 @@ extern "C" void c2ai_reset_plan(std::int64_t handle) {
     if (handle == 0) return;
     auto* h = reinterpret_cast<Handle*>(handle);
     reset_plan_state(*h);
+}
+
+extern "C" void c2ai_set_iterate_range(std::int64_t handle,
+                                       std::int32_t low, std::int32_t high) {
+    if (handle == 0) return;
+    auto* h = reinterpret_cast<Handle*>(handle);
+    int clamped_low = std::clamp(static_cast<int>(low), 1, 7);
+    int clamped_high = std::clamp(static_cast<int>(high), 1, 7);
+    if (clamped_high < clamped_low) clamped_high = clamped_low;
+    const int prev_low = h->iterate_low.exchange(clamped_low,
+        std::memory_order_acq_rel);
+    const int prev_high = h->iterate_high.exchange(clamped_high,
+        std::memory_order_acq_rel);
+    if (prev_low != clamped_low || prev_high != clamped_high) {
+        // Changed scoring invalidates the pending plan; re-plan from scratch.
+        reset_plan_state(*h);
+    }
+}
+
+extern "C" void c2ai_set_next_mode(std::int64_t handle,
+                                   std::int32_t virtual_flag,
+                                   std::int32_t preview_flag) {
+    if (handle == 0) return;
+    auto* h = reinterpret_cast<Handle*>(handle);
+    const int v = virtual_flag != 0 ? 1 : 0;
+    const int p = preview_flag != 0 ? 1 : 0;
+    const int prev_v = h->next_virtual.exchange(v, std::memory_order_acq_rel);
+    const int prev_p = h->next_preview.exchange(p, std::memory_order_acq_rel);
+    if (prev_v != v || prev_p != p) {
+        // Changing the preview-string shape invalidates the pending plan.
+        reset_plan_state(*h);
+    }
 }
 
 extern "C" void c2ai_step(std::int64_t handle,

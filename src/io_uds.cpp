@@ -165,7 +165,8 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
             int row = 0;
             if (!read_value((*board)[y], row) || row < 0 || row > Map::row_full)
                 return false;
-            out.set_row(y, static_cast<Map::row_t>(row));
+            // dev uses 0=occupied/1=empty；协议行整数的 1 表示方块。
+            out.set_row(y, static_cast<Map::row_t>(Map::row_full ^ row));
         }
         return true;
     }

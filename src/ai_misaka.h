@@ -74,11 +74,10 @@ namespace ai_misaka
             static_assert(MH == 22, "ai_misaka only supports height=22");
             Result r;
             r.t = Details::t_value;
-            // Copy rows in 1=empty semantics (as expected by VirtualRow in ai_misaka.cpp).
-            // TetrisMap<W,H> stores 1=occupied, so we bitwise-invert each row.
+            // dev uses 0=occupied/1=empty，VirtualRow 正好消费该原始行表示。
             // MH == 22 is guaranteed by static_assert above; fill all 22 rows.
             for (int y = 0; y < MH; ++y)
-                r.map_rows[y] = ~static_cast<m_tetris2::row_t>(map.row(y));
+                r.map_rows[y] = static_cast<m_tetris2::row_t>(map.row(y));
             r.map_count = map.popcount();
             r.clear = clear;
             r.t_spin = lp.spin;

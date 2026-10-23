@@ -305,7 +305,7 @@ namespace ai_zzz
         Result result{};
         int const roof = map.none() ? 0 : map.max_y() + 1;
         auto row = [&](int y)
-        { return static_cast<std::uint32_t>(map.row(y)); };
+        { return static_cast<std::uint32_t>(map.occupied_row(y)); };
 
         int col_trans = 2 * (kH - roof);
         int row_trans = 0;
@@ -402,7 +402,7 @@ namespace ai_zzz
                 piece_rows[kCells.cells[i].y] |= 1u << (lp.col() + kCells.cells[i].x);
             for (int i = 0; i < 4 && bottom + i < kH; ++i)
             {
-                if (piece_rows[i] != 0 && (static_cast<std::uint32_t>(src_map.row(bottom + i)) | piece_rows[i]) == kRowMask)
+                if (piece_rows[i] != 0 && (static_cast<std::uint32_t>(src_map.occupied_row(bottom + i)) | piece_rows[i]) == kRowMask)
                     result.cleared_rows |= std::uint64_t(1) << (bottom + i);
             }
         }

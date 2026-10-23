@@ -51,19 +51,19 @@ namespace ai_tag
             int RowTrans = 0;
             for (int y = 0; y < roof; ++y)
             {
-                uint32_t r = static_cast<uint32_t>(map.row(y));
+                uint32_t r = static_cast<uint32_t>(map.occupied_row(y));
                 if (!(r & 1))
                     ++ColTrans;
                 if (!(r >> width_m1 & 1))
                     ++ColTrans;
                 ColTrans += ZZZ_BitCount((r ^ (r << 1)) & col_mask_);
                 if (y != 0)
-                    RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(y - 1)) ^ r);
+                    RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(y - 1)) ^ r);
             }
             if (roof > 0)
             {
-                RowTrans += ZZZ_BitCount(~static_cast<uint32_t>(map.row(0)) & row_mask_);
-                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)) & row_mask_);
+                RowTrans += ZZZ_BitCount(~static_cast<uint32_t>(map.occupied_row(0)) & row_mask_);
+                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(roof - 1)) & row_mask_);
             }
 
             struct
@@ -88,7 +88,7 @@ namespace ai_tag
 
             for (int y = roof - 1; y >= 0; --y)
             {
-                uint32_t inv_row = static_cast<uint32_t>(map.row(y)) & row_mask_;
+                uint32_t inv_row = static_cast<uint32_t>(map.occupied_row(y)) & row_mask_;
                 v.LineCoverBits |= inv_row;
                 int LineHole = v.LineCoverBits ^ inv_row;
                 if (LineHole != 0)
@@ -145,7 +145,7 @@ namespace ai_tag
                     MaxWellWidth = WellWidth;
                 if (MaxWellWidth >= 1 && MaxWellWidth <= 6)
                 {
-                    if (ZZZ_BitCount((row_full ^ static_cast<uint32_t>(map.row(y))) & row_mask_) == MaxWellWidth)
+                    if (ZZZ_BitCount((row_full ^ static_cast<uint32_t>(map.occupied_row(y))) & row_mask_) == MaxWellWidth)
                         v.WideWellDepth[MaxWellWidth - 1] += 2;
                     else
                         v.WideWellDepth[MaxWellWidth - 1] -= 1;
@@ -155,7 +155,7 @@ namespace ai_tag
             {
                 for (int y = HolePosy0; y < roof; ++y)
                 {
-                    int CheckLine = v.HoleBits0 & static_cast<int>(map.row(y));
+                    int CheckLine = v.HoleBits0 & static_cast<int>(map.occupied_row(y));
                     if (CheckLine == 0) break;
                     v.ClearWidth0 += (y + 1) * ZZZ_BitCount(CheckLine);
                 }
@@ -163,7 +163,7 @@ namespace ai_tag
                 {
                     for (int y = HolePosy1; y < roof; ++y)
                     {
-                        int CheckLine = v.HoleBits1 & static_cast<int>(map.row(y));
+                        int CheckLine = v.HoleBits1 & static_cast<int>(map.occupied_row(y));
                         if (CheckLine == 0) break;
                         v.ClearWidth1 += (y + 1) * ZZZ_BitCount(CheckLine);
                     }
@@ -171,7 +171,7 @@ namespace ai_tag
                     {
                         for (int y = HolePosy2; y < roof; ++y)
                         {
-                            int CheckLine = v.HoleBits2 & static_cast<int>(map.row(y));
+                            int CheckLine = v.HoleBits2 & static_cast<int>(map.occupied_row(y));
                             if (CheckLine == 0) break;
                             v.ClearWidth2 += (y + 1) * ZZZ_BitCount(CheckLine);
                         }
@@ -208,7 +208,7 @@ namespace ai_tag
             int full = 0;
             for (int y = roof - 1; y >= 0; --y)
             {
-                if (static_cast<uint32_t>(map.row(y)) == row_full)
+                if (static_cast<uint32_t>(map.occupied_row(y)) == row_full)
                 {
                     full = y + 1;
                     low_y -= y;
@@ -269,10 +269,10 @@ namespace ai_tag
                 {
                     int height = MH - static_cast<int>(check_up);
                     if (height >= 4
-                        && (   (static_cast<uint32_t>(map_danger_data_[i].data[0]) & static_cast<uint32_t>(map.row(height - 4)))
-                            || (static_cast<uint32_t>(map_danger_data_[i].data[1]) & static_cast<uint32_t>(map.row(height - 3)))
-                            || (static_cast<uint32_t>(map_danger_data_[i].data[2]) & static_cast<uint32_t>(map.row(height - 2)))
-                            || (static_cast<uint32_t>(map_danger_data_[i].data[3]) & static_cast<uint32_t>(map.row(height - 1)))))
+                        && (   (static_cast<uint32_t>(map_danger_data_[i].data[0]) & static_cast<uint32_t>(map.occupied_row(height - 4)))
+                            || (static_cast<uint32_t>(map_danger_data_[i].data[1]) & static_cast<uint32_t>(map.occupied_row(height - 3)))
+                            || (static_cast<uint32_t>(map_danger_data_[i].data[2]) & static_cast<uint32_t>(map.occupied_row(height - 2)))
+                            || (static_cast<uint32_t>(map_danger_data_[i].data[3]) & static_cast<uint32_t>(map.occupied_row(height - 1)))))
                     {
                         ++danger;
                         break;
@@ -345,7 +345,7 @@ namespace ai_tag
             int RowTrans = 0;
             for (int y = 0; y < roof; ++y)
             {
-                uint32_t r = static_cast<uint32_t>(map.row(y));
+                uint32_t r = static_cast<uint32_t>(map.occupied_row(y));
                 if (!(r & 1))
                 {
                     ++ColTrans;
@@ -357,13 +357,13 @@ namespace ai_tag
                 ColTrans += ZZZ_BitCount((r ^ (r << 1)) & col_mask_);
                 if (y != 0)
                 {
-                    RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(y - 1)) ^ r);
+                    RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(y - 1)) ^ r);
                 }
             }
             if (roof > 0)
             {
-                RowTrans += ZZZ_BitCount(~static_cast<uint32_t>(map.row(0)) & row_mask_);
-                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.row(roof - 1)) & row_mask_);
+                RowTrans += ZZZ_BitCount(~static_cast<uint32_t>(map.occupied_row(0)) & row_mask_);
+                RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(roof - 1)) & row_mask_);
             }
             struct
             {
@@ -383,8 +383,8 @@ namespace ai_tag
 
             for (int y = roof - 1; y >= 0; --y)
             {
-                // bitboard semantics: map.row(y) bit=1 means occupied.
-                uint32_t inv_row = static_cast<uint32_t>(map.row(y)) & row_mask_;
+                // bitboard semantics: map.occupied_row(y) bit=1 means occupied.
+                uint32_t inv_row = static_cast<uint32_t>(map.occupied_row(y)) & row_mask_;
                 v.LineCoverBits |= inv_row;
                 int LineHole = v.LineCoverBits ^ inv_row;
                 if (LineHole != 0)
@@ -393,7 +393,7 @@ namespace ai_tag
                     v.HoleLine++;
                     for (int hy = y + 1; hy < roof; ++hy)
                     {
-                        uint32_t CheckLine = LineHole & static_cast<uint32_t>(map.row(hy));
+                        uint32_t CheckLine = LineHole & static_cast<uint32_t>(map.occupied_row(hy));
                         if (CheckLine == 0)
                         {
                             break;
@@ -443,7 +443,7 @@ namespace ai_tag
             }
             result.map = (0. - roof * config_->map_low_width - ColTrans * config_->col_trans_width - RowTrans * config_->row_trans_width - v.HoleCount * config_->hold_count_width - v.HoleLine * config_->hold_focus_width - v.WellDepth * config_->well_depth_width - v.HoleDepth * config_->hole_depth_width - v.ClearWidth * config_->dig_clear_width);
             result.map_low = 0;
-            while (result.map_low < map_height && static_cast<uint32_t>(map.row(result.map_low)) == row_full)
+            while (result.map_low < map_height && static_cast<uint32_t>(map.occupied_row(result.map_low)) == row_full)
             {
                 ++result.map_low;
             }
@@ -505,7 +505,7 @@ namespace ai_tag
             constexpr uint32_t row_full = static_cast<uint32_t>(MapT::row_full);
             auto empty_row = [&](int iy) -> uint32_t
             {
-                return (iy < map_height) ? (row_full ^ static_cast<uint32_t>(map.row(iy))) & row_mask_ : 0u;
+                return (iy < map_height) ? (row_full ^ static_cast<uint32_t>(map.occupied_row(iy))) & row_mask_ : 0u;
             };
             --x;
             uint32_t row0 = empty_row(y);
@@ -561,10 +561,10 @@ namespace ai_tag
                 {
                     int height = MH - static_cast<int>(check_up);
                     if (height >= 4
-                        && (   (static_cast<uint32_t>(map_danger_data_[i].data[0]) & static_cast<uint32_t>(map.row(height - 4)))
-                            || (static_cast<uint32_t>(map_danger_data_[i].data[1]) & static_cast<uint32_t>(map.row(height - 3)))
-                            || (static_cast<uint32_t>(map_danger_data_[i].data[2]) & static_cast<uint32_t>(map.row(height - 2)))
-                            || (static_cast<uint32_t>(map_danger_data_[i].data[3]) & static_cast<uint32_t>(map.row(height - 1)))))
+                        && (   (static_cast<uint32_t>(map_danger_data_[i].data[0]) & static_cast<uint32_t>(map.occupied_row(height - 4)))
+                            || (static_cast<uint32_t>(map_danger_data_[i].data[1]) & static_cast<uint32_t>(map.occupied_row(height - 3)))
+                            || (static_cast<uint32_t>(map_danger_data_[i].data[2]) & static_cast<uint32_t>(map.occupied_row(height - 2)))
+                            || (static_cast<uint32_t>(map_danger_data_[i].data[3]) & static_cast<uint32_t>(map.occupied_row(height - 1)))))
                     {
                         ++danger;
                         break;

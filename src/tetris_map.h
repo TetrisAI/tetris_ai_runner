@@ -96,7 +96,8 @@ namespace m_tetris2
         vec_t data;
 
         //----- 构造 -----
-        constexpr TetrisMap() noexcept : data{} {}
+        // dev uses 0=occupied/1=empty: 默认构造必须得到全空棋盘（所有有效位为 1）。
+        constexpr TetrisMap() noexcept : data(all_mask()) {}
         explicit constexpr TetrisMap(vec_t const &v) noexcept : data(v) {}
 
         //----- 几何工具 -----
@@ -124,23 +125,24 @@ namespace m_tetris2
         }
 
         //----- 单格 -----
+        // dev uses 0=occupied/1=empty: set 表示放置方块，clear 表示清空格子。
         constexpr void set(int x, int y) noexcept
-        {
-            assert(is_ok_x(x) && is_ok_y(y));
-            CellAddr a = cell_addr(x, y);
-            data.data[static_cast<std::size_t>(a.lane)] |= (board::lane_t(1) << a.bit);
-        }
-        constexpr void clear(int x, int y) noexcept
         {
             assert(is_ok_x(x) && is_ok_y(y));
             CellAddr a = cell_addr(x, y);
             data.data[static_cast<std::size_t>(a.lane)] &= ~(board::lane_t(1) << a.bit);
         }
+        constexpr void clear(int x, int y) noexcept
+        {
+            assert(is_ok_x(x) && is_ok_y(y));
+            CellAddr a = cell_addr(x, y);
+            data.data[static_cast<std::size_t>(a.lane)] |= (board::lane_t(1) << a.bit);
+        }
         constexpr bool get(int x, int y) const noexcept
         {
             assert(is_ok_x(x) && is_ok_y(y));
             CellAddr a = cell_addr(x, y);
-            return (data.data[static_cast<std::size_t>(a.lane)] >> a.bit) & board::lane_t(1);
+            return ((data.data[static_cast<std::size_t>(a.lane)] >> a.bit) & board::lane_t(1)) == 0;
         }
 
         //----- 整行视图 (兼容现有 TetrisMap 的 row_t 接口) -----
@@ -150,6 +152,11 @@ namespace m_tetris2
             CellAddr a = cell_addr(0, y);
             board::lane_t bits = data.data[static_cast<std::size_t>(a.lane)] >> a.bit;
             return static_cast<row_t>(bits & board::lane_t(row_full));
+        }
+        // dev uses 0=occupied/1=empty: 旧评估公式需要 1=occupied 时显式取该视图。
+        constexpr row_t occupied_row(int y) const noexcept
+        {
+            return static_cast<row_t>(row_full ^ row(y));
         }
         constexpr void set_row(int y, row_t v) noexcept
         {
@@ -180,6 +187,12 @@ namespace m_tetris2
             return v;
         }
 
+        // dev uses 0=occupied/1=empty: 供位图算法构造“所有位置均属于集合”的图。
+        static constexpr TetrisMap all_occupied() noexcept
+        {
+            return TetrisMap(~all_mask());
+        }
+
         //第 x 列 mask (在每一行的 x 位置都置 1).
         template<int X>
         static consteval vec_t col_mask() noexcept
@@ -188,39 +201,41 @@ namespace m_tetris2
             TetrisMap m{};
             for (int y = 0; y < H; ++y)
                 m.set(X, y);
-            return m.data;
+            // dev uses 0=occupied/1=empty：掩码 API 仍返回列位置为 1 的物理 mask。
+            return (~m.data) & all_mask();
         }
 
         //----- 位运算 -----
+        // dev uses 0=occupied/1=empty: 对外仍按集合代数解释运算符，底层用德摩根律。
         constexpr TetrisMap operator|(TetrisMap const &o) const noexcept
-        {
-            return TetrisMap(data | o.data);
-        }
-        constexpr TetrisMap operator&(TetrisMap const &o) const noexcept
         {
             return TetrisMap(data & o.data);
         }
+        constexpr TetrisMap operator&(TetrisMap const &o) const noexcept
+        {
+            return TetrisMap(data | o.data);
+        }
         constexpr TetrisMap operator^(TetrisMap const &o) const noexcept
         {
-            return TetrisMap(data ^ o.data);
+            return TetrisMap((~(data ^ o.data)) | ~all_mask());
         }
         constexpr TetrisMap operator~() const noexcept
         {
-            return TetrisMap((~data) & all_mask());
+            return TetrisMap((~data) | ~all_mask());
         }
         constexpr TetrisMap &operator|=(TetrisMap const &o) noexcept
-        {
-            data |= o.data;
-            return *this;
-        }
-        constexpr TetrisMap &operator&=(TetrisMap const &o) noexcept
         {
             data &= o.data;
             return *this;
         }
+        constexpr TetrisMap &operator&=(TetrisMap const &o) noexcept
+        {
+            data |= o.data;
+            return *this;
+        }
         constexpr TetrisMap &operator^=(TetrisMap const &o) noexcept
         {
-            data ^= o.data;
+            data = (~(data ^ o.data)) | ~all_mask();
             return *this;
         }
 
@@ -235,27 +250,28 @@ namespace m_tetris2
 
         constexpr bool any() const noexcept
         {
-            return data.any();
+            return !none();
         }
         constexpr bool none() const noexcept
         {
-            return data.none();
+            // dev uses 0=occupied/1=empty: 空图的所有有效位均为 1。
+            return (data & all_mask()) == all_mask();
         }
         constexpr int popcount() const noexcept
         {
-            return data.popcount();
+            // 返回占用格数量，而不是底层 1（空格）的数量。
+            return ((~data) & all_mask()).popcount();
         }
 
         //最顶端有方块的行号(从 0 起算, 全空返回 0).
         //对应 cobra Board<H>::max_y.
         constexpr int max_y() const noexcept
         {
-            auto h = data.highest_bit();
-            if (!h.valid())
-                return 0;
-            int lane = static_cast<int>(h.lane);
-            int bit = static_cast<int>(h.bit);
-            return lane * lane_lines + bit / W;
+            // dev uses 0=occupied/1=empty: 直接按公开占用谓词从顶向下扫描。
+            for (int y = H - 1; y >= 0; --y)
+                if (row(y) != row_full)
+                    return y;
+            return 0;
         }
 
         //----- 整图位移 -----
@@ -285,7 +301,8 @@ namespace m_tetris2
                     for (int y = 0; y < H; ++y)
                         m.set(x, y);
             }
-            return m.data;
+            // dev uses 0=occupied/1=empty: 临时位移数据为 1=occupied，反相得到保留掩码。
+            return (~m.data) & all_mask();
         }
 
     public:
@@ -296,7 +313,8 @@ namespace m_tetris2
                 return *this;
 
             //先做行向位移 (Dy), 后做列向位移 (Dx); cobra 也是这个顺序.
-            vec_t v = data;
+            // dev uses 0=occupied/1=empty: 位移在占用集合上执行，越界补“空”。
+            vec_t v = (~data) & all_mask();
 
             if constexpr (Dy > 0)
             {
@@ -355,7 +373,7 @@ namespace m_tetris2
                 v &= shift_col_keep_mask<Dx>();
             //再次和 all_mask 与, 防止 Dx 平移把 lane 内多余高位带回来.
             v &= all_mask();
-            return TetrisMap(v);
+            return TetrisMap((~v) | ~all_mask());
         }
 
         //----- 枚举所有置位的格子 -----
@@ -366,7 +384,12 @@ namespace m_tetris2
         {
             for (int i = 0; i < lane_count; ++i)
             {
-                board::lane_t bits = data.data[static_cast<std::size_t>(i)];
+                // dev uses 0=occupied/1=empty: 枚举底层为 0 的占用格。
+                board::lane_t bits = ~data.data[static_cast<std::size_t>(i)];
+                if (i == lane_count - 1)
+                    bits &= all_mask().data[static_cast<std::size_t>(i)];
+                else
+                    bits &= lane_full;
                 while (bits != 0)
                 {
                     int bit = std::countr_zero(bits);
@@ -381,22 +404,23 @@ namespace m_tetris2
         }
 
         //----- 满行检测 -----
-        //返回一张 TetrisMap: 在所有"行 == row_full"的 (x, y) 都置 1, 其余 0.
+        //返回一张 TetrisMap: 在所有"行 == 0(满行)"的 (x, y) 都标记占用, 其余空.
         //对应 cobra Board<H>::line_clears, 但实现走 row 逐行遍历, 避免 cobra 的
         //packed-row 加法技巧对 W 的特殊依赖, 同时保持 W 任意 1..32 的正确性.
         constexpr TetrisMap line_clears() const noexcept
         {
+            // dev uses 0=occupied/1=empty: 满行的存储值为 0，标记图用 set 写占用。
             TetrisMap result{};
             for (int y = 0; y < H; ++y)
-                if (row(y) == row_full)
+                if (row(y) == row_t(0))
                     for (int x = 0; x < W; ++x)
                         result.set(x, y);
             return result;
         }
 
         //----- 消行 -----
-        //输入: line_clears() 的输出 (满行处全 row_full, 其余全 0).
-        //语义: 把 lines 标记的行抹掉, 上方所有行向下塌陷, 顶部空出的行补 0.
+        //输入: line_clears() 的输出 (满行处全 0(占用), 其余全 row_full(空)).
+        //语义: 把 lines 标记的行抹掉, 上方所有行向下塌陷, 顶部空出的行补 row_full(空).
         //对应 cobra Board<H>::clear_lines.
         //
         //实现: 走逐行 row()/set_row() 双指针. W=10 H=40 时最多 40 次行复制,
@@ -407,7 +431,8 @@ namespace m_tetris2
             int dst = 0;
             for (int y = 0; y < H; ++y)
             {
-                if (lines.row(y) != row_t(0))
+                // dev uses 0=occupied/1=empty: 标记行含 0，未标记行保持 row_full。
+                if (lines.row(y) != row_full)
                     continue;
                 result.set_row(dst, row(y));
                 ++dst;

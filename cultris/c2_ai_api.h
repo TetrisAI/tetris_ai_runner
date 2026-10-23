@@ -106,6 +106,17 @@ void c2ai_destroy(int64_t handle);
 void c2ai_step(int64_t handle, const C2StepInput* in, C2StepOutput* out);
 void c2ai_set_mode(int64_t handle, int32_t mode);
 void c2ai_reset_plan(int64_t handle);
+/** Configure C2::iterate score range. 1-indexed ranks (lowest=1) in ascending
+ *  sort order; inclusive on both ends. Values are clamped to [1, 7] with
+ *  low <= high. Defaults to low=4, high=7 (average of top 4 of 7). */
+void c2ai_set_iterate_range(int64_t handle, int32_t low, int32_t high);
+/** Configure how the "next piece" preview string is built per step. Both args
+ *  are treated as booleans (nonzero=true). The string passed to the engine is:
+ *    virtual=1,preview=1 -> "?T?"   virtual=1,preview=0 -> "?"
+ *    virtual=0,preview=1 -> "T"     virtual=0,preview=0 -> ""
+ *  where T is the actual next-piece letter when known. Defaults to
+ *  virtual=1, preview=1 which matches the historical "?T?" behavior. */
+void c2ai_set_next_mode(int64_t handle, int32_t virtual_flag, int32_t preview_flag);
 /** Stable UTF-8 identity of the algorithm and exact native source build. */
 const char* c2ai_name(void);
 const char* c2ai_version(void);

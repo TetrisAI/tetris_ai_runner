@@ -34,9 +34,9 @@ namespace ai_farteryhr
                     node_data[y + lp.row()] = static_cast<int>(lp.line(y));
                 for(int i = 0; i < m_tetris2::max_height; ++i)
                 {
-                    // 1=occupied：occupied count = popcount(map.row(i))
+                    // 1=occupied：occupied count = popcount(map.occupied_row(i))
                     row_count[i] = (i < map_height)
-                        ? ZZZ_BitCount(static_cast<uint32_t>(map.row(i)))
+                        ? ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(i)))
                         : 0;
                 }
                 for(int y = 0; y < LandPoint::kHeight; ++y)
@@ -74,7 +74,7 @@ namespace ai_farteryhr
                 if((node_data[y] >> x) & 1)
                     return BLK_NEW;
                 // 1=occupied：bit=1 表示已有方块 → BLK_FORMER
-                if((static_cast<uint32_t>(map.row(y)) >> x) & 1u)
+                if((static_cast<uint32_t>(map.occupied_row(y)) >> x) & 1u)
                     return BLK_FORMER;
                 return BLK_EMPTY;
             }

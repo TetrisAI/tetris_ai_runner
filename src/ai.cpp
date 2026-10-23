@@ -173,11 +173,12 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     TOJMap map{};
     for (size_t d = 0, s = 22; d < 23; ++d, --s)
     {
-        map.set_row(static_cast<int>(d), static_cast<TOJMap::row_t>(field[s]));
+        // dev uses 0=occupied/1=empty；宿主 field 的 1 表示方块。
+        map.set_row(static_cast<int>(d), static_cast<TOJMap::row_t>(TOJMap::row_full ^ field[s]));
     }
     for (size_t d = 23, s = 0; s < 8; ++d, ++s)
     {
-        map.set_row(static_cast<int>(d), static_cast<TOJMap::row_t>(overfield[s]));
+        map.set_row(static_cast<int>(d), static_cast<TOJMap::row_t>(TOJMap::row_full ^ overfield[s]));
     }
     srs_ai.search_config()->allow_rotate_move = false;
     srs_ai.search_config()->allow_180 = can180spin;
@@ -349,7 +350,8 @@ extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI3(int field[], int field_w, int
     BotrisMap map{};
     for (size_t d = 0; d < 40; ++d)
     {
-        map.set_row(static_cast<int>(d), static_cast<BotrisMap::row_t>(field[d]));
+        // dev uses 0=occupied/1=empty；Botris field 的 1 表示方块。
+        map.set_row(static_cast<int>(d), static_cast<BotrisMap::row_t>(BotrisMap::row_full ^ field[d]));
     }
     botris_ai.search_config()->allow_rotate_move = false;
     botris_ai.search_config()->allow_180 = can180spin;
@@ -610,7 +612,8 @@ extern "C" DECLSPEC_EXPORT int __cdecl QQTetrisAI(int boardW, int boardH, int bo
     QQMap map{};
     for (int y = 0; y < boardH; ++y)
     {
-        map.set_row(y, static_cast<QQMap::row_t>(board[y]));
+        // dev uses 0=occupied/1=empty；QQ 输入行的 1 表示方块。
+        map.set_row(y, static_cast<QQMap::row_t>(QQMap::row_full ^ board[y]));
     }
     m_tetris2::TetrisBlockStatus status(nextPiece[0], curX, curY, (4 - curR) % 4);
     size_t next_length = std::strlen(nextPiece) - 1;
@@ -722,7 +725,8 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
     C2Map map{};
     for (int y = 0; y < boardH; ++y)
     {
-        map.set_row(y, static_cast<C2Map::row_t>(board[y]));
+        // dev uses 0=occupied/1=empty；C2 输入行的 1 表示方块。
+        map.set_row(y, static_cast<C2Map::row_t>(C2Map::row_full ^ board[y]));
     }
     c2_ai.memory_limit(1ull << 30);
     c2_ai.search_config()->fast_move_down = true;
