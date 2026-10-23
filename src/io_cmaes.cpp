@@ -31,6 +31,7 @@ namespace
 
     constexpr std::string_view kCheckpointMagic = "io_cmaes_checkpoint_v1";
     constexpr double kStallerChainScale = 4;
+    constexpr double kStallerPps = 6;
 
     std::atomic<bool> g_interrupted{false};
 
@@ -52,6 +53,9 @@ namespace
         int seeds = 3;
         double sigma = 0.15;
         double pps = io_sim::MatchConfig{}.pps[0];
+        std::optional<double> default_pps; // unset: --pps
+        std::optional<double> spiker_pps;  // unset: --pps
+        double staller_pps = kStallerPps;
         int next_count = io_sim::MatchConfig{}.next_count;
         int nodes = io_sim::SearchBudget{}.nodes;
         int think_ms = 0;
@@ -89,8 +93,13 @@ namespace
                      "  --sigma F          initial step size, fraction of each bound range (default "
                   << d.sigma
                   << ")\n"
-                     "  --pps X            pieces per second of both players (default "
+                     "  --pps X            pieces per second of the candidates, the mean and --init (default "
                   << d.pps
+                  << ")\n"
+                     "  --default-pps X    pieces per second of the default anchor (default: --pps)\n"
+                     "  --spiker-pps X     pieces per second of the spiker anchor (default: --pps)\n"
+                     "  --staller-pps X    pieces per second of the staller anchor (default "
+                  << d.staller_pps
                   << ")\n"
                      "  --next N           preview pieces visible to the AI (default "
                   << d.next_count
@@ -114,8 +123,8 @@ namespace
                      "  --help             this text\n"
                      "\n"
                      "Frozen anchors: in-code IO defaults, spiker (b2b = surge = 0: no B2B chain value), staller (4x the\n"
-                     "default b2b and surge weights), plus --init when given. SIGINT/SIGTERM stop after the running\n"
-                     "games; the last finished generation stays checkpointed.\n";
+                     "default b2b and surge weights), each at its own --*-pps, plus --init when given. SIGINT/SIGTERM stop\n"
+                     "after the running games; the last finished generation stays checkpointed.\n";
     }
 
     bool parse_options(int argc, char const *argv[], Options &o)
@@ -151,6 +160,12 @@ namespace
                 o.sigma = std::atof(value);
             else if (arg == "--pps")
                 o.pps = std::atof(value);
+            else if (arg == "--default-pps")
+                o.default_pps = std::atof(value);
+            else if (arg == "--spiker-pps")
+                o.spiker_pps = std::atof(value);
+            else if (arg == "--staller-pps")
+                o.staller_pps = std::atof(value);
             else if (arg == "--next")
                 o.next_count = std::atoi(value);
             else if (arg == "--nodes")
@@ -171,8 +186,9 @@ namespace
                 return false;
             }
         }
-        if (o.workers < 1 || o.lambda < 2 || o.seeds < 1 || !(o.sigma > 0) || o.pps <= 0 || o.next_count < 1 || o.nodes < 1 || o.think_ms < 0 ||
-            o.max_minutes <= 0 || o.hours <= 0)
+        if (o.workers < 1 || o.lambda < 2 || o.seeds < 1 || !(o.sigma > 0) || o.pps <= 0 || o.default_pps.value_or(o.pps) <= 0 ||
+            o.spiker_pps.value_or(o.pps) <= 0 || o.staller_pps <= 0 || o.next_count < 1 || o.nodes < 1 || o.think_ms < 0 || o.max_minutes <= 0 ||
+            o.hours <= 0)
         {
             std::cerr << "invalid option value (see --help)\n";
             return false;
@@ -295,22 +311,23 @@ namespace
     {
         std::string name;
         Param param;
+        double pps;
     };
 
-    std::vector<Anchor> make_anchors(Param const *init)
+    std::vector<Anchor> make_anchors(Param const *init, Options const &options)
     {
         std::vector<Anchor> anchors;
-        anchors.push_back({"default", Param{}});
+        anchors.push_back({"default", Param{}, options.default_pps.value_or(options.pps)});
         Param spiker;
         spiker.b2b = 0;
         spiker.surge = 0;
-        anchors.push_back({"spiker", spiker});
+        anchors.push_back({"spiker", spiker, options.spiker_pps.value_or(options.pps)});
         Param staller;
         staller.b2b *= kStallerChainScale;
         staller.surge *= kStallerChainScale;
-        anchors.push_back({"staller", staller});
+        anchors.push_back({"staller", staller, options.staller_pps});
         if (init != nullptr)
-            anchors.push_back({"init", *init});
+            anchors.push_back({"init", *init, options.pps});
         return anchors;
     }
 
@@ -344,7 +361,8 @@ namespace
         bool complete = false;
     };
 
-    // Plays every job. Stops early (complete = false) on interrupt or deadline.
+    // Plays every job; candidates play at config.pps, opponents at their own pps. Stops early (complete = false) on
+    // interrupt or deadline.
     GenerationOutcome play_generation(std::vector<Param> const &candidates, std::vector<Anchor> const &opponents, std::vector<Job> const &jobs,
                                       io_sim::MatchConfig const &config, int workers, Clock::time_point deadline)
     {
@@ -364,9 +382,11 @@ namespace
                     return;
                 Job const &job = jobs[index];
                 Param const &self = candidates[static_cast<std::size_t>(job.candidate)];
-                Param const &other = opponents[static_cast<std::size_t>(job.opponent)].param;
-                std::array<Param, 2> seats = job.seat == 0 ? std::array<Param, 2>{self, other} : std::array<Param, 2>{other, self};
-                io_sim::MatchResult r = io_sim::play_match(config, seats, job.seed);
+                Anchor const &other = opponents[static_cast<std::size_t>(job.opponent)];
+                std::array<Param, 2> seats = job.seat == 0 ? std::array<Param, 2>{self, other.param} : std::array<Param, 2>{other.param, self};
+                io_sim::MatchConfig match = config;
+                match.pps[1 - job.seat] = other.pps;
+                io_sim::MatchResult r = io_sim::play_match(match, seats, job.seed);
                 double score = job.seat == 0 ? r.score : 1 - r.score;
                 std::lock_guard lock(mutex);
                 for (Tally *tally : {&outcome.candidates[static_cast<std::size_t>(job.candidate)], &outcome.opponents[static_cast<std::size_t>(job.opponent)]})
@@ -416,7 +436,7 @@ int main(int argc, char const *argv[])
         std::cerr << "cannot read param file " << options.init << "\n";
         return 2;
     }
-    std::vector<Anchor> anchors = make_anchors(has_init ? &init_param : nullptr);
+    std::vector<Anchor> anchors = make_anchors(has_init ? &init_param : nullptr, options);
 
     Run run;
     run.rng.seed(options.seed);
@@ -437,16 +457,23 @@ int main(int argc, char const *argv[])
     config.next_count = options.next_count;
     config.budget = {options.nodes, options.think_ms};
     config.max_frames = static_cast<int>(options.max_minutes * 60 * io_sim::kFramesPerSecond);
-    if (!io_sim::fits_pending_capacity(config))
+    std::string anchor_list;
+    for (auto const &anchor : anchors)
     {
-        std::cerr << "--pps and --max-minutes allow more garbage packets than io_sim::kPendingCapacity\n";
-        return 2;
+        io_sim::MatchConfig pairing = config;
+        pairing.pps[1] = anchor.pps;
+        if (!io_sim::fits_pending_capacity(pairing))
+        {
+            std::cerr << "the --*-pps options and --max-minutes allow more garbage packets than io_sim::kPendingCapacity\n";
+            return 2;
+        }
+        anchor_list += format(" %s@%.2f", anchor.name.c_str(), anchor.pps);
     }
 
-    log.line(format("io_cmaes %s: generation %d, lambda %d, mu %d, %zu dims, sigma %.4f, anchors %zu, seeds %d, workers %d, pps %.2f, next %d, "
+    log.line(format("io_cmaes %s: generation %d, lambda %d, mu %d, %zu dims, sigma %.4f, pps %.2f, anchors%s, seeds %d, workers %d, next %d, "
                     "budget %s %d, max %.1f min, budget %.2f h, out %s",
-                    options.resume ? "resume" : "start", es->generation(), es->lambda(), es->mu(), fields().size(), es->sigma(), anchors.size(),
-                    options.seeds, options.workers, options.pps, options.next_count, options.think_ms > 0 ? "ms" : "nodes",
+                    options.resume ? "resume" : "start", es->generation(), es->lambda(), es->mu(), fields().size(), es->sigma(), options.pps,
+                    anchor_list.c_str(), options.seeds, options.workers, options.next_count, options.think_ms > 0 ? "ms" : "nodes",
                     options.think_ms > 0 ? options.think_ms : options.nodes, options.max_minutes, options.hours, options.out.c_str()));
 
     auto start = Clock::now();
@@ -463,7 +490,7 @@ int main(int argc, char const *argv[])
         candidate_params.reserve(candidates.size());
         for (auto const &x : candidates)
             candidate_params.push_back(to_param(x));
-        std::vector<Anchor> opponents{{"mean", to_param(es->mean())}};
+        std::vector<Anchor> opponents{{"mean", to_param(es->mean()), options.pps}};
         opponents.insert(opponents.end(), anchors.begin(), anchors.end());
 
         std::vector<std::int64_t> seeds(static_cast<std::size_t>(options.seeds));
