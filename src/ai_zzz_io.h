@@ -32,44 +32,45 @@ namespace ai_zzz
         static constexpr int kPieceTypes = 7;
         static constexpr std::size_t kPendingCapacity = 8;
 
-        // Defaults: io_pso run of 2026-10-15 (12 h, 10 generations, pps 4, 10 previews), warm-started from generation 1
-        // of a pps 2 / 5-preview run. Measured at pps 4 / 10 previews: 0.59 against the pre-refactor bot (768 games),
-        // 0.60 against itself with the spin-slot weights zeroed (1,536 games).
+        // Defaults: io_cmaes champion of 2026-10-25, trained under the bot client's burst cadence (own 1.5/2.5/3.5 pps
+        // against opponents 1-1.5x faster, 10 previews, 32,768 positions per placement; `ratio` kept from the io_pso
+        // run). It beat its predecessor by +0.093 ± 0.026 on fresh validation games; that predecessor measured +0.049
+        // [+0.014, +0.084] against the previous (io_pso) defaults on held-out games with opponents up to 2x faster.
         struct Param
         {
-            double roof = 102.60425653876652;
-            double col_trans = 509.44159257853119;
-            double row_trans = 58.499579620235664;
-            double hole_count = 458.62048656186698;
-            double hole_line = 944.53693733827822;
-            double well_depth = 125.48913965866971;
-            double hole_depth = 9.7224397817965809;
-            double b2b = 151.09086207135269;
-            double attack = 1.7709245276742853;
-            double hold_i = -0.85713194201499388;
-            double waste_i = 9.0785891351183103;
-            double clear_1 = 2.7779922784428548;
-            double clear_2 = 6.5261632233071261;
-            double clear_3 = -9.3744869806692108;
-            double clear_4 = 2.977058825591949;
-            double mini_1 = 1.2173095350260459;
-            double mini_2 = -4.0446396874214789;
-            double mini_3 = -2.3100796482700794;
-            double full_1 = 13.022473712221116;
-            double full_2 = 23.077924189993393;
-            double full_3 = 23.422217182429904;
-            double combo = 47.218957936550723;
+            double roof = 141.33276285806221;
+            double col_trans = 431.60084543394481;
+            double row_trans = 180.77217916073553;
+            double hole_count = 438.73709026110282;
+            double hole_line = 750.84143373082634;
+            double well_depth = 206.10824924821839;
+            double hole_depth = 93.947758403702224;
+            double b2b = 76.848514929866667;
+            double attack = 1.7899694579753251;
+            double hold_i = -9.3289075396645202;
+            double waste_i = 3.2774771223894916;
+            double clear_1 = 4.4820726147604475;
+            double clear_2 = 8.654176982036784;
+            double clear_3 = 0.041094243427085786;
+            double clear_4 = 0.70002283020941292;
+            double mini_1 = 2.1962073707999075;
+            double mini_2 = -2.2137032769616027;
+            double mini_3 = -3.8277372202728372;
+            double full_1 = 17.365903846483874;
+            double full_2 = 21.98479846185387;
+            double full_3 = 21.588871307971374;
+            double combo = 63.681806436991309;
             double ratio = 1.0027630977026101;
-            double surge = 0;
-            double b2b_gain = 7.863437790314511;
-            double cancel = 3.4688673802342511;
-            double pending = 2.8124517258007424;
-            double opponent_surge = 1.419574850445857;
-            double surge_release = 1;
-            double spin_garbage = 11.841627759780454;
-            double slot_b2b = 0.068994639972527805;
-            double slot_attack = 6.177615077515096;
-            double slot_decay = 0.51460052709832438;
+            double surge = 3.1214948430894642;
+            double b2b_gain = 4.1893740583045203;
+            double cancel = 2.0653829989317876;
+            double pending = 3.1670714966640245;
+            double opponent_surge = 0.32360124639051457;
+            double surge_release = 0.99384395920221513;
+            double spin_garbage = 13.075018476071524;
+            double slot_b2b = 8.7107788002209627;
+            double slot_attack = 5.4450890372858591;
+            double slot_decay = 0.32059936730460409;
         };
 
         struct ParamField
