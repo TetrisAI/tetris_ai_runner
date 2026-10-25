@@ -62,11 +62,12 @@ namespace
         auto operator<=>(Found const &) const = default;
     };
 
+    // amini_ref boards have 1 = occupied; TetrisMap stores 0 = occupied.
     MapT to_engine(Board const &b)
     {
         MapT m{};
         for (int y = 0; y < amini_ref::kH; ++y)
-            m.set_row(y, b.rows[y]);
+            m.set_row(y, static_cast<MapT::row_t>(MapT::row_full ^ b.rows[y]));
         return m;
     }
 

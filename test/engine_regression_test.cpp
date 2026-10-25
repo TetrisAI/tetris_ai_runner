@@ -43,14 +43,15 @@ namespace
     int const kComboTable[] = {0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 4, 5};
     int const kComboTableMax = int(std::size(kComboTable)) - 1;
 
-    // TSD slot centred at (4, 1) under the overhang at (3, 2): only reachable by rotation.
+    // TSD slot centred at (4, 1) under the overhang at (3, 2): only reachable by rotation. Rows are written as
+    // 1 = occupied; TetrisMap stores 0 = occupied.
     template<class Map>
     Map tsd_board()
     {
         Map map{};
-        map.set_row(0, 0x3EF);
-        map.set_row(1, 0x3C7);
-        map.set_row(2, 0x3CF);
+        map.set_row(0, static_cast<typename Map::row_t>(Map::row_full ^ 0x3EF));
+        map.set_row(1, static_cast<typename Map::row_t>(Map::row_full ^ 0x3C7));
+        map.set_row(2, static_cast<typename Map::row_t>(Map::row_full ^ 0x3CF));
         return map;
     }
 
@@ -107,7 +108,7 @@ namespace
     bool is_tsd(Engine &engine, typename Engine::LandPoint const &lp, typename Engine::map_t map)
     {
         size_t clear = engine.attach(lp, map);
-        return lp.state.t == 'T' && clear == 2 && map.row(0) == 0x3CF && map.row(1) == 0;
+        return lp.state.t == 'T' && clear == 2 && map.occupied_row(0) == 0x3CF && map.occupied_row(1) == 0;
     }
 
     void toj_v08_picks_tsd_and_sees_queue()
@@ -127,7 +128,7 @@ namespace
         expect(is_tsd(engine, result.target, map), "TOJ_v08 target is the TSD");
         size_t clear = engine.attach(result.target, map);
         expect(clear == 2, "attach returns cleared lines");
-        expect(map != before && map.row(0) == 0x3CF && map.row(1) == 0, "attach mutates the caller's map");
+        expect(map != before && map.occupied_row(0) == 0x3CF && map.occupied_row(1) == 0, "attach mutates the caller's map");
     }
 
     void botris_sees_queue()

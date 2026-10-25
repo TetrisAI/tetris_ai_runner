@@ -36,11 +36,12 @@ namespace
         Config config;
     };
 
+    // amini_ref boards have 1 = occupied; TetrisMap stores 0 = occupied.
     amini_ref::Board to_ref(tetris_diff::NewMap const &m)
     {
         amini_ref::Board b;
         for (int y = 0; y < amini_ref::kH; ++y)
-            b.rows[y] = static_cast<std::uint16_t>(m.row(y));
+            b.rows[y] = static_cast<std::uint16_t>(m.occupied_row(y));
         return b;
     }
 
@@ -48,7 +49,7 @@ namespace
     {
         tetris_diff::NewMap m{};
         for (int y = 0; y < amini_ref::kH; ++y)
-            m.set_row(y, b.rows[y]);
+            m.set_row(y, static_cast<tetris_diff::NewMap::row_t>(tetris_diff::NewMap::row_full ^ b.rows[y]));
         return m;
     }
 

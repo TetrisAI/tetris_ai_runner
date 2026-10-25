@@ -29,6 +29,12 @@ namespace
         }
     }
 
+    // `occupied` has 1 = occupied; the board stores 0 = occupied (tetris_map.h).
+    void set_occupied_row(Map &board, int y, unsigned occupied)
+    {
+        board.set_row(y, static_cast<Map::row_t>(Map::row_full ^ occupied));
+    }
+
     // Locks an O (no line clear) with its bottom-left cell at (x, row).
     ai_zzz::IO::Result place_o(ai_zzz::IO const &ai, Map const &src, int x, int row, Map &after)
     {
@@ -64,7 +70,7 @@ namespace
     {
         Map board;
         for (int y = 0; y < 3; ++y)
-            board.set_row(y, static_cast<Map::row_t>(Map::row_full & ~(1u << 9)));
+            set_occupied_row(board, y, Map::row_full & ~(1u << 9));
         for (int y = 3; y <= top_row; ++y)
             board.set(column, y);
         return board;
@@ -157,8 +163,8 @@ namespace
     {
         Map board;
         for (int y = 0; y < top; ++y)
-            board.set_row(y, static_cast<Map::row_t>(Map::row_full & ~(1u << (y % 2 == 0 ? 9 : 8))));
-        board.set_row(top, static_cast<Map::row_t>(Map::row_full & ~(1u | (1u << 9))));
+            set_occupied_row(board, y, Map::row_full & ~(1u << (y % 2 == 0 ? 9 : 8)));
+        set_occupied_row(board, top, Map::row_full & ~(1u | (1u << 9)));
         return board;
     }
 
@@ -178,7 +184,7 @@ namespace
 
         Map well;
         for (int y = 0; y <= 16; ++y)
-            well.set_row(y, static_cast<Map::row_t>(Map::row_full & ~(1u << 9)));
+            set_occupied_row(well, y, Map::row_full & ~(1u << 9));
         expect(lethal(well, "IIIIIIII") == 0, "an I in an open well digs out of any amount");
 
         // Only 2 rows lift (3,19) into the T spawn.
