@@ -48,10 +48,16 @@ namespace
                                   { return lp.type == type && cleared == lines; });
     }
 
+    // `occupied` has 1 = occupied; the board stores 0 = occupied (tetris_map.h).
+    void set_occupied_row(Map &board, int y, Map::row_t occupied)
+    {
+        board.set_row(y, static_cast<Map::row_t>(Map::row_full ^ occupied));
+    }
+
     void fill_rows(Side &side, int rows)
     {
         for (int y = 0; y < rows; ++y)
-            side.board.set_row(y, static_cast<Map::row_t>(Map::row_full & ~(Map::row_t(1) << 9)));
+            set_occupied_row(side.board, y, static_cast<Map::row_t>(Map::row_full & ~(Map::row_t(1) << 9)));
     }
 
     void same_seed_same_bags()
@@ -80,7 +86,7 @@ namespace
         io_sim::Engine engine;
         engine.prepare(Map::width, Map::height);
         Side sender(kRules, 5, 5), receiver(kRules, 5, 5);
-        sender.board.set_row(0, static_cast<Map::row_t>(Map::row_full & ~Map::row_t(0b1111)));
+        set_occupied_row(sender.board, 0, static_cast<Map::row_t>(Map::row_full & ~Map::row_t(0b1111)));
         sender.board.set(9, 1); // keeps the clear from being an all clear
         sender.counters.btb = 9;
 
@@ -101,9 +107,9 @@ namespace
         assert(tank.tanked == 8 && receiver.garbage_rows == 8 && receiver.pending.total() == 0);
         assert(receiver.stats.garbage_tanked == 8);
         auto hole = [&](int y)
-        { return std::countr_one(static_cast<unsigned>(receiver.board.row(y))); };
+        { return std::countr_one(static_cast<unsigned>(receiver.board.occupied_row(y))); };
         for (int y = 0; y < 8; ++y)
-            assert(std::popcount(static_cast<unsigned>(receiver.board.row(y))) == Map::width - 1);
+            assert(std::popcount(static_cast<unsigned>(receiver.board.occupied_row(y))) == Map::width - 1);
         // The first entry entered first, so it ends up on top; each entry keeps one hole column.
         assert(hole(0) == hole(1));
         assert(hole(2) == hole(3) && hole(3) == hole(4));
@@ -163,14 +169,58 @@ namespace
 
         io_sim::MatchConfig config;
         assert(io_sim::fits_pending_capacity(config));
-        config.pps = {2.0, 1000.0};
+        config.pace = {io_sim::Pace{2.0}, io_sim::Pace{1000.0}};
         assert(!io_sim::fits_pending_capacity(config));
+        // A burst seat locks up to 1 / 0.6 times its nominal rate.
+        config.pace = {io_sim::Pace{9.0}, io_sim::Pace{9.0}};
+        assert(io_sim::fits_pending_capacity(config));
+        config.pace[1].cadence = io_sim::Cadence::Burst;
+        assert(!io_sim::fits_pending_capacity(config));
+    }
+
+    // Burst cadence is botconnect's Minion::next_frame: the first lock waits 1.5 nominal intervals, no lock follows the
+    // previous one sooner than 0.6 intervals, a stack or queued garbage brings locks forward, and the catch-up term keeps
+    // the average near the nominal pace. Constant cadence keeps lock k at floor(k * 60 / pps).
+    void burst_cadence_follows_client_schedule()
+    {
+        io_sim::MatchConfig config = quick_config();
+        config.budget.nodes = 256;
+        config.pace = {io_sim::Pace{2.0, io_sim::Cadence::Burst}, io_sim::Pace{1.5}};
+        config.max_frames = 2 * 60 * io_sim::kFramesPerSecond;
+        auto match = std::make_unique<io_sim::Match>(config, std::array<ai_zzz::IO::Param, 2>{}, 99);
+        std::array<std::vector<int>, 2> locks;
+        for (bool more = true; more;)
+        {
+            std::array<int, 2> const scheduled{match->next_lock_frame(0), match->next_lock_frame(1)};
+            std::array<int, 2> const placed{match->side(0).pieces_placed, match->side(1).pieces_placed};
+            more = match->step();
+            for (int seat = 0; seat < 2; ++seat)
+            {
+                if (match->side(seat).pieces_placed != placed[seat])
+                    locks[seat].push_back(scheduled[seat]);
+            }
+        }
+        constexpr int kFpp = 30;
+        auto const &burst = locks[0];
+        std::printf("burst: %zu locks, last at frame %d\n", burst.size(), burst.empty() ? 0 : burst.back());
+        assert(burst.size() >= 40 && burst[0] == kFpp * 3 / 2);
+        bool sooner = false;
+        for (std::size_t i = 1; i < burst.size(); ++i)
+        {
+            assert(burst[i] - burst[i - 1] >= kFpp * 6 / 10);
+            sooner |= burst[i] - burst[i - 1] < kFpp;
+        }
+        assert(sooner);
+        double const average = static_cast<double>(burst.back() - burst.front()) / static_cast<double>(burst.size() - 1);
+        assert(average > kFpp * 0.8 && average < kFpp * 1.2);
+        for (std::size_t k = 0; k < locks[1].size(); ++k)
+            assert(locks[1][k] == static_cast<int>(std::floor(static_cast<double>(k + 1) * 60 / 1.5 + 1e-9)));
     }
 
     void outmatched_player_dies()
     {
         io_sim::MatchConfig config = quick_config();
-        config.pps = {3.0, 0.5};
+        config.pace = {io_sim::Pace{3.0}, io_sim::Pace{0.5}};
         config.max_frames = 4 * 60 * io_sim::kFramesPerSecond;
         auto match = std::make_unique<io_sim::Match>(config, std::array<ai_zzz::IO::Param, 2>{}, 42);
         while (match->step())
@@ -190,7 +240,7 @@ namespace
     void garbage_accounting_is_consistent()
     {
         io_sim::MatchConfig config = quick_config();
-        config.pps = {2.5, 2.0};
+        config.pace = {io_sim::Pace{2.5}, io_sim::Pace{2.0}};
         config.max_frames = 3 * 60 * io_sim::kFramesPerSecond;
         io_sim::Match match(config, {}, 1234);
         int locks = 0;
@@ -206,7 +256,7 @@ namespace
                 assert(opponent.lines_sent == me.stats.garbage_cancelled + me.stats.garbage_tanked + me.pending.total());
                 assert(me.stats.lines_sent == me.lines_sent && me.stats.attack >= me.lines_sent);
                 for (int y = 0; y < me.garbage_rows; ++y)
-                    assert(std::popcount(static_cast<unsigned>(me.board.row(y))) == Map::width - 1);
+                    assert(std::popcount(static_cast<unsigned>(me.board.occupied_row(y))) == Map::width - 1);
             }
         } while (match.step());
         std::printf("accounting: %d locks, loser %d, sent %d/%d, tanked %d/%d\n", locks, match.result().loser, match.side(0).lines_sent,
@@ -259,6 +309,7 @@ int main()
     same_seed_same_match();
     garbage_accounting_is_consistent();
     outmatched_player_dies();
+    burst_cadence_follows_client_schedule();
     std::puts("io_sim_test: ok");
     return 0;
 }

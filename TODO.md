@@ -19,5 +19,9 @@
   - `tetris_engine_regression` 新增一项：从缓存取到的 `Result` 和直接 `eval` 的结果相同，覆盖同一格子、不同 spin class 的落点（amini）。
   - Debug 构建下 ctest 全部通过。
   - 强度：用 io_sim 配对种子、交换座位，和 HEAD 对比，预算用 `think_ms`（墙钟时间）。`nodes` 预算数的是 `get` 的调用次数，缓存省下的 eval 时间不会体现出来。19e143c 在同为 32768 个局面时测得换位剪枝胜率 0.698 [0.635, 0.761]，所以按 `nodes` 比只会看到取消去重的损失。同时报告每次搜索的 `scored()` 和缓存命中率。
+- [ ] 对手节奏作为 `ai_zzz::IO` 的评估输入：`OpponentView` 加对手实际 pps（io_uds 用 `opponent.pieces_placed` 和 `frame` 估算，io_sim 用对手的 `Pace`），pending/cancel/opponent_surge 按倍速插值
+  - 前提：io_cmaes 的 `games.csv` 按 ratio 分组显示单一权重顾此失彼（快对手组变好时等速组变差）。依据：`.research/io-cmaes-training-quality/plan.md` §4。
+- [ ] io_sim 的击杀判定对手免费落子数与客户端 `auto_lethal_free_pieces` 对齐（对手平均节奏 + 12 帧回放刷新 + ping），目前用对手已排好的锁定帧，比实战多知道信息
 
 ## Done
+- [x] 2026-10-25 改正 Map polarity：ecce526 把 `TetrisMap` 改为 0=occupied 存储后，`io_sim_test`、`ai_zzz_io_test`、`ai_zzz_io_spin_slots_test`、`engine_regression_test`、`amini_witness_test`、`amini_classification_test` 的 fixture 仍按 1=occupied 用 `set_row()` / `row()`，改为 `row_full ^ occupied` / `occupied_row()`；AGENTS.md 的说明同步改正

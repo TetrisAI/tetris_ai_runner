@@ -489,16 +489,26 @@ target_link_libraries(ai_zzz_io_spin_slots_test PRIVATE tetris_core)
 add_test(NAME tetris_ai_zzz_io_spin_slots COMMAND ai_zzz_io_spin_slots_test)
 
 # ---------------------------------------------------------------------------
-# io_cmaes / io_sim_test / io_cmaes_test: TETR.IO S2 match simulator (src/io_sim.*)
-# and the sep-CMA-ES trainer over ai_zzz::IO parameters (src/io_cmaes.*). Train
-# with a Release build.
+# io_league (src/io_sim.* + src/io_league.*): the TETR.IO S2 match simulator and the evaluation machinery shared by
+# io_cmaes (sep-CMA-ES trainer over ai_zzz::IO parameters, src/io_cmaes.*) and io_eval (paired evaluation of
+# parameter sets). Train and evaluate with a Release build.
 # ---------------------------------------------------------------------------
-add_executable(io_cmaes src/io_cmaes.cpp src/io_sim.cpp)
-target_link_libraries(io_cmaes PRIVATE ai_zzz_io tetris_core Threads::Threads)
+add_library(io_league STATIC src/io_sim.cpp src/io_league.cpp)
+target_link_libraries(io_league PUBLIC ai_zzz_io tetris_core Threads::Threads)
 
-add_executable(io_sim_test test/io_sim_test.cpp src/io_sim.cpp)
-target_link_libraries(io_sim_test PRIVATE ai_zzz_io tetris_core)
+add_executable(io_cmaes src/io_cmaes.cpp)
+target_link_libraries(io_cmaes PRIVATE io_league)
+
+add_executable(io_eval src/io_eval.cpp)
+target_link_libraries(io_eval PRIVATE io_league)
+
+add_executable(io_sim_test test/io_sim_test.cpp)
+target_link_libraries(io_sim_test PRIVATE io_league)
 add_test(NAME tetris_io_sim COMMAND io_sim_test)
+
+add_executable(io_league_test test/io_league_test.cpp)
+target_link_libraries(io_league_test PRIVATE io_league)
+add_test(NAME tetris_io_league COMMAND io_league_test)
 
 add_executable(io_cmaes_test test/io_cmaes_test.cpp)
 target_link_libraries(io_cmaes_test PRIVATE tetris_core)

@@ -2,13 +2,16 @@
 
 // TETR.IO Season 2 (Tetra League) 1v1 match simulator for two ai_zzz::IO bots.
 //
-// Time model: player s locks its k-th piece at frame floor(k * 60 / pps[s]) and plans the next piece at that same
-// frame (ARE 0), so a plan sees the opponent's state at spawn time and the lock resolves against the incoming queue
-// as it is at lock time. The AI evaluates its root placement at that placement's lock frame: it receives copies of
-// the pending timers projected to the lock frame; the simulator's own queue only advances when time does. Locks are
-// processed in frame order, seat 0 first on ties. Attacks reach the opponent's queue instantly and become active
-// `garbagespeed` frames later; with instant delivery nothing is ever in flight, so zero passthrough reduces to
-// cancelling against the own queue. All attack and garbage arithmetic comes from io_rules (rules.md §7-§9).
+// Time model: each seat locks on its own Pace. Constant cadence locks the k-th piece at frame floor(k * 60 / pps);
+// burst cadence follows the bot client's schedule (botconnect Minion::next_frame with can_burst): sooner when the
+// stack is high, garbage is pending or a combo runs, with the average pulled back to the nominal pps. A seat plans
+// its next piece at the frame of its previous lock (ARE 0), so a plan sees the opponent's state at spawn time and
+// the lock resolves against the incoming queue as it is at lock time. The AI evaluates its root placement at that
+// placement's lock frame: it receives copies of the pending timers projected to the lock frame and plans later
+// placements at the nominal pps (as the client sends it); the simulator's own queue only advances when time does.
+// Locks are processed in frame order, seat 0 first on ties. Attacks reach the opponent's queue instantly and become
+// active `garbagespeed` frames later; with instant delivery nothing is ever in flight, so zero passthrough reduces
+// to cancelling against the own queue. All attack and garbage arithmetic comes from io_rules (rules.md §7-§9).
 // Each plan gets the opponent's kill mask (IOLethal).
 //
 // Time limit: at `max_frames` the match is adjudicated by a continuous margin (seat 0 minus seat 1) of
@@ -40,7 +43,7 @@ namespace io_sim
     inline constexpr int kVisibleRows = 20;
     // Exact incoming-garbage storage: io_rules::PendingQueue merges entries once full, so the capacity must cover every
     // packet a match can deliver (see fits_pending_capacity).
-    inline constexpr std::size_t kPendingCapacity = 16384;
+    inline constexpr std::size_t kPendingCapacity = 32768;
     using PendingQueue = io_rules::PendingQueue<kPendingCapacity>;
 
     struct SearchBudget
@@ -51,16 +54,29 @@ namespace io_sim
         int think_ms = 0; // > 0: wall-clock budget per placement instead (not reproducible)
     };
 
+    enum class Cadence : std::uint8_t
+    {
+        Constant,
+        Burst
+    };
+
+    struct Pace
+    {
+        double pps = 4.0;
+        Cadence cadence = Cadence::Constant;
+    };
+
     struct MatchConfig
     {
         io_rules::Options rules = io_rules::Options::tetra_league();
-        std::array<double, 2> pps{4.0, 4.0};
+        std::array<Pace, 2> pace{};
         int next_count = 10;
         SearchBudget budget;
         int max_frames = 8 * 60 * kFramesPerSecond;
     };
 
-    // Every opponent lock sends at most ExchangeResult::parts.size() packets, so this bounds the incoming entries.
+    // Every opponent lock sends at most ExchangeResult::parts.size() packets, so this bounds the incoming entries
+    // (a burst seat locks at most 1 / 0.6 times its nominal rate).
     bool fits_pending_capacity(MatchConfig const &config);
 
     struct PlayerStats
@@ -179,11 +195,17 @@ namespace io_sim
         {
             return sides_[seat];
         }
+        // Frame of `seat`'s next lock.
+        int next_lock_frame(int seat) const
+        {
+            return lock_frame(seat);
+        }
 
     private:
         int lock_frame(int seat, int ahead = 0) const;
         std::uint64_t lethal_sent(int seat, int root_lock_frame);
         bool plan(int seat, int frame);
+        void schedule_burst(int seat, int last_lock);
         void finish(int loser, EndReason reason, int frame);
 
         MatchConfig config_;
@@ -196,6 +218,8 @@ namespace io_sim
         std::string opponent_pieces_;
         std::vector<ai_zzz::IO::PendingGarbage> opponent_pending_;
         std::array<int, 2> placements_{};
+        std::array<int, 2> burst_lock_{};
+        std::array<double, 2> influency_{};
         MatchResult result_;
         bool finished_ = false;
     };

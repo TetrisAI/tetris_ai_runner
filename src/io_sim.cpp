@@ -12,6 +12,12 @@ namespace io_sim
         using Helpers = m_tetris2::Helpers<Spec>;
 
         constexpr int kHeight = Map::height;
+
+        // botconnect Minion::next_frame (can_burst): pressure shortens the interval by kBurstSensitivity * fpp per 6
+        // units, never below kBurstMinSpacing * fpp; the catch-up term is capped at kBurstMaxInfluency * fpp.
+        constexpr double kBurstSensitivity = 0.2;
+        constexpr double kBurstMinSpacing = 0.6;
+        constexpr double kBurstMaxInfluency = 0.5;
     }
 
     Side::Side(io_rules::Options const &rules, std::int64_t seed, int next_count)
@@ -168,9 +174,10 @@ namespace io_sim
     bool fits_pending_capacity(MatchConfig const &config)
     {
         constexpr double kPacketsPerLock = std::tuple_size_v<decltype(io_rules::ExchangeResult::parts)>;
-        for (double pps : config.pps)
+        for (Pace const &pace : config.pace)
         {
-            if (std::floor(config.max_frames * pps / kFramesPerSecond) * kPacketsPerLock >= kPendingCapacity)
+            double const max_pps = pace.cadence == Cadence::Burst ? pace.pps / kBurstMinSpacing : pace.pps;
+            if (std::floor(config.max_frames * max_pps / kFramesPerSecond) * kPacketsPerLock >= kPendingCapacity)
                 return false;
         }
         return true;
@@ -191,6 +198,11 @@ namespace io_sim
             search->is_20g = false;
             engines_[seat]->prepare(Map::width, Map::height);
         }
+        for (int seat = 0; seat < 2; ++seat)
+        {
+            if (config_.pace[seat].cadence == Cadence::Burst)
+                schedule_burst(seat, 0);
+        }
         for (int seat = 0; seat < 2 && !finished_; ++seat)
         {
             if (!plan(seat, 0))
@@ -200,7 +212,26 @@ namespace io_sim
 
     int Match::lock_frame(int seat, int ahead) const
     {
-        return static_cast<int>(std::floor((placements_[seat] + 1 + ahead) * kFramesPerSecond / config_.pps[seat] + 1e-9));
+        Pace const &pace = config_.pace[seat];
+        if (pace.cadence == Cadence::Burst)
+            return burst_lock_[seat] + static_cast<int>(std::floor(ahead * kFramesPerSecond / pace.pps + 1e-9));
+        return static_cast<int>(std::floor((placements_[seat] + 1 + ahead) * kFramesPerSecond / pace.pps + 1e-9));
+    }
+
+    // The client computes the next hard drop right after the previous one, from the board, the queued garbage and the
+    // combo at that moment; its two catch-up branches both add fpp - average.
+    void Match::schedule_burst(int seat, int last_lock)
+    {
+        double const fpp = kFramesPerSecond / config_.pace[seat].pps;
+        Side const &me = sides_[seat];
+        double const average = static_cast<double>(last_lock) / std::max(1, me.pieces_placed);
+        influency_[seat] = std::min(influency_[seat] + fpp - average, fpp * kBurstMaxInfluency);
+        int rows = 0;
+        for (int y = 0; y < kHeight; ++y)
+            rows += me.board.occupied_row(y) != 0;
+        double const pressure = rows + me.pending.total() + 2.0 * me.counters.combo;
+        double const frame = last_lock + fpp + influency_[seat] - pressure / 6 * (fpp * kBurstSensitivity);
+        burst_lock_[seat] = static_cast<int>(std::floor(std::max(frame, last_lock + fpp * kBurstMinSpacing)));
     }
 
     std::uint64_t Match::lethal_sent(int seat, int root_lock_frame)
@@ -239,7 +270,7 @@ namespace io_sim
         int root_lock_frame = lock_frame(seat);
         ai_zzz::IO::Config &ai_config = *engine.ai_config();
         ai_config.rules = config_.rules;
-        ai_config.pps = config_.pps[seat];
+        ai_config.pps = config_.pace[seat].pps;
         ai_config.allow_pc = true;
         ai_config.opponent = ai_zzz::IO::OpponentView{true, opponent.counters.btb, lethal_sent(seat, root_lock_frame)};
         ai_config.param = params_[seat];
@@ -310,6 +341,8 @@ namespace io_sim
             finish(seat, EndReason::GarbageSmash, frame);
             return false;
         }
+        if (config_.pace[seat].cadence == Cadence::Burst)
+            schedule_burst(seat, frame);
         if (!plan(seat, frame))
         {
             finish(seat, me.spawn_failure(), frame);
