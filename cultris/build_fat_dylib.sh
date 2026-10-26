@@ -3,6 +3,7 @@ set -euo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 PROJECT_ROOT="$(cd "$REPO/.." && pwd)"
 CXX=/opt/homebrew/opt/llvm/bin/clang++
+[[ -x "$CXX" ]] || CXX=/usr/local/opt/llvm/bin/clang++
 [[ -x "$CXX" ]] || CXX=clang++
 SOURCE_REVISION="source-package"
 if git -C "$REPO" rev-parse --is-inside-work-tree >/dev/null 2>&1; then

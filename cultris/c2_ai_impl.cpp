@@ -260,7 +260,10 @@ bool update_c2_config_per_frame(CultrisEngine& engine, const C2StepInput& in,
             std::max(0, in.combo_count))));
     const double new_combo_remaining =
         static_cast<double>(input_combo_remaining_ms(in)) / 1000.0;
-    const decltype(cfg->danger) new_danger = (in.incoming_garbage >= 4) ? 1 : 0;
+    const auto prev_pending = cfg->danger;
+    const auto cur_pending = in.incoming_garbage;
+    const bool pending_started = prev_pending == 0 && cur_pending > 0;
+    const decltype(cfg->danger) new_danger = cur_pending > 0 ? 1 : 0;
     const decltype(cfg->soft_drop) new_soft_drop =
         input_soft_drop_enabled(in) ? 1 : 0;
     const decltype(cfg->safe) new_safe = input_safe(in);
@@ -268,7 +271,7 @@ bool update_c2_config_per_frame(CultrisEngine& engine, const C2StepInput& in,
     const bool new_fast_move_down = new_soft_drop == 0;
     const int clamped_low = std::clamp(iterate_low, 1, 7);
     const int clamped_high = std::clamp(std::max(iterate_high, clamped_low), 1, 7);
-    const bool changed = cfg->danger != new_danger
+    const bool changed = pending_started
         || cfg->soft_drop != new_soft_drop
         || cfg->safe != new_safe
         || cfg->planning_bpm != new_planning_bpm
@@ -652,12 +655,7 @@ extern "C" void c2ai_step(std::int64_t handle,
         const bool soft_drop_changed = had_input
             && in->reserved[C2_INPUT_SOFT_DROP]
                 != h->latest_input.reserved[C2_INPUT_SOFT_DROP];
-        const bool safe_changed = had_input
-            && input_safe(*in) != input_safe(h->latest_input);
-        const bool bpm_changed = had_input
-            && input_planning_bpm(*in) != input_planning_bpm(h->latest_input);
-        identity_changed = root_epoch_changed || soft_drop_changed
-            || safe_changed || bpm_changed;
+        identity_changed = root_epoch_changed || soft_drop_changed;
         if (identity_changed) {
             std::unique_lock<std::mutex> rlk(h->result_mutex);
             h->last_piece_serial = in->piece_serial;
@@ -854,8 +852,7 @@ extern "C" void c2ai_step(std::int64_t handle,
 
 extern "C" const char* c2ai_name(void) {
     // Process-lifetime storage: callers may cache this stable UTF-8/ASCII identity.
-    static const char kName[] =
-        "C2 ZZZ / combo-table-16 / 8.4.0-generation-10ms / " C2AI_SOURCE_REVISION;
+    static const char kName[] = "C2 ZZZ / " C2AI_SOURCE_REVISION;
     return kName;
 }
 

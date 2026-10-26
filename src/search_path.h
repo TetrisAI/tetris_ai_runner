@@ -976,21 +976,10 @@ namespace m_tetris2
                     return path;
                 };
 
-                bool disable_d = false;
-                // 对齐 c1aaa706:src/search_cautious.cpp:Search::make_path 的两阶段
-                //  BFS 第一阶段触发条件: 仅在 "spawn 不是贴地" (node->drop(map)!=node)
-                //  时启用. 旧的 `spawn_low>=roof && open_state(target)` 过于保守,
-                //  对平地落点几乎都 false → 阶段 1 从不生效 → 阶段 2 全扩展 BFS 把 D
-                //  当一步最短路径, 导致 path[0] 恒为 D (SOFT_DROP_LOCK) — 这就是用户
-                //  "总是先触发 D" 的现象. TSpin 场景保留 requires_last 守卫.
-                //  配合 MakePath1gVisitor::enable_drop_match 完成 c1aaa706 的
-                //  "drop(cur).index_filtered == target.index_filtered" 命中语义.
-                if (!requires_last)
-                {
-                    auto spawn_drop = Helpers::drop(spawn, usable_arr);
-                    if (spawn_drop && spawn_drop->yb != spawn.yb)
-                        disable_d = true;
-                }
+                // 第一阶段始终先执行：禁用 d/D，对每个候选做 drop 预测匹配。
+                // spawn 自身贴地不代表横移/旋转后仍贴地，不能以此跳过阶段1。
+                // 对齐 master search_cautious::make_path 行为：无条件先执行阶段1。
+                bool is_phase_1 = true;
 
                 while (true)
                 {
@@ -1006,7 +995,7 @@ namespace m_tetris2
                     bool entry_hit = Helpers::index_filtered_eq_state(entry_state, index) ||
                                      (requires_last &&
                                       Helpers::cells_key_for_state(entry_state) == index_landpoint);
-                    if (!entry_hit && disable_d)
+                    if (!entry_hit && is_phase_1)
                     {
                         auto entry_drop = Helpers::drop(entry_state, usable_arr);
                         if (entry_drop)
@@ -1029,7 +1018,7 @@ namespace m_tetris2
                                                   allow_D,
                                                   SpinHook::config_allow_d(ctx.config_),
                                                   SpinHook::config_allow_rotate_move(ctx.config_),
-                                                  disable_d,
+                                                  is_phase_1,
                                                   &usable_arr};
                     MakePath1gVisitor visitor{index,
                                               index_landpoint,
@@ -1037,15 +1026,15 @@ namespace m_tetris2
                                               State{},
                                               false,
                                               &usable_arr,
-                                              disable_d};
+                                              is_phase_1};
                     ctx.node_search_path_.clear();
                     run_bfs(entry_state, neighbors, dedup, visitor, ctx.node_search_path_);
                     if (visitor.hit)
                     {
                         return build_path(visitor.found);
                     }
-                    if (disable_d)
-                        disable_d = false;
+                    if (is_phase_1)
+                        is_phase_1 = false;
                     else
                         break;
                 }
