@@ -52,6 +52,7 @@
 #include "rule_c2.h"
 #include "ai_zzz.h"
 #include "c2_combo_table.h"
+#include "c2_next_sequence.h"
 #include "search_cautious.h"
 
 namespace {
@@ -255,15 +256,13 @@ bool update_c2_config_per_frame(CultrisEngine& engine, const C2StepInput& in,
                                 int iterate_low = 4, int iterate_high = 7) {
     auto* cfg = engine.ai_config();
     auto* st = engine.status();
-    const decltype(st->combo) new_combo = static_cast<decltype(st->combo)>(
+    const auto real_combo = static_cast<decltype(st->combo)>(
         ai_zzz::c2_detail::clamp_combo(static_cast<std::size_t>(
             std::max(0, in.combo_count))));
-    const double new_combo_remaining =
+    const double remaining_s =
         static_cast<double>(input_combo_remaining_ms(in)) / 1000.0;
-    const auto prev_pending = cfg->danger;
-    const auto cur_pending = in.incoming_garbage;
-    const bool pending_started = prev_pending == 0 && cur_pending > 0;
-    const decltype(cfg->danger) new_danger = cur_pending > 0 ? 1 : 0;
+    const bool is_danger = in.incoming_garbage > 0;
+    const decltype(cfg->danger) new_danger = is_danger ? 1 : 0;
     const decltype(cfg->soft_drop) new_soft_drop =
         input_soft_drop_enabled(in) ? 1 : 0;
     const decltype(cfg->safe) new_safe = input_safe(in);
@@ -271,7 +270,8 @@ bool update_c2_config_per_frame(CultrisEngine& engine, const C2StepInput& in,
     const bool new_fast_move_down = new_soft_drop == 0;
     const int clamped_low = std::clamp(iterate_low, 1, 7);
     const int clamped_high = std::clamp(std::max(iterate_high, clamped_low), 1, 7);
-    const bool changed = pending_started
+    // Both danger transitions change candidate scoring/continuation policy.
+    const bool changed = cfg->danger != new_danger
         || cfg->soft_drop != new_soft_drop
         || cfg->safe != new_safe
         || cfg->planning_bpm != new_planning_bpm
@@ -280,8 +280,8 @@ bool update_c2_config_per_frame(CultrisEngine& engine, const C2StepInput& in,
         || engine.search_config()->fast_move_down != new_fast_move_down;
     // combo/combo_limit are a root snapshot latched by c2ai_step. Reassigning the
     // already-latched values here is stable and does not invalidate the search.
-    st->combo = new_combo;
-    st->combo_limit = new_combo_remaining;
+    st->combo = real_combo;
+    st->combo_limit = remaining_s;
     cfg->danger = new_danger;
     cfg->soft_drop = new_soft_drop;
     cfg->safe = new_safe;
@@ -360,26 +360,21 @@ bool plan_real(Handle& h, const C2StepInput& in,
         install_c2_config_once(h.engine);
         h.config_installed = true;
     }
+    CultrisMap map{};
+    m_tetris2::TetrisBlockStatus status{};
+    char resolved_piece = 0;
+    if (!make_current_status(in, map, &status, &resolved_piece)) return false;
+
     const bool dynamic_config_changed = update_c2_config_per_frame(
         h.engine, in,
         h.iterate_low.load(std::memory_order_acquire),
         h.iterate_high.load(std::memory_order_acquire));
     h.engine.ai_config()->mode = h.ai_mode.load(std::memory_order_acquire);
 
-    CultrisMap map{};
-    m_tetris2::TetrisBlockStatus status{};
-    char resolved_piece = 0;
-    if (!make_current_status(in, map, &status, &resolved_piece)) return false;
-
-    std::string next;
     const bool next_virtual_flag = h.next_virtual.load(std::memory_order_acquire) != 0;
     const bool next_preview_flag = h.next_preview.load(std::memory_order_acquire) != 0;
-    if (next_virtual_flag) next.push_back('?');
-    if (next_preview_flag && in.next_kind >= 0) {
-        const char nc = kind_to_piece_char(in.next_kind);
-        if (nc != 0) next.push_back(nc);
-    }
-    if (next_virtual_flag) next.push_back('?');
+    const std::string next = c2_next_sequence(
+        next_virtual_flag, next_preview_flag, kind_to_piece_char(in.next_kind));
 
     if (dynamic_config_changed) h.engine.update();
     auto result = h.engine.run(map, status, next.data(), next.size(), kSearchBudgetMs);

@@ -31,6 +31,9 @@ ai_zzz::C2::Status transition(std::size_t combo, double remaining,
                               std::size_t lines, double bpm = 60.0,
                               double new_hole = 0.0) {
     auto cfg = scoring_config(0, bpm);
+    // These fixtures test physical timing, not low-potential continuation.
+    // Isolate that policy via its production danger bypass; policy has its own test.
+    cfg.danger = 1;
     ai_zzz::C2 ai;
     ai.init<rule_c2::TetrisRule::rule_spec>(&cfg);
     ai_zzz::C2::Result eval{};

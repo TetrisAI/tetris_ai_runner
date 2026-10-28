@@ -1418,6 +1418,7 @@ namespace ai_zzz
             double hole;
             double new_hole;
             bool soft_drop;
+            int cells = 0; // Exact post-placement population for continuation DP.
         };
 
     public:
@@ -1628,6 +1629,7 @@ namespace ai_zzz
             result.clear = clear;
             {
                 int map_count = map.popcount();
+                result.cells = map_count;
                 result.fill = float(map_count) / (map_width * (eval_height - config_->safe));
             }
             result.hole = float(v.HoleCountSrc) / (eval_height - config_->safe);
@@ -1708,11 +1710,6 @@ namespace ai_zzz
                 {
                     ++danger;
                 }
-            }
-            // bitboard semantics: row[17] bit=1 means occupied
-            if (static_cast<uint32_t>(map.occupied_row(17)) != 0)
-            {
-                ++danger;
             }
             return danger;
         }

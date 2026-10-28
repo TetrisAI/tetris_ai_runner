@@ -52,3 +52,22 @@ set_target_properties(cultrisai PROPERTIES
     SUFFIX .dylib
     POSITION_INDEPENDENT_CODE ON
 )
+
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(c2_next_sequence_test ../test/c2_next_sequence_test.cpp)
+    target_compile_features(c2_next_sequence_test PRIVATE cxx_std_20)
+    add_test(NAME c2_next_sequence_test COMMAND c2_next_sequence_test)
+    add_executable(c2_combo_dp_test ../test/c2_combo_dp_test.cpp)
+    target_compile_features(c2_combo_dp_test PRIVATE cxx_std_20)
+    add_test(NAME c2_combo_dp_test COMMAND c2_combo_dp_test)
+    add_executable(c2_combo_policy_test ../test/c2_combo_policy_test.cpp
+        ${TETRIS_AI_ROOT}/src/ai_zzz.cpp
+        ${TETRIS_AI_ROOT}/src/integer_utils.cpp
+        ${TETRIS_AI_ROOT}/src/random.cpp)
+    target_include_directories(c2_combo_policy_test PRIVATE ${TETRIS_AI_ROOT}/src)
+    target_compile_features(c2_combo_policy_test PRIVATE cxx_std_20)
+    target_compile_options(c2_combo_policy_test PRIVATE -Wno-unused-value)
+    target_link_libraries(c2_combo_policy_test PRIVATE Threads::Threads)
+    add_test(NAME c2_combo_policy_test COMMAND c2_combo_policy_test)
+endif()

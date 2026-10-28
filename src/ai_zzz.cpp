@@ -5,6 +5,7 @@
 #include "integer_utils.h"
 #include "ai_zzz.h"
 #include "c2_combo_table.h"
+#include "../cultris/c2_combo_dp.h"
 #include <cstdint>
 
 using namespace m_tetris2;
@@ -928,6 +929,14 @@ namespace ai_zzz
                 result.attack -= combo_entry.score[0] * downstack * length_ratio;
             }
             result.attack += status.attack;
+            // Like master's C2::get: prune only the returned continuation state.
+            // This placement was scored above with its real incoming combo;
+            // the parent/root state and deadline must never be rewritten.
+            if (!config_->danger && result.combo > 0
+                && max_reachable_combo(bpm, static_cast<int>(result.combo),
+                                       eval_result.cells, result.combo_limit) < 6) {
+                result.combo = 0;
+            }
         }
         result.map = status.map + eval_result.map;
         if (eval_result.soft_drop && !config_->soft_drop)
