@@ -2,17 +2,17 @@
 //
 // 归属: test owner (本 owner 不改 core/AI/oracle).
 // 目的: 不依赖任何 15 AI, 直接驱动 m_tetris2::EvalCache<Map,Result>, 验证:
-//   1. 容量归一化 (2 的幂, 最小 2 bucket);
+//   1. 容量契约 (非零 2 的幂, 0/非2幂拒绝; 无最小 2 bucket 硬编码);
 //   2. 同 map 二次 lookup 命中 (eval 只调一次);
 //   3. hash_override 强制两个不同 map 落同桶 -> 全 raw map 不等必须重算,
 //      绝不返回 stale bucket 结果 (full-map 相等守卫);
 //   4. 空盘 (默认构造 Map) 是正常键, 不是 sentinel; 空盘 vs 有块盘不互串;
-//   5. options.disabled=true 旁路: 每次都 eval, 不写桶;
+//   5. options.disabled=true 旁路: 每次都 eval, 仍写桶但不命中 (written_gen 更新, stats.hits=0);
 //   6. on_config_changed() 提升 generation 后, 旧桶自动 stale -> 同 map 重算;
 //   7. 非平凡 Result (含 std::vector) 构造/赋值/析构干净 (ASan 监护);
 //   8. stats 字段如实: requests/hits/misses/evals/replacements/generation/
 //      bucket_count/result_size.
-// 已知不可运行时验证 (诚实标注): generation 从 2^64-1 绕哨兵 0 全清分支,
+// 已知不可运行时验证 (诚实标注): generation 从 2^64-1 绕哨兵 0 全清分支 (debug_set_generation 为 seam),
 // 无 test-only 跳变缝, 只能代码审查证据 (见 src/tetris_eval_get.h on_config_changed).
 
 #include "../src/tetris_core.h"

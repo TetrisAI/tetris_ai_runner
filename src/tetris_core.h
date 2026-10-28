@@ -1946,7 +1946,7 @@ namespace m_tetris2
         }
         bool prepare(int width, int height)
         {
-            if (prepared_ && width_ == width && height_ == height)
+            if (prepared_ && local_context_.eval_cache.prepared() && width_ == width && height_ == height)
             {
                 return true;
             }
@@ -1980,7 +1980,12 @@ namespace m_tetris2
             }, Ops{});
             local_context_.ai = &ai_;
             local_context_.search = &search_;
-            local_context_.eval_cache.prepare(local_context_.eval_cache.options().bucket_count);
+            // 容量非法（0/溢出/超最高幂）时 cache.prepare 返回 false：不半初始化，直接失败返回。
+            if (!local_context_.eval_cache.prepare(local_context_.eval_cache.options().bucket_count))
+            {
+                prepared_ = false;
+                return false;
+            }
             if (TetrisRuleInit<TetrisRule>::init(width, height))
             {
                 ContextBuilder::init_ai(ai_, &local_context_);
@@ -1995,6 +2000,7 @@ namespace m_tetris2
             std::fill(type_to_index_.begin(), type_to_index_.end(), size_t(0));
             return false;
         }
+        bool prepared() const { return prepared_ && local_context_.eval_cache.prepared(); }
         size_t type_max() const
         {
             return type_max_;
@@ -2153,15 +2159,25 @@ namespace m_tetris2
         }
         bool run()
         {
+            if (!prepared_ || !local_context_.eval_cache.prepared())
+                return false;   // 未成功 prepare：不 widen 旧 root（graceful，不 abort）
             return widen<false>();
         }
         bool run_hold()
         {
+            if (!prepared_ || !local_context_.eval_cache.prepared())
+                return false;
             return widen<true>();
         }
         //run!
         RunResult run(map_t const &map, TetrisBlockStatus const &status, char const *next, size_t next_length, time_t limit = 100)
         {
+            if (!prepared_)
+            {
+                // 未 prepare（或 prepare 失败/cache 非法）：不允许在旧树上运行，运行期清晰失败。
+                std::fputs("tetris engine: run() before successful prepare()\n", stderr);
+                std::abort();
+            }
             using namespace std::chrono;
             auto const &bb_map = map;
             auto now = high_resolution_clock::now(), end = now + std::chrono::milliseconds(limit);
@@ -2176,9 +2192,44 @@ namespace m_tetris2
             auto best = root_->get_best(&local_context_);
             return best.first != nullptr ? RunResult(root_->get_best(&local_context_)) : RunResult(false);
         }
+        // 只读快照：返回当前 root 已展开树的 best（含 target identity + status + is_hold），
+        // 不 widen、不更新 root、不计分、不改 queue。供测试多次 run() 后取 final best。
+        RunResult current_result()
+        {
+            if (!prepared_)
+                return RunResult(false);
+            auto best = root_->get_best(&local_context_);
+            return best.first != nullptr
+                ? RunResult(std::make_pair(best.first, best.second), best.first->is_hold)
+                : RunResult(false);
+        }
+        // 只读 typed visitor：对当前 root 可达树递归调用 f(node, parent)（root parent==nullptr）。
+        // 不构满 Context、不计分/不更新 root/不改 queue，0 side effect；正常 driver 不调用。
+        // node 为 const TreeNode&，lambda auto 可访问 public map/identity/eval_slot/status/level/
+        // parent/children/is_virtual 等。只遍历 children→children_next 链表（可达 root 子树）。
+        template<class F>
+        void visit_tree(F&& f) const
+        {
+            if (root_)
+                visit_node(*root_, nullptr, static_cast<F&&>(f));
+        }
+    private:
+        template<class F>
+        static void visit_node(TreeNode const &node, TreeNode const *parent, F &&f)
+        {
+            std::forward<F>(f)(node, parent);
+            for (TreeNode const *c = node.children; c != nullptr; c = c->children_next)
+                visit_node(*c, &node, std::forward<F>(f));
+        }
+    public:
         //带hold的run!
         RunResult run_hold(map_t const &map, TetrisBlockStatus const &status, char hold, bool hold_free, char const *next, size_t next_length, time_t limit = 100)
         {
+            if (!prepared_)
+            {
+                std::fputs("tetris engine: run_hold() before successful prepare()\n", stderr);
+                std::abort();
+            }
             using namespace std::chrono;
             auto const &bb_map = map;
             auto now = high_resolution_clock::now(), end = now + std::chrono::milliseconds(limit);
@@ -2291,8 +2342,10 @@ namespace m_tetris2
         };
 
         Engine engine_;
-        ValueHolder<typename std::decay<decltype(*Engine().ai_config())>::type, void> ai_config_;
-        ValueHolder<typename std::decay<decltype(*Engine().search_config())>::type, void> search_config_;
+        // ai_config()/search_config() 返回 ConfigType const* 或 void const*；remove_pointer 解引用，
+        // 无 Config AI 得 void → ValueHolder<void> 空操作（不构 Config、setter 仅 actual requires cfg）。
+        ValueHolder<std::remove_cv_t<std::remove_pointer_t<decltype(std::declval<Engine const &>().ai_config())>>, void> ai_config_;
+        ValueHolder<std::remove_cv_t<std::remove_pointer_t<decltype(std::declval<Engine const &>().search_config())>>, void> search_config_;
         typename Engine::Status status_;
 
         std::mutex mutex_;
@@ -2333,6 +2386,11 @@ namespace m_tetris2
                 if (cv_.wait_for(lock, std::chrono::seconds(1), [&]
                                  { return !running_ || (backgrond_ && std::chrono::high_resolution_clock::now() < stop_); }))
                 {
+                    if (!engine_.prepared())
+                    {
+                        backgrond_ = false;   // prepare 失败/未完成：后台不 resume 旧 root widen
+                        continue;
+                    }
                     if (with_hold_ ? engine_.run_hold() : engine_.run())
                     {
                         backgrond_ = false;
@@ -2515,6 +2573,12 @@ namespace m_tetris2
         {
             PauseBackground pause(this);
             engine_.commit(result);
+        }
+        // 只读当前 best 快照（PauseBackground 廉价返回，不 widen/计分/改 queue）。
+        RunResult current_result()
+        {
+            PauseBackground pause(this);
+            return engine_.current_result();
         }
         //根据run的结果得到一个操作路径
         std::vector<char> make_path(TetrisBlockStatus const &status, typename Engine::LandPoint const &land_point, typename Engine::map_t const &map, bool cut_drop = true)

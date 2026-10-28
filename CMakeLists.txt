@@ -348,6 +348,36 @@ message(STATUS "framework_ai_c_diff: snapshot OLD missing, compare test OMITTED"
 endif()
 
 # C golden: NEW vs入库 golden (fresh-checkout 安全, 不依赖 snapshot).
+project(framework_negative_test)
+add_executable(${PROJECT_NAME} test/framework_negative_test.cpp src/integer_utils.cpp src/random.cpp)
+target_include_directories(${PROJECT_NAME} PRIVATE src)
+target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core Threads::Threads)
+# D owner failure API acceptance: Debug + NDEBUG 双 target.
+project(failure_api_acceptance_debug)
+add_executable(${PROJECT_NAME} test/framework_failure_api_acceptance_test.cpp
+    src/ai_ax.cpp src/ai_misaka.cpp src/integer_utils.cpp src/random.cpp)
+target_include_directories(${PROJECT_NAME} PRIVATE src)
+target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core Threads::Threads)
+# B owner config tree reference (raw/iterate/virtual/direct).
+project(framework_config_tree_reference_test)
+add_executable(${PROJECT_NAME} test/framework_config_tree_reference_test.cpp
+    src/ai_ax.cpp src/ai_misaka.cpp src/integer_utils.cpp src/random.cpp)
+target_include_directories(${PROJECT_NAME} PRIVATE src)
+target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core Threads::Threads)
+add_test(NAME tetris_framework_config_tree_reference_test COMMAND framework_config_tree_reference_test)
+
+add_test(NAME tetris_failure_api_acceptance_debug COMMAND failure_api_acceptance_debug)
+
+project(failure_api_acceptance_ndebug)
+add_executable(${PROJECT_NAME} test/framework_failure_api_acceptance_test.cpp
+    src/ai_ax.cpp src/ai_misaka.cpp src/integer_utils.cpp src/random.cpp)
+target_include_directories(${PROJECT_NAME} PRIVATE src)
+target_compile_options(${PROJECT_NAME} PRIVATE -O2 -DNDEBUG)
+target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core Threads::Threads)
+add_test(NAME tetris_failure_api_acceptance_ndebug COMMAND failure_api_acceptance_ndebug)
+
+add_test(NAME tetris_framework_negative_test COMMAND framework_negative_test)
+
 add_test(NAME tetris_framework_ai_c_golden
     COMMAND ${CMAKE_COMMAND}
       -D NEW=$<TARGET_FILE:framework_ai_c_diff_new>

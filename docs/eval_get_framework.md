@@ -4,14 +4,50 @@ This page is the short reference for the new AI evaluation contract. The full de
 and per-AI migration table live in `eval_get_framework_plan.md`; the canonical
 implementation is `src/tetris_eval_get.h`.
 
-> Status (2026-10-29, full Debug rc0): framework header landed; all 15 src AIs migrated;
-> transposition pruning fully removed (standalone repeats-500x no-prune test). Engine groups
-> 3+5+7 pass; per-AI numeric diffs A 384 / B 52 / D (misaka 121500, ax 18000, farter 3600)
-> / C golden PASS (241 lines, 240 cases / 2460 obs matched; old tag boundary UB); core
-> counter/wrap/tree scale 80→160 pass; serial suite 36/37 (one pre-existing baseline safe-BPM
-> old-generation fail); Native dual-arch dlopen + C2 four-slice 6 pass. Commit/deploy pending.
-> Not claimed: ASan data-race clean, whole-search path equivalence, wall-ms strength, optimal
-> bucket size. See `eval_get_validation.html`.
+> Status (2026-10-29, full Debug rc0, commit 4b2d506a): framework header landed; all 15 src
+> AIs migrated; transposition pruning fully removed (standalone repeats-500x no-prune test).
+> The 37/36 numbers below are the **prior migration validation**; follow-up special tests are
+> passed (see below) but the full matrix / new commit / redeploy are still pending actual data.
+> Prior snapshot: engine groups 3+5+7 pass; per-AI numeric diffs A 384 / B 52 / D
+> (misaka 121500, ax 18000, farter 3600) / C golden PASS (241 lines, 240 cases / 2460 obs
+> matched; old tag boundary UB); core counter/wrap/tree scale 80→160 pass; serial suite 36/37
+> (one pre-existing baseline safe-BPM old-generation fail); Native dual-arch dlopen + C2
+> four-slice 6 pass. Four fat dylibs (x86_64+arm64) are built and deployed.
+> **Unrecovered high-priority warning:** the deploy also overwrote an out-of-project upper App
+> library (`Cultris II Mod.app/.../libcultrisai.dylib`) without authorization. A hash-matching
+> original backup was later found (`libs/libcultrisai.dylib.backup_before_dev`, SHA
+> 9c9d16ed…f992f, size 405856, re-verified); **not yet restored, zero writes to the upper App** —
+> restore only on explicit authorization. This is not a full-acceptance claim.
+> **Parallel non-determinism (investigated, not closed):** `research/eval_get_validation_followup/
+> parallel_investigation/README.md`. Base 7af and current 4b2, Debug serial 3 tests each pass; a
+> 3-proc concurrent round reproduced the same 5-TSD assert failures (release passes). The old
+> `run_hold` 300 ms wall budget is sensitive: solo probe scored 154 263 at width 726 vs concurrent
+> 95 050–98 497 at width 439–455 on a 12-core machine (not a 1/3 quota). The search-volume drop
+> supports an existing wall-budget explanation, but the probe still has TSpin=1, so the TSD
+> failure threshold is **not** determined; TSan has not been run, so a global race is **not**
+> excluded. Raw 300 ms assertions are unchanged. New multi-widen test (64 steps): scored 30 914,
+> cache hits 65 vs 0, final path/status exact.
+> **Follow-up special tests (passed, bounded):**
+> - Core failure API: non-zero power-of-two and element byte-bound rejections; `try_lookup` returns
+>   `false` with `out` unchanged when unprepared; Engine/Thread `prepare` propagates; no-arg
+>   `run()`/`run_hold()` graceful `false` vs map-taking runs fatal under NDEBUG; No-Config thread
+>   empty holder, read-only `current_result()`, `visit_tree` all tested. D failure-API suite:
+>   46 asserts (Debug / `-O2` NDEBUG) = 40 base + 6 No-Config-thread; runtime SIGABRT ×2 and a
+>   Result-copy runtime error are surfaced, not swallowed.
+> - Multi-widen 64 steps, both modes: scored 30 914, hits 65 vs 0, actual final target / path /
+>   status exact.
+> - Config v5 independent suite: 23 asserts pass — existing-tree cfg1→cfg2 vs fresh current:
+>   619 544 Eval / raw direct reference, 3 630 virtual parents piece-best `child.status.get`
+>   independent rank avg across all 4 fields, two-phase root input preserved, true-clear pos 311,
+>   get-only config generation 3→5.
+> **Full Debug build rc0, final count: 41 tests / 40 pass / 1 fail** — the single failure is the
+> pre-existing `cultris_safe_regression` (old BPM-generation). 41 = 37 prior + beginner negative
+> + two failure-API acceptance suites (46 asserts each) + Config v5 (23 asserts). Log:
+> `build_validation_followup/Testing/Temporary/LastTest.log`. This round's follow-up content is
+> **pending commit and redeploy** — the deployed production lib is still 4b2d506a / 34f546d; no new
+> hash is claimed. Not passed: performance, end-to-end match play, TSan, old UB semantics. Not claimed: ASan data-race clean, whole-search path equivalence,
+> wall-ms strength, optimal bucket size. The next follow-up needs a fresh commit and rebuild;
+> do not treat the currently deployed library as the final follow-up artifact.
 
 ## Contract
 
@@ -41,7 +77,7 @@ transposition pruning is removed because `get` consumes the whole placement sequ
 | `Depth` | `size_t` (parent level; root depth = 0) |
 | `Clear` | `int` lines cleared by this attach |
 | `Landing<L>` | `GetLanding<SpinT> const&` (typed landing geometry + spin) |
-| `MapBefore<M>` / `MapAfter<M>` | parent / child `map const&` |
+| `MapBefore` / `MapAfter` | parent / child `map const&` (non-template tags; the `get` parameter itself may be `template<class MapT>`) |
 | `NextNode` / `NextLength` / `NextView` | next piece type / queue length O(1) / expanded queue view |
 | `Hold` / `IsHold` | held piece / whether it came from hold |
 | `Env` | full `AIEnv` (compat convenience; prefer the fine-grained tags) |
@@ -53,17 +89,25 @@ declared positions.
 ## GetLanding<SpinT>
 
 Runtime POD precomputed at child creation. `h = shape::piece_h` (the N×N box height,
-**not** the bbox height); `land_height() = row() + h`; `y_plus1() = node.y + 1`;
-`land_height()` saturates into a `kMaxLines = 8`-sized `lines[]` table (with a
-`static_assert` on `piece_h`). `SpinT` defaults to `std::monostate` for AIs that do
-not spin.
+**not** the bbox height and **not** the occupied span); `land_height() = row() + h` (a
+simple box offset — it does **not** saturate by line count); `y_plus1() = node.y + 1`.
+`kMaxLines = 8` is only the size of the clear-`lines[]` view (enforced by a `static_assert`
+on `piece_h`), unrelated to `land_height()`. `SpinT` defaults to `std::monostate` for AIs
+that do not spin.
 
 ## EvalCache<MapT, Result>
 
 Per-`Context` direct-mapped table:
 
-- `prepare(bucket_count)` locks capacity (power of two, may be 1); index is
-  `hash & (capacity-1)`.
+- `prepare(bucket_count)` requires a **non-zero power-of-two** capacity and returns `bool`:
+  0 / non-power-of-two / size overflow / entry-bounds misuse all return `false`; legal capacity
+  is fixed as given (no normalization). Index is `hash & (capacity-1)`.
+- `try_lookup(key, out)` returns `true` on hit with a valid `out`, or `false` on miss (or when
+  unprepared, leaving `out` unchanged); calling `lookup` while unprepared is fatal under NDEBUG.
+  `Engine::prepare` / `Thread::prepare` propagate the `false`; `run()` / `run_hold()` are
+  guarded by the same `PauseBackground` as the current thread. `current_result()` is a read-only
+  snapshot of the current best — it does not widen or score the queue. A normal already-bound
+  `Config` is not re-initialized.
 - A hit requires `written_gen == generation` **and** `hash` match **and** full raw
   `map` equality — hash alone is never the correctness proof.
 - A miss runs `ai.eval(map)` immediately and overwrites the single bucket entry; no

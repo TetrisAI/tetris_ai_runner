@@ -88,6 +88,7 @@ int main(int argc, char** argv) {
     in.board_gen = 1;
     C2StepOutput out = run_cycle(h, step, in);
     std::printf("cycle1 status=%d op=%d name=%s version=%s\n", out.status, out.next_op, n, v);
+    if (out.status != C2_STATUS_OK) return fail("cycle1 not OK");
 
     // New piece + new generation: policy / DP / next handling must not crash.
     in.piece_serial = 2;
@@ -95,8 +96,9 @@ int main(int argc, char** argv) {
     in.cur_kind = C2_KIND_O;
     out = run_cycle(h, step, in);
     std::printf("cycle2 status=%d op=%d\n", out.status, out.next_op);
+    if (out.status != C2_STATUS_OK) return fail("cycle2 not OK");
 
     destroy(h);
     dlclose(lib);
-    return out.status == C2_STATUS_OK ? 0 : fail("cycle2 not OK");
+    return 0;
 }

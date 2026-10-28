@@ -10,6 +10,10 @@
 //==========================================================================
 
 #include <cstddef>
+#include <cstdio>
+#include <cstdlib>
+#include <new>
+#include <stdexcept>
 #include <cstdint>
 #include <type_traits>
 #include <utility>
@@ -98,13 +102,45 @@ namespace m_tetris2
             std::uint64_t hash_override = 0;                 // 测试：非 0 直接作桶 hash，强制同桶
         };
 
-        void prepare(std::size_t bucket_count)
+        // 前置契约：bucket_count 必须是非零 2 的幂（n==0 或 !(n&(n-1)) 为 2 幂）。
+        // 非法输入一律拒绝（不静默归一）；容量合法但 bytes 预算越界（n*sizeof(Entry)
+        // 超过 vector 可分配 max_size）也拒绝，不尝试天量分配。失败时清表、保持未准备态。
+        bool prepare(std::size_t bucket_count)
         {
-            options_.bucket_count = normalize_buckets(bucket_count);
-            buckets_.assign(options_.bucket_count, Entry{});
+            prepared_ = false;
+            buckets_.clear();
+            if (bucket_count == 0 || (bucket_count & (bucket_count - 1)) != 0)
+                return false;                                  // 非法容量：非零 2 幂契约
+            if (bucket_count > max_buckets())
+                return false;                                  // bytes 预算 / max_size 越界
+            try
+            {
+                buckets_.assign(bucket_count, Entry{});
+            }
+            catch (std::bad_alloc const&)
+            {
+                buckets_.clear();                              // 分配失败
+                return false;
+            }
+            catch (std::length_error const&)
+            {
+                buckets_.clear();                              // 容量越界
+                return false;
+            }
+            options_.bucket_count = bucket_count;              // 容量 prepare 后固定
             generation_ = 1;
             stats_ = Stats{};
+            prepared_ = true;
+            return true;
         }
+        static std::size_t max_buckets()
+        {
+            // 元素数上界：min(vector 可分配元素数, SIZE_MAX/sizeof(Entry))，显式 bytes 预算。
+            std::size_t vec = std::vector<Entry>{}.max_size();
+            std::size_t by_bytes = std::size_t(-1) / sizeof(Entry);
+            return vec < by_bytes ? vec : by_bytes;
+        }
+        bool prepared() const { return prepared_; }
         Options& options() { return options_; }
         Options const& options() const { return options_; }
         std::uint64_t generation() const { return generation_; }
@@ -124,29 +160,45 @@ namespace m_tetris2
             return false;
         }
 
+        // true = out 已填有效结果（命中 或 现场 eval 的 miss）；false = 未准备/非法态（out 不赋值）。
+        // 不抛异常、不静默给零分；命中/miss 分别计入 stats。
         template<class AI>
-        Result lookup(AI const& ai, MapT const& map)
+        bool try_lookup(AI const& ai, MapT const& map, Result& out)
         {
+            if (!prepared_)
+                return false;
             ++stats_.requests;
             std::uint64_t h = options_.hash_override != 0
                                   ? options_.hash_override
                                   : (hash_map(map) ^ options_.hash_salt);
             const std::size_t cap = buckets_.size();
-            const std::size_t idx = cap == 0 ? 0 : static_cast<std::size_t>(h & (cap - 1));
+            const std::size_t idx = static_cast<std::size_t>(h & (cap - 1));
             Entry& b = buckets_[idx];
             if (!options_.disabled && b.written_gen == generation_ && b.hash == h && b.map_key == map)
             {
                 ++stats_.hits;
-                return b.result;
+                out = b.result;
+                return true;
             }
             ++stats_.misses;
-            Result r = ai.eval(map);
+            out = ai.eval(map);
             ++stats_.evals;
             b.written_gen = generation_;
             b.hash = h;
             b.map_key = map;
-            b.result = r;
+            b.result = out;
             ++stats_.replacements;
+            return true;
+        }
+        // 正常已准备接口值语义不变；未 prepare 调用是清晰 fatal guard（运行期生效，
+        // 不被 NDEBUG 静默成零分）。
+        template<class AI>
+        Result lookup(AI const& ai, MapT const& map)
+        {
+            if (!prepared_)
+                fatal_unprepared_lookup();
+            Result r{};
+            (void)try_lookup(ai, map, r);
             return r;
         }
 
@@ -169,12 +221,10 @@ namespace m_tetris2
             MapT map_key{};
             Result result{};
         };
-        static std::size_t normalize_buckets(std::size_t n)
+        [[noreturn]] static void fatal_unprepared_lookup()
         {
-            std::size_t p = 1;
-            while (p < n)
-                p <<= 1;
-            return p; // 允许单桶 1（mask=0）
+            std::fputs("tetris eval cache: lookup before prepare()\n", stderr);
+            std::abort();
         }
         static std::uint64_t hash_map(MapT const& map)
         {
@@ -187,6 +237,7 @@ namespace m_tetris2
         Options options_;
         std::uint64_t generation_ = 1;
         mutable Stats stats_;
+        bool prepared_ = false;
     };
 
     // LandingSpinOf<AI>：AI::EvalSpinType，缺省 std::monostate。

@@ -214,38 +214,95 @@ namespace
         expect(r2.status.value > r1.status.value, "thread set/notify 后 status 反映新 scale");
     }
 
-    // 5. fixed-budget on/off: 固定 limit, scored/target/status 一致.
+    // 5. fixed-budget on/off: run(map,...,limit=0) 全 beam 展开, cache enabled vs disabled
+    //    比较 target identity (结构值) / make_path / Status (==) / scored bit-exact,
+    //    并打印 eval hits/misses 差异 (cache 真命中).
+    //    注: 多轮 widen() 背景 best 需要 public peek_current_best (core owner 协调), 不伪造.
+    struct BudgetResult
+    {
+        Engine::RunResult r;
+        size_t scored = 0;
+        size_t eval_requests = 0;
+        size_t eval_hits = 0;
+        std::vector<char> path;
+        size_t widens = 0;
+    };
+    BudgetResult run_to_budget(bool disabled)
+    {
+        Engine e;
+        e.prepare(Spec::width, Spec::height);
+        e.eval_cache().options().disabled = disabled;
+        ScaledProbe::Config c; c.scale = 1.0;
+        e.set_ai_config(c); e.notify_ai_config_changed();
+        // 初始: limit=0ms → 仅一步展开 (非 complete), 后续手动 widen 多步.
+        e.run(make_map(), make_spawn(), "OITLZSJ", 7, 0);
+        size_t widens = 0;
+        while (!e.complete() && widens < 64) { e.run(); ++widens; }
+        auto r = e.current_result();  // final best
+        auto path = e.make_path(make_spawn(), r.target, make_map());
+        auto st = e.eval_cache_stats();
+        return {r, e.scored(), st.requests, st.hits, std::move(path), widens};
+    }
+    // 6. Config existing-tree vs fresh: 同固定 widen 步数, target/path/status 全 bit-exact.
+    struct TreeResult { Engine::RunResult r; std::vector<char> path; };
+    //    (raw/iterate/virtual 多节点聚合由 B owner 独立文件覆盖, 此处仅 value/target/path.)
+    //    (raw/iterate/virtual 多节点聚合由 B owner 独立文件覆盖, 此处仅 value/target/path.)
+    void config_existing_vs_fresh()
+    {
+        // existing: 先 scale=1 跑, 再 set scale=2 重跑 (旧树应 stale)
+        Engine e;
+        e.prepare(Spec::width, Spec::height);
+        ScaledProbe::Config c1; c1.scale = 1.0;
+        e.set_ai_config(c1); e.notify_ai_config_changed();
+        e.run(make_map(), make_spawn(), "OITLZSJ", 7, 0);
+        size_t steps1=0; while (!e.complete() && steps1<32){e.run();++steps1;}
+        ScaledProbe::Config c2; c2.scale = 2.0;
+        e.set_ai_config(c2); e.notify_ai_config_changed();
+        e.run(make_map(), make_spawn(), "OITLZSJ", 7, 0);
+        size_t steps2=0; while (!e.complete() && steps2<32){e.run();++steps2;}
+        auto r_exist = e.current_result();
+        auto path_exist = e.make_path(make_spawn(), r_exist.target, make_map());
+
+        TreeResult fresh;
+        {
+            Engine ef;
+            ef.prepare(Spec::width, Spec::height);
+            ScaledProbe::Config cf; cf.scale = 2.0;
+            ef.set_ai_config(cf); ef.notify_ai_config_changed();
+            ef.run(make_map(), make_spawn(), "OITLZSJ", 7, 0);
+            size_t s=0; while (!ef.complete() && s<32){ef.run();++s;}
+            fresh.r = ef.current_result();
+            fresh.path = ef.make_path(make_spawn(), fresh.r.target, make_map());
+        }
+        std::printf("  fresh: exist_status=%.3f fresh_status=%.3f exist_target==fresh_target=%d\n",
+                    r_exist.status.value, fresh.r.status.value,
+                    (int)(r_exist.target == fresh.r.target));
+        expect(r_exist.target == fresh.r.target, "existing tree cfg2 == fresh cfg2 target identity");
+        expect(r_exist.status.value == fresh.r.status.value, "existing tree cfg2 == fresh cfg2 status");
+        expect(path_exist == fresh.path, "existing tree cfg2 == fresh cfg2 path");
+    }
+
     void fixed_budget_on_off()
     {
-        auto run_budget = [](bool disabled) {
-            Engine e;
-            e.prepare(Spec::width, Spec::height);
-            e.eval_cache().options().disabled = disabled;
-            ScaledProbe::Config c; c.scale = 1.0;
-            e.set_ai_config(c); e.notify_ai_config_changed();
-            auto r = e.run(make_map(), make_spawn(), "ISZL", 4, 0);
-            return std::pair{r, e.scored()};
-        };
-        // 对两个 engine 分别取 path 字符串比较.
-        auto run_path = [](bool disabled) {
-            Engine e;
-            e.prepare(Spec::width, Spec::height);
-            e.eval_cache().options().disabled = disabled;
-            ScaledProbe::Config c; c.scale = 1.0;
-            e.set_ai_config(c); e.notify_ai_config_changed();
-            auto r = e.run(make_map(), make_spawn(), "ISZL", 4, 0);
-            auto path = e.make_path(make_spawn(), r.target, make_map());
-            return std::pair{r, path};
-        };
-        auto [ron, path_on] = run_path(false);
-        auto [roff, path_off] = run_path(true);
+        auto b_on = run_to_budget(false);
+        auto b_off = run_to_budget(true);
+        std::printf("  onoff: widens_on=%zu widens_off=%zu scored_on=%zu scored_off=%zu hits_on=%zu hits_off=%zu\n",
+                    b_on.widens, b_off.widens, b_on.scored, b_off.scored,
+                    b_on.eval_hits, b_off.eval_hits);
         std::printf("  onoff: status_on=%.6f status_off=%.6f path_on=%s path_off=%s\n",
-                    ron.status.value, roff.status.value,
-                    std::string(path_on.begin(), path_on.end()).c_str(),
-                    std::string(path_off.begin(), path_off.end()).c_str());
-        expect(std::fabs(ron.status.value - roff.status.value) < 1e-9,
-               "fixed-budget on/off status 逐字段一致");
-        expect(path_on == path_off, "fixed-budget on/off make_path 字符串一致");
+                    b_on.r.status.value, b_off.r.status.value,
+                    std::string(b_on.path.begin(), b_on.path.end()).c_str(),
+                    std::string(b_off.path.begin(), b_off.path.end()).c_str());
+        expect(b_on.widens == b_off.widens, "on/off widen 步数相同 (同调度)");
+        expect(b_on.widens >= 2, "onoff 实际多 widen >=2 步");
+        // 注: run(map,limit=0) 已全 beam 展开, widen() 返回 false 即 complete, widens=0 正常.
+        expect(b_on.scored == b_off.scored, "on/off scored 相同 (同 beam 展开)");
+        expect(b_on.r.target == b_off.r.target, "on/off target identity 结构值相同");
+        expect(b_on.r.status.value == b_off.r.status.value,
+               "on/off Status bit-exact (== 非 fabs)");
+        expect(b_on.path == b_off.path, "on/off make_path 字符串一致");
+        expect(b_on.eval_hits > 0, "cache enabled 真产生 hit (>=1)");
+        expect(b_off.eval_hits == 0, "cache disabled 无 hit");
     }
 }
 
@@ -257,6 +314,7 @@ int main()
     iterate_probe();
     thread_real_run();
     fixed_budget_on_off();
+    config_existing_vs_fresh();
     if (g_failures == 0) { std::printf("tree_probes: OK\n"); return 0; }
     std::printf("tree_probes: %d FAILURES\n", g_failures);
     return 1;
