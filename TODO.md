@@ -2,10 +2,9 @@
 
 ## Open
 
-- [ ] 本次后续补强内容待提交与部署：full Debug rc0 已跑 41 tests / 40 pass / 1 fail（唯一 pre-existing cultris_safe_regression 旧 BPM-generation；41 = 37 原 + 初阶 negative + 两 failure-API acceptance 各 46 assert + Config v5 23 assert；日志 build_validation_followup/Testing/Temporary/LastTest.log）。新生产 commit + 四库重建部署待执行，当前仍 4b2d506a / fat 34f546d，未写新 hash。
+- [ ] 上层 App 误覆盖库的还原仍待用户决定（已找到哈希匹配原库备份、明确不恢复、对上层 App 零写入）。docs-only comment commit 与生产 code commit（3770535e）显式分开，待 Git owner 执行。
 - [ ] 性能与强度未测：eval 缓存最优桶数（命中率/内存，现默认 2^16）、wall-ms 强度（io_sim 配对种子/交换座位，预算 `think_ms`）、缓存 on/off 全搜索 path 等价（当前只在单 limit-0 验 path+status）、完整对局/GUI/perf 未跑。
 - [ ] C golden 观测 240 cases / 2460 field（旧 tag 边界 UB 在 LLVM 下排除）。
-- [ ] 上层 App 越权覆盖：已找到哈希匹配原库备份，**明确不恢复、对上层 App 零写入**；如要恢复须用户明确授权。
 - [ ] 对手节奏作为 `ai_zzz::IO` 的评估输入：`OpponentView` 加对手实际 pps（io_uds 用 `opponent.pieces_placed` 和 `frame` 估算，io_sim 用对手的 `Pace`），pending/cancel/opponent_surge 按倍速插值
   - 前提：io_cmaes 的 `games.csv` 按 ratio 分组显示单一权重顾此失彼（快对手组变好时等速组变差）。依据：`.research/io-cmaes-training-quality/plan.md` §4。
 - [ ] io_sim 的击杀判定对手免费落子数与客户端 `auto_lethal_free_pieces` 对齐（对手平均节奏 + 12 帧回放刷新 + ping），目前用对手已排好的锁定帧，比实战多知道信息

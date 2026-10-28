@@ -2,7 +2,7 @@
 
 ## 0. 状态与边界（2026-10-28 更新）
 
-- **状态（2026-10-29，full Debug build rc0）**：框架头 `src/tetris_eval_get.h` 已落地，全部 15 个 src AI 已迁到新契约；换位剪枝已实际全删除，无剪枝重复展开由独立 repeats-500 测试覆盖。engine 组 3+5+7 全 pass；逐 AI 数值对拍 A 384 字段、B 52、D 扩大（misaka 121500 / ax 18000 / farter 3600）、C golden 独立注册 PASS（241 行 golden，240 cases / 2460 obs matched，其余字段 bit-exact；旧 tag 边界 UB 不语义承诺）；core counter/wrap/tree scale 80→160 测试 pass。full Debug rc0 串行 37 项 36 pass，唯一 fail 是基线预存 safe-BPM old-generation 断言。Native 双架构 Debug/Release dlopen 步骤全 pass，C2 专项四 slice smoke 6 pass。最新 commit 仍 4b2d506a（fat 34f546d 已部署）；full Debug rc0 41 tests / 40 pass / 1 fail（唯一 pre-existing cultris_safe_regression）；本轮补强待提交与部署，生产仍 4b2d506a / 34f546d，不声称 ASan dataRace 洁净、全搜索 path 等价、wall-ms 强度或最优桶数。明细见 `docs/eval_get_validation.html`。
+- **状态（2026-10-29，full Debug build rc0）**：框架头 `src/tetris_eval_get.h` 已落地，全部 15 个 src AI 已迁到新契约；换位剪枝已实际全删除，无剪枝重复展开由独立 repeats-500 测试覆盖。engine 组 3+5+7 全 pass；逐 AI 数值对拍 A 384 字段、B 52、D 扩大（misaka 121500 / ax 18000 / farter 3600）、C golden 独立注册 PASS（241 行 golden，240 cases / 2460 obs matched，其余字段 bit-exact；旧 tag 边界 UB 不语义承诺）；core counter/wrap/tree scale 80→160 测试 pass。full Debug rc0 最终 41 tests / 40 pass / 1 fail（唯一 pre-existing cultris_safe_regression 旧 BPM-generation；41 = 37 原 + negative + 两 failure-API 各 46 + Config v5 23）。已部署生产身份 code 3770535e / 四库 36c6febe（1843728，name C2 ZZZ / 3770535e346f-dirty，8.4.0-generation-10ms）；8 strict 两轮 load OK、12 Native 专项补正后 fresh 12/12 PASS（初次增量非 fresh，已强制 rebuild 重跑）。multi-widen 固定 64 步 scored 30914 / hits 65 vs 0。不声称 ASan dataRace 洁净、全搜索 path 等价、wall-ms 强度、最优桶数、perf/GUI/TSan。旧 4b2/34f546 为历史身份。明细见 `docs/eval_get_validation.html` 与主项目报告。
 - 源码审计基线为 `dev@7af0537a5f4da7490b95019c36d90fcdc93885cb`；oracle 冻结，已有 `src/ai_ax.h` 未提交内容原样保留。
 - **契约（已落地）**：eval 响应 Config；Config 改变时按 `generation` 纪元使 eval 结果集失效；固定容量、单桶直接映射 hash 表，无冲突链、无开放寻址；get 参数因 AI 而异，Engine 按 `GetArgs` 类型表模板按需萃取，不计算未列出的数据。
 - 早期草案已淘汰：eval 禁止读取 Config、强制全部权重移 get、统一全量 TransitionContext / 逐节点旧配置 EvalSnapshot、以及"父 map 各 lane + lp_key"缓存键。附录保留源码依赖取证，迁移节以本版为准。
@@ -198,7 +198,7 @@ void update();                               // 现有普通 root/status 重评�
 ## 7. 当前产物与仍待验证项
 
 - 15 AI 契约迁移与引擎接线已完成并过当前验证（见状态行与 `docs/eval_get_validation.html`）。
-- 待测 Open：最优桶数（命中率/内存）、wall-ms 强度、缓存 on/off 全搜索 path 等价（当前仅单 limit-0 验 path+status）、parallel engine 非确定性归因、基线预存 safe-BPM old-generation 唯一 fail、commit/deploy pending。
+- 待测 Open：最优桶数（命中率/内存）、wall-ms 强度、缓存 on/off 全搜索 path 等价、完整对局/GUI/perf/TSan；基线预存 safe-BPM old-generation 唯一 fail；上层 App 历史误覆盖（备份已匹配、用户本轮明确不恢复、对上层零额外写入）。
 - 未提交、未推送、未部署。
 
 ## 8. 配套资料

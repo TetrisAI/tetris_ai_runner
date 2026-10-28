@@ -214,10 +214,9 @@ namespace
         expect(r2.status.value > r1.status.value, "thread set/notify 后 status 反映新 scale");
     }
 
-    // 5. fixed-budget on/off: run(map,...,limit=0) 全 beam 展开, cache enabled vs disabled
-    //    比较 target identity (结构值) / make_path / Status (==) / scored bit-exact,
-    //    并打印 eval hits/misses 差异 (cache 真命中).
-    //    注: 多轮 widen() 背景 best 需要 public peek_current_best (core owner 协调), 不伪造.
+    // 5. fixed-budget on/off: cache enabled vs disabled, run(map,...,limit=0) 初步,
+    //    固定最多 64 步 widen 后 current_result 取 final best, 比较 target identity /
+    //    make_path / Status (==) / scored / hits 全 bit-exact.
     struct BudgetResult
     {
         Engine::RunResult r;
@@ -245,8 +244,7 @@ namespace
     }
     // 6. Config existing-tree vs fresh: 同固定 widen 步数, target/path/status 全 bit-exact.
     struct TreeResult { Engine::RunResult r; std::vector<char> path; };
-    //    (raw/iterate/virtual 多节点聚合由 B owner 独立文件覆盖, 此处仅 value/target/path.)
-    //    (raw/iterate/virtual 多节点聚合由 B owner 独立文件覆盖, 此处仅 value/target/path.)
+    //    (raw/iterate/virtual 多节点聚合见 test/framework_config_tree_reference_test.cpp, 此处仅 value/target/path.)
     void config_existing_vs_fresh()
     {
         // existing: 先 scale=1 跑, 再 set scale=2 重跑 (旧树应 stale)
@@ -295,7 +293,7 @@ namespace
                     std::string(b_off.path.begin(), b_off.path.end()).c_str());
         expect(b_on.widens == b_off.widens, "on/off widen 步数相同 (同调度)");
         expect(b_on.widens >= 2, "onoff 实际多 widen >=2 步");
-        // 注: run(map,limit=0) 已全 beam 展开, widen() 返回 false 即 complete, widens=0 正常.
+        // 注: 无参 run() 返回 true 表示 complete; 本 case 固定 64 步 widen, 最终 current_result 对拍.
         expect(b_on.scored == b_off.scored, "on/off scored 相同 (同 beam 展开)");
         expect(b_on.r.target == b_off.r.target, "on/off target identity 结构值相同");
         expect(b_on.r.status.value == b_off.r.status.value,

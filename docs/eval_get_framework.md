@@ -43,9 +43,22 @@ implementation is `src/tetris_eval_get.h`.
 > **Full Debug build rc0, final count: 41 tests / 40 pass / 1 fail** — the single failure is the
 > pre-existing `cultris_safe_regression` (old BPM-generation). 41 = 37 prior + beginner negative
 > + two failure-API acceptance suites (46 asserts each) + Config v5 (23 asserts). Log:
-> `build_validation_followup/Testing/Temporary/LastTest.log`. This round's follow-up content is
-> **pending commit and redeploy** — the deployed production lib is still 4b2d506a / 34f546d; no new
-> hash is claimed. Not passed: performance, end-to-end match play, TSan, old UB semantics. Not claimed: ASan data-race clean, whole-search path equivalence,
+> `build_validation_followup/Testing/Temporary/LastTest.log`.
+>
+> **Deployed production identity (code commit `3770535e346f5fb28f797f4d5030fbbc356a21fe`, parent
+> 4b2d506a, 13 files +976/−73):** four fat libs SHA256
+> `36c6febe604708dd42edb160e40b6383bbd98439a2763dbf35756c96f95b9a98`, size 1 843 728,
+> x86_64+arm64; embedded name `C2 ZZZ / 3770535e346f-dirty`, version
+> `8.4.0-generation-10ms`. 8 strict two-cycle loads all rc0/cycle1+2 OK; 12 Native special
+> tests (2 arch × Debug/Release, NextDPPolicy) on the new binary PASS. Deployment logs:
+> `research/eval_get_validation_followup/deployment/{build_fat_3770535e,four_fingerprints,
+> smoke_8runs_3770535e,c2_12tests_3770535e,README}.log`(.md). Prior identity 4b2d506a /
+> 34f546d is history. The multi-widen probe is a fixed 64 steps (scored 30 914, hits 65 vs 0),
+> not N=120.
+>
+> **Boundaries (not claimed):** not all-search semantic equivalence, performance, end-to-end
+> match play/GUI, TSan, or the old tag-boundary UB semantics; the pre-existing safe-BPM
+> failure remains; restoring the overwritten upper App lib is still pending user decision. Not claimed: ASan data-race clean, whole-search path equivalence,
 > wall-ms strength, optimal bucket size. The next follow-up needs a fresh commit and rebuild;
 > do not treat the currently deployed library as the final follow-up artifact.
 
