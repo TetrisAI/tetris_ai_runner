@@ -7,7 +7,7 @@ Two engines:
 - `src/` (namespace `m_tetris2`): the live rewrite and the only place for new code. Rules are compile-time; searches use a Searcher + Strategy + Mixin + Hook design.
 - `oracle/` (namespace `m_tetris`): the old pointer-graph engine (`TetrisContext` / `TetrisNode*`). It is the behaviour baseline for the diff tests. **Frozen: never edit `oracle/`.** The only post-freeze change is the `check_ready` corner-polarity fix (see Known state).
 
-**Scope: only `ai_zzz` matters** (`src/ai_zzz.h/.cpp`). Ignore the other AIs (`ai_tag`, `ai_misaka`, `ai_farter`, `ai_ax`) and the code that serves only them (`tag::Search`, `the_ai_games`, `demo`). ai_zzz runs on:
+**Scope: all AI implementations under `src/`** — the eval(map)+GetArgs migration covers every AI in src, not one header. The 15 enumerated AIs (migration table in `eval_get_framework_plan.md` §5) are `qq::Attack`, `Dig`, `TOJ_PC`, `Botris_PC`, `TOJ_v08`, `Botris`, `TOJ`, `C2`, `IO` (`src/ai_zzz_io.*`), `the_ai_games_old`, `the_ai_games`, `the_ai_games_enemy`, `misaka`, `ai_ax`, `ai_farteryhr`; `ai_tag` (`src/ai_tag.*`) is also a src AI in scope. These run on:
 
 | Export / tool | Rule | AI | Search |
 |---|---|---|---|
@@ -45,19 +45,21 @@ flowchart LR
 - The spawn position comes from `RuleSpec::spawn()`. The `OpDesc` x/y values are only a piece-local anchor.
 - `TetrisNode` holds T and R at compile time; only x and y exist at runtime.
 - **Map polarity:** in `src/`, `TetrisMap` stores 0 = occupied. `set` / `get` / `none` / `max_y` and the set operators (`|`, `&`, `~`, …) mean "occupied"; `row()` / `set_row()` expose the raw 0 = occupied bits, and `occupied_row(y)` is the 1 = occupied view. Host rows and test fixtures written as 1 = occupied go in as `set_row(y, row_full ^ occupied)`. In the oracle, 1 means empty.
-- **Board size is compile-time:** `prepare(w, h)` only accepts the `RuleSpec`'s own size (10×40; `rule_c2` 10×21). The oracle accepted any size for `rule_st`, `rule_qq` and `rule_tag`. As a result, `AIPath` and `QQTetrisAI` return no move when the host passes a different size (for example QQ 12×21), and `vs` crashes for the same reason. This is a known limitation and has deliberately not been fixed.
+- **Board size is compile-time:** `prepare(w, h)` only accepts the `RuleSpec`'s own size (10×40; `rule_c2` 10×28). The oracle accepted any size for `rule_st`, `rule_qq` and `rule_tag`. As a result, `AIPath` and `QQTetrisAI` return no move when the host passes a different size (for example QQ 12×21), and `vs` crashes for the same reason. This is a known limitation and has deliberately not been fixed.
 
 ### AI contract
 AIs live in `src/ai_*.h/.cpp`. The engine detects members with SFINAE and `requires`; there are no registration macros.
-- **Required:**
-  - a nested `Result`;
+- **Required (eval(map) + GetArgs contract; reference `docs/eval_get_framework.md`):**
+  - a nested `Result` (any type — `double`, a struct, or an empty type);
   - `template<class Spec> void init(Config const*)`;
   - `ai_name()`;
-  - a templated const `eval(node, map_after, map_src, clear)`;
-  - exactly one non-template const `get(...)`. Its arity selects which extras are passed: `(result, depth)`, plus parent `Status`, plus `AIEnv`.
+  - a templated const `eval(MapT const& map)` — a pure post-map function of the bound, locked `Config`. It must not read the landing piece, clear, spin, parent `Status`, source map, depth, hold/next, or write external state; it may read the bound `Config const*`.
+  - `GetArgs = m_tetris2::type_list<...>` listing exactly the providers `get` consumes (`args::Eval<Result>`, `args::Clear`, `args::Landing<L>`, `args::Parent<Status>`, `args::Depth`, `args::MapBefore`/`args::MapAfter`, `args::NextNode`/`args::NextLength`/`args::NextView`, `args::Hold`, `args::Env`). The engine extracts only listed providers; an unlisted provider is not computed.
+  - one const `get(...)` whose parameters match the `GetArgs` tags in order.
 - `Status` needs `operator<`.
-- **Optional:** `Config`, `ratio()`, `iterate()`, `EvalSpinType`, `Status::transposition_key()`.
-- `Status::transposition_key()` hashes the status fields that shape later placements (not the score accumulators). With it, the beam expands per depth only the first node of each position it pops (board, hold, queue position and that key); later copies are dropped, even better-valued ones a later widening produces. This is heuristic pruning, and keys are compared by hash alone.
+- **Optional:** `Config`, `ratio()`, `iterate()`, `EvalSpinType`.
+- **No `Status::transposition_key()`:** same-depth transposition pruning is removed. `get` consumes the whole placement sequence (accumulators such as `like`/`value`/`b2b`/`combo`), so per-position keyed dedup is unsafe.
+- **Eval caching:** because `eval` depends only on `(map, Config)`, the engine caches it per `Context` in `EvalCache<MapT,Result>` — direct-mapped, hash locate + full raw-map equality, single-bucket overwrite, `generation` epoch on a Config change. A cache hit does not skip `get`; `scored()` still counts every `get`.
 - Template members go in the header. `get`, `ai_name` and `Status::operator<` go in the `.cpp`.
 
 ### Runtime details
@@ -152,12 +154,12 @@ TETRIS_AI_SOCKET=tetris_ai ./build-rel/io_uds   # param file: prepare.params (cl
   2. Implement a `CaseProbe` that fills `oracle_lps` and `candidate_lps` with `LpEntry`, plus `*_make_path` closures for Phase B, and call `run_diff_main` from `main`.
   3. Add `<name>_diff` to **both** `foreach` lists in `CMakeLists.txt` (build and `add_test`). It registers as `tetris_diff_<name>_diff`.
 - **Adding a unit test:** `add_executable` it (without `EXCLUDE_FROM_ALL`), link `tetris_core`, and register it with `add_test(NAME tetris_<x> COMMAND x)`.
-- `tetris_engine_regression` (`test/engine_regression_test.cpp`) is built with ASan/UBSan on non-MSVC compilers. It covers the `AIEnv` queue seen by 4-arg `get` (hold swaps, `iterate` with a held tail), T-spin `LandPoint.type`, the 3-corner table, `TetrisEngine::attach`, a lowered active piece (path and amini), widening from a fresh engine's first search, `commit`, and per-depth transposition skipping.
+- `tetris_engine_regression` (`test/engine_regression_test.cpp`) is built with ASan/UBSan on non-MSVC compilers. It covers the `AIEnv` queue seen by `get` (hold swaps, `iterate` with a held tail), T-spin `LandPoint.type`, the 3-corner table, `TetrisEngine::attach`, a lowered active piece (path and amini), widening from a fresh engine's first search, and `commit`. (The former per-depth transposition-skipping case is removed along with transposition pruning.)
 - **Search start:** `run` / `run_hold` search the root's active piece from the passed `TetrisBlockStatus` (x, y, r); held and preview pieces start at `RuleSpec::spawn`. `MoveGen::generate` takes that start as a bitboard `State`. A new start drops the root's cached children.
 - **Failing diffs:** never hide an unexpected failure with `XfailSet` entries. Investigate and report it.
 - **T-spin classification:** a corner counts when it is occupied or out of bounds. `TSpinHook` stores in `LandPoint.type` the class a one-line clear would score: Mini if `is_mini_ready`, else TSpin if `is_ready`, and only when `is_last_rotate`. `TOJ` / `TOJ_PC` / `TOJ_v08` convert it per clear count with `ai_zzz::tspin_for_clear` (no clear → None, Mini on 2+ lines → TSpin), matching the oracle AIs' `get`.
 - **Oracle corner fix (2026-10):** `check_ready` in `oracle/search_tspin.cpp` and `oracle/search_tag.cpp` counted set bits of the 1=empty oracle map, which means empty corners. `src/` had the same inversion in `TSpinHook::corner_ct`, so `tspin_diff` / `tag_diff` agreed on the wrong answer. Both sides now count occupied corners (`~map.row` in the oracle). The diff summaries are unchanged.
-- **Known state (2026-10):** all ctest tests pass. Open issues, not fixed:
+- **Known state (2026-10-29, full Debug build rc0):** the eval(map)+GetArgs framework (`src/tetris_eval_get.h`) has landed and all 15 src AIs are migrated to the new contract. Current validation (see `docs/eval_get_validation.html`): engine groups 3+5+7 pass; per-AI numeric diffs — A 384 fields, B 52, D expanded (misaka 121500 / ax 18000 / farter 3600), C golden independently registered PASS (`test/framework_ai_c_diff.golden`, 241 lines; 240 cases / 2460 observations matched, other fields bit-exact; the old tag-case boundary is UB and not semantically promised); core counter / wrap / tree scale 80→160 tests pass (fresh, iterate, duplicate same-reference, tag, no-eval; thread actual run + Config setter lifecycle). Transposition pruning is fully removed; the no-prune repeated-expansion behavior is covered by a standalone repeats-500x test (no old pruned-path equivalence claim needed). Serial suite: 36/37 pass, the single failure is the pre-existing baseline safe-BPM old-generation assertion. Native dual-arch Debug/Release dlopen step passes; C2 special dual-arch four-slice smoke 6 pass. **Not yet committed or deployed (pending).** Not claimed: ASan clean of data races, whole-search path equivalence (cache on/off was checked only at single limit-0 path+status), wall-ms strength, or the optimal cache bucket size. A parallel-engine non-determinism has been observed but not yet attributed. Open issues, not fixed:
   - the board-size limitation above;
   - `TSpinHook::try_kick_pred` (`src/movegen_hook.h`) can record an `lp.last` source whose real rotation lands elsewhere. Nothing compares this field, and it only matters when `last_rotate` is enabled, which no production config does;
   - `aspin_diff` has 34 uninvestigated `[INFO]` candidate-only landings (12 T in 1g);

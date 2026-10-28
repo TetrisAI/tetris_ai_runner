@@ -103,34 +103,6 @@ namespace m_tetris2
     }
 
 
-    template<class TetrisAI>
-    struct TetrisAIInfo
-    {
-    private:
-        template<typename T>
-        struct function_traits_get : public function_traits_get<decltype(&T::get)>
-        {
-        };
-        template<typename ClassType, typename ReturnType, typename... Args>
-        struct function_traits_get<ReturnType (ClassType::*)(Args...) const>
-        {
-            enum
-            {
-                arity = sizeof...(Args)
-            };
-            typedef ReturnType result_type;
-        };
-
-    public:
-        // eval 是模板成员；每个 AI 类必须在内部声明 Result 类型别名。
-        typedef typename TetrisAI::Result Result;
-        typedef typename function_traits_get<TetrisAI>::result_type Status;
-        enum
-        {
-            arity = function_traits_get<TetrisAI>::arity
-        };
-    };
-
     template<class Type>
     struct TetrisCallInit
     {
@@ -184,6 +156,7 @@ namespace m_tetris2
 // tetris_eval_dispatch.h 自身将所有声明包在 namespace m_tetris2 {} 里，
 // 因此分发类型最终落在正确的 namespace 中。
 #include "tetris_eval_dispatch.h"
+#include "tetris_eval_get.h"
 #include "movegen_state.h"
 
 namespace m_tetris2
@@ -277,9 +250,8 @@ namespace m_tetris2
                 {
                     return nullptr;
                 }
-                void *ai_config()
+                void set_ai_config(auto const &)
                 {
-                    return nullptr;
                 }
             };
         };
@@ -294,9 +266,9 @@ namespace m_tetris2
                 {
                     return &ai_config_;
                 }
-                AIConfigType *ai_config()
+                void set_ai_config(AIConfigType const &c)
                 {
-                    return &ai_config_;
+                    ai_config_ = c;
                 }
 
             private:
@@ -399,8 +371,8 @@ namespace m_tetris2
     {
     public:
         typedef typename TetrisSearch::LandPoint LandPoint;
-        typedef typename TetrisAIInfo<TetrisAI>::Result Result;
-        typedef typename TetrisAIInfo<TetrisAI>::Status Status;
+        using Result = typename TetrisAI::Result;
+        using Status = typename TetrisAI::Status;
 
     private:
         template<class TreeNode, class>
@@ -434,59 +406,118 @@ namespace m_tetris2
             {
             }
         };
-        template<class TreeNode, bool EnableEnv, size_t>
-        struct TetrisSelectGet
+        // GetArgsInvoker：按 AI::GetArgs(type_list) 萃取每个标签，按需刷新 eval，调用 ai.get。
+        // GetArgsInvoker：每个唯一 provider 计算一次（在去重后的 type_list 上按序展开 braced-init，
+        // C++20 保证左→右求值），命中即 +1 ProviderCounters；重复标签在原声明位置复用同一值。
+        // NextLength/NextNode/Hold/IsHold 为 O(1)，不构 fullEnv；仅 NextView/Env 用 next_c/parent->env。
+        template<class TreeNode>
+        struct GetArgsInvoker
         {
-            typedef std::true_type enable_next_c;
-            static void get(typename TreeNode::Context *context, TreeNode *node, TreeNode *parent)
+            using Context = typename TreeNode::Context;
+            Context *ctx;
+            TreeNode *node;
+            TreeNode *parent;
+
+            template<class Tag> void bump(Tag) const
             {
-                // arity >= 5: AI::get(node, result, depth, status, env)
-                node->status.set(TetrisCallGet<TetrisAI>::get(*context->ai, node->identity, node->result, parent->level, parent->status.get_raw(), parent->template env<EnableEnv>(context, node)));
+                if (!ctx->provider_counters.enabled) return;
+                if constexpr (std::is_same_v<Tag, args::Depth>) ++ctx->provider_counters.depth;
+                else if constexpr (std::is_same_v<Tag, args::Clear>) ++ctx->provider_counters.clear;
+                else if constexpr (std::is_same_v<Tag, args::MapBefore>) ++ctx->provider_counters.map_before;
+                else if constexpr (std::is_same_v<Tag, args::MapAfter>) ++ctx->provider_counters.map_after;
+                else if constexpr (std::is_same_v<Tag, args::NextView>) ++ctx->provider_counters.next_view;
+                else if constexpr (std::is_same_v<Tag, args::NextLength>) ++ctx->provider_counters.next_length;
+                else if constexpr (std::is_same_v<Tag, args::NextNode>) ++ctx->provider_counters.next_node;
+                else if constexpr (std::is_same_v<Tag, args::Hold>) ++ctx->provider_counters.hold;
+                else if constexpr (std::is_same_v<Tag, args::IsHold>) ++ctx->provider_counters.is_hold;
+                else if constexpr (std::is_same_v<Tag, args::Env>) ++ctx->provider_counters.env;
+                else if constexpr (detail::is_parent_tag<Tag>::value) ++ctx->provider_counters.parent;
+                else if constexpr (detail::is_landing_tag<Tag>::value) ++ctx->provider_counters.landing;
+                else if constexpr (detail::is_eval_tag<Tag>::value) ++ctx->provider_counters.eval;
             }
+
+            // 与原 TetrisTreeNode::env() 完全一致：queue_begin 以 parent(this) 的 next/hold 为准，
+            // child->is_hold && parent.hold==' ' 时 next 前进一位（hold swap 消耗队列头）。
+            // 结果缓存一次，NextView/NextLength/Env 共享，不为 C2 构 Env。
+            using NextIt = typename std::vector<typename TreeNode::next_t>::const_iterator;
+            mutable bool queue_ready_ = false;
+            mutable NextIt queue_begin_{};
+            mutable std::size_t queue_len_ = 0;
+            void ensure_queue() const
+            {
+                if (queue_ready_) return;
+                auto base = parent->next;
+                queue_begin_ = (node->is_hold && parent->hold == ' ') ? std::next(base) : base;
+                queue_len_ = static_cast<std::size_t>(std::distance(queue_begin_, ctx->next.cend()));
+                queue_ready_ = true;
+            }
+            std::size_t queue_length() const
+            {
+                ensure_queue();
+                return queue_len_;
+            }
+
+            template<class E>
+            E const &operator()(args::Eval<E>) const
+            {
+                static_assert(std::is_same_v<E, Result>,
+                              "args::Eval<E> 的 E 必须等于引擎 Result 类型");
+                if (node->eval_slot.eval_gen != ctx->eval_cache.generation() ||
+                    node->eval_slot.eval_era != ctx->eval_era)
+                {
+                    node->eval_slot.result = ctx->eval_cache.lookup(*ctx->ai, node->map);
+                    node->eval_slot.eval_gen = ctx->eval_cache.generation();
+                    node->eval_slot.eval_era = ctx->eval_era;
+                }
+                return node->eval_slot.result;
+            }
+            template<class S>
+            S const &operator()(args::Parent<S>) const
+            {
+                return parent->status.get_raw();
+            }
+            std::size_t operator()(args::Depth) const { return parent->level; }
+            int operator()(args::Clear) const { return node->clear; }
+            typename TreeNode::map_t const &operator()(args::MapBefore) const { return parent->map; }
+            typename TreeNode::map_t const &operator()(args::MapAfter) const { return node->map; }
+            template<class L>
+            L const &operator()(args::Landing<L>) const { return node->landing; }
+            char const *operator()(args::NextView) const
+            {
+                ensure_queue();
+                if (queue_len_ == 0) return nullptr;
+                return ctx->next_c.data() + (ctx->next_c.size() - queue_len_);
+            }
+            std::size_t operator()(args::NextLength) const { return queue_length(); }
+            char operator()(args::NextNode) const { return node->identity.state.t; }
+            char operator()(args::Hold) const { return node->is_hold ? parent->node : parent->hold; }
+            bool operator()(args::IsHold) const { return node->is_hold; }
+            AIEnv operator()(args::Env) const { return parent->template env<true>(ctx, node); }
         };
-        template<class TreeNode, bool EnableEnv>
-        struct TetrisSelectGet<TreeNode, EnableEnv, 4>
+
+        template<class TreeNode, class... Us>
+        static auto make_storage(GetArgsInvoker<TreeNode> &p, type_list<Us...>)
         {
-            typedef std::true_type enable_next_c;
-            static void get(typename TreeNode::Context *context, TreeNode *node, TreeNode *parent)
-            {
-                node->status.set(TetrisCallGet<TetrisAI>::get(*context->ai,
-                                                          node->identity,
-                                                          node->result,
-                                                          parent->level,
-                                                          parent->status.get_raw(),
-                                                          parent->template env<EnableEnv>(context, node)));
-            }
-        };
-        template<class TreeNode, bool EnableEnv>
-        struct TetrisSelectGet<TreeNode, EnableEnv, 3>
+            (p.bump(Us{}), ...); // 每个唯一标签计数一次（fold 左→右）
+            return std::tuple<decltype(p(Us{}))...>{ p(Us{})... };
+        }
+        template<class TreeNode, class... Ps>
+        static Status invoke_get(GetArgsInvoker<TreeNode> &p, type_list<Ps...>)
         {
-            typedef std::false_type enable_next_c;
-            static void get(typename TreeNode::Context *context, TreeNode *node, TreeNode *parent)
-            {
-                node->status.set(TetrisCallGet<TetrisAI>::get(*context->ai,
-                                                          node->identity,
-                                                          node->result,
-                                                          parent->level,
-                                                          parent->status.get_raw()));
-            }
-        };
-        template<class TreeNode, bool EnableEnv>
-        struct TetrisSelectGet<TreeNode, EnableEnv, 2>
-        {
-            typedef std::false_type enable_next_c;
-            static void get(typename TreeNode::Context *context, TreeNode *node, TreeNode *parent)
-            {
-                node->status.set(TetrisCallGet<TetrisAI>::get(*context->ai,
-                                                          node->identity,
-                                                          node->result,
-                                                          parent->level));
-            }
-        };
+            using Args = type_list<Ps...>;
+            using Unique = unique_types_t<Args>;
+            // 固定顺序：braced-init 左→右，每个唯一 provider 计算一次 + 计数一次。
+            auto storage = make_storage<TreeNode>(p, Unique{});
+            // 原声明位置展开：从 storage 取该标签对应唯一槽位（重复标签复用同一值）。
+            auto got = (*p.ctx->ai).get(std::get<index_of_v<Ps, Unique>>(storage)...);
+            static_assert(std::is_same_v<decltype(got), Status const &> || std::is_same_v<decltype(got), Status>,
+                          "AI::get 必须返回 Status（const& 或值）");
+            return got;
+        }
 
     public:
         template<class TreeNode>
-        using EnableNextC = typename TetrisSelectGet<TreeNode, false, TetrisAIInfo<TetrisAI>::arity>::enable_next_c;
+        using EnableNextC = std::bool_constant<GetTraits<TetrisAI>::kWantEnv || GetTraits<TetrisAI>::kWantNextView>;
 
         template<class TreeNode>
         static double get_ratio(TetrisAI &ai)
@@ -496,7 +527,8 @@ namespace m_tetris2
         template<bool EnableEnv, class TreeNode>
         static void get(typename TreeNode::Context *context, TreeNode *node, TreeNode *parent)
         {
-            TetrisSelectGet<TreeNode, EnableEnv, TetrisAIInfo<TetrisAI>::arity>::get(context, node, parent);
+            GetArgsInvoker<TreeNode> p{context, node, parent};
+            node->status.set(invoke_get(p, typename TetrisAI::GetArgs{}));
         }
         template<class TreeNode>
         static void iterate(TetrisAI &ai, Status const **status, size_t status_length, TreeNode *tree_node)
@@ -510,8 +542,8 @@ namespace m_tetris2
     {
         typedef TetrisCore<TetrisAI, TetrisSearch> Core;
         using LandPoint = typename Core::LandPoint;
-        // Opt-in: Status::transposition_key() hashes the status fields that shape later placements.
-        static constexpr bool kTranspositions = requires(Status const &value) { value.transposition_key(); };
+        using _SearchSpec = typename SearchRuleSpecOf<TetrisSearch>::type;
+        using map_t = m_tetris2::TetrisMap<_SearchSpec::width, _SearchSpec::height>;
         struct Context
         {
         public:
@@ -586,7 +618,6 @@ namespace m_tetris2
             TetrisSearch *search;
             std::vector<value_heap_t> sort;
             std::vector<value_heap_t> wait;
-            std::vector<chash_set<std::uint64_t>> expanded_keys;
             children_map_t old;
             identity_set_t uniq;
             bool is_complete;
@@ -615,6 +646,9 @@ namespace m_tetris2
             std::vector<double> width_cache;
             double total;
             double avg;
+            EvalCache<map_t, typename Core::Result> eval_cache;
+        std::uint64_t eval_era = 0; // 缓存溢出时 era++，全树 eval holder 失效
+            ProviderCounters provider_counters;
 
         public:
             TetrisTreeNode *alloc(TetrisTreeNode *parent)
@@ -796,11 +830,13 @@ namespace m_tetris2
             };
         };
         size_t version;
-        using _SearchSpec = typename SearchRuleSpecOf<TetrisSearch>::type;
-        using map_t = m_tetris2::TetrisMap<_SearchSpec::width, _SearchSpec::height>;
         map_t map;
         typename Core::LandPoint identity;
-        typename Core::Result result;
+        [[no_unique_address]] std::conditional_t<GetTraits<TetrisAI>::kWantEval,
+            EvalSlot<typename Core::Result>, std::monostate> eval_slot;
+        [[no_unique_address]] std::conditional_t<GetTraits<TetrisAI>::kWantClear, int, std::monostate> clear;
+        [[no_unique_address]] std::conditional_t<GetTraits<TetrisAI>::kWantLanding,
+            GetLanding<typename LandingSpinOf<TetrisAI>::type>, std::monostate> landing;
         TreeNodeStatus<TetrisAI, typename TetrisAIHasIterate<TetrisAI>::type> status;
         TetrisTreeNode *parent;
         TetrisTreeNode *children;
@@ -902,14 +938,6 @@ namespace m_tetris2
             context->sort.clear();
             context->wait.resize(context->max_length + 1);
             context->sort.resize(context->max_length + 1);
-            if constexpr (kTranspositions)
-            {
-                context->expanded_keys.resize(context->max_length + 1);
-                for (auto &keys : context->expanded_keys)
-                {
-                    keys.clear();
-                }
-            }
         }
         void update_version(Context *context)
         {
@@ -1077,16 +1105,45 @@ namespace m_tetris2
                                          LandPoint const &lp)
         {
             using Spec = typename SearchRuleSpecOf<TetrisSearch>::type;
-            using TetrisCallEvalT = TetrisCallEval<TetrisAI, Spec>;
             TetrisTreeNode *child = context->alloc(this);
             child->map = map;
             child->identity = lp;
-            // 纯位板 attach：直接从 State 写方块、消行、更新 top/roof.
-            // 不再需要 TetrisNode* 或 TetrisContext::get() 反查.
+            // 纯位板 attach：直接从 State 写方块、消行。clear 仅在 AI 请求时落节点。
             size_t clear = m_tetris2::Helpers<Spec>::attach_to_map(lp.state, child->map);
-            auto after_board = m_tetris2::build_board_for_search<Spec>(child->map);
-            child->result = TetrisCallEvalT::template call_eval_typed<T, R>(
-                *context->ai, child->identity, after_board, src_board, clear);
+            // eval(map) 经直接映射缓存：仅当 AI 请求 Eval；hash 定位 + 全 raw map 相等，miss 当场 eval。
+            // enemy/farter 无 Eval，此处 0 次 eval。
+            if constexpr (GetTraits<TetrisAI>::kWantEval)
+            {
+                child->eval_slot.result = context->eval_cache.lookup(*context->ai, child->map);
+                child->eval_slot.eval_gen = context->eval_cache.generation();
+                child->eval_slot.eval_era = context->eval_era;
+            }
+            if constexpr (GetTraits<TetrisAI>::kWantClear)
+            {
+                child->clear = static_cast<int>(clear);
+            }
+            if constexpr (GetTraits<TetrisAI>::kWantLanding)
+            {
+                using Base = TetrisNodeBase<TetrisNodeDetails<Spec, T, R>>;
+                auto &g = child->landing;
+                g.piece = static_cast<char>(lp.state.t);
+                g.rotation = static_cast<std::uint8_t>(lp.state.r);
+                g.xb = static_cast<std::int8_t>(lp.state.xb);
+                g.yb = static_cast<std::int8_t>(lp.state.yb);
+                g.w = static_cast<std::int8_t>(Base::kWidth);
+                g.h = static_cast<std::int8_t>(Base::kHeight);
+                g.y_master_plus1 = static_cast<int>(lp.state.yb) + Base::kOriginY + 1;
+                for (int i = 0; i < Base::kHeight && i < GetLanding<typename LandingSpinOf<TetrisAI>::type>::kMaxLines; ++i)
+                {
+                    g.lines[i] = Base::kLines[i];
+                }
+                // 仅在 spin 字段可真接收 lp.type 时赋值；GetLanding<monostate> 时 g.spin 为
+                // monostate，赋值 ill-formed，须跳过以保留旧行为（不强制 spin 类型转换）。
+                if constexpr (requires { g.spin = lp.type; })
+                {
+                    g.spin = lp.type;
+                }
+            }
             return child;
         }
 
@@ -1637,19 +1694,6 @@ namespace m_tetris2
                 search(context, node, false);
             }
         }
-        // Nodes of one depth with equal keys reach the same board, hold, queue position and AI state, hence the same
-        // future. Keys are compared by hash alone.
-        std::uint64_t transposition_key(Context const *context) const
-        {
-            auto const queue = is_hold && parent->hold == ' ' ? std::next(parent->next) : parent->next;
-            std::uint64_t key = status.get_raw().transposition_key();
-            for (auto lane : map.data.data)
-            {
-                key = hash_combine(key, lane);
-            }
-            key = hash_combine(key, static_cast<unsigned char>(is_hold ? parent->node : parent->hold));
-            return hash_combine(key, static_cast<std::uint64_t>(std::distance(context->next.cbegin(), queue)));
-        }
         template<bool EnableHold>
         bool run(Context *context)
         {
@@ -1701,15 +1745,6 @@ namespace m_tetris2
                 {
                     TetrisTreeNode *child = wait->top();
                     wait->pop();
-                    if constexpr (kTranspositions)
-                    {
-                        // Only the first node of a position popped at this depth is expanded; later copies are dropped,
-                        // even better-valued ones a later widening produces.
-                        if (!context->expanded_keys[next_length + 1].insert(child->transposition_key(context)).second)
-                        {
-                            return;
-                        }
-                    }
                     sort->push(child);
                     for (auto it = child->build_children<EnableHold>(context); it != nullptr; it = it->children_next)
                     {
@@ -1945,6 +1980,7 @@ namespace m_tetris2
             }, Ops{});
             local_context_.ai = &ai_;
             local_context_.search = &search_;
+            local_context_.eval_cache.prepare(local_context_.eval_cache.options().bucket_count);
             if (TetrisRuleInit<TetrisRule>::init(width, height))
             {
                 ContextBuilder::init_ai(ai_, &local_context_);
@@ -2008,7 +2044,9 @@ namespace m_tetris2
         }
         uint64_t memory_usage() const
         {
-            return (local_context_.node_storage->size() - local_context_.free_count) * sizeof(TreeNode);
+            // 节点堆 + eval cache 真实占用字节（cache total_bytes = bucket_count * sizeof(Entry)）。
+            return (local_context_.node_storage->size() - local_context_.free_count) * sizeof(TreeNode)
+                 + local_context_.eval_cache.stats().total_bytes;
         }
         //AI名称
         std::string ai_name() const
@@ -2019,9 +2057,35 @@ namespace m_tetris2
         {
             return local_context_.ai_config();
         }
-        auto ai_config()
+        // 只读 ai_config()；可变写入统一走 set_ai_config / notify_ai_config_changed。
+        EvalCache<map_t, typename Core::Result> const &eval_cache() const
         {
-            return local_context_.ai_config();
+            return local_context_.eval_cache;
+        }
+        EvalCache<map_t, typename Core::Result> &eval_cache()
+        {
+            return local_context_.eval_cache;
+        }
+        typename EvalCache<map_t, typename Core::Result>::Stats eval_cache_stats() const
+        {
+            return local_context_.eval_cache.stats();
+        }
+        size_t eval_generation() const
+        {
+            return local_context_.eval_cache.generation();
+        }
+        void set_ai_config(auto const &next)
+        {
+            local_context_.set_ai_config(next);
+            on_ai_config_changed();
+        }
+        void notify_ai_config_changed()
+        {
+            on_ai_config_changed();
+        }
+        ProviderCounters &provider_counters()
+        {
+            return local_context_.provider_counters;
         }
         auto search_config() const
         {
@@ -2046,6 +2110,16 @@ namespace m_tetris2
         //update!强制刷新上下文
         void update()
         {
+            local_context_.is_complete = false;
+            root_->update_version(&local_context_);
+        }
+        // Config 变更：bump eval generation（旧桶靠 written_gen 不等自动 stale）+
+        // update_version 使所有子 node.version 失效，下轮 run 自顶向下重跑 build_children/get。
+        void on_ai_config_changed()
+        {
+            bool overflowed = local_context_.eval_cache.on_config_changed();
+            // 缓存溢出（generation 环绕）：旧树节点 eval_gen 可能误等于新纪元，era++ 使全树 eval holder 失效。
+            if (overflowed) ++local_context_.eval_era;
             local_context_.is_complete = false;
             root_->update_version(&local_context_);
         }
@@ -2230,6 +2304,7 @@ namespace m_tetris2
         std::atomic<bool> backgrond_;
         bool running_;
         bool update_pending_ = false;
+        size_t config_set_count_ = 0;
 
         struct PauseBackground
         {
@@ -2283,7 +2358,6 @@ namespace m_tetris2
         // those nodes.
         void apply_host_state()
         {
-            ai_config_.assign(engine_.ai_config());
             search_config_.assign(engine_.search_config());
             *engine_.status() = status_;
             if (std::exchange(update_pending_, false))
@@ -2375,9 +2449,22 @@ namespace m_tetris2
         {
             return ai_config_.get();
         }
-        auto ai_config()
+        void set_ai_config(auto const &next)
         {
-            return ai_config_.get();
+            PauseBackground pause(this);
+            ai_config_.value = next;
+            engine_.set_ai_config(next);
+            ++config_set_count_;
+        }
+        void notify_ai_config_changed()
+        {
+            PauseBackground pause(this);
+            engine_.notify_ai_config_changed();
+            ++config_set_count_;
+        }
+        size_t config_set_count() const
+        {
+            return config_set_count_;
         }
         auto search_config() const
         {

@@ -1,9 +1,12 @@
 ﻿
 #include "tetris_core.h"
+#include "tetris_eval_get.h"
 #include "search_tspin.h"
 #include "search_aspin.h"
 #include "integer_utils.h"
 #include "ai_rule_spec_utils.h"
+#include "c2_combo_table.h"
+#include "../cultris/c2_combo_dp.h"
 #include <algorithm>
 #include <array>
 
@@ -19,11 +22,12 @@ namespace ai_zzz
                 size_t level;
                 int mode;
             };
+            // 纯盘面（map+Config）加权量；落块/消行项由 get 按原表达式原位置合成。
             struct Result
             {
-                double land_point, map;
-                size_t clear;
-                int danger;
+                double map;       // 旧 result.map（ColTrans/RowTrans/空洞族/AttackDepth）
+                double board_dz;  // 旧 BoardDeadZone（map_in_danger_ + roof==H ? 70 : 0）
+                int danger;       // 旧 v.Danger
             };
             struct Status
             {
@@ -33,24 +37,27 @@ namespace ai_zzz
                 double value;
                 bool operator<(Status const &) const;
             };
+            using Landing = m_tetris2::GetLanding<std::monostate>;
+            using GetArgs = m_tetris2::type_list<
+                m_tetris2::args::Eval<Result>,
+                m_tetris2::args::Landing<Landing>,
+                m_tetris2::args::Clear,
+                m_tetris2::args::Parent<Status>,
+                m_tetris2::args::Depth>;
 
-        public:
             template<class Spec>
             void init(Config const *config);
             std::string ai_name() const;
 
-            template<class Details>
-            Result eval(m_tetris2::TetrisNode<Details, std::monostate> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
+            template<class MapT>
+            Result eval(MapT const &map) const
             {
-                using MapT = typename Details::map_type;
                 constexpr int map_width = MapT::width;
                 constexpr int map_height = MapT::height;
                 constexpr uint32_t row_full = static_cast<uint32_t>(MapT::row_full);
 
-                // roof: equivalent of TetrisMap::roof
                 int roof = map.none() ? 0 : (map.max_y() + 1);
 
-                // Precompute column heights (equivalent of TetrisMap::top[x])
                 int top[map_width];
                 for (int x = 0; x < map_width; ++x)
                 {
@@ -63,10 +70,6 @@ namespace ai_zzz
                         }
                 }
 
-                double LandHeight = lp.land_height();
-                double Middle = std::fabs((lp.x + 1) * 2 - map_width);
-                double EraseCount = clear;
-                double DeadZone = lp.land_height() == map_height ? 500000. : 0;
                 double BoardDeadZone = map_in_danger_(map);
                 if (roof == map_height)
                     BoardDeadZone += 70;
@@ -77,15 +80,12 @@ namespace ai_zzz
                 for (int y = 0; y < roof; ++y)
                 {
                     uint32_t occ_row = static_cast<uint32_t>(map.occupied_row(y));
-                    // Wall transitions occur where the edge cell is empty.
                     uint32_t empty_row = static_cast<uint32_t>(row_full) ^ occ_row;
                     ColTrans += (empty_row & 1u) + ((empty_row >> width_m1) & 1u) + ZZZ_BitCount((occ_row ^ (occ_row << 1)) & static_cast<uint32_t>(col_mask_));
                     if (y != 0)
                         RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(y - 1)) ^ occ_row);
                 }
-                // bottom boundary: empty count
                 RowTrans += ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.occupied_row(0)));
-                // top boundary: occupied (if full) or empty count
                 RowTrans += ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(roof - 1)));
                 struct
                 {
@@ -99,8 +99,8 @@ namespace ai_zzz
                     int WellNum[m_tetris2::max_width];
                     double AttackDepth;
                     int Danger;
-                    uint32_t LineCoverBits; // accumulated occupied bits
-                    uint32_t TopHoleBits; // covered empty-cell bits
+                    uint32_t LineCoverBits;
+                    uint32_t TopHoleBits;
                 } v;
                 std::memset(&v, 0, sizeof v);
 
@@ -145,7 +145,6 @@ namespace ai_zzz
                 {
                     for (int y = v.HolePosy; y < roof; ++y)
                     {
-                        // TopHoleBits is 1=empty; compare against empty bits of current row
                         uint32_t CheckLine = v.TopHoleBits & static_cast<uint32_t>(row_full ^ map.occupied_row(y));
                         if (CheckLine == 0)
                             break;
@@ -173,7 +172,6 @@ namespace ai_zzz
                 int low_y = top[low_x];
                 for (int y = roof - 1; y >= low_y; --y)
                 {
-                    // check_line_1_/2_ are stored in 1=occupied semantics (see init())
                     uint32_t occ_row = static_cast<uint32_t>(map.occupied_row(y));
                     if (std::binary_search<uint32_t const *>(check_line_1_, check_line_1_end_, occ_row))
                     {
@@ -200,14 +198,14 @@ namespace ai_zzz
                     v.AttackDepth = 0;
 
                 Result result;
-                result.land_point = (0. - LandHeight * 16 + Middle * 0.2 + EraseCount * 6 - DeadZone - BoardDeadZone * 500000);
                 result.map = (0. - ColTrans * 32 - RowTrans * 32 - v.HoleCount * 400 - v.HoleLine * 38 - v.WellDepth * 16 - v.HoleDepth * 4 - v.HolePiece * 2 + v.AttackDepth * 100);
-                result.clear = clear;
+                result.board_dz = BoardDeadZone;
                 result.danger = v.Danger;
                 return result;
             }
 
-            Status get(Result const &eval_result, size_t depth, Status const &status) const;
+            Status get(Result const &eval_result, Landing const &landing, int clear,
+                       Status const &status, size_t depth) const;
 
         private:
             uint32_t check_line_1_[32];
@@ -217,6 +215,7 @@ namespace ai_zzz
             Config const *config_;
             size_t type_max_{0};
             int width_{0};
+            int height_{0};
             int col_mask_, row_mask_;
             struct MapInDangerData
             {
@@ -245,12 +244,14 @@ namespace ai_zzz
                 return danger;
             }
         };
+
     }
 
     class Dig
     {
     public:
         using Result = double;
+        using Status = double;  // TetrisCore 要求 AI::Status 别名；Dig 无嵌套 Status，语义同 double
         struct Config
         {
             std::array<double, 100> p =
@@ -279,36 +280,28 @@ namespace ai_zzz
                     50000,
                     32,
                     0.25,
-            };
+                };
         };
+        // 仅 Eval；恒等 get（不请求 depth/parent/env/clear）。
+        using GetArgs = m_tetris2::type_list<m_tetris2::args::Eval<double>>;
+
         template<class Spec>
         void init(Config const *config);
         std::string ai_name() const;
-        template<class Details>
-        double eval(m_tetris2::TetrisNode<Details, std::monostate> node,
-                    typename Details::map_type const &map,
-                    typename Details::map_type const &src_map, int clear) const
+        template<class MapT>
+        double eval(MapT const &map) const
         {
-            using MapT = typename Details::map_type;
             using row_t = typename MapT::row_t;
-            // TetrisMap<W,H>: bit=1 means occupied (1=occupied semantics).
-            // TetrisMap: bit=1 表示 occupied。
             constexpr int W = MapT::width;
             constexpr int H = MapT::height;
             constexpr row_t full = MapT::row_full;
             constexpr row_t col_mask = static_cast<row_t>(full & ~row_t(1));
             const int width_m1 = W - 1;
 
-            // roof: index of the lowest all-empty row above all occupied rows (0 if board is empty).
             int roof = map.none() ? 0 : (map.max_y() + 1);
 
-            // ColTrans: start with 2 transitions per empty row above roof (left+right wall).
             size_t ColTrans = static_cast<size_t>(2 * (H - roof));
 
-            // RowTrans (档位 A 真理): 左/右/底墙 occupied，顶墙 empty。
-            //   - 底墙项: popcount(empty bits of row[0]) = popcount(full ^ row[0])
-            //   - 顶墙项: popcount(occupied bits of row[roof-1]) = popcount(map.occupied_row(roof-1))
-            //   - roof < H 时的 "无穷空行到顶" 不贡献，因此 init = 0，无 += W 兜底。
             size_t RowTrans = 0;
             if (roof > 0)
             {
@@ -318,10 +311,7 @@ namespace ai_zzz
 
             for (int y = 0; y < roof; ++y)
             {
-                // empty_row: bits set where the cell is empty (inverse of occupied).
                 row_t empty_row = static_cast<row_t>(full ^ map.occupied_row(y));
-                // ColTrans: left wall (x=0 is empty), right wall (x=width_m1 is empty),
-                // adjacent-column transitions within the row.
                 ColTrans += static_cast<size_t>((empty_row & 1)) + static_cast<size_t>((static_cast<uint32_t>(empty_row) >> width_m1) & 1u) + static_cast<size_t>(ZZZ_BitCount(static_cast<uint32_t>(static_cast<row_t>(empty_row ^ static_cast<row_t>(empty_row << 1)) & col_mask)));
                 if (y != 0)
                 {
@@ -349,10 +339,6 @@ namespace ai_zzz
                 double ClearWidth;
             } a[40];
 
-            // LineCoverBits tracks occupied bits seen so far (scanning top-down).
-            // A hole at column x in row y means: LineCoverBits has x set (occupied above y)
-            // but map.occupied_row(y) does NOT have x set (empty at y).
-            // In 1=occupied: LineCoverBits = union of occupied bits; LineHole = covered but empty here.
             for (int y = roof - 1; y >= 0; --y)
             {
                 uint32_t occ_row = static_cast<uint32_t>(map.occupied_row(y));
@@ -365,7 +351,6 @@ namespace ai_zzz
                     a[v.HolePosyIndex].ClearWidth = 0;
                     for (int hy = y + 1; hy < roof; ++hy)
                     {
-                        // CheckLine: the hole bits that are also occupied above (covered overhead).
                         uint32_t CheckLine = static_cast<uint32_t>(LineHole) & static_cast<uint32_t>(map.occupied_row(hy));
                         if (CheckLine == 0)
                         {
@@ -385,11 +370,6 @@ namespace ai_zzz
                     {
                         v.HoleNum[x] = 0;
                     }
-                    // Well at x: x-1 and x+1 are occupied (covered), x is empty (not in LineCoverBits yet,
-                    // or in LineCoverBits but not covered by occ_row — but here we use the cover pattern).
-                    // Pattern in LineCoverBits: bits (x-1, x, x+1) = 0b101 (5): neighbors covered, x not.
-                    // In 1=occupied LineCoverBits: covered = occupied above. Well = not covered at x
-                    // but covered at x±1. Pattern remains == 5 (same bit positions, same meaning).
                     if (((v.LineCoverBits >> (x - 1)) & 7) == 5)
                     {
                         v.WellDepth += (++v.WellNum[x] + config_->p[2]) * config_->p[3];
@@ -403,7 +383,6 @@ namespace ai_zzz
                 {
                     v.HoleNum[0] = 0;
                 }
-                // Left-edge well: x=0 not covered, x=1 covered. LineCoverBits bits 0,1 = 0b10 (2).
                 if ((v.LineCoverBits & 3) == 2)
                 {
                     v.WellDepth += (++v.WellNum[0] + config_->p[2]) * config_->p[3];
@@ -416,8 +395,6 @@ namespace ai_zzz
                 {
                     v.HoleNum[width_m1] = 0;
                 }
-                // Right-edge well: x=width_m1 not covered, x=width_m1-1 covered.
-                // LineCoverBits bits (width_m1-1, width_m1) = 0b01 (1).
                 if (((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
                 {
                     v.WellDepth += (++v.WellNum[width_m1] + config_->p[2]) * config_->p[3];
@@ -434,7 +411,10 @@ namespace ai_zzz
             }
             return value;
         }
-        double get(double const &eval_result, size_t depth) const;
+        double get(double const &eval_result) const
+        {
+            return eval_result;
+        }
 
     private:
         struct MapInDangerData
@@ -468,6 +448,7 @@ namespace ai_zzz
         int col_mask_, row_mask_;
     };
 
+
     // TSpinHook emits the one-line-clear class; the oracle AIs derived the class per clear count in get.
     inline search_tspin::Search::TSpinType tspin_for_clear(search_tspin::Search::TSpinType spin, size_t clear)
     {
@@ -489,12 +470,11 @@ namespace ai_zzz
             int const *table;
             int table_max;
         };
+        // 纯盘面量；clear / t_spin 由 get 现场重放。
         struct Result
         {
             double value;
-            int clear;
             int roof;
-            TSpinType t_spin;
         };
         struct Status
         {
@@ -508,8 +488,13 @@ namespace ai_zzz
             double value;
             bool operator<(Status const &) const;
         };
+        using Landing = m_tetris2::GetLanding<TSpinType>;
+        using GetArgs = m_tetris2::type_list<
+            m_tetris2::args::Eval<Result>,
+            m_tetris2::args::Clear,
+            m_tetris2::args::Landing<Landing>,
+            m_tetris2::args::Parent<Status>>;
 
-    public:
         template<class Spec>
         void init(Config const *config);
         std::string ai_name() const;
@@ -517,10 +502,9 @@ namespace ai_zzz
         {
             return 0.5;
         }
-        template<class Details>
-        Result eval(m_tetris2::TetrisNode<Details, TSpinType> const &lp, typename Details::map_type const &map, typename Details::map_type const &, size_t clear) const
+        template<class MapT>
+        Result eval(MapT const &map) const
         {
-            using MapT = typename Details::map_type;
             constexpr int map_width = MapT::width;
             constexpr int map_height = MapT::height;
             constexpr uint32_t row_full = static_cast<uint32_t>(MapT::row_full);
@@ -546,17 +530,16 @@ namespace ai_zzz
 
             Result result;
             result.value = (roof > 4 ? 0 : 10000) - ColTrans * 3 - RowTrans * 2;
-            result.clear = clear;
             result.roof = roof;
-            result.t_spin = tspin_for_clear(lp.spin, clear);
             return result;
         }
-        Status get(Result const &eval_result, size_t depth, Status const &status) const;
+        Status get(Result const &eval_result, int clear, Landing const &landing, Status const &status) const;
 
     private:
         Config const *config_;
         int col_mask_, row_mask_;
     };
+
 
     class Botris_PC
     {
@@ -568,12 +551,11 @@ namespace ai_zzz
             int const *table;
             int table_max;
         };
+        // 纯盘面量；clear / a_spin 由 get 现场重放（ASpin 直接赋值，不经 tspin_for_clear）。
         struct Result
         {
             double value;
-            int clear;
             int roof;
-            ASpinType a_spin;
         };
         struct Status
         {
@@ -587,8 +569,13 @@ namespace ai_zzz
             double value;
             bool operator<(Status const &) const;
         };
+        using Landing = m_tetris2::GetLanding<ASpinType>;
+        using GetArgs = m_tetris2::type_list<
+            m_tetris2::args::Eval<Result>,
+            m_tetris2::args::Clear,
+            m_tetris2::args::Landing<Landing>,
+            m_tetris2::args::Parent<Status>>;
 
-    public:
         template<class Spec>
         void init(Config const *config);
         std::string ai_name() const;
@@ -596,10 +583,9 @@ namespace ai_zzz
         {
             return 0.5;
         }
-        template<class Details>
-        Result eval(m_tetris2::TetrisNode<Details, ASpinType> const &lp, typename Details::map_type const &map, typename Details::map_type const &, size_t clear) const
+        template<class MapT>
+        Result eval(MapT const &map) const
         {
-            using MapT = typename Details::map_type;
             constexpr int map_width = MapT::width;
             constexpr int map_height = MapT::height;
             constexpr uint32_t row_full = static_cast<uint32_t>(MapT::row_full);
@@ -626,39 +612,38 @@ namespace ai_zzz
 
             Result result;
             result.value = (roof > 4 ? 0 : 10000) - ColTrans * 3 - RowTrans * 2;
-            result.clear = clear;
             result.roof = roof;
-            result.a_spin = lp.spin;
             return result;
         }
-        Status get(Result const &eval_result, size_t depth, Status const &status) const;
+        Status get(Result const &eval_result, int clear, Landing const &landing, Status const &status) const;
 
     private:
         Config const *config_;
         int col_mask_, row_mask_;
     };
 
+
     class TOJ_v08
     {
     public:
         typedef search_tspin::Search::TSpinType TSpinType;
         using EvalSpinType = TSpinType;
+        using Landing = m_tetris2::GetLanding<TSpinType>;
         struct Config
         {
             int const *table;
             int table_max;
         };
+        // Result 收缩：clear/t_spin/top_out 依赖本次落块与消行，已移到 get 现场重算；
+        // 这里只保留纯盘面(map+Config)加权量。
         struct Result
         {
             double value;
-            int clear;
             int count;
             int t2_value;
             int t3_value;
             int roof;
             int8_t safe_cache[8]; // indexed by cached piece index, size >= type_max
-            TSpinType t_spin;
-            int8_t top_out;
         };
         struct Status
         {
@@ -674,6 +659,9 @@ namespace ai_zzz
             double value;
             bool operator<(Status const &) const;
         };
+        using GetArgs = m_tetris2::type_list<m_tetris2::args::Eval<Result>, m_tetris2::args::Clear,
+                                             m_tetris2::args::Landing<Landing>, m_tetris2::args::Parent<Status>,
+                                             m_tetris2::args::Depth, m_tetris2::args::Env>;
 
     public:
         template<class Spec>
@@ -683,10 +671,9 @@ namespace ai_zzz
         {
             return 1.5;
         }
-        template<class Details>
-        Result eval(m_tetris2::TetrisNode<Details, TSpinType> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
+        template<class MapT>
+        Result eval(MapT const &map) const
         {
-            using MapT = typename Details::map_type;
             constexpr int map_width = MapT::width;
             constexpr int map_height = MapT::height;
             constexpr uint32_t row_full = static_cast<uint32_t>(MapT::row_full);
@@ -776,15 +763,13 @@ namespace ai_zzz
             for (int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
                 result.value -= a[i].ClearWidth * rate;
             result.count = occ_count + v.HoleCount;
-            result.clear = clear;
             result.t2_value = 0;
             result.t3_value = 0;
             result.roof = roof;
 
             // Precompute safe_cache for all piece types
             std::memset(result.safe_cache, 0, sizeof(result.safe_cache));
-            using Spec = typename Details::spec_type;
-            for (size_t ti = 0; ti < m_tetris2::ai_rule_spec::piece_count<Spec>() && ti < 8; ++ti)
+            for (size_t ti = 0; ti < type_max_ && ti < 8; ++ti)
             {
                 int safe = 0;
                 while (map_in_danger_(map, ti, safe + 1) == 0)
@@ -894,12 +879,11 @@ namespace ai_zzz
                     }
                 }
             }
-            result.t_spin = tspin_for_clear(lp.spin, clear);
-            result.top_out = lp.row() >= 20;
             return result;
         }
 
-        Status get(Result const &eval_result, size_t depth, Status const &status, m_tetris2::AIEnv const &env) const;
+        // 新 get：参数按 GetArgs 声明顺序萃取。clear/t_spin/top_out 在 get 现场重算。
+        Status get(Result const &eval_result, int clear, Landing const &landing, Status const &parent, size_t depth, m_tetris2::AIEnv const &env) const;
 
     private:
         size_t type_max_{0};
@@ -937,20 +921,19 @@ namespace ai_zzz
     public:
         typedef search_aspin::Search::ASpinType ASpinType;
         using EvalSpinType = ASpinType;
+        using Landing = m_tetris2::GetLanding<ASpinType>;
         struct Config
         {
             int const *table;
             int table_max;
         };
+        // Result 收缩：clear/a_spin/top_out 依赖本次落块与消行，已移到 get 现场重算。
         struct Result
         {
             double value;
-            int clear;
             int count;
             int roof;
             int8_t safe_cache[8]; // indexed by cached piece index
-            ASpinType a_spin;
-            int8_t top_out;
         };
         struct Status
         {
@@ -967,6 +950,9 @@ namespace ai_zzz
             double value;
             bool operator<(Status const &) const;
         };
+        using GetArgs = m_tetris2::type_list<m_tetris2::args::Eval<Result>, m_tetris2::args::Clear,
+                                             m_tetris2::args::Landing<Landing>, m_tetris2::args::Parent<Status>,
+                                             m_tetris2::args::Depth, m_tetris2::args::Env>;
 
     public:
         template<class Spec>
@@ -976,10 +962,10 @@ namespace ai_zzz
         {
             return 1.5;
         }
-        template<class Details>
-        Result eval(m_tetris2::TetrisNode<Details, ASpinType> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
+        template<class MapT>
+        Result eval(MapT const &map) const
         {
-            using MapT = typename Details::map_type;
+            using MapT_unused = void;
             constexpr int map_width = MapT::width;
             constexpr int map_height = MapT::height;
             constexpr uint32_t row_full = static_cast<uint32_t>(MapT::row_full);
@@ -1098,24 +1084,21 @@ namespace ai_zzz
                 result.value -= a[i].ClearWidth * rate;
             }
             result.count = occ_count + v.HoleCount;
-            result.clear = clear;
             result.roof = roof;
 
             // Precompute safe_cache for all piece types
             std::memset(result.safe_cache, 0, sizeof(result.safe_cache));
-            using Spec = typename Details::spec_type;
-            for (size_t ti = 0; ti < m_tetris2::ai_rule_spec::piece_count<Spec>() && ti < 8; ++ti)
+            for (size_t ti = 0; ti < type_max_ && ti < 8; ++ti)
             {
                 int safe = 0;
                 while (map_in_danger_(map, ti, safe + 1) == 0)
                     ++safe;
                 result.safe_cache[ti] = static_cast<int8_t>(safe);
             }
-            result.a_spin = lp.spin;
-            result.top_out = lp.row() >= 20;
             return result;
         }
-        Status get(Result const &eval_result, size_t depth, Status const &status, m_tetris2::AIEnv const &env) const;
+        // 新 get：参数按 GetArgs 声明顺序萃取。clear/a_spin/top_out 在 get 现场重算。
+        Status get(Result const &eval_result, int clear, Landing const &landing, Status const &parent, size_t depth, m_tetris2::AIEnv const &env) const;
 
     private:
         size_t type_max_{0};
@@ -1204,18 +1187,15 @@ namespace ai_zzz
             int safe;
             Param param;
         };
+        // Result 收缩：clear/top_out/t_spin/piece_type 依赖本次落块与消行，移到 get 现场重算。
         struct Result
         {
             double value;
-            int8_t clear;
-            int8_t top_out;
             int16_t count;
             int16_t t2_value;
             int16_t t3_value;
-            TSpinType t_spin;
             int roof;
             int8_t safe_cache[8];
-            char piece_type;
         };
         struct Status
         {
@@ -1251,10 +1231,15 @@ namespace ai_zzz
         {
             return config_->param.ratio;
         }
-        template<class Details>
-        Result eval(m_tetris2::TetrisNode<Details, TSpinType> const &lp, typename Details::map_type const &map, typename Details::map_type const &, size_t clear) const
+        using Landing = m_tetris2::GetLanding<TSpinType>;
+        using GetArgs = m_tetris2::type_list<m_tetris2::args::Eval<Result>, m_tetris2::args::Clear,
+                                             m_tetris2::args::Landing<Landing>, m_tetris2::args::Parent<Status>,
+                                             m_tetris2::args::Env>;
+
+    public:
+        template<class MapT>
+        Result eval(MapT const &map) const
         {
-            using MapT = typename Details::map_type;
             constexpr int map_width = MapT::width;
             constexpr int map_height = MapT::height;
             constexpr uint32_t row_full = static_cast<uint32_t>(MapT::row_full);
@@ -1331,14 +1316,9 @@ namespace ai_zzz
             auto &p = config_->param;
             result.value = (0. - side_roof * p.roof - ColTrans * p.col_trans - RowTrans * p.row_trans - v.HoleCount * p.hole_count - v.HoleLine * p.hole_line - v.ClearWidth * p.clear_width + v.Wide[2] * p.wide_2 + v.Wide[3] * p.wide_3 + v.Wide[4] * p.wide_4);
             result.count = map.popcount();
-            result.clear = int8_t(clear);
-            result.top_out = lp.row() >= 20;
             result.roof = roof;
-            result.piece_type = m_tetris2::TetrisNodeBase<Details>::T;
-            result.t_spin = tspin_for_clear(lp.spin, clear);
             // Pre-compute safe_cache for all piece types.
-            using Spec = typename Details::spec_type;
-            for (size_t i = 0; i < m_tetris2::ai_rule_spec::piece_count<Spec>() && i < 8; ++i)
+            for (size_t i = 0; i < type_max_ && i < 8; ++i)
             {
                 int safe = 0;
                 while (map_in_danger_(map, i, safe + 1) == 0)
@@ -1348,7 +1328,9 @@ namespace ai_zzz
             return result;
         }
 
-        Status get(Result const &eval_result, size_t depth, Status const &status, m_tetris2::AIEnv const &env) const;
+        // 新 get：参数按 GetArgs 声明顺序萃取（无 Depth，原 depth 为死参）。
+        // clear/top_out/t_spin/piece_type 在 get 现场重算。
+        Status get(Result const &eval_result, int clear, Landing const &landing, Status const &parent, m_tetris2::AIEnv const &env) const;
 
     private:
         size_t type_max_{0};
@@ -1409,26 +1391,30 @@ namespace ai_zzz
             double value;
             bool operator<(Status const &) const;
         };
+        // Result 收缩：clear/hole/new_hole/soft_drop 依赖落块、消行与源盘，移到 get 现场重算；
+        // 这里只保留纯盘面(map+Config)加权量。hole_count 为 map 洞(列顶和-popcount)，供 get 重算 new_hole。
         struct Result
         {
             double attack;
             double map;
-            size_t clear;
             double fill;
-            double hole;
-            double new_hole;
-            bool soft_drop;
+            double hole_count;
             int cells = 0; // Exact post-placement population for continuation DP.
         };
+
+        using Landing = m_tetris2::GetLanding<std::monostate>;
+        // MapBefore/MapAfter 为非模板 wildcard tag，MapT 由 Engine 萃取；get 用 template<MapT> 承接。
+        using GetArgs = m_tetris2::type_list<m_tetris2::args::Eval<Result>, m_tetris2::args::Landing<Landing>,
+                                             m_tetris2::args::Clear, m_tetris2::args::MapBefore,
+                                             m_tetris2::args::Parent<Status>, m_tetris2::args::NextNode, m_tetris2::args::NextLength>;
 
     public:
         template<class Spec>
         void init(Config const *config);
         std::string ai_name() const;
-        template<class Details>
-        Result eval(m_tetris2::TetrisNode<Details, std::monostate> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
+        template<class MapT>
+        Result eval(MapT const &map) const
         {
-            using MapT = typename Details::map_type;
             constexpr int map_width = MapT::width;
             constexpr int map_height = MapT::height;
             // C2's evaluator was tuned against the legacy 21-row engine. The
@@ -1439,7 +1425,6 @@ namespace ai_zzz
             constexpr uint32_t row_full = static_cast<uint32_t>(MapT::row_full);
 
             int roof = map.none() ? 0 : (map.max_y() + 1);
-            int src_roof = src_map.none() ? 0 : (src_map.max_y() + 1);
 
             const int width_m1 = map_width - 1;
             size_t ColTrans = 2 * (eval_height - roof);
@@ -1583,7 +1568,6 @@ namespace ai_zzz
             // top[x] = first y from bottom where get(x,y)==1, plus 1; 0 if column empty.
             {
                 int map_count = map.popcount();
-                int src_count = src_map.popcount();
                 for (int x = 0; x < map_width; ++x)
                 {
                     int map_top_x = 0;
@@ -1593,18 +1577,9 @@ namespace ai_zzz
                             map_top_x = y + 1;
                             break;
                         }
-                    int src_top_x = 0;
-                    for (int y = src_roof - 1; y >= 0; --y)
-                        if (src_map.get(x, y))
-                        {
-                            src_top_x = y + 1;
-                            break;
-                        }
                     v.HoleCount += map_top_x;
-                    v.HoleCountSrc += src_top_x;
                 }
                 v.HoleCount -= map_count;
-                v.HoleCountSrc -= src_count;
             }
 
             double BoardDeadZone = map_in_danger_(map);
@@ -1626,66 +1601,161 @@ namespace ai_zzz
                 int attack_well = std::min(4, v.WideWellDepth[0]);
                 result.attack = (0. + v.WideWellDepth[5] * 2.4 + v.WideWellDepth[4] * 3.6 + v.WideWellDepth[3] * 7.2 + v.WideWellDepth[2] * 9.6 + v.WideWellDepth[1] * -20 + ((attack_well * attack_well) + config_->p[16]) * config_->p[17] * config_->p_rate);
             }
-            result.clear = clear;
             {
                 int map_count = map.popcount();
                 result.cells = map_count;
                 result.fill = float(map_count) / (map_width * (eval_height - config_->safe));
             }
-            result.hole = float(v.HoleCountSrc) / (eval_height - config_->safe);
-            result.new_hole = v.HoleCount > v.HoleCountSrc ? float(v.HoleCount - v.HoleCountSrc) / eval_height : 0;
-            // Free fall is possible only when every occupied piece column's
-            // bottom cell is on or above its source-board column top.
-            // kLines keeps the SRS 4x4 padding, whereas col()/row()/kWidth are
-            // the trimmed bounding box, so normalize both padding offsets.
-            bool need_soft_drop = false;
-            int shape_bottom = lp.kHeight;
-            int shape_left = lp.kHeight;
-            for (int i = 0; i < lp.kHeight; ++i)
+            result.hole_count = v.HoleCount;
+            // soft_drop/hole/new_hole 已移到 get：那里有 Clear、Landing 与 MapBefore(源盘)，
+            // 可按原口径重算落块悬空与源盘洞；eval 只留纯盘面(map+Config)加权量。
+            return result;
+        }
+        // 新 get：参数按 GetArgs 声明顺序萃取（无 Depth/Env；仅 NextNode/NextLength）。
+        // 模板体放头文件，可被任意 supported Rule 的 MapT（如生产 rule_c2 10x28）实例化链接；
+        // 非模板评分 helper（c2_detail::kComboTable / max_reachable_combo）由 c2_combo_table.h / c2_combo_dp.h inline 提供。
+        template<class MapT>
+        Status get(Result const &eval_result, Landing const &landing, int clear, MapT const &src_map, Status const &parent, char next_node, size_t next_length) const
+{
+        // 源盘相关量在 get 顶部按原口径重算（不依赖 mode；旧 eval 已在落块时算好 hole/new_hole/soft_drop）。
+        constexpr int c2_map_width = MapT::width;
+        constexpr int c2_eval_height = 21;
+        const int src_roof = src_map.none() ? 0 : (src_map.max_y() + 1);
+        int HoleCountSrc = 0;
+        {
+            int src_count = src_map.popcount();
+            for (int x = 0; x < c2_map_width; ++x)
             {
-                if (lp.kLines[i] != 0)
-                {
-                    shape_bottom = i;
-                    break;
-                }
+                int src_top_x = 0;
+                for (int y = src_roof - 1; y >= 0; --y)
+                    if (src_map.get(x, y)) { src_top_x = y + 1; break; }
+                HoleCountSrc += src_top_x;
             }
-            for (int i = 0; i < lp.kHeight; ++i)
+            HoleCountSrc -= src_count;
+        }
+        const double new_hole = eval_result.hole_count > HoleCountSrc ? static_cast<float>(eval_result.hole_count - HoleCountSrc) / c2_eval_height : 0;
+        bool need_soft_drop = false;
+        {
+            const int kHeight = landing.h;
+            const int kWidth = landing.w;
+            int shape_bottom = kHeight;
+            int shape_left = kHeight;
+            for (int i = 0; i < kHeight; ++i)
+                if (landing.lines[i] != 0) { shape_bottom = i; break; }
+            for (int i = 0; i < kHeight; ++i)
+                for (int x = 0; x < kHeight; ++x)
+                    if ((landing.lines[i] >> x) & 1) { shape_left = std::min(shape_left, x); break; }
+            for (int j = 0; j < kWidth; ++j)
             {
-                for (int x = 0; x < lp.kHeight; ++x)
+                for (int i = 0; i < kHeight; ++i)
                 {
-                    if ((lp.kLines[i] >> x) & 1)
+                    if ((landing.lines[i] >> (j + shape_left)) & 1)
                     {
-                        shape_left = std::min(shape_left, x);
-                        break;
-                    }
-                }
-            }
-            for (int j = 0; j < lp.kWidth; ++j)
-            {
-                for (int i = 0; i < lp.kHeight; ++i)
-                {
-                    if ((lp.kLines[i] >> (j + shape_left)) & 1)
-                    {
-                        int col = lp.col() + j;
+                        int col = landing.col() + j;
                         int src_top_col = 0;
                         for (int y = src_roof - 1; y >= 0; --y)
-                            if (src_map.get(col, y))
-                            {
-                                src_top_col = y + 1;
-                                break;
-                            }
-                        if (lp.row() + (i - shape_bottom) < src_top_col)
+                            if (src_map.get(col, y)) { src_top_col = y + 1; break; }
+                        if (landing.row() + (i - shape_bottom) < src_top_col)
                             need_soft_drop = true;
                         break;
                     }
                 }
-                if (need_soft_drop)
-                    break;
+                if (need_soft_drop) break;
             }
-            result.soft_drop = need_soft_drop;
-            return result;
         }
-        Status get(Result const &eval_result, size_t depth, Status const &status, m_tetris2::AIEnv const &env) const;
+
+        Status result;
+        result.attack = 0;
+        result.combo = c2_detail::clamp_combo(parent.combo);
+        result.combo_limit = parent.combo_limit;
+        result.value = eval_result.map;
+        if (config_->mode == 0)
+        {
+            // One simulated placement always costs exactly one planning interval.
+            // Match Java's strict pre-lock timeout check: equality remains active.
+            const double bpm = config_->planning_bpm > 0.0 ? config_->planning_bpm : 60.0;
+            const double dt = 60.0 / bpm;
+            if (result.combo_limit < 0.0)
+            {
+                result.combo_limit = 0.0;
+                result.combo = 0;
+            }
+            if (result.combo > 0 && result.combo_limit < dt)
+            {
+                result.combo = 0;
+                result.combo_limit = 0.0;
+            }
+            const size_t old_combo = result.combo;
+            const size_t clamped_clear = c2_detail::clamp_clear(clear);
+            const auto &combo_entry = c2_detail::kComboTable[old_combo];
+            const double increment = combo_entry.increment[clamped_clear];
+            if (old_combo > 0)
+            {
+                result.combo_limit = result.combo_limit - dt + increment;
+                if (clear > 0)
+                    result.combo = c2_detail::clamp_combo(old_combo + 1);
+            }
+            else
+            {
+                result.combo_limit = increment;
+                result.combo = clear > 0 ? 1 : 0;
+            }
+            // A child is the next simulated piece's planning root. Java clears only
+            // on strict expiry, so exactly zero remains active while negatives expire.
+            if (result.combo_limit < 0.0)
+            {
+                result.combo_limit = 0.0;
+                result.combo = 0;
+            }
+            double fill = eval_result.fill + (config_->danger ? 0.32 : 0);
+            double hole = static_cast<float>(HoleCountSrc) / (c2_eval_height - config_->safe) + (config_->danger ? 0.16 : 0);
+            double upstack = std::max<double>(0, 1 - hole * 3.3) * std::max<double>(0, 1 - (fill < 0.4 ? 0 : fill - 0.4) * 4);
+            double downstack;
+            double length_ratio = (1 << ((next_node != ' ') + static_cast<int>(next_length))) * 0.5;
+            if (old_combo == 0)
+            {
+                downstack = std::max<double>(0.2, 1 - hole * 3.3) * std::max<double>(0.2, 1 - std::abs(fill - 0.48) * 5);
+                result.attack -= 60000 * new_hole;
+                result.attack += eval_result.attack * upstack;
+            }
+            else
+            {
+                downstack = std::max<double>(0.2, 1 - hole * 3.3) * std::max<double>(0.2, 1 - fill * 1.2);
+            }
+            if (clear > 0)
+            {
+                if (old_combo == 0)
+                {
+                    result.attack -= 8000 * upstack;
+                    result.attack += combo_entry.score[clamped_clear] * downstack;
+                }
+                else
+                {
+                    result.attack += combo_entry.score[clamped_clear] * downstack * length_ratio;
+                }
+            }
+            else if (old_combo > 0)
+            {
+                result.attack -= combo_entry.score[0] * downstack * length_ratio;
+            }
+            result.attack += parent.attack;
+            // Like master's C2::get: prune only the returned continuation state.
+            // This placement was scored above with its real incoming combo;
+            // the parent/root state and deadline must never be rewritten.
+            if (!config_->danger && result.combo > 0
+                && max_reachable_combo(bpm, static_cast<int>(result.combo),
+                                       eval_result.cells, result.combo_limit) < 6) {
+                result.combo = 0;
+            }
+        }
+        result.map = parent.map + eval_result.map;
+        if (need_soft_drop && !config_->soft_drop)
+        {
+            result.map -= 9999999999;
+        }
+        result.value = result.attack + result.map;
+        return result;
+    }
         Status iterate(Status const **status, size_t status_length) const;
 
     private:
@@ -1732,6 +1802,7 @@ namespace ai_zzz
             config_ = config;
             type_max_ = m_tetris2::ai_rule_spec::piece_count<Spec>();
             width_ = static_cast<int>(Spec::width);
+            height_ = static_cast<int>(Spec::height);
             check_line_1_end_ = check_line_1_;
             check_line_2_end_ = check_line_2_;
             const uint32_t full = m_tetris2::ai_rule_spec::row_mask<Spec>();

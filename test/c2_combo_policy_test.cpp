@@ -25,13 +25,13 @@ int main(){
     ai_zzz::C2::Config cfg{};cfg.mode=0;cfg.soft_drop=1;cfg.p_rate=1;cfg.planning_bpm=240;
     ai_zzz::C2 ai;ai.init<rule_c2::TetrisRule::rule_spec>(&cfg);
     ai_zzz::C2::Status parent{};parent.combo=4;parent.combo_limit=1.2;parent.attack=123;parent.map=456;
-    ai_zzz::C2::Result poor{};poor.clear=1;poor.fill=.3;poor.hole=.02;poor.new_hole=.4;
+    ai_zzz::C2::Result poor{};poor.fill=.3;poor.hole_count=2;
     poor.cells=0;poor.map=-100;
-    m_tetris2::AIEnv env{};env.node=' ';
+    m_tetris2::TetrisMap<10,28> src_map{};
     const auto saved=parent;
-    const auto stop=ai.get(poor,0,parent,env);
+    const auto stop=ai.get(poor,ai_zzz::C2::Landing{},1,src_map,parent,' ',0);
     auto rich=poor;rich.cells=180;
-    const auto keep=ai.get(rich,0,parent,env);
+    const auto keep=ai.get(rich,ai_zzz::C2::Landing{},1,src_map,parent,' ',0);
     expect(stop.combo==0,"poor candidate clears only returned continuation combo");
     expect(keep.combo==5,"rich candidate preserves returned continuation combo");
     expect(close(stop.value,keep.value)&&close(stop.attack,keep.attack),
@@ -39,16 +39,16 @@ int main(){
     expect(close(stop.combo_limit,keep.combo_limit),"DP pruning does not fabricate deadline");
     expect(parent.combo==saved.combo&&close(parent.combo_limit,saved.combo_limit)
         &&close(parent.attack,saved.attack)&&close(parent.map,saved.map),"evaluator parent is immutable");
-    auto next_piece=poor;next_piece.new_hole=.1;next_piece.clear=0;
-    const auto stopped_next=ai.get(next_piece,1,stop,env);
-    const auto continued_next=ai.get(next_piece,1,keep,env);
+    auto next_piece=poor;next_piece.hole_count=10;
+    const auto stopped_next=ai.get(next_piece,ai_zzz::C2::Landing{},1,src_map,stop,' ',0);
+    const auto continued_next=ai.get(next_piece,ai_zzz::C2::Landing{},1,src_map,keep,' ',0);
     expect(!close(stopped_next.attack-stop.attack,continued_next.attack-keep.attack),
         "returned continuation state changes next placement scoring");
     cfg.danger=1;
-    const auto danger=ai.get(poor,0,parent,env);
+    const auto danger=ai.get(poor,ai_zzz::C2::Landing{},1,src_map,parent,' ',0);
     expect(danger.combo==5,"incoming danger bypasses continuation pruning");
     cfg.mode=1;
-    const auto downstack=ai.get(poor,0,parent,env);
+    const auto downstack=ai.get(poor,ai_zzz::C2::Landing{},1,src_map,parent,' ',0);
     expect(downstack.combo==4,"Downstack mode is untouched by Attack continuation policy");
 
     // Evaluate a legal O on an empty board, with exact post-placement rows.
@@ -58,7 +58,8 @@ int main(){
     CultrisMap empty{},after{};
     after.set_row(0,static_cast<CultrisMap::row_t>(0x3ff ^ 3));
     after.set_row(1,static_cast<CultrisMap::row_t>(0x3ff ^ 3));
-    const auto features=ai.eval(node,after,empty,0);
+    (void)node;(void)empty;
+    const auto features=ai.eval(after);
     expect(features.cells==4,"evaluator carries exact post-placement population");
     // Real search tree: danger end must not reuse old candidate scores.
     CultrisMap board{};

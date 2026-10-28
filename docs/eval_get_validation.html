@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>eval(map)+GetArgs 迁移验证说明</title>
+<style>
+  :root{--ink:#1a2233;--mut:#5b6b82;--line:#e3e8f0;--ok:#1a7f4b;--warn:#9a6700;--bad:#b42318;--bg:#f7f9fc;--card:#fff}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--ink);background:var(--bg)}
+  .wrap{max-width:980px;margin:0 auto;padding:32px 20px 64px}
+  h1{font-size:24px;margin:0 0 4px}
+  .sub{color:var(--mut);margin:0 0 24px}
+  .badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600;margin-right:6px}
+  .b-pending{background:#fff4d6;color:var(--warn)}
+  .b-pass{background:#e3f4ea;color:var(--ok)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:16px 0}
+  h2{font-size:17px;margin:0 0 10px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--mut);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.03em}
+  td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .pill{font-weight:600}
+  .p-pass{color:var(--ok)} .p-warn{color:var(--warn)} .p-bad{color:var(--bad)}
+  ul{margin:6px 0 0;padding-left:20px}
+  li{margin:3px 0}
+  .note{color:var(--mut);font-size:13px}
+  code{background:#eef2f8;border-radius:4px;padding:1px 5px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>eval(map)+GetArgs 迁移验证说明</h1>
+  <p class="sub">
+    <span class="badge b-pending">2026-10-29 · full Debug rc0 · commit / deploy pending</span>
+    <span class="badge b-pass">契约迁移完成</span>
+    本页是施工验证快照，不替代源码与测试本身。
+  </p>
+
+  <div class="card">
+    <h2>范围</h2>
+    <p>框架头 <code>src/tetris_eval_get.h</code> 已落地；<b>全部 15 个 src AI</b> 已迁到新 eval(map) + GetArgs 契约。
+    契约要点：eval 为纯 post-map 盘面函数；get 按 AI 声明的 <code>GetArgs=type_list&lt;...&gt;</code> 按需萃取 provider；
+    结果由每 Context 一张直接映射 <code>EvalCache</code>（hash + 全 raw map 相等、单桶覆盖、Config 变更按 generation 失效）；
+    已移除同深度换位剪枝（无 <code>Status::transposition_key</code>）。</p>
+  </div>
+
+  <div class="card">
+    <h2>引擎与核心</h2>
+    <table>
+      <thead><tr><th>项</th><th>结果</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>engine 组</td><td class="num pill p-pass">3 + 5 + 7 全 pass</td><td>三组引擎集成用例通过</td></tr>
+        <tr><td>core counter / wrap / tree scale</td><td class="num pill p-pass">80 → 160 全 pass</td><td>fresh、iterate、duplicate 同引用、tag、no-eval；thread 实际 run + Config setter 生命周期</td></tr>
+        <tr><td>串行套件</td><td class="num pill p-warn">36 / 37 pass</td><td>唯一 fail = 基线预存 safe-BPM old-generation 断言（pre-existing，非迁移引入）</td></tr>
+        <tr><td>Native 双架构</td><td class="num pill p-pass">Debug / Release dlopen 步骤全 pass</td><td class="note">实际 dlopen 加载步骤</td></tr>
+        <tr><td>C2 专项</td><td class="num pill p-pass">双架构 6 pass</td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>逐 AI 数值对拍（旧基线 vs 新实现，Debug）</h2>
+    <table>
+      <thead><tr><th>组</th><th>覆盖规模</th><th>结果</th></tr></thead>
+      <tbody>
+        <tr><td>A</td><td class="num">384 字段行</td><td class="pill p-pass">逐位一致</td></tr>
+        <tr><td>B</td><td class="num">52 字段</td><td class="pill p-pass">一致</td></tr>
+        <tr><td>D</td><td class="num">misaka 121500 / ax 18000 / farter 3600</td><td class="pill p-pass">扩大用例一致</td></tr>
+        <tr><td>C</td><td class="num">golden 241 行 · 240 cases / 2460 obs</td><td class="pill p-pass">独立注册 PASS，其余字段 bit-exact；旧 tag 边界 UB，不语义承诺</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>未声称 / 待测（Open）</h2>
+    <ul>
+      <li><b>不声称</b> ASan 无 data race、全搜索 path 等价、wall-ms 强度、最优缓存桶数。</li>
+      <li>换位剪枝已<b>实际全删除</b>；无剪枝重复展开由独立 repeats-500 单测覆盖（不要求旧 pruned-path 等价）。缓存 on/off 仅在<b>单 limit-0</b> 验过 path + status。</li>
+      <li>parallel engine 观测到非确定性，尚未归因。</li>
+      <li>最优桶数（命中率/内存）、wall-ms 强度（io_sim 配对种子/交换座位）未测。</li>
+      <li>C 最终计数、旧 safe BPM-generation fail、commit/deploy 待后续。</li>
+    </ul>
+  </div>
+
+  <p class="note">本页数据为 2026-10-29 快照；commit/deploy 与最终测试数据落地后再追加。</p>
+</div>
+</body>
+</html>

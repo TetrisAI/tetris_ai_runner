@@ -228,20 +228,21 @@ char kind_to_piece_char(std::int32_t kind) noexcept {
 }
 
 void install_c2_config_once(CultrisEngine& engine) {
-    auto* cfg = engine.ai_config();
-    cfg->p = {
+    auto cfg = *engine.ai_config();
+    cfg.p = {
         2.87224, 0.372169, 0.102604, 0.723501, 3.08721, 0.802789,
         -0.786174, 107.713, -0.540719, 109.116, -3.84305, 116.58,
         -1.00066, 49.7899, -1.23986, 391.808, -4.30493, 91.0623,
         -1.60608, 67.7934, 2.36365, 46016.9, 34.2515, 0.285739,
     };
-    cfg->p_rate = 1;
-    cfg->safe   = 0;
-    cfg->mode   = 0;
-    cfg->danger = 0;
-    cfg->planning_bpm = kDefaultPlanningBpm;
-    cfg->iterate_low = 4;
-    cfg->iterate_high = 7;
+    cfg.p_rate = 1;
+    cfg.safe   = 0;
+    cfg.mode   = 0;
+    cfg.danger = 0;
+    cfg.planning_bpm = kDefaultPlanningBpm;
+    cfg.iterate_low = 4;
+    cfg.iterate_high = 7;
+    engine.set_ai_config(cfg);
 
     // Dynamic soft-drop state is installed from every C2StepInput below.
     engine.search_config()->fast_move_down = true;
@@ -254,7 +255,7 @@ void install_c2_config_once(CultrisEngine& engine) {
 
 bool update_c2_config_per_frame(CultrisEngine& engine, const C2StepInput& in,
                                 int iterate_low = 4, int iterate_high = 7) {
-    auto* cfg = engine.ai_config();
+    auto cfg = *engine.ai_config();
     auto* st = engine.status();
     const auto real_combo = static_cast<decltype(st->combo)>(
         ai_zzz::c2_detail::clamp_combo(static_cast<std::size_t>(
@@ -262,32 +263,35 @@ bool update_c2_config_per_frame(CultrisEngine& engine, const C2StepInput& in,
     const double remaining_s =
         static_cast<double>(input_combo_remaining_ms(in)) / 1000.0;
     const bool is_danger = in.incoming_garbage > 0;
-    const decltype(cfg->danger) new_danger = is_danger ? 1 : 0;
-    const decltype(cfg->soft_drop) new_soft_drop =
+    const decltype(cfg.danger) new_danger = is_danger ? 1 : 0;
+    const decltype(cfg.soft_drop) new_soft_drop =
         input_soft_drop_enabled(in) ? 1 : 0;
-    const decltype(cfg->safe) new_safe = input_safe(in);
+    const decltype(cfg.safe) new_safe = input_safe(in);
     const double new_planning_bpm = static_cast<double>(input_planning_bpm(in));
     const bool new_fast_move_down = new_soft_drop == 0;
     const int clamped_low = std::clamp(iterate_low, 1, 7);
     const int clamped_high = std::clamp(std::max(iterate_high, clamped_low), 1, 7);
     // Both danger transitions change candidate scoring/continuation policy.
-    const bool changed = cfg->danger != new_danger
-        || cfg->soft_drop != new_soft_drop
-        || cfg->safe != new_safe
-        || cfg->planning_bpm != new_planning_bpm
-        || cfg->iterate_low != clamped_low
-        || cfg->iterate_high != clamped_high
+    const bool changed = cfg.danger != new_danger
+        || cfg.soft_drop != new_soft_drop
+        || cfg.safe != new_safe
+        || cfg.planning_bpm != new_planning_bpm
+        || cfg.iterate_low != clamped_low
+        || cfg.iterate_high != clamped_high
         || engine.search_config()->fast_move_down != new_fast_move_down;
     // combo/combo_limit are a root snapshot latched by c2ai_step. Reassigning the
     // already-latched values here is stable and does not invalidate the search.
     st->combo = real_combo;
     st->combo_limit = remaining_s;
-    cfg->danger = new_danger;
-    cfg->soft_drop = new_soft_drop;
-    cfg->safe = new_safe;
-    cfg->planning_bpm = new_planning_bpm;
-    cfg->iterate_low = clamped_low;
-    cfg->iterate_high = clamped_high;
+    if (changed) {
+        cfg.danger = new_danger;
+        cfg.soft_drop = new_soft_drop;
+        cfg.safe = new_safe;
+        cfg.planning_bpm = new_planning_bpm;
+        cfg.iterate_low = clamped_low;
+        cfg.iterate_high = clamped_high;
+        engine.set_ai_config(cfg);
+    }
     // Cautious make_path emits stepwise 'd' neighbours only when this is false.
     engine.search_config()->fast_move_down = new_fast_move_down;
     (void)in.pressure_blend;
@@ -365,18 +369,25 @@ bool plan_real(Handle& h, const C2StepInput& in,
     char resolved_piece = 0;
     if (!make_current_status(in, map, &status, &resolved_piece)) return false;
 
-    const bool dynamic_config_changed = update_c2_config_per_frame(
+    // 动态 Config 变更已由 set_ai_config 统一完成失效；普通 update() 不再作为失效替代。
+    update_c2_config_per_frame(
         h.engine, in,
         h.iterate_low.load(std::memory_order_acquire),
         h.iterate_high.load(std::memory_order_acquire));
-    h.engine.ai_config()->mode = h.ai_mode.load(std::memory_order_acquire);
+    {
+        auto cfg = *h.engine.ai_config();
+        const int mode = h.ai_mode.load(std::memory_order_acquire);
+        if (cfg.mode != mode) {
+            cfg.mode = mode;
+            h.engine.set_ai_config(cfg);
+        }
+    }
 
     const bool next_virtual_flag = h.next_virtual.load(std::memory_order_acquire) != 0;
     const bool next_preview_flag = h.next_preview.load(std::memory_order_acquire) != 0;
     const std::string next = c2_next_sequence(
         next_virtual_flag, next_preview_flag, kind_to_piece_char(in.next_kind));
 
-    if (dynamic_config_changed) h.engine.update();
     auto result = h.engine.run(map, status, next.data(), next.size(), kSearchBudgetMs);
     if (!CultrisEngine::TreeNode::lp_is_valid(result.target)) return false;
 

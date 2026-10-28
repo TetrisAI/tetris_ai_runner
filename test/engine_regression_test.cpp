@@ -62,16 +62,20 @@ namespace
         return TetrisBlockStatus(t, static_cast<int8_t>(x), static_cast<int8_t>(y), 0);
     }
 
-    // Wraps a 4-arg AI and checks every AIEnv against the queue actually left after the placement.
+    // Wraps a GetArgs AI and checks every AIEnv against the queue actually left after the placement.
+    // 新契约: GetArgs 由 Base 声明 (TOJ_v08/Botris 含 args::Env), probe 继承并 override 同签名 get.
     template<class Base>
     class QueueProbe : public Base
     {
     public:
+        using typename Base::GetArgs;
         std::string pieces;
         mutable size_t calls = 0;
         mutable size_t mismatches = 0;
 
-        typename Base::Status get(typename Base::Result const &result, size_t depth, typename Base::Status const &status, m_tetris2::AIEnv const &env) const
+        typename Base::Status get(typename Base::Result const &result, int clear,
+                                  typename Base::Landing const &landing, typename Base::Status const &status,
+                                  size_t depth, m_tetris2::AIEnv const &env) const
         {
             ++calls;
             size_t drawn = depth + 1 + (env.hold != ' ' ? 1 : 0);
@@ -82,15 +86,17 @@ namespace
                 std::printf("  env mismatch depth=%zu node=%c hold=%c is_hold=%d next=\"%.*s\" expected=\"%.*s\"\n",
                             depth, env.node, env.hold, int(env.is_hold), int(seen.size()), seen.data(), int(expected.size()), expected.data());
             }
-            return Base::get(result, depth, status, env);
+            return Base::get(result, clear, landing, status, depth, env);
         }
     };
 
     template<class Engine>
     void configure_host(Engine &engine)
     {
-        engine.ai_config()->table = kComboTable;
-        engine.ai_config()->table_max = kComboTableMax;
+        auto cfg = *engine.ai_config();
+        cfg.table = kComboTable;
+        cfg.table_max = kComboTableMax;
+        engine.set_ai_config(cfg);
         *engine.status() = {};
         engine.update();
     }
@@ -241,6 +247,7 @@ namespace
                 return value < other.value;
             }
         };
+        using GetArgs = m_tetris2::type_list<m_tetris2::args::Eval<Result>, m_tetris2::args::Clear, m_tetris2::args::Parent<Status>>;
         template<class Spec>
         void init(Config const *)
         {
@@ -249,14 +256,14 @@ namespace
         {
             return "IterateProbe";
         }
-        template<class Details>
-        Result eval(m_tetris2::TetrisNode<Details, std::monostate> const &, typename Details::map_type const &map, typename Details::map_type const &, size_t clear) const
+        template<class MapT>
+        Result eval(MapT const &map) const
         {
-            return int(clear) * 100 - map.popcount();
+            return -map.popcount();
         }
-        Status get(Result const &result, size_t, Status const &status, m_tetris2::AIEnv const &) const
+        Status get(Result const &result, int clear, Status const &status) const
         {
-            return {status.value + result};
+            return {status.value + result + int(clear) * 100};
         }
         Status iterate(Status const **status, size_t length) const
         {
@@ -300,6 +307,9 @@ namespace
                 return value < other.value;
             }
         };
+        using EvalSpinType = search_amini::Search::AMiniType; // path 无 lp.type 不赋值; amini lp.type 即 AMiniType
+        using Landing = m_tetris2::GetLanding<EvalSpinType>;
+        using GetArgs = m_tetris2::type_list<m_tetris2::args::Eval<Result>, m_tetris2::args::Landing<Landing>, m_tetris2::args::Parent<Status>>;
         template<class Spec>
         void init(Config const *)
         {
@@ -308,14 +318,14 @@ namespace
         {
             return "LeftmostProbe";
         }
-        template<class Details>
-        Result eval(m_tetris2::TetrisNode<Details, std::monostate> const &lp, typename Details::map_type const &, typename Details::map_type const &, size_t) const
+        template<class MapT>
+        Result eval(MapT const &) const
         {
-            return -int(lp.x);
+            return 0;
         }
-        Status get(Result const &result, size_t, Status const &status) const
+        Status get(Result const &, Landing const &landing, Status const &status) const
         {
-            return {status.value + result};
+            return {status.value - landing.col()};
         }
     };
 
@@ -417,6 +427,7 @@ namespace
                 return false;
             }
         };
+        using GetArgs = m_tetris2::type_list<m_tetris2::args::Eval<Result>, m_tetris2::args::Parent<Status>, m_tetris2::args::Depth>;
         template<class Spec>
         void init(Config const *)
         {
@@ -425,13 +436,12 @@ namespace
         {
             return "EqualProbe";
         }
-        template<class Details>
-        Result eval(m_tetris2::TetrisNode<Details, std::monostate> const &, typename Details::map_type const &,
-                    typename Details::map_type const &, size_t) const
+        template<class MapT>
+        Result eval(MapT const &) const
         {
             return 0;
         }
-        Status get(Result const &, size_t depth, Status const &) const
+        Status get(Result const &, Status const &, size_t depth) const
         {
             root_gets += depth == 0;
             return {};
@@ -519,12 +529,14 @@ namespace
     class CountingProbe : public LeftmostProbe
     {
     public:
+        using LeftmostProbe::GetArgs;
+        using LeftmostProbe::Landing;
         mutable size_t evals = 0;
-        template<class Details>
-        Result eval(m_tetris2::TetrisNode<Details, std::monostate> const &lp, typename Details::map_type const &map, typename Details::map_type const &src, size_t clear) const
+        template<class MapT>
+        Result eval(MapT const &map) const
         {
             ++evals;
-            return LeftmostProbe::eval(lp, map, src, clear);
+            return LeftmostProbe::eval(map);
         }
     };
 
@@ -582,6 +594,9 @@ namespace
                 return value < other.value;
             }
         };
+        using EvalSpinType = std::monostate;
+        using Landing = m_tetris2::GetLanding<EvalSpinType>;
+        using GetArgs = m_tetris2::type_list<m_tetris2::args::Eval<Result>, m_tetris2::args::Landing<Landing>, m_tetris2::args::Parent<Status>>;
         static inline std::atomic<size_t> gets{0};
 
         template<class Spec>
@@ -592,15 +607,15 @@ namespace
         {
             return "TagProbe";
         }
-        template<class Details>
-        Result eval(m_tetris2::TetrisNode<Details, std::monostate> const &lp, typename Details::map_type const &, typename Details::map_type const &, size_t) const
+        template<class MapT>
+        Result eval(MapT const &) const
         {
-            return -int(lp.x);
+            return 0;
         }
-        Status get(Result const &result, size_t, Status const &status) const
+        Status get(Result const &result, Landing const &landing, Status const &status) const
         {
             gets.fetch_add(1, std::memory_order_relaxed);
-            return {status.value + result, status.tag};
+            return {status.value + result - landing.col(), status.tag};
         }
     };
 
@@ -630,9 +645,10 @@ namespace
         expect(result.status.tag == 2, "a search after update() scores every node with the new status");
     }
 
-    // Scores boards alone and records the position (board, hold, queue left) of every node the beam expands.
-    template<bool kTranspositionKey>
-    class ExpansionProbe
+    // 无剪枝重复展开证据: transposition prune 已从 core 删除. hold 重排下同一深度
+    // 同一 (board, hold) 位置必然被重复展开. 本探针记录每深度展开位置并统计 repeats,
+    // 证明重复展开真实发生 (行为变更证据, 不与旧 keyed==0 硬等).
+    class RepeatProbe
     {
     public:
         struct Config
@@ -647,20 +663,16 @@ namespace
         {
             double value = 0;
             std::uint64_t position = 0;
-            std::uint64_t id = 0;
             bool operator<(Status const &other) const
             {
                 return value < other.value;
             }
-            std::uint64_t transposition_key() const
-                requires kTranspositionKey
-            {
-                return 0;
-            }
         };
-        // Per depth: id -> position of every expanded node.
-        mutable std::vector<std::map<std::uint64_t, std::uint64_t>> expanded;
-        mutable std::uint64_t ids = 0;
+        using EvalSpinType = std::monostate;
+        using Landing = m_tetris2::GetLanding<EvalSpinType>;
+        using GetArgs = m_tetris2::type_list<m_tetris2::args::Eval<Result>, m_tetris2::args::MapBefore,
+                                             m_tetris2::args::Hold, m_tetris2::args::Depth, m_tetris2::args::Parent<Status>>;
+        mutable std::vector<std::map<std::uint64_t, int>> expanded;
 
         template<class Spec>
         void init(Config const *)
@@ -668,68 +680,54 @@ namespace
         }
         std::string ai_name() const
         {
-            return "ExpansionProbe";
+            return "RepeatProbe";
         }
-        template<class Details>
-        Result eval(m_tetris2::TetrisNode<Details, std::monostate> const &, typename Details::map_type const &map, typename Details::map_type const &, size_t clear) const
+        template<class MapT>
+        Result eval(MapT const &map) const
         {
             std::uint64_t board = 0;
-            for (int y = 0; y < Details::map_type::height; ++y)
-            {
-                board = m_tetris2::hash_combine(board, map.row(y));
-            }
-            return {int(clear) * 10 - (map.none() ? 0 : map.max_y()), board};
+            for (int y = 0; y < MapT::height; ++y)
+                board = m_tetris2::hash_combine(board, static_cast<std::uint64_t>(map.occupied_row(y)));
+            return {0, board};
         }
-        Status get(Result const &result, size_t depth, Status const &status, m_tetris2::AIEnv const &env) const
+        template<class MapT>
+        Status get(Result const &result, MapT const &map_before, char hold, size_t depth, Status const &status) const
         {
+            (void)map_before;
             if (expanded.size() <= depth)
-            {
                 expanded.resize(depth + 1);
-            }
-            expanded[depth][status.id] = status.position;
-            std::uint64_t const position = m_tetris2::hash_combine(m_tetris2::hash_combine(result.board, static_cast<unsigned char>(env.hold)), env.length);
-            return {status.value + result.score, position, ++ids};
+            std::uint64_t position = m_tetris2::hash_combine(result.board, static_cast<unsigned char>(hold));
+            ++expanded[depth][position];
+            return {status.value + result.score, position};
         }
-        // Expanded nodes whose position was already expanded at their depth.
         size_t repeats() const
         {
             size_t count = 0;
             for (auto const &level : expanded)
-            {
-                std::set<std::uint64_t> positions;
-                for (auto const &[id, position] : level)
-                {
-                    count += !positions.insert(position).second;
-                }
-            }
+                for (auto const &[position, n] : level)
+                    count += n > 1 ? n - 1 : 0;
             return count;
         }
     };
 
-    template<bool kTranspositionKey>
-    size_t expansion_repeats()
+    size_t no_prune_repeated_expansions()
     {
-        using Engine = m_tetris2::TetrisEngine<rule_srs::TetrisRule, ExpansionProbe<kTranspositionKey>, path::Search>;
+        using Engine = m_tetris2::TetrisEngine<rule_srs::TetrisRule, RepeatProbe, path::Search>;
         using Spec = rule_srs::TetrisRule::rule_spec;
         Engine engine;
-        expect(engine.prepare(Spec::width, Spec::height), "expansion prepare");
-        typename Engine::map_t map{};
+        expect(engine.prepare(Spec::width, Spec::height), "no-prune prepare");
+        Engine::map_t map{};
         for (int i = 0; i < 30; ++i)
-        {
             engine.run_hold(map, spawn_of<Spec>('T'), 'I', true, "OLJSZ", 5, 0);
-        }
         return engine.ai()->repeats();
     }
 
-    // Holding reorders placements, so nodes of one depth often reach the same position; with
-    // Status::transposition_key() the beam expands each position once per depth.
-    void beam_expands_each_position_once_per_depth()
+    // hold 重排下同一深度同一位置重复展开: prune 删除后的行为证据.
+    void hold_reorder_expands_positions_more_than_once()
     {
-        size_t const plain = expansion_repeats<false>();
-        size_t const keyed = expansion_repeats<true>();
-        std::printf("repeated expansions: %zu without transposition_key, %zu with\n", plain, keyed);
-        expect(plain > 0, "the probe position has hold transpositions");
-        expect(keyed == 0, "the beam expands each position once per depth");
+        size_t const repeats = no_prune_repeated_expansions();
+        std::printf("no-prune repeated expansions under hold reorder: %zu\n", repeats);
+        expect(repeats > 0, "no transposition prune: same position can expand multiple times per depth");
     }
 } // namespace
 
@@ -750,7 +748,7 @@ int main()
     widening_continues_the_first_search();
     commit_keeps_the_played_move();
     search_after_update_uses_the_new_status();
-    beam_expands_each_position_once_per_depth();
+    hold_reorder_expands_positions_more_than_once();
     std::printf("%s (%d failures)\n", g_failures == 0 ? "PASS" : "FAIL", g_failures);
     return g_failures == 0 ? 0 : 1;
 }

@@ -218,8 +218,13 @@ std::map<std::string, std::function<bool(std::vector<std::string> const &)>> com
              int up[4];
              bot_2.status()->combo = enemy_combo;
              bot_2.status()->point = 0;
-             bot_2.ai_config()->point_ptr = &enemy_point_calc;
-             bot_2.ai_config()->up_ptr = up;
+             {
+                 // point_ptr/up_ptr 指向本帧栈上局部；enemy get 写穿它们是输出，不是 eval 输入。
+                 auto cfg = *bot_2.ai_config();
+                 cfg.point_ptr = &enemy_point_calc;
+                 cfg.up_ptr = up;
+                 bot_2.set_ai_config(cfg);
+             }
              bot_2.run(map2, status, next_arr, 2, 20);
              bot_1.status()->max_combo = combo;
              bot_1.status()->combo = combo;
@@ -296,7 +301,7 @@ int main()
             /*combo_add_width     = */ 56.000000,
             /*combo_break_minute  = */ 64.000000,
         };
-    *bot_1.ai_config() = config;
+    bot_1.set_ai_config(config);
     while (true)
     {
         std::string line;

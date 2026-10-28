@@ -1,5 +1,6 @@
 
 
+
 #include "tetris_core.h"
 #include "integer_utils.h"
 #include "tetris_node.h"
@@ -17,8 +18,13 @@ namespace ai_farteryhr
             BLK_OOB = -1,
         };
 
-        // FarteryhrMap 现在模板化，接受任意满足 TetrisMap<W,H> 接口的地图类型。
+        // FarteryhrMap 模板化，接受任意满足 TetrisMap<W,H> 接口的地图类型，
+        // 以及 GetLanding 几何视图（LandPoint）。
         // MapT 语义：bit=1 = occupied（1=occupied），与 TetrisMap<W,H> 一致。
+        // 迁移说明：旧版以 TetrisNode<Details,...> 为 LandPoint，kHeight 为编译期常量；
+        // 新版 LandPoint = GetLanding，piece 高度为运行期成员 h（与旧 piece_h 同值）。
+        // 这里仅把循环上界由静态 kHeight 改为运行期 lp.h，y 翻转 / line 几何 / 满行支撑 /
+        // 整数除法等全部原算法不变。
         template<class LandPoint, class MapT>
         struct FarteryhrMap
         {
@@ -28,9 +34,11 @@ namespace ai_farteryhr
                 constexpr int map_width  = MapT::width;
                 constexpr int map_height = MapT::height;
                 constexpr uint32_t row_full = static_cast<uint32_t>(MapT::row_full);
+                // 旧 LandPoint::kHeight（编译期）-> 运行期 lp.h（同值）。
+                const int kH = static_cast<int>(lp.h);
 
                 std::memset(node_data, 0, sizeof(node_data));
-                for(int y = 0; y < LandPoint::kHeight; ++y)
+                for(int y = 0; y < kH; ++y)
                     node_data[y + lp.row()] = static_cast<int>(lp.line(y));
                 for(int i = 0; i < m_tetris2::max_height; ++i)
                 {
@@ -39,12 +47,12 @@ namespace ai_farteryhr
                         ? ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(i)))
                         : 0;
                 }
-                for(int y = 0; y < LandPoint::kHeight; ++y)
+                for(int y = 0; y < kH; ++y)
                     row_count[lp.row() + y] += ZZZ_BitCount(static_cast<int>(lp.line(y)));
                 block_count = 0;
                 for(int x = lp.col(); x < lp.col() + lp.width(); ++x)
                 {
-                    for(int y = 0; y < LandPoint::kHeight; ++y)
+                    for(int y = 0; y < kH; ++y)
                     {
                         if((static_cast<int>(lp.line(y)) >> x) & 1)
                         {
@@ -113,7 +121,10 @@ namespace ai_farteryhr
     class AI
     {
     public:
-        using Result = int;
+        using Landing = m_tetris2::GetLanding<std::monostate>;
+        // Result 收缩为空 struct：farter 的全部加权量依赖 src_map(落块前盘) + 落块几何，
+        // 无纯盘面(落块后盘)量，故 eval 为空、全部计算移进 get。
+        struct Result {};
         struct Status
         {
             int eval;
@@ -123,16 +134,30 @@ namespace ai_farteryhr
         template<class Spec>
         void init();
         std::string ai_name() const;
+        // 冻结 GetArgs（shard D）：MapBefore, Landing<L>, Parent<Status>, Depth。
+        // 无 Eval/Clear/Env。MapBefore 即旧 src_map（落块前源盘）。
+        using GetArgs = m_tetris2::type_list<m_tetris2::args::MapBefore,
+                                             m_tetris2::args::Landing<Landing>,
+                                             m_tetris2::args::Parent<Status>,
+                                             m_tetris2::args::Depth>;
 
-        template<class Details>
-        int eval(m_tetris2::TetrisNode<Details, std::monostate> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
+        // eval 为空：farter 不消费落块后盘。engine 在 0 eval 下仍须能取到并跑 get。
+        template<class MapT>
+        Result eval(MapT const & /*map*/) const
         {
-            using MapT = typename Details::map_type;
+            return Result{};
+        }
+
+        // get：以 src_map(MapBefore) + Landing 合成 FarteryhrMap，跑原整数加权累积 pts，
+        // 再按旧 get 与父 Status 累积、depth 整除。仅 MapBefore/Landing/Parent/Depth。
+        template<class MapT>
+        Status get(MapT const &src_map, Landing const &landing, Status const &parent, size_t depth) const
+        {
             constexpr int fw = MapT::width;
             constexpr int fh_full = MapT::height;
             int fh = fh_full - fhh;
 
-            detail::FarteryhrMap<m_tetris2::TetrisNode<Details, std::monostate>, MapT> fmap(lp, src_map, fhh);
+            detail::FarteryhrMap<Landing, MapT> fmap(landing, src_map, fhh);
             int pts = 0;
 
             for(size_t i = 0; i < fmap.block_count; ++i)
@@ -251,10 +276,12 @@ namespace ai_farteryhr
             case 4: pts += 1000 * lcW; break;
             }
 
-            return pts;
+            // 旧 get：result.eval = pts + parent.eval；result.value = result.eval / depth。
+            Status result;
+            result.eval = pts + parent.eval;
+            result.value = result.eval / static_cast<int>(depth);
+            return result;
         }
-
-        Status get(int eval_result, size_t depth, Status const &status) const;
     private:
         template<class Spec, std::size_t I = 0>
         void init_fhh_()

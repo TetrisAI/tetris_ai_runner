@@ -12,10 +12,11 @@
 #include "random.h"
 #include "search_simple.h"
 #include "rule_st.h"
+#include "tetris_eval_get.h"
 
 //for https://misakamm.com/blog/504
 
-// DemoAI: 入门级演示 AI，eval 完全随机（与原 ai_easy::AI 行为一致）。
+// DemoAI: 入门级演示 AI，eval 完全随机（dummy stub，新契约迁移）。
 namespace demo
 {
     using namespace m_tetris2;
@@ -24,6 +25,8 @@ namespace demo
     {
     public:
         using Result = double;
+        using Status = double;  // dummy：Status=Result
+        using GetArgs = type_list<>;  // 无 Eval：eval 不参与 cache 正确性
         template<class Spec>
         void init(void const * /*cfg*/ = nullptr) {}
         std::string ai_name() const
@@ -31,18 +34,17 @@ namespace demo
             return "Demo Random AI";
         }
 
-        // get()：从 eval 结果中提取最优落点 score，直接透传
-        double get(double const &eval_result, size_t /*depth*/) const
+        // get()：每步随机（dummy stub，记录为新契约行为，非旧语义 100% 相同）
+        double get() const
         {
-            return eval_result;
+            return ege::mtdrand() * 100;
         }
 
-        // eval()：TetrisCallEval 调用约定，接受任意 TetrisNode 类型（只需 clear 参数）
-        template<class Node, class Map>
-        double eval(Node const & /*node*/, Map const & /*after*/,
-                    Map const & /*before*/, int clear) const
+        // eval(map)：确定性常数，可 cache
+        template<class MapT>
+        double eval(MapT const & /*map*/) const
         {
-            return clear * 100 + ege::mtdrand() * 100;
+            return 0.0;
         }
     };
 }

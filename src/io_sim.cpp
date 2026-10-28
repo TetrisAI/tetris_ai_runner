@@ -268,12 +268,13 @@ namespace io_sim
         me.sync(frame);
 
         int root_lock_frame = lock_frame(seat);
-        ai_zzz::IO::Config &ai_config = *engine.ai_config();
+        ai_zzz::IO::Config ai_config = *engine.ai_config();
         ai_config.rules = config_.rules;
         ai_config.pps = config_.pace[seat].pps;
         ai_config.allow_pc = true;
         ai_config.opponent = ai_zzz::IO::OpponentView{true, opponent.counters.btb, lethal_sent(seat, root_lock_frame)};
         ai_config.param = params_[seat];
+        engine.set_ai_config(ai_config);
 
         projected_pending_.clear();
         for (auto const &entry : me.pending.entries())

@@ -164,8 +164,10 @@ struct test_ai
         ai.search_config()->allow_180 = true;
         ai.search_config()->allow_d = true;
         ai.search_config()->is_20g = false;
-        ai.ai_config()->table = combo_table;
-        ai.ai_config()->table_max = combo_table_max;
+        auto cfg = *ai.ai_config();
+        cfg.table = combo_table;
+        cfg.table_max = combo_table_max;
+        ai.set_ai_config(cfg);
         size_t upcomeAtt = std::accumulate(recv_attack.begin(), recv_attack.end(), 0);
         ai.status()->max_combo = 0;
         ai.status()->max_attack = 0;

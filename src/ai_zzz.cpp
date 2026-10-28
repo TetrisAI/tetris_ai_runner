@@ -73,18 +73,28 @@ namespace ai_zzz
             return "AX Attack v0.1";
         }
 
-        Attack::Status Attack::get(Result const &eval_result, size_t depth, Status const &status) const
+        Attack::Status Attack::get(Result const &eval_result, Landing const &landing, int clear,
+                                   Status const &status, size_t depth) const
         {
+            // 按原表达式原位置合成 land_point（落块项 + clear 项 + 纯盘面 board_dz），
+            // 结合顺序与旧 eval 的 result.land_point 完全一致。
+            double LandHeight = landing.land_height();
+            double Middle = std::fabs((landing.col() + 1) * 2 - width_);
+            double EraseCount = static_cast<double>(clear);
+            double DeadZone = (landing.land_height() == height_) ? 500000. : 0;
+            double BoardDeadZone = eval_result.board_dz;
+            double land_point = (0. - LandHeight * 16 + Middle * 0.2 + EraseCount * 6 - DeadZone - BoardDeadZone * 500000.);
+
             Status result = status;
-            result.land_point += eval_result.land_point;
+            result.land_point += land_point;
             double length_rate = 10. / (depth + 1);
-            switch (eval_result.clear)
+            switch (clear)
             {
             case 0:
                 break;
             case 1:
             case 2:
-                result.rubbish += eval_result.clear;
+                result.rubbish += clear;
                 break;
             case 3:
                 if (config_->mode != 0)
@@ -93,23 +103,18 @@ namespace ai_zzz
                     break;
                 }
             default:
-                result.attack += (eval_result.clear * 10 * length_rate);
+                result.attack += (clear * 10 * length_rate);
                 break;
             }
             result.value = (0. + result.land_point / (depth + 1) + eval_result.map - result.rubbish * (eval_result.danger > 0 ? -100 : 640) + result.attack * 100);
             return result;
         }
+
     }
 
     std::string Dig::ai_name() const
     {
         return "ZZZ Dig v0.2";
-    }
-
-    double Dig::get(double const &eval_result, size_t depth) const
-    {
-        (void)depth;
-        return eval_result;
     }
 
     bool TOJ::Status::operator<(Status const &other) const
@@ -316,10 +321,14 @@ namespace ai_zzz
         }
     };
 
-    TOJ::Status TOJ::get(Result const &eval_result, size_t depth, Status const &status, AIEnv const &env) const
+    TOJ::Status TOJ::get(Result const &eval_result, int clear, Landing const &landing, Status const &parent, AIEnv const &env) const
     {
+        // clear/t_spin/top_out/piece_type 现场重算（args::Clear 与 Landing）；原 depth 为死参不请求。
+        int8_t top_out = landing.row() >= 20 ? int8_t(1) : int8_t(0);
+        TSpinType t_spin = tspin_for_clear(landing.spin, clear);
+        char piece_type = landing.piece;
         Status result;
-        memcpy(&result, &status, sizeof status);
+        memcpy(&result, &parent, sizeof parent);
         int attack = 0;
         int t_attack = 0;
         double like = 0;
@@ -333,50 +342,50 @@ namespace ai_zzz
             v > 0 ? like += v : dislike -= v;
         };
         int next_index = env.length > 0 ? piece_index_[static_cast<unsigned char>(*env.next)] : -1;
-        int safe = eval_result.top_out ? -1 : next_index >= 0 ? eval_result.safe_cache[next_index]
+        int safe = top_out ? -1 : next_index >= 0 ? eval_result.safe_cache[next_index]
                                                               : eval_result.roof;
         auto &p = config_->param;
-        switch (eval_result.clear)
+        switch (clear)
         {
         case 0:
             result.combo = 0;
-            if (status.under_attack > 0)
+            if (parent.under_attack > 0)
             {
-                result.map_rise = status.under_attack;
+                result.map_rise = parent.under_attack;
                 if (result.map_rise > safe)
                 {
                     result.death = 1;
                 }
                 result.under_attack = 0;
             }
-            update_like((eval_result.piece_type == 'I') * p.waste_i);
-            update_like((eval_result.piece_type == 'T') * p.waste_t);
+            update_like((piece_type == 'I') * p.waste_i);
+            update_like((piece_type == 'T') * p.waste_t);
             break;
         case 1:
-            if (eval_result.t_spin == TSpinType::TSpinMini)
+            if (t_spin == TSpinType::TSpinMini)
             {
-                attack = 1 + status.b2b;
+                attack = 1 + parent.b2b;
                 update_like(p.tspin_mini);
             }
-            else if (eval_result.t_spin == TSpinType::TSpin)
+            else if (t_spin == TSpinType::TSpin)
             {
-                attack = 2 + status.b2b;
+                attack = 2 + parent.b2b;
                 update_like(p.tspin_1);
                 t_attack = 1;
             }
             else
             {
-                update_like((eval_result.piece_type == 'I') * p.waste_i);
-                update_like((eval_result.piece_type == 'T') * p.waste_t);
+                update_like((piece_type == 'I') * p.waste_i);
+                update_like((piece_type == 'T') * p.waste_t);
                 update_like(p.clear_1);
             }
             attack += get_combo_attack(++result.combo);
-            result.b2b = eval_result.t_spin != TSpinType::None;
+            result.b2b = t_spin != TSpinType::None;
             break;
         case 2:
-            if (eval_result.t_spin != TSpinType::None)
+            if (t_spin != TSpinType::None)
             {
-                attack += 4 + status.b2b;
+                attack += 4 + parent.b2b;
                 result.b2b = true;
                 update_like(p.tspin_2);
                 t_attack = 1;
@@ -385,16 +394,16 @@ namespace ai_zzz
             {
                 ++attack;
                 result.b2b = false;
-                update_like((eval_result.piece_type == 'I') * p.waste_i);
-                update_like((eval_result.piece_type == 'T') * p.waste_t);
+                update_like((piece_type == 'I') * p.waste_i);
+                update_like((piece_type == 'T') * p.waste_t);
                 update_like(p.clear_2);
             }
             attack += get_combo_attack(++result.combo);
             break;
         case 3:
-            if (eval_result.t_spin != TSpinType::None)
+            if (t_spin != TSpinType::None)
             {
-                attack = 6 + status.b2b * 2;
+                attack = 6 + parent.b2b * 2;
                 result.b2b = true;
                 update_like(p.tspin_3);
                 t_attack = 1;
@@ -402,14 +411,14 @@ namespace ai_zzz
             else
             {
                 result.b2b = false;
-                update_like((eval_result.piece_type == 'I') * p.waste_i);
+                update_like((piece_type == 'I') * p.waste_i);
                 update_like(p.clear_3);
             }
             attack += get_combo_attack(++result.combo) + 2;
             break;
         case 4:
             result.b2b = true;
-            attack = get_combo_attack(++result.combo) + 4 + status.b2b;
+            attack = get_combo_attack(++result.combo) + 4 + parent.b2b;
             update_like(p.clear_4);
             break;
         }
@@ -433,20 +442,20 @@ namespace ai_zzz
         switch (env.hold)
         {
         case 'T':
-            if (eval_result.t_spin == TSpinType::None)
+            if (t_spin == TSpinType::None)
             {
                 update_like(double(20 + config_safe) * p.hold_t);
             }
             break;
         case 'I':
-            if (eval_result.clear != 4)
+            if (clear != 4)
             {
                 update_like(double(40 - config_safe) * p.hold_i);
             }
             break;
         }
         safe -= result.map_rise;
-        if (safe < 0 || eval_result.top_out)
+        if (safe < 0 || top_out)
         {
             result.death = 1;
             safe = 0;
@@ -463,27 +472,27 @@ namespace ai_zzz
         {
             double t2_safe = std::max(0, config_safe - 4);
             double t3_safe = std::max(0, config_safe - 10);
-            if (eval_result.t2_value > status.t2_value)
+            if (eval_result.t2_value > parent.t2_value)
             {
-                t_like += (eval_result.t2_value - status.t2_value) * t2_safe * std::max(10 - t_expect, 5) * p.t2_slot;
+                t_like += (eval_result.t2_value - parent.t2_value) * t2_safe * std::max(10 - t_expect, 5) * p.t2_slot;
             }
             else
             {
-                t_dislike += (status.t2_value - eval_result.t2_value) * t2_safe * 3 * p.t2_slot;
+                t_dislike += (parent.t2_value - eval_result.t2_value) * t2_safe * 3 * p.t2_slot;
             }
-            if (eval_result.t3_value > status.t3_value)
+            if (eval_result.t3_value > parent.t3_value)
             {
-                t_like += (eval_result.t3_value - status.t3_value) * t3_safe * std::max(10 - t_expect, 4) * (3 + result.b2b) * p.t3_slot;
+                t_like += (eval_result.t3_value - parent.t3_value) * t3_safe * std::max(10 - t_expect, 4) * (3 + result.b2b) * p.t3_slot;
             }
             else
             {
-                t_dislike += (status.t3_value - eval_result.t3_value) * t3_safe * 4 * p.t3_slot;
+                t_dislike += (parent.t3_value - eval_result.t3_value) * t3_safe * 4 * p.t3_slot;
             }
         }
         result.t2_value = eval_result.t2_value;
         result.t3_value = eval_result.t3_value;
-        result.acc_value += (0 + attack * (config_safe + 16) * p.attack + get_combo_attack(result.combo) * result.combo * (100 - config_safe) * p.combo + (result.b2b - status.b2b) * (config_safe + 16) * p.b2b - t_dislike - dislike * config_safe * (config_safe + 4) * 4 - result.death * 999999999.0);
-        result.like = (status.like * 1.3 + safe * (40 - config_safe) * p.safe + like * config_safe * (config_safe + 4) * 4 + t_like);
+        result.acc_value += (0 + attack * (config_safe + 16) * p.attack + get_combo_attack(result.combo) * result.combo * (100 - config_safe) * p.combo + (result.b2b - parent.b2b) * (config_safe + 16) * p.b2b - t_dislike - dislike * config_safe * (config_safe + 4) * 4 - result.death * 999999999.0);
+        result.like = (parent.like * 1.3 + safe * (40 - config_safe) * p.safe + like * config_safe * (config_safe + 4) * 4 + t_like);
         result.value = (result.acc_value - result.map_rise * (40 - config_safe) * p.safe + result.like + field * p.base);
         return result;
     }
@@ -498,11 +507,13 @@ namespace ai_zzz
         return "ZZZ TOJ_PC v0.1";
     }
 
-    TOJ_PC::Status TOJ_PC::get(Result const &eval_result, size_t depth, Status const &status) const
+    TOJ_PC::Status TOJ_PC::get(Result const &eval_result, int clear, Landing const &landing, Status const &status) const
     {
+        // clear / spin 在 get 现场重放：TOJ 走 tspin_for_clear（与旧 eval 同位置）。
+        TSpinType t_spin = tspin_for_clear(landing.spin, static_cast<size_t>(clear));
         Status result = status;
 
-        switch (eval_result.clear)
+        switch (clear)
         {
         case 0:
             result.combo = 0;
@@ -513,32 +524,32 @@ namespace ai_zzz
             }
             break;
         case 1:
-            if (eval_result.t_spin == TSpinType::TSpinMini)
+            if (t_spin == TSpinType::TSpinMini)
             {
                 result.attack += status.b2b ? 2 : 1;
             }
-            else if (eval_result.t_spin == TSpinType::TSpin)
+            else if (t_spin == TSpinType::TSpin)
             {
                 result.attack += status.b2b ? 3 : 2;
             }
             result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
-            result.b2b = eval_result.t_spin != TSpinType::None;
+            result.b2b = t_spin != TSpinType::None;
             break;
         case 2:
-            if (eval_result.t_spin != TSpinType::None)
+            if (t_spin != TSpinType::None)
             {
                 result.attack += status.b2b ? 5 : 4;
             }
             result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 1;
-            result.b2b = eval_result.t_spin != TSpinType::None;
+            result.b2b = t_spin != TSpinType::None;
             break;
         case 3:
-            if (eval_result.t_spin != TSpinType::None)
+            if (t_spin != TSpinType::None)
             {
                 result.attack += status.b2b ? 8 : 6;
             }
             result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
-            result.b2b = eval_result.t_spin != TSpinType::None;
+            result.b2b = t_spin != TSpinType::None;
             break;
         case 4:
             result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
@@ -558,6 +569,7 @@ namespace ai_zzz
         return result;
     }
 
+
     bool TOJ_v08::Status::operator<(Status const &other) const
     {
         return value < other.value;
@@ -568,28 +580,32 @@ namespace ai_zzz
         return "ZZZ TOJ v0.8";
     }
 
-    TOJ_v08::Status TOJ_v08::get(Result const &eval_result, size_t depth, Status const &status, AIEnv const &env) const
+    TOJ_v08::Status TOJ_v08::get(Result const &eval_result, int clear, Landing const &landing, Status const &parent, size_t depth, AIEnv const &env) const
     {
-        Status result = status;
+        // clear / t_spin / top_out 由 get 现场重算（args::Clear 与 Landing），
+        // 其余加权量仍在 eval_result(map+Config) 内；运算顺序与旧 4 参版本逐行一致。
+        int8_t top_out = landing.row() >= 20 ? int8_t(1) : int8_t(0);
+        TSpinType t_spin = tspin_for_clear(landing.spin, clear);
+        Status result = parent;
         result.value = eval_result.value;
         int next_index = env.length > 0 ? piece_index_[static_cast<unsigned char>(*env.next)] : -1;
-        int safe = eval_result.top_out ? -1 : next_index >= 0 ? eval_result.safe_cache[next_index]
-                                                              : eval_result.roof;
+        int safe = top_out ? -1 : next_index >= 0 ? eval_result.safe_cache[next_index]
+                                                      : eval_result.roof;
         if (safe <= 0)
         {
             result.value -= 99999;
         }
-        switch (eval_result.clear)
+        switch (clear)
         {
         case 0:
-            if (status.combo > 0 && status.combo < 3)
+            if (parent.combo > 0 && parent.combo < 3)
             {
                 result.like -= 2;
             }
             result.combo = 0;
-            if (status.under_attack > 0)
+            if (parent.under_attack > 0)
             {
-                result.map_rise += std::max(0, int(status.under_attack) - status.attack);
+                result.map_rise += std::max(0, int(parent.under_attack) - parent.attack);
                 if (result.map_rise >= safe)
                 {
                     result.death += result.map_rise - safe;
@@ -598,37 +614,37 @@ namespace ai_zzz
             }
             break;
         case 1:
-            if (eval_result.t_spin == TSpinType::TSpinMini)
+            if (t_spin == TSpinType::TSpinMini)
             {
-                result.attack += status.b2b ? 2 : 1;
+                result.attack += parent.b2b ? 2 : 1;
             }
-            else if (eval_result.t_spin == TSpinType::TSpin)
+            else if (t_spin == TSpinType::TSpin)
             {
-                result.attack += status.b2b ? 3 : 2;
+                result.attack += parent.b2b ? 3 : 2;
             }
             result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
-            result.b2b = eval_result.t_spin != TSpinType::None;
+            result.b2b = t_spin != TSpinType::None;
             break;
         case 2:
-            if (eval_result.t_spin != TSpinType::None)
+            if (t_spin != TSpinType::None)
             {
                 result.like += 8;
-                result.attack += status.b2b ? 5 : 4;
+                result.attack += parent.b2b ? 5 : 4;
             }
             result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 1;
-            result.b2b = eval_result.t_spin != TSpinType::None;
+            result.b2b = t_spin != TSpinType::None;
             break;
         case 3:
-            if (eval_result.t_spin != TSpinType::None)
+            if (t_spin != TSpinType::None)
             {
                 result.like += 12;
-                result.attack += status.b2b ? 8 : 6;
+                result.attack += parent.b2b ? 8 : 6;
             }
             result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
-            result.b2b = eval_result.t_spin != TSpinType::None;
+            result.b2b = t_spin != TSpinType::None;
             break;
         case 4:
-            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
+            result.attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (parent.b2b ? 5 : 4);
             result.b2b = true;
             break;
         }
@@ -641,7 +657,7 @@ namespace ai_zzz
             result.like += 20;
             result.attack += 6;
         }
-        if (status.b2b && !result.b2b)
+        if (parent.b2b && !result.b2b)
         {
             result.like -= 2;
         }
@@ -663,13 +679,13 @@ namespace ai_zzz
         switch (env.hold)
         {
         case 'T':
-            if (eval_result.t_spin == TSpinType::None)
+            if (t_spin == TSpinType::None)
             {
                 result.like += 4;
             }
             break;
         case 'I':
-            if (eval_result.clear != 4)
+            if (clear != 4)
             {
                 result.like += 2;
             }
@@ -692,11 +708,13 @@ namespace ai_zzz
         return "ZZZ Botris_PC v0.1";
     }
 
-    Botris_PC::Status Botris_PC::get(Result const &eval_result, size_t depth, Status const &status) const
+    Botris_PC::Status Botris_PC::get(Result const &eval_result, int clear, Landing const &landing, Status const &status) const
     {
+        // clear / spin 在 get 现场重放：Botris ASpin 直接赋值（与 TOJ 的 tspin_for_clear 差异不变）。
+        ASpinType a_spin = landing.spin;
         Status result = status;
         int attack = 0;
-        switch (eval_result.clear)
+        switch (clear)
         {
         case 0:
             result.combo = 0;
@@ -707,28 +725,28 @@ namespace ai_zzz
             }
             break;
         case 1:
-            if (eval_result.a_spin == ASpinType::ASpin)
+            if (a_spin == ASpinType::ASpin)
             {
                 attack += status.b2b ? 3 : 2;
             }
             attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
-            result.b2b = eval_result.a_spin != ASpinType::None;
+            result.b2b = a_spin != ASpinType::None;
             break;
         case 2:
-            if (eval_result.a_spin != ASpinType::None)
+            if (a_spin != ASpinType::None)
             {
                 attack += status.b2b ? 5 : 4;
             }
             attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 1;
-            result.b2b = eval_result.a_spin != ASpinType::None;
+            result.b2b = a_spin != ASpinType::None;
             break;
         case 3:
-            if (eval_result.a_spin != ASpinType::None)
+            if (a_spin != ASpinType::None)
             {
                 attack += status.b2b ? 7 : 6;
             }
             attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
-            result.b2b = eval_result.a_spin != ASpinType::None;
+            result.b2b = a_spin != ASpinType::None;
             break;
         case 4:
             attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
@@ -750,6 +768,7 @@ namespace ai_zzz
         return result;
     }
 
+
     bool Botris::Status::operator<(Status const &other) const
     {
         return value < other.value;
@@ -760,30 +779,33 @@ namespace ai_zzz
         return "ZZZ Botris v0.8";
     }
 
-    Botris::Status Botris::get(Result const &eval_result, size_t depth, Status const &status, AIEnv const &env) const
+    Botris::Status Botris::get(Result const &eval_result, int clear, Landing const &landing, Status const &parent, size_t depth, AIEnv const &env) const
     {
-        Status result = status;
+        // clear/a_spin/top_out 现场重算（args::Clear 与 Landing）；Status.clear 仍累积 per-node clear。
+        int8_t top_out = landing.row() >= 20 ? int8_t(1) : int8_t(0);
+        ASpinType a_spin = landing.spin;
+        Status result = parent;
         result.value = eval_result.value;
-        result.clear += eval_result.clear;
+        result.clear += clear;
         int next_index = env.length > 0 ? piece_index_[static_cast<unsigned char>(*env.next)] : -1;
-        int safe = eval_result.top_out ? -1 : next_index >= 0 ? eval_result.safe_cache[next_index]
-                                                              : eval_result.roof;
+        int safe = top_out ? -1 : next_index >= 0 ? eval_result.safe_cache[next_index]
+                                                      : eval_result.roof;
         if (safe <= 0)
         {
             result.value -= 99999;
         }
         int attack = 0;
-        switch (eval_result.clear)
+        switch (clear)
         {
         case 0:
-            if (status.combo > 0 && status.combo < 3)
+            if (parent.combo > 0 && parent.combo < 3)
             {
                 result.like -= 2;
             }
             result.combo = 0;
-            if (status.under_attack > 0)
+            if (parent.under_attack > 0)
             {
-                result.map_rise += std::max(0, int(status.under_attack) - status.attack);
+                result.map_rise += std::max(0, int(parent.under_attack) - parent.attack);
                 if (result.map_rise >= safe)
                 {
                     result.death += result.map_rise - safe;
@@ -792,32 +814,32 @@ namespace ai_zzz
             }
             break;
         case 1:
-            if (eval_result.a_spin == ASpinType::ASpin)
+            if (a_spin == ASpinType::ASpin)
             {
                 result.like += 8;
-                attack += status.b2b ? 3 : 2;
+                attack += parent.b2b ? 3 : 2;
             }
             attack += config_->table[std::min(config_->table_max - 1, ++result.combo)];
-            result.b2b = eval_result.a_spin != ASpinType::None;
+            result.b2b = a_spin != ASpinType::None;
             break;
         case 2:
-            if (eval_result.a_spin != ASpinType::None)
+            if (a_spin != ASpinType::None)
             {
-                attack += status.b2b ? 5 : 4;
+                attack += parent.b2b ? 5 : 4;
             }
             attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 1;
-            result.b2b = eval_result.a_spin != ASpinType::None;
+            result.b2b = a_spin != ASpinType::None;
             break;
         case 3:
-            if (eval_result.a_spin != ASpinType::None)
+            if (a_spin != ASpinType::None)
             {
-                attack += status.b2b ? 7 : 6;
+                attack += parent.b2b ? 7 : 6;
             }
             attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + 2;
-            result.b2b = eval_result.a_spin != ASpinType::None;
+            result.b2b = a_spin != ASpinType::None;
             break;
         case 4:
-            attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (status.b2b ? 5 : 4);
+            attack += config_->table[std::min(config_->table_max - 1, ++result.combo)] + (parent.b2b ? 5 : 4);
             result.b2b = true;
             break;
         }
@@ -830,7 +852,7 @@ namespace ai_zzz
             result.like -= 8;
             attack = 10;
         }
-        if (env.hold == 'I' && eval_result.clear == 0)
+        if (env.hold == 'I' && clear == 0)
         {
             result.like += 2;
         }
@@ -850,101 +872,6 @@ namespace ai_zzz
     std::string C2::ai_name() const
     {
         return "C2 v0.1";
-    }
-
-    C2::Status C2::get(Result const &eval_result, size_t depth, Status const &status, AIEnv const &env) const
-    {
-        Status result;
-        result.attack = 0;
-        result.combo = c2_detail::clamp_combo(status.combo);
-        result.combo_limit = status.combo_limit;
-        result.value = eval_result.map;
-        if (config_->mode == 0)
-        {
-            // One simulated placement always costs exactly one planning interval.
-            // Match Java's strict pre-lock timeout check: equality remains active.
-            const double bpm = config_->planning_bpm > 0.0 ? config_->planning_bpm : 60.0;
-            const double dt = 60.0 / bpm;
-            if (result.combo_limit < 0.0)
-            {
-                result.combo_limit = 0.0;
-                result.combo = 0;
-            }
-            if (result.combo > 0 && result.combo_limit < dt)
-            {
-                result.combo = 0;
-                result.combo_limit = 0.0;
-            }
-            const size_t old_combo = result.combo;
-            const size_t clear = c2_detail::clamp_clear(eval_result.clear);
-            const auto &combo_entry = c2_detail::kComboTable[old_combo];
-            const double increment = combo_entry.increment[clear];
-            if (old_combo > 0)
-            {
-                result.combo_limit = result.combo_limit - dt + increment;
-                if (eval_result.clear > 0)
-                    result.combo = c2_detail::clamp_combo(old_combo + 1);
-            }
-            else
-            {
-                result.combo_limit = increment;
-                result.combo = eval_result.clear > 0 ? 1 : 0;
-            }
-            // A child is the next simulated piece's planning root. Java clears only
-            // on strict expiry, so exactly zero remains active while negatives expire.
-            if (result.combo_limit < 0.0)
-            {
-                result.combo_limit = 0.0;
-                result.combo = 0;
-            }
-            double fill = eval_result.fill + (config_->danger ? 0.32 : 0);
-            double hole = eval_result.hole + (config_->danger ? 0.16 : 0);
-            double upstack = std::max<double>(0, 1 - hole * 3.3) * std::max<double>(0, 1 - (fill < 0.4 ? 0 : fill - 0.4) * 4);
-            double downstack;
-            double length_ratio = (1 << ((env.node != ' ') + env.length)) * 0.5;
-            if (old_combo == 0)
-            {
-                downstack = std::max<double>(0.2, 1 - hole * 3.3) * std::max<double>(0.2, 1 - std::abs(fill - 0.48) * 5);
-                result.attack -= 60000 * eval_result.new_hole;
-                result.attack += eval_result.attack * upstack;
-            }
-            else
-            {
-                downstack = std::max<double>(0.2, 1 - hole * 3.3) * std::max<double>(0.2, 1 - fill * 1.2);
-            }
-            if (eval_result.clear > 0)
-            {
-                if (old_combo == 0)
-                {
-                    result.attack -= 8000 * upstack;
-                    result.attack += combo_entry.score[clear] * downstack;
-                }
-                else
-                {
-                    result.attack += combo_entry.score[clear] * downstack * length_ratio;
-                }
-            }
-            else if (old_combo > 0)
-            {
-                result.attack -= combo_entry.score[0] * downstack * length_ratio;
-            }
-            result.attack += status.attack;
-            // Like master's C2::get: prune only the returned continuation state.
-            // This placement was scored above with its real incoming combo;
-            // the parent/root state and deadline must never be rewritten.
-            if (!config_->danger && result.combo > 0
-                && max_reachable_combo(bpm, static_cast<int>(result.combo),
-                                       eval_result.cells, result.combo_limit) < 6) {
-                result.combo = 0;
-            }
-        }
-        result.map = status.map + eval_result.map;
-        if (eval_result.soft_drop && !config_->soft_drop)
-        {
-            result.map -= 9999999999;
-        }
-        result.value = result.attack + result.map;
-        return result;
     }
 
     C2::Status C2::iterate(Status const **status, size_t status_length) const
@@ -984,5 +911,6 @@ namespace ai_zzz
         result.value = sum / static_cast<double>(high - low + 1);
         return result;
     }
+
 
 }

@@ -1,0 +1,241 @@
+MODE=OLD
+IO cfg=0 case=0 eval.value=-668 eval.cells=5 eval.roof=4 get.value=-860 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=4 get.frame=60 get.pendingtot=1.4821969375237396e-323
+IO cfg=0 case=1 eval.value=-160 eval.cells=40 eval.roof=4 get.value=-224 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=6 get.frame=100 get.pendingtot=4.9406564584124654e-324
+IO cfg=0 case=2 eval.value=-160 eval.cells=40 eval.roof=4 get.value=6618.4432051761332 get.like=30.440922322555398 get.btb=2 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=7 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=0
+IO cfg=0 case=3 eval.value=-160 eval.cells=40 eval.roof=4 get.value=3969.3019787838293 get.like=5.9423183072069108 get.btb=2 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=4 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=1.4821969375237396e-323
+IO cfg=0 case=4 eval.value=-160 eval.cells=40 eval.roof=4 get.value=632.00813239854369 get.like=8.654176982036784 get.btb=0 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=2 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=2.4703282292062327e-323
+IO cfg=0 case=5 eval.value=-1054.50927734375 eval.cells=174 eval.roof=19 get.value=-664.53579550240033 get.like=0.041094243427085786 get.btb=0 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=4 get.surge=0 get.maprise=0 get.frame=100 get.pendingtot=1.4821969375237396e-323
+IO cfg=0 case=6 eval.value=-347.5 eval.cells=48 eval.roof=5 get.value=6599.6778655116696 get.like=24 get.btb=2 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=7 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=0
+IO cfg=0 case=7 eval.value=-64058 eval.cells=40 eval.roof=40 get.value=-64122 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=6 get.frame=100 get.pendingtot=4.9406564584124654e-324
+IO cfg=0 case=8 eval.value=-160 eval.cells=40 eval.roof=4 get.value=-737.24893133077535 get.like=-4.8468349249040727 get.btb=0 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=3.4584595208887258e-323
+IO cfg=0 case=9 eval.value=-160 eval.cells=40 eval.roof=4 get.value=-224 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=6 get.frame=100 get.pendingtot=4.9406564584124654e-324
+IO cfg=0 case=10 eval.value=-414 eval.cells=38 eval.roof=4 get.value=-606 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=4 get.frame=60 get.pendingtot=1.4821969375237396e-323
+IO cfg=0 case=11 eval.value=-155 eval.cells=60 eval.roof=6 get.value=-719.32403819769775 get.like=-4.8468349249040727 get.btb=0 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=0 get.frame=100 get.pendingtot=3.4584595208887258e-323
+IO cfg=0 case=12 eval.value=-460.5 eval.cells=49 eval.roof=5 get.value=6732.1877771479622 get.like=35.05981693792539 get.btb=2 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=7 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=0
+IO cfg=0 case=13 eval.value=-107.5 eval.cells=250 eval.roof=25 get.value=-548.32868381638332 get.like=4.4820726147604475 get.btb=0 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=0 get.frame=100 get.pendingtot=3.4584595208887258e-323
+IO cfg=0 case=14 eval.value=-303 eval.cells=39 eval.roof=4 get.value=-495 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=4 get.frame=60 get.pendingtot=1.4821969375237396e-323
+IO cfg=0 case=15 eval.value=-1272.5 eval.cells=172 eval.roof=19 get.value=-1000001352.9139607 get.like=-9.3289075396645202 get.btb=1 get.combo=0 get.death=1 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=6 get.frame=100 get.pendingtot=4.9406564584124654e-324
+IO cfg=0 case=16 eval.value=-347.5 eval.cells=48 eval.roof=5 get.value=6599.6778655116696 get.like=24 get.btb=2 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=7 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=0
+IO cfg=0 case=17 eval.value=-975 eval.cells=5 eval.roof=6 get.value=-1167 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=4 get.frame=60 get.pendingtot=1.4821969375237396e-323
+IO cfg=0 case=18 eval.value=-165.5 eval.cells=61 eval.roof=7 get.value=-229.5 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=6 get.frame=100 get.pendingtot=4.9406564584124654e-324
+IO cfg=0 case=19 eval.value=-460.5 eval.cells=49 eval.roof=5 get.value=-1031.9327294208904 get.like=-4.8468349249040727 get.btb=0 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=0 get.frame=100 get.pendingtot=3.4584595208887258e-323
+IO cfg=1 case=0 eval.value=-41326.650942585533 eval.cells=5 eval.roof=4 get.value=-43758.961852023502 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=4 get.frame=60 get.pendingtot=1.4821969375237396e-323
+IO cfg=1 case=1 eval.value=-32890.982662851384 eval.cells=40 eval.roof=4 get.value=-33701.752965997373 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=6 get.frame=100 get.pendingtot=4.9406564584124654e-324
+IO cfg=1 case=2 eval.value=-32890.982662851384 eval.cells=40 eval.roof=4 get.value=-27119.852990073472 get.like=30.440922322555398 get.btb=2 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=7 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=0
+IO cfg=1 case=3 eval.value=-32890.982662851384 eval.cells=40 eval.roof=4 get.value=-32011.305125903749 get.like=5.9423183072069108 get.btb=2 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=4 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=1.4821969375237396e-323
+IO cfg=1 case=4 eval.value=-32890.982662851384 eval.cells=40 eval.roof=4 get.value=-35832.826046182789 get.like=8.654176982036784 get.btb=0 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=2 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=2.4703282292062327e-323
+IO cfg=1 case=5 eval.value=-53972.983892465745 eval.cells=174 eval.roof=19 get.value=-55823.321320062365 get.like=0.041094243427085786 get.btb=0 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=4 get.surge=0 get.maprise=0 get.frame=100 get.pendingtot=1.4821969375237396e-323
+IO cfg=1 case=6 eval.value=-36071.254854713501 eval.cells=48 eval.roof=5 get.value=-30272.243953423462 get.like=16.80054792502591 get.btb=2 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=7 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=0
+IO cfg=1 case=7 eval.value=-740380.78882903268 eval.cells=40 eval.roof=40 get.value=-741191.55913217866 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=6 get.frame=100 get.pendingtot=4.9406564584124654e-324
+IO cfg=1 case=8 eval.value=-32890.982662851384 eval.cells=40 eval.roof=4 get.value=-38695.623716204092 get.like=-4.8468349249040727 get.btb=0 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=3.4584595208887258e-323
+IO cfg=1 case=9 eval.value=-32890.982662851384 eval.cells=40 eval.roof=4 get.value=-33701.752965997373 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=6 get.frame=100 get.pendingtot=4.9406564584124654e-324
+IO cfg=1 case=10 eval.value=-36996.456545581394 eval.cells=38 eval.roof=4 get.value=-39428.767455019362 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=4 get.frame=60 get.pendingtot=1.4821969375237396e-323
+IO cfg=1 case=11 eval.value=-31168.579281115602 eval.cells=60 eval.roof=6 get.value=-36960.295441335235 get.like=-4.8468349249040727 get.btb=0 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=0 get.frame=100 get.pendingtot=3.4584595208887258e-323
+IO cfg=1 case=12 eval.value=-34392.316213307386 eval.cells=49 eval.roof=5 get.value=-28158.432859599725 get.like=35.05981693792539 get.btb=2 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=7 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=0
+IO cfg=1 case=13 eval.value=-14805.7471546257 eval.cells=250 eval.roof=25 get.value=-20473.967960464015 get.like=4.4820726147604475 get.btb=0 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=0 get.frame=100 get.pendingtot=3.4584595208887258e-323
+IO cfg=1 case=14 eval.value=-35093.517904175271 eval.cells=39 eval.roof=4 get.value=-37525.82881361324 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=4 get.frame=60 get.pendingtot=1.4821969375237396e-323
+IO cfg=1 case=15 eval.value=-66150.344587964486 eval.cells=172 eval.roof=19 get.value=-1000066977.5288519 get.like=-9.3289075396645202 get.btb=1 get.combo=0 get.death=1 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=6 get.frame=100 get.pendingtot=4.9406564584124654e-324
+IO cfg=1 case=16 eval.value=-36071.254854713501 eval.cells=48 eval.roof=5 get.value=-30272.243953423462 get.like=16.80054792502591 get.btb=2 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=7 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=0
+IO cfg=1 case=17 eval.value=-44423.602427699014 eval.cells=5 eval.roof=6 get.value=-46855.913337136983 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=4 get.frame=60 get.pendingtot=1.4821969375237396e-323
+IO cfg=1 case=18 eval.value=-33103.0909120996 eval.cells=61 eval.roof=7 get.value=-33913.86121524559 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=6 get.frame=100 get.pendingtot=4.9406564584124654e-324
+IO cfg=1 case=19 eval.value=-34392.316213307386 eval.cells=49 eval.roof=5 get.value=-40191.141064750213 get.like=-4.8468349249040727 get.btb=0 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=0 get.frame=100 get.pendingtot=3.4584595208887258e-323
+IO cfg=2 case=0 eval.value=-41573.916436168285 eval.cells=5 eval.roof=4 get.value=-44006.227345606254 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=4 get.frame=60 get.pendingtot=1.4821969375237396e-323
+IO cfg=2 case=1 eval.value=-32884.982662851384 eval.cells=40 eval.roof=4 get.value=-33695.752965997373 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=6 get.frame=100 get.pendingtot=4.9406564584124654e-324
+IO cfg=2 case=2 eval.value=-32884.982662851384 eval.cells=40 eval.roof=4 get.value=-25601.085006179321 get.like=30.440922322555398 get.btb=2 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=7 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=0
+IO cfg=2 case=3 eval.value=-32884.982662851384 eval.cells=40 eval.roof=4 get.value=-30788.496564312227 get.like=4.2461109364070033 get.btb=2 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=4 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=1.4821969375237396e-323
+IO cfg=2 case=4 eval.value=-32884.982662851384 eval.cells=40 eval.roof=4 get.value=-35826.826046182789 get.like=8.654176982036784 get.btb=0 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=2 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=2.4703282292062327e-323
+IO cfg=2 case=5 eval.value=-49030.814396950169 eval.cells=174 eval.roof=19 get.value=-50881.151824546789 get.like=0.041094243427085786 get.btb=0 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=4 get.surge=0 get.maprise=0 get.frame=100 get.pendingtot=1.4821969375237396e-323
+IO cfg=2 case=6 eval.value=-35449.546167774053 eval.cells=48 eval.roof=5 get.value=-27802.12898526384 get.like=16.80054792502591 get.btb=2 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=7 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=0
+IO cfg=2 case=7 eval.value=-869795.84970871988 eval.cells=40 eval.roof=40 get.value=-870606.62001186586 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=6 get.frame=100 get.pendingtot=4.9406564584124654e-324
+IO cfg=2 case=8 eval.value=-32884.982662851384 eval.cells=40 eval.roof=4 get.value=-38782.47898593104 get.like=-8.3289075396645202 get.btb=0 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=3.4584595208887258e-323
+IO cfg=2 case=9 eval.value=-32884.982662851384 eval.cells=40 eval.roof=4 get.value=-33695.752965997373 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=6 get.frame=100 get.pendingtot=4.9406564584124654e-324
+IO cfg=2 case=10 eval.value=-36376.247858641946 eval.cells=38 eval.roof=4 get.value=-38808.558768079914 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=4 get.frame=60 get.pendingtot=1.4821969375237396e-323
+IO cfg=2 case=11 eval.value=-31159.579281115602 eval.cells=60 eval.roof=6 get.value=-37034.865184089482 get.like=-8.3289075396645202 get.btb=0 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=0 get.frame=100 get.pendingtot=3.4584595208887258e-323
+IO cfg=2 case=12 eval.value=-34077.711869837658 eval.cells=49 eval.roof=5 get.value=-26000.478802571815 get.like=35.05981693792539 get.btb=2 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=7 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=0
+IO cfg=2 case=13 eval.value=-14768.2471546257 eval.cells=250 eval.roof=25 get.value=-1000020441.0392766 get.like=1 get.btb=0 get.combo=2 get.death=1 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=0 get.frame=100 get.pendingtot=3.4584595208887258e-323
+IO cfg=2 case=14 eval.value=-34780.413560705543 eval.cells=39 eval.roof=4 get.value=-37212.724470143512 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=4 get.frame=60 get.pendingtot=1.4821969375237396e-323
+IO cfg=2 case=15 eval.value=-60593.966405509462 eval.cells=172 eval.roof=19 get.value=-1000061421.1506695 get.like=-9.3289075396645202 get.btb=1 get.combo=0 get.death=1 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=6 get.frame=100 get.pendingtot=4.9406564584124654e-324
+IO cfg=2 case=16 eval.value=-35449.546167774053 eval.cells=48 eval.roof=5 get.value=-27802.12898526384 get.like=16.80054792502591 get.btb=2 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=7 get.surge=0 get.maprise=0 get.frame=60 get.pendingtot=0
+IO cfg=2 case=17 eval.value=-44921.133414864533 eval.cells=5 eval.roof=6 get.value=-47353.444324302502 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=4 get.frame=60 get.pendingtot=1.4821969375237396e-323
+IO cfg=2 case=18 eval.value=-33092.5909120996 eval.cells=61 eval.roof=7 get.value=-33903.36121524559 get.like=0 get.btb=1 get.combo=0 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=6 get.frame=100 get.pendingtot=4.9406564584124654e-324
+IO cfg=2 case=19 eval.value=-34077.711869837658 eval.cells=49 eval.roof=5 get.value=-39965.213503869716 get.like=-8.3289075396645202 get.btb=0 get.combo=2 get.death=0 get.kill=0 get.sent=0 get.cancelled=0 get.surge=0 get.maprise=0 get.frame=100 get.pendingtot=3.4584595208887258e-323
+Told cfg=0 case=0 eval.map=-7200 eval.tilt=4 eval.full=0 eval.count=1 eval.lowy=0 eval.roof=1 get.combo=0 get.up=0 get.landpoint=0 get.value=-5760.0000858306885
+Told cfg=0 case=1 eval.map=-6560 eval.tilt=4 eval.full=4 eval.count=40 eval.lowy=1 eval.roof=4 get.combo=0 get.up=0 get.landpoint=0 get.value=-6560
+Told cfg=0 case=2 eval.map=-6560 eval.tilt=4 eval.full=4 eval.count=40 eval.lowy=1 eval.roof=4 get.combo=2 get.up=0 get.landpoint=1200 get.value=-4048.0000782012939
+Told cfg=0 case=3 eval.map=-6560 eval.tilt=4 eval.full=4 eval.count=40 eval.lowy=1 eval.roof=4 get.combo=2 get.up=0 get.landpoint=1200 get.value=-4048.0000782012939
+Told cfg=0 case=4 eval.map=-7452 eval.tilt=4 eval.full=4 eval.count=39 eval.lowy=1 eval.roof=4 get.combo=2 get.up=0 get.landpoint=1200 get.value=-4761.6000888347626
+Told cfg=0 case=5 eval.map=-17072 eval.tilt=4 eval.full=19 eval.count=172 eval.lowy=1 eval.roof=19 get.combo=2 get.up=0 get.landpoint=1200 get.value=-19286.400814056396
+Told cfg=0 case=6 eval.map=-8000 eval.tilt=4 eval.full=5 eval.count=48 eval.lowy=1 eval.roof=5 get.combo=2 get.up=0 get.landpoint=2200 get.value=-4200.0000953674316
+Told cfg=0 case=7 eval.map=-91760 eval.tilt=4 eval.full=40 eval.count=40 eval.lowy=1 eval.roof=40 get.combo=0 get.up=0 get.landpoint=-350000000 get.value=-350091760
+Told cfg=0 case=8 eval.map=-6560 eval.tilt=4 eval.full=4 eval.count=40 eval.lowy=1 eval.roof=4 get.combo=2 get.up=0 get.landpoint=1200 get.value=-4048.0000782012939
+Told cfg=0 case=9 eval.map=-6560 eval.tilt=4 eval.full=4 eval.count=40 eval.lowy=1 eval.roof=4 get.combo=0 get.up=0 get.landpoint=0 get.value=-7872.0003128051758
+Told cfg=0 case=10 eval.map=-8176 eval.tilt=4 eval.full=4 eval.count=38 eval.lowy=1 eval.roof=4 get.combo=0 get.up=0 get.landpoint=0 get.value=-6540.8000974655151
+Told cfg=0 case=11 eval.map=-6556 eval.tilt=8 eval.full=5 eval.count=59 eval.lowy=1 eval.roof=6 get.combo=2 get.up=0 get.landpoint=1300 get.value=-5256
+Told cfg=0 case=12 eval.map=-7332 eval.tilt=4 eval.full=5 eval.count=49 eval.lowy=1 eval.roof=5 get.combo=2 get.up=0 get.landpoint=1200 get.value=-4665.6000874042511
+Told cfg=0 case=13 eval.map=-3516 eval.tilt=9 eval.full=24 eval.count=249 eval.lowy=1 eval.roof=25 get.combo=2 get.up=0 get.landpoint=1300 get.value=-2919.2001676559448
+Told cfg=0 case=14 eval.map=-7452 eval.tilt=4 eval.full=4 eval.count=39 eval.lowy=1 eval.roof=4 get.combo=0 get.up=0 get.landpoint=0 get.value=-5961.6000888347626
+Told cfg=0 case=15 eval.map=-17072 eval.tilt=4 eval.full=19 eval.count=172 eval.lowy=1 eval.roof=19 get.combo=0 get.up=0 get.landpoint=0 get.value=-17072
+Told cfg=0 case=16 eval.map=-8000 eval.tilt=4 eval.full=5 eval.count=48 eval.lowy=1 eval.roof=5 get.combo=2 get.up=0 get.landpoint=2200 get.value=-4200.0000953674316
+Told cfg=0 case=17 eval.map=-7200 eval.tilt=4 eval.full=0 eval.count=1 eval.lowy=0 eval.roof=1 get.combo=0 get.up=0 get.landpoint=0 get.value=-5760.0000858306885
+Told cfg=0 case=18 eval.map=-6556 eval.tilt=8 eval.full=5 eval.count=59 eval.lowy=1 eval.roof=6 get.combo=0 get.up=0 get.landpoint=0 get.value=-7867.2003126144409
+Told cfg=0 case=19 eval.map=-7332 eval.tilt=4 eval.full=5 eval.count=49 eval.lowy=1 eval.roof=5 get.combo=2 get.up=0 get.landpoint=1200 get.value=-6132
+Told cfg=1 case=0 eval.map=-7200 eval.tilt=4 eval.full=0 eval.count=1 eval.lowy=0 eval.roof=1 get.combo=0 get.up=1 get.landpoint=0.25 get.value=-5759.7500858306885
+Told cfg=1 case=1 eval.map=-6560 eval.tilt=4 eval.full=4 eval.count=40 eval.lowy=1 eval.roof=4 get.combo=0 get.up=1 get.landpoint=0.25 get.value=-6559.75
+Told cfg=1 case=2 eval.map=-6560 eval.tilt=4 eval.full=4 eval.count=40 eval.lowy=1 eval.roof=4 get.combo=1 get.up=1 get.landpoint=-5999.75 get.value=-11247.750078201294
+Told cfg=1 case=3 eval.map=-6560 eval.tilt=4 eval.full=4 eval.count=40 eval.lowy=1 eval.roof=4 get.combo=1 get.up=1 get.landpoint=-5999.75 get.value=-11247.750078201294
+Told cfg=1 case=4 eval.map=-7452 eval.tilt=4 eval.full=4 eval.count=39 eval.lowy=1 eval.roof=4 get.combo=1 get.up=1 get.landpoint=-5999.75 get.value=-11961.350088834763
+Told cfg=1 case=5 eval.map=-17072 eval.tilt=4 eval.full=19 eval.count=172 eval.lowy=1 eval.roof=19 get.combo=1 get.up=1 get.landpoint=-5999.75 get.value=-26486.150814056396
+Told cfg=1 case=6 eval.map=-8000 eval.tilt=4 eval.full=5 eval.count=48 eval.lowy=1 eval.roof=5 get.combo=1 get.up=1 get.landpoint=-4999.75 get.value=-11399.750095367432
+Told cfg=1 case=7 eval.map=-91760 eval.tilt=4 eval.full=40 eval.count=40 eval.lowy=1 eval.roof=40 get.combo=0 get.up=1 get.landpoint=-349999999.75 get.value=-350091759.75
+Told cfg=1 case=8 eval.map=-6560 eval.tilt=4 eval.full=4 eval.count=40 eval.lowy=1 eval.roof=4 get.combo=1 get.up=1 get.landpoint=-5999.75 get.value=-11247.750078201294
+Told cfg=1 case=9 eval.map=-6560 eval.tilt=4 eval.full=4 eval.count=40 eval.lowy=1 eval.roof=4 get.combo=0 get.up=1 get.landpoint=0.25 get.value=-7871.7503128051758
+Told cfg=1 case=10 eval.map=-8176 eval.tilt=4 eval.full=4 eval.count=38 eval.lowy=1 eval.roof=4 get.combo=0 get.up=1 get.landpoint=0.25 get.value=-6540.5500974655151
+Told cfg=1 case=11 eval.map=-6556 eval.tilt=8 eval.full=5 eval.count=59 eval.lowy=1 eval.roof=6 get.combo=1 get.up=1 get.landpoint=-5999.75 get.value=-12555.75
+Told cfg=1 case=12 eval.map=-7332 eval.tilt=4 eval.full=5 eval.count=49 eval.lowy=1 eval.roof=5 get.combo=1 get.up=1 get.landpoint=-5999.75 get.value=-11865.350087404251
+Told cfg=1 case=13 eval.map=-3516 eval.tilt=9 eval.full=24 eval.count=249 eval.lowy=1 eval.roof=25 get.combo=1 get.up=1 get.landpoint=-5999.75 get.value=-10218.950167655945
+Told cfg=1 case=14 eval.map=-7452 eval.tilt=4 eval.full=4 eval.count=39 eval.lowy=1 eval.roof=4 get.combo=0 get.up=1 get.landpoint=0.25 get.value=-5961.3500888347626
+Told cfg=1 case=15 eval.map=-17072 eval.tilt=4 eval.full=19 eval.count=172 eval.lowy=1 eval.roof=19 get.combo=0 get.up=1 get.landpoint=0.25 get.value=-17071.75
+Told cfg=1 case=16 eval.map=-8000 eval.tilt=4 eval.full=5 eval.count=48 eval.lowy=1 eval.roof=5 get.combo=1 get.up=1 get.landpoint=-4999.75 get.value=-11399.750095367432
+Told cfg=1 case=17 eval.map=-7200 eval.tilt=4 eval.full=0 eval.count=1 eval.lowy=0 eval.roof=1 get.combo=0 get.up=1 get.landpoint=0.25 get.value=-5759.7500858306885
+Told cfg=1 case=18 eval.map=-6556 eval.tilt=8 eval.full=5 eval.count=59 eval.lowy=1 eval.roof=6 get.combo=0 get.up=1 get.landpoint=0.25 get.value=-7866.9503126144409
+Told cfg=1 case=19 eval.map=-7332 eval.tilt=4 eval.full=5 eval.count=49 eval.lowy=1 eval.roof=5 get.combo=1 get.up=1 get.landpoint=-5999.75 get.value=-13331.75
+Told cfg=2 case=0 eval.map=-7200 eval.tilt=4 eval.full=0 eval.count=1 eval.lowy=0 eval.roof=1 get.combo=0 get.up=2 get.landpoint=0.5 get.value=-5759.5000858306885
+Told cfg=2 case=1 eval.map=-6560 eval.tilt=4 eval.full=4 eval.count=40 eval.lowy=1 eval.roof=4 get.combo=0 get.up=2 get.landpoint=0.5 get.value=-6559.5
+Told cfg=2 case=2 eval.map=-6560 eval.tilt=4 eval.full=4 eval.count=40 eval.lowy=1 eval.roof=4 get.combo=4 get.up=2 get.landpoint=3600.5 get.value=-1647.5000782012939
+Told cfg=2 case=3 eval.map=-6560 eval.tilt=4 eval.full=4 eval.count=40 eval.lowy=1 eval.roof=4 get.combo=4 get.up=2 get.landpoint=3600.5 get.value=-1647.5000782012939
+Told cfg=2 case=4 eval.map=-7452 eval.tilt=4 eval.full=4 eval.count=39 eval.lowy=1 eval.roof=4 get.combo=4 get.up=2 get.landpoint=3600.5 get.value=-2361.1000888347626
+Told cfg=2 case=5 eval.map=-17072 eval.tilt=4 eval.full=19 eval.count=172 eval.lowy=1 eval.roof=19 get.combo=4 get.up=2 get.landpoint=3600.5 get.value=-16885.900814056396
+Told cfg=2 case=6 eval.map=-8000 eval.tilt=4 eval.full=5 eval.count=48 eval.lowy=1 eval.roof=5 get.combo=4 get.up=2 get.landpoint=4600.5 get.value=-1799.5000953674316
+Told cfg=2 case=7 eval.map=-91760 eval.tilt=4 eval.full=40 eval.count=40 eval.lowy=1 eval.roof=40 get.combo=0 get.up=2 get.landpoint=-349999999.5 get.value=-350091759.5
+Told cfg=2 case=8 eval.map=-6560 eval.tilt=4 eval.full=4 eval.count=40 eval.lowy=1 eval.roof=4 get.combo=4 get.up=2 get.landpoint=3600.5 get.value=-1647.5000782012939
+Told cfg=2 case=9 eval.map=-6560 eval.tilt=4 eval.full=4 eval.count=40 eval.lowy=1 eval.roof=4 get.combo=0 get.up=2 get.landpoint=0.5 get.value=-7871.5003128051758
+Told cfg=2 case=10 eval.map=-8176 eval.tilt=4 eval.full=4 eval.count=38 eval.lowy=1 eval.roof=4 get.combo=0 get.up=2 get.landpoint=0.5 get.value=-6540.3000974655151
+Told cfg=2 case=11 eval.map=-6556 eval.tilt=8 eval.full=5 eval.count=59 eval.lowy=1 eval.roof=6 get.combo=4 get.up=2 get.landpoint=3700.5 get.value=-2855.5
+Told cfg=2 case=12 eval.map=-7332 eval.tilt=4 eval.full=5 eval.count=49 eval.lowy=1 eval.roof=5 get.combo=4 get.up=2 get.landpoint=3600.5 get.value=-2265.1000874042511
+Told cfg=2 case=13 eval.map=-3516 eval.tilt=9 eval.full=24 eval.count=249 eval.lowy=1 eval.roof=25 get.combo=4 get.up=2 get.landpoint=3700.5 get.value=-518.70016765594482
+Told cfg=2 case=14 eval.map=-7452 eval.tilt=4 eval.full=4 eval.count=39 eval.lowy=1 eval.roof=4 get.combo=0 get.up=2 get.landpoint=0.5 get.value=-5961.1000888347626
+Told cfg=2 case=15 eval.map=-17072 eval.tilt=4 eval.full=19 eval.count=172 eval.lowy=1 eval.roof=19 get.combo=0 get.up=2 get.landpoint=0.5 get.value=-17071.5
+Told cfg=2 case=16 eval.map=-8000 eval.tilt=4 eval.full=5 eval.count=48 eval.lowy=1 eval.roof=5 get.combo=4 get.up=2 get.landpoint=4600.5 get.value=-1799.5000953674316
+Told cfg=2 case=17 eval.map=-7200 eval.tilt=4 eval.full=0 eval.count=1 eval.lowy=0 eval.roof=1 get.combo=0 get.up=2 get.landpoint=0.5 get.value=-5759.5000858306885
+Told cfg=2 case=18 eval.map=-6556 eval.tilt=8 eval.full=5 eval.count=59 eval.lowy=1 eval.roof=6 get.combo=0 get.up=2 get.landpoint=0.5 get.value=-7866.7003126144409
+Told cfg=2 case=19 eval.map=-7332 eval.tilt=4 eval.full=5 eval.count=49 eval.lowy=1 eval.roof=5 get.combo=4 get.up=2 get.landpoint=3600.5 get.value=-3731.5
+Tgames cfg=0 case=0 eval.map=-191 eval.maplow=0 eval.tbuild=0 eval.roof=1 get.combo=0 get.attack=0.5 get.maxattack=0.5 get.value=-190.5
+Tgames cfg=0 case=1 eval.map=-178 eval.maplow=4 eval.tbuild=8 eval.roof=4 get.combo=0 get.attack=96.5 get.maxattack=96.5 get.value=-81.5
+Tgames cfg=0 case=2 eval.map=-178 eval.maplow=4 eval.tbuild=8 eval.roof=4 get.combo=2 get.attack=137.5 get.maxattack=137.5 get.value=-40.5
+Tgames cfg=0 case=3 eval.map=-178 eval.maplow=4 eval.tbuild=8 eval.roof=4 get.combo=2 get.attack=137.5 get.maxattack=137.5 get.value=-40.5
+Tgames cfg=0 case=4 eval.map=-212 eval.maplow=2 eval.tbuild=1 eval.roof=4 get.combo=2 get.attack=79.5 get.maxattack=79.5 get.value=-132.5
+Tgames cfg=0 case=5 eval.map=-1578 eval.maplow=0 eval.tbuild=1 eval.roof=19 get.combo=2 get.attack=133.5 get.maxattack=133.5 get.value=-1444.5
+Tgames cfg=0 case=6 eval.map=-236 eval.maplow=2 eval.tbuild=1 eval.roof=5 get.combo=2 get.attack=216.5 get.maxattack=216.5 get.value=-19.5
+Tgames cfg=0 case=7 eval.map=-48834 eval.maplow=0 eval.tbuild=1 eval.roof=40 get.combo=0 get.attack=-349999987.5 get.maxattack=0 get.value=-350048821.5
+Tgames cfg=0 case=8 eval.map=-178 eval.maplow=4 eval.tbuild=8 eval.roof=4 get.combo=2 get.attack=127.5 get.maxattack=127.5 get.value=-50.5
+Tgames cfg=0 case=9 eval.map=-178 eval.maplow=4 eval.tbuild=8 eval.roof=4 get.combo=0 get.attack=96.5 get.maxattack=96.5 get.value=-81.5
+Tgames cfg=0 case=10 eval.map=-247 eval.maplow=0 eval.tbuild=1 eval.roof=4 get.combo=0 get.attack=12.5 get.maxattack=12.5 get.value=-234.5
+Tgames cfg=0 case=11 eval.map=-182 eval.maplow=5 eval.tbuild=0 eval.roof=6 get.combo=2 get.attack=31.5 get.maxattack=31.5 get.value=-150.5
+Tgames cfg=0 case=12 eval.map=-217 eval.maplow=2 eval.tbuild=1 eval.roof=5 get.combo=2 get.attack=99.5 get.maxattack=99.5 get.value=-117.5
+Tgames cfg=0 case=13 eval.map=-125 eval.maplow=24 eval.tbuild=0 eval.roof=25 get.combo=2 get.attack=31.5 get.maxattack=31.5 get.value=-93.5
+Tgames cfg=0 case=14 eval.map=-212 eval.maplow=2 eval.tbuild=1 eval.roof=4 get.combo=0 get.attack=12.5 get.maxattack=12.5 get.value=-199.5
+Tgames cfg=0 case=15 eval.map=-1578 eval.maplow=0 eval.tbuild=1 eval.roof=19 get.combo=0 get.attack=12.5 get.maxattack=12.5 get.value=-1565.5
+Tgames cfg=0 case=16 eval.map=-236 eval.maplow=2 eval.tbuild=1 eval.roof=5 get.combo=2 get.attack=216.5 get.maxattack=216.5 get.value=-19.5
+Tgames cfg=0 case=17 eval.map=-191 eval.maplow=0 eval.tbuild=0 eval.roof=1 get.combo=0 get.attack=0.5 get.maxattack=0.5 get.value=-190.5
+Tgames cfg=0 case=18 eval.map=-182 eval.maplow=5 eval.tbuild=0 eval.roof=6 get.combo=0 get.attack=0.5 get.maxattack=0.5 get.value=-181.5
+Tgames cfg=0 case=19 eval.map=-217 eval.maplow=2 eval.tbuild=1 eval.roof=5 get.combo=2 get.attack=43.5 get.maxattack=43.5 get.value=-173.5
+Tgames cfg=1 case=0 eval.map=-83 eval.maplow=0 eval.tbuild=0 eval.roof=1 get.combo=0 get.attack=0.5 get.maxattack=1 get.value=-82.5
+Tgames cfg=1 case=1 eval.map=-76.5 eval.maplow=4 eval.tbuild=8 eval.roof=4 get.combo=0 get.attack=24.5 get.maxattack=24.5 get.value=-52
+Tgames cfg=1 case=2 eval.map=-76.5 eval.maplow=4 eval.tbuild=8 eval.roof=4 get.combo=1 get.attack=40 get.maxattack=40 get.value=-36.5
+Tgames cfg=1 case=3 eval.map=-76.5 eval.maplow=4 eval.tbuild=8 eval.roof=4 get.combo=1 get.attack=40 get.maxattack=40 get.value=-36.5
+Tgames cfg=1 case=4 eval.map=-82.450000000000003 eval.maplow=2 eval.tbuild=1 eval.roof=4 get.combo=1 get.attack=27 get.maxattack=27 get.value=-55.450000000000003
+Tgames cfg=1 case=5 eval.map=-263.94999999999999 eval.maplow=0 eval.tbuild=1 eval.roof=19 get.combo=1 get.attack=51 get.maxattack=51 get.value=-212.94999999999999
+Tgames cfg=1 case=6 eval.map=-86.950000000000003 eval.maplow=2 eval.tbuild=1 eval.roof=5 get.combo=1 get.attack=85 get.maxattack=85 get.value=-1.9500000000000028
+Tgames cfg=1 case=7 eval.map=-5840.5 eval.maplow=0 eval.tbuild=1 eval.roof=40 get.combo=0 get.attack=-349999996.5 get.maxattack=1 get.value=-350005837
+Tgames cfg=1 case=8 eval.map=-76.5 eval.maplow=4 eval.tbuild=8 eval.roof=4 get.combo=1 get.attack=32 get.maxattack=32 get.value=-44.5
+Tgames cfg=1 case=9 eval.map=-76.5 eval.maplow=4 eval.tbuild=8 eval.roof=4 get.combo=0 get.attack=24.5 get.maxattack=24.5 get.value=-52
+Tgames cfg=1 case=10 eval.map=-88.650000000000006 eval.maplow=0 eval.tbuild=1 eval.roof=4 get.combo=0 get.attack=3.5 get.maxattack=3.5 get.value=-85.150000000000006
+Tgames cfg=1 case=11 eval.map=-77 eval.maplow=5 eval.tbuild=0 eval.roof=6 get.combo=1 get.attack=8 get.maxattack=8 get.value=-69
+Tgames cfg=1 case=12 eval.map=-81.150000000000006 eval.maplow=2 eval.tbuild=1 eval.roof=5 get.combo=1 get.attack=43 get.maxattack=43 get.value=-38.150000000000006
+Tgames cfg=1 case=13 eval.map=-48.5 eval.maplow=24 eval.tbuild=0 eval.roof=25 get.combo=1 get.attack=8 get.maxattack=8 get.value=-40.5
+Tgames cfg=1 case=14 eval.map=-82.450000000000003 eval.maplow=2 eval.tbuild=1 eval.roof=4 get.combo=0 get.attack=3.5 get.maxattack=3.5 get.value=-78.950000000000003
+Tgames cfg=1 case=15 eval.map=-263.94999999999999 eval.maplow=0 eval.tbuild=1 eval.roof=19 get.combo=0 get.attack=3.5 get.maxattack=3.5 get.value=-260.44999999999999
+Tgames cfg=1 case=16 eval.map=-86.950000000000003 eval.maplow=2 eval.tbuild=1 eval.roof=5 get.combo=1 get.attack=85 get.maxattack=85 get.value=-1.9500000000000028
+Tgames cfg=1 case=17 eval.map=-83 eval.maplow=0 eval.tbuild=0 eval.roof=1 get.combo=0 get.attack=0.5 get.maxattack=1 get.value=-82.5
+Tgames cfg=1 case=18 eval.map=-77 eval.maplow=5 eval.tbuild=0 eval.roof=6 get.combo=0 get.attack=0.5 get.maxattack=1 get.value=-76.5
+Tgames cfg=1 case=19 eval.map=-81.150000000000006 eval.maplow=2 eval.tbuild=1 eval.roof=5 get.combo=1 get.attack=11 get.maxattack=11 get.value=-70.150000000000006
+Tgames cfg=2 case=0 eval.map=-58 eval.maplow=0 eval.tbuild=0 eval.roof=1 get.combo=0 get.attack=0.5 get.maxattack=2 get.value=-57.5
+Tgames cfg=2 case=1 eval.map=-63 eval.maplow=4 eval.tbuild=8 eval.roof=4 get.combo=0 get.attack=4.5 get.maxattack=4.5 get.value=-58.5
+Tgames cfg=2 case=2 eval.map=-63 eval.maplow=4 eval.tbuild=8 eval.roof=4 get.combo=2 get.attack=7.75 get.maxattack=7.75 get.value=-55.25
+Tgames cfg=2 case=3 eval.map=-63 eval.maplow=4 eval.tbuild=8 eval.roof=4 get.combo=2 get.attack=7.75 get.maxattack=7.75 get.value=-55.25
+Tgames cfg=2 case=4 eval.map=-73.099999999999994 eval.maplow=2 eval.tbuild=1 eval.roof=4 get.combo=2 get.attack=7.25 get.maxattack=7.25 get.value=-65.849999999999994
+Tgames cfg=2 case=5 eval.map=-325.80000000000001 eval.maplow=0 eval.tbuild=1 eval.roof=19 get.combo=2 get.attack=13.25 get.maxattack=13.25 get.value=-312.55000000000001
+Tgames cfg=2 case=6 eval.map=-80.200000000000003 eval.maplow=2 eval.tbuild=1 eval.roof=5 get.combo=2 get.attack=26.25 get.maxattack=26.25 get.value=-53.950000000000003
+Tgames cfg=2 case=7 eval.map=-7089 eval.maplow=0 eval.tbuild=1 eval.roof=40 get.combo=0 get.attack=-349999999 get.maxattack=2 get.value=-350007088
+Tgames cfg=2 case=8 eval.map=-63 eval.maplow=4 eval.tbuild=8 eval.roof=4 get.combo=2 get.attack=6.75 get.maxattack=6.75 get.value=-56.25
+Tgames cfg=2 case=9 eval.map=-63 eval.maplow=4 eval.tbuild=8 eval.roof=4 get.combo=0 get.attack=4.5 get.maxattack=4.5 get.value=-58.5
+Tgames cfg=2 case=10 eval.map=-81.200000000000003 eval.maplow=0 eval.tbuild=1 eval.roof=4 get.combo=0 get.attack=1 get.maxattack=2 get.value=-80.200000000000003
+Tgames cfg=2 case=11 eval.map=-68.5 eval.maplow=5 eval.tbuild=0 eval.roof=6 get.combo=2 get.attack=2.75 get.maxattack=2.75 get.value=-65.75
+Tgames cfg=2 case=12 eval.map=-78.099999999999994 eval.maplow=2 eval.tbuild=1 eval.roof=5 get.combo=2 get.attack=9.25 get.maxattack=9.25 get.value=-68.849999999999994
+Tgames cfg=2 case=13 eval.map=-106.5 eval.maplow=24 eval.tbuild=0 eval.roof=25 get.combo=2 get.attack=2.75 get.maxattack=2.75 get.value=-103.75
+Tgames cfg=2 case=14 eval.map=-73.099999999999994 eval.maplow=2 eval.tbuild=1 eval.roof=4 get.combo=0 get.attack=1 get.maxattack=2 get.value=-72.099999999999994
+Tgames cfg=2 case=15 eval.map=-325.80000000000001 eval.maplow=0 eval.tbuild=1 eval.roof=19 get.combo=0 get.attack=1 get.maxattack=2 get.value=-324.80000000000001
+Tgames cfg=2 case=16 eval.map=-80.200000000000003 eval.maplow=2 eval.tbuild=1 eval.roof=5 get.combo=2 get.attack=26.25 get.maxattack=26.25 get.value=-53.950000000000003
+Tgames cfg=2 case=17 eval.map=-58 eval.maplow=0 eval.tbuild=0 eval.roof=1 get.combo=0 get.attack=0.5 get.maxattack=2 get.value=-57.5
+Tgames cfg=2 case=18 eval.map=-68.5 eval.maplow=5 eval.tbuild=0 eval.roof=6 get.combo=0 get.attack=0.5 get.maxattack=2 get.value=-68
+Tgames cfg=2 case=19 eval.map=-78.099999999999994 eval.maplow=2 eval.tbuild=1 eval.roof=5 get.combo=2 get.attack=3.25 get.maxattack=3.25 get.value=-74.849999999999994
+Tenemy cfg=0 case=0 get.up0=5 up1=1 up2=2 up3=3 get.point=5 get.combo=0 extpoint=5 extup=5,1,2,3
+Tenemy cfg=0 case=1 get.up0=0 up1=5 up2=2 up3=3 get.point=5 get.combo=0 extpoint=5 extup=0,5,2,3
+Tenemy cfg=0 case=2 get.up0=12 up1=1 up2=2 up3=3 get.point=12 get.combo=2 extpoint=12 extup=12,1,2,3
+Tenemy cfg=0 case=3 get.up0=12 up1=1 up2=2 up3=3 get.point=12 get.combo=2 extpoint=12 extup=12,1,2,3
+Tenemy cfg=0 case=4 get.up0=9 up1=1 up2=2 up3=3 get.point=9 get.combo=2 extpoint=12 extup=12,1,2,3
+Tenemy cfg=0 case=5 get.up0=0 up1=1 up2=12 up3=3 get.point=12 get.combo=2 extpoint=12 extup=0,1,12,3
+Tenemy cfg=0 case=6 get.up0=18 up1=1 up2=2 up3=3 get.point=18 get.combo=2 extpoint=18 extup=18,1,2,3
+Tenemy cfg=0 case=7 get.up0=0 up1=5 up2=2 up3=3 get.point=5 get.combo=0 extpoint=18 extup=18,1,2,3
+Tenemy cfg=0 case=8 get.up0=7 up1=1 up2=2 up3=3 get.point=7 get.combo=2 extpoint=18 extup=18,1,2,3
+Tenemy cfg=0 case=9 get.up0=0 up1=1 up2=5 up3=3 get.point=5 get.combo=0 extpoint=18 extup=18,1,2,3
+Tenemy cfg=0 case=10 get.up0=5 up1=1 up2=2 up3=3 get.point=5 get.combo=0 extpoint=18 extup=18,1,2,3
+Tenemy cfg=0 case=11 get.up0=0 up1=7 up2=2 up3=3 get.point=7 get.combo=2 extpoint=18 extup=18,1,2,3
+Tenemy cfg=0 case=12 get.up0=18 up1=1 up2=2 up3=3 get.point=18 get.combo=2 extpoint=18 extup=18,1,2,3
+Tenemy cfg=0 case=13 get.up0=0 up1=1 up2=7 up3=3 get.point=7 get.combo=2 extpoint=18 extup=18,1,2,3
+Tenemy cfg=0 case=14 get.up0=5 up1=1 up2=2 up3=3 get.point=5 get.combo=0 extpoint=18 extup=18,1,2,3
+Tenemy cfg=0 case=15 get.up0=0 up1=5 up2=2 up3=3 get.point=5 get.combo=0 extpoint=18 extup=18,1,2,3
+Tenemy cfg=0 case=16 get.up0=18 up1=1 up2=2 up3=3 get.point=18 get.combo=2 extpoint=18 extup=18,1,2,3
+Tenemy cfg=0 case=17 get.up0=5 up1=1 up2=2 up3=3 get.point=5 get.combo=0 extpoint=18 extup=18,1,2,3
+Tenemy cfg=0 case=18 get.up0=0 up1=1 up2=5 up3=3 get.point=5 get.combo=0 extpoint=18 extup=18,1,2,3
+Tenemy cfg=0 case=19 get.up0=0 up1=7 up2=2 up3=3 get.point=7 get.combo=2 extpoint=18 extup=18,1,2,3
+Tenemy cfg=1 case=0 get.up0=5 up1=2 up2=3 up3=4 get.point=5 get.combo=0 extpoint=10 extup=-99,-99,-99,-99
+Tenemy cfg=1 case=1 get.up0=1 up1=5 up2=3 up3=4 get.point=5 get.combo=0 extpoint=10 extup=-99,-99,-99,-99
+Tenemy cfg=1 case=2 get.up0=12 up1=2 up2=3 up3=4 get.point=12 get.combo=2 extpoint=12 extup=12,2,3,4
+Tenemy cfg=1 case=3 get.up0=12 up1=2 up2=3 up3=4 get.point=12 get.combo=2 extpoint=12 extup=12,2,3,4
+Tenemy cfg=1 case=4 get.up0=9 up1=2 up2=3 up3=4 get.point=9 get.combo=2 extpoint=12 extup=12,2,3,4
+Tenemy cfg=1 case=5 get.up0=1 up1=2 up2=12 up3=4 get.point=12 get.combo=2 extpoint=12 extup=1,2,12,4
+Tenemy cfg=1 case=6 get.up0=18 up1=2 up2=3 up3=4 get.point=18 get.combo=2 extpoint=18 extup=18,2,3,4
+Tenemy cfg=1 case=7 get.up0=1 up1=5 up2=3 up3=4 get.point=5 get.combo=0 extpoint=18 extup=18,2,3,4
+Tenemy cfg=1 case=8 get.up0=7 up1=2 up2=3 up3=4 get.point=7 get.combo=2 extpoint=18 extup=18,2,3,4
+Tenemy cfg=1 case=9 get.up0=1 up1=2 up2=5 up3=4 get.point=5 get.combo=0 extpoint=18 extup=18,2,3,4
+Tenemy cfg=1 case=10 get.up0=5 up1=2 up2=3 up3=4 get.point=5 get.combo=0 extpoint=18 extup=18,2,3,4
+Tenemy cfg=1 case=11 get.up0=1 up1=7 up2=3 up3=4 get.point=7 get.combo=2 extpoint=18 extup=18,2,3,4
+Tenemy cfg=1 case=12 get.up0=18 up1=2 up2=3 up3=4 get.point=18 get.combo=2 extpoint=18 extup=18,2,3,4
+Tenemy cfg=1 case=13 get.up0=1 up1=2 up2=7 up3=4 get.point=7 get.combo=2 extpoint=18 extup=18,2,3,4
+Tenemy cfg=1 case=14 get.up0=5 up1=2 up2=3 up3=4 get.point=5 get.combo=0 extpoint=18 extup=18,2,3,4
+Tenemy cfg=1 case=15 get.up0=1 up1=5 up2=3 up3=4 get.point=5 get.combo=0 extpoint=18 extup=18,2,3,4
+Tenemy cfg=1 case=16 get.up0=18 up1=2 up2=3 up3=4 get.point=18 get.combo=2 extpoint=18 extup=18,2,3,4
+Tenemy cfg=1 case=17 get.up0=5 up1=2 up2=3 up3=4 get.point=5 get.combo=0 extpoint=18 extup=18,2,3,4
+Tenemy cfg=1 case=18 get.up0=1 up1=2 up2=5 up3=4 get.point=5 get.combo=0 extpoint=18 extup=18,2,3,4
+Tenemy cfg=1 case=19 get.up0=1 up1=7 up2=3 up3=4 get.point=7 get.combo=2 extpoint=18 extup=18,2,3,4
+Tenemy cfg=2 case=0 get.up0=5 up1=3 up2=4 up3=5 get.point=5 get.combo=0 extpoint=50 extup=-99,-99,-99,-99
+Tenemy cfg=2 case=1 get.up0=2 up1=5 up2=4 up3=5 get.point=5 get.combo=0 extpoint=50 extup=-99,-99,-99,-99
+Tenemy cfg=2 case=2 get.up0=12 up1=3 up2=4 up3=5 get.point=12 get.combo=2 extpoint=50 extup=-99,-99,-99,-99
+Tenemy cfg=2 case=3 get.up0=12 up1=3 up2=4 up3=5 get.point=12 get.combo=2 extpoint=50 extup=-99,-99,-99,-99
+Tenemy cfg=2 case=4 get.up0=9 up1=3 up2=4 up3=5 get.point=9 get.combo=2 extpoint=50 extup=-99,-99,-99,-99
+Tenemy cfg=2 case=5 get.up0=2 up1=3 up2=12 up3=5 get.point=12 get.combo=2 extpoint=50 extup=-99,-99,-99,-99
+Tenemy cfg=2 case=6 get.up0=18 up1=3 up2=4 up3=5 get.point=18 get.combo=2 extpoint=50 extup=-99,-99,-99,-99
+Tenemy cfg=2 case=7 get.up0=2 up1=5 up2=4 up3=5 get.point=5 get.combo=0 extpoint=50 extup=-99,-99,-99,-99
+Tenemy cfg=2 case=8 get.up0=7 up1=3 up2=4 up3=5 get.point=7 get.combo=2 extpoint=50 extup=-99,-99,-99,-99
+Tenemy cfg=2 case=9 get.up0=2 up1=3 up2=5 up3=5 get.point=5 get.combo=0 extpoint=50 extup=-99,-99,-99,-99
+Tenemy cfg=2 case=10 get.up0=5 up1=3 up2=4 up3=5 get.point=5 get.combo=0 extpoint=50 extup=-99,-99,-99,-99
+Tenemy cfg=2 case=11 get.up0=2 up1=7 up2=4 up3=5 get.point=7 get.combo=2 extpoint=50 extup=-99,-99,-99,-99
+Tenemy cfg=2 case=12 get.up0=18 up1=3 up2=4 up3=5 get.point=18 get.combo=2 extpoint=50 extup=-99,-99,-99,-99
+Tenemy cfg=2 case=13 get.up0=2 up1=3 up2=7 up3=5 get.point=7 get.combo=2 extpoint=50 extup=-99,-99,-99,-99
+Tenemy cfg=2 case=14 get.up0=5 up1=3 up2=4 up3=5 get.point=5 get.combo=0 extpoint=50 extup=-99,-99,-99,-99
+Tenemy cfg=2 case=15 get.up0=2 up1=5 up2=4 up3=5 get.point=5 get.combo=0 extpoint=50 extup=-99,-99,-99,-99
+Tenemy cfg=2 case=16 get.up0=18 up1=3 up2=4 up3=5 get.point=18 get.combo=2 extpoint=50 extup=-99,-99,-99,-99
+Tenemy cfg=2 case=17 get.up0=5 up1=3 up2=4 up3=5 get.point=5 get.combo=0 extpoint=50 extup=-99,-99,-99,-99
+Tenemy cfg=2 case=18 get.up0=2 up1=3 up2=5 up3=5 get.point=5 get.combo=0 extpoint=50 extup=-99,-99,-99,-99
+Tenemy cfg=2 case=19 get.up0=2 up1=7 up2=4 up3=5 get.point=7 get.combo=2 extpoint=50 extup=-99,-99,-99,-99

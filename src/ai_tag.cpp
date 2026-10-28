@@ -1,4 +1,3 @@
-
 //by ZouZhiZhang
 
 #include "tetris_core.h"
@@ -21,11 +20,14 @@ namespace ai_tag
         return "The AI Games (SetoSan) v0.1";
     }
 
-    the_ai_games_old::Status the_ai_games_old::get(Result const &eval_result, size_t depth, Status const &status) const
+    // 新契约：clear 由引擎传入（= 本次消行数）；node_top 改由 landing.land_height() 取；
+    // eval_result 上 land_point/clear/node_top 已随 Result 收缩移除（旧 get 从不读 land_point，
+    // 行为不变）。Col/RowTrans 极性与 int 除法保持原样。
+    the_ai_games_old::Status the_ai_games_old::get(Result const &eval_result, Landing const &landing, int clear, Status const &status, size_t depth) const
     {
         Status result = status;
         double BoardDeadZone = 0;
-        if (eval_result.roof + status.up >= height_ || eval_result.node_top >= height_)
+        if (eval_result.roof + status.up >= height_ || landing.land_height() >= height_)
         {
             BoardDeadZone = type_max_;
         }
@@ -35,9 +37,9 @@ namespace ai_tag
         }
         result.land_point -= BoardDeadZone * 50000000;
         bool building = (eval_result.count - eval_result.full * width_) * 3 / 2 < std::max(0, (height_ - 6) - (eval_result.full + status.up)) * width_;
-        if (eval_result.clear > 0)
+        if (clear > 0)
         {
-            if (eval_result.clear == 4)
+            if (clear == 4)
             {
                 result.land_point += 1000;
             }
@@ -100,12 +102,14 @@ namespace ai_tag
         return "The AI Games (SetoSan) v0.1";
     }
 
-    the_ai_games::Status the_ai_games::get(Result const &eval_result, size_t depth, Status const &status) const
+    // t_spin/clear/node_top 现场重算：tspin = landing.spin!=None ? clear : 0；
+    // 保留怪异分支 ++result.combo = 0;（旧代码原样）。
+    the_ai_games::Status the_ai_games::get(Result const &eval_result, Landing const &landing, int clear, Status const &status, size_t depth) const
     {
-        int tspin = eval_result.t_spin != TSpinType::None ? eval_result.clear : 0;
+        int tspin = landing.spin != TSpinType::None ? clear : 0;
         Status result = status;
         double BoardDeadZone = 0;
-        if (eval_result.roof + status.up[depth] >= height_ || eval_result.node_top >= height_)
+        if (eval_result.roof + status.up[depth] >= height_ || landing.land_height() >= height_)
         {
             BoardDeadZone = type_max_;
         }
@@ -114,17 +118,17 @@ namespace ai_tag
             BoardDeadZone = eval_result.safe_cache[status.up[depth]];
         }
         result.attack -= BoardDeadZone * 50000000;
-        result.attack += eval_result.clear * (eval_result.clear + 1) * config_->line_clear_width;
+        result.attack += clear * (clear + 1) * config_->line_clear_width;
         if (tspin > 0)
         {
             result.attack += tspin * config_->tspin_clear_width;
         }
-        if (eval_result.clear == 4)
+        if (clear == 4)
         {
             result.attack += config_->tetris_clear_width;
         }
         result.attack += eval_result.tbuild * config_->tspin_build_width;
-        if (eval_result.clear > 0)
+        if (clear > 0)
         {
             if (result.combo > 0)
             {
@@ -180,18 +184,21 @@ namespace ai_tag
         return "The AI Games (SetoSan) v0.1";
     }
 
-    the_ai_games_enemy::Status the_ai_games_enemy::get(Result const &eval_result, size_t depth, Status const &status) const
+    // enemy：无 Eval/MapBefore/Env 参数；tspin 由 landing.spin 现算；
+    // point_ptr/up_ptr 条件写穿的次数与顺序保持原样。
+    the_ai_games_enemy::Status the_ai_games_enemy::get(int clear, Landing const &landing, Status const &status, size_t depth) const
     {
         Status result = status;
-        if (eval_result.clear > 0)
+        size_t tspin = landing.spin != TSpinType::None ? static_cast<size_t>(clear) : size_t(0);
+        if (clear > 0)
         {
-            if (eval_result.tspin > 0)
+            if (tspin > 0)
             {
-                result.point += eval_result.tspin * 6;
+                result.point += tspin * 6;
             }
             else
             {
-                switch (eval_result.clear)
+                switch (clear)
                 {
                 case 1:
                     result.point += 1;

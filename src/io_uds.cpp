@@ -510,7 +510,7 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
 
         if (bot.config.opponent.known)
             bot.config.opponent.lethal_sent = bot.lethal.lethal_sent(bot.opponent, bot.config.rules, move.root.frame, move.lethal_free_pieces);
-        *engine.ai_config() = bot.config;
+        engine.set_ai_config(bot.config);
         *engine.status() = ai_zzz::IO::make_root_status(move.root, bot.config);
         engine.update();
         auto const deadline = received + std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double, std::milli>(move.think_ms)) - kReplyReserve;

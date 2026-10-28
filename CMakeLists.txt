@@ -240,6 +240,152 @@ foreach(diff_driver IN ITEMS
     target_link_libraries(${diff_driver} PRIVATE tetris_oracle)
 endforeach()
 
+# ---------------------------------------------------------------------------
+# framework_ai_[a-d]_diff: AI shard 各自独立的旧/新数值状态对拍 driver.
+# 归属: 各 shard owner; 本 owner 只注册编译与 ctest. golden 相对 test/ 源码目录.
+# ---------------------------------------------------------------------------
+foreach(framework_driver framework_ai_a_diff framework_ai_b_diff)
+    project(${framework_driver})
+    add_executable(${PROJECT_NAME}
+        src/ai_zzz.cpp
+        src/integer_utils.cpp
+        src/random.cpp
+        test/${framework_driver}.cpp
+    )
+    target_include_directories(${PROJECT_NAME} PRIVATE src)
+    target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core Threads::Threads)
+    add_test(NAME tetris_${framework_driver} COMMAND ${framework_driver}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test)
+endforeach()
+
+# ---------------------------------------------------------------------------
+# framework_ai_d_diff: shard D 双编译 OLD(snapshot 旧源) vs NEW(现 src),
+# ctest 跑两遍并逐字节比较 body (首行 MODE= 剔除). 真实 assert, 非 return0.
+# ---------------------------------------------------------------------------
+set(D_FREEZE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/research/baseline_freeze_7af0537a_20261028/snapshot/src)
+
+add_executable(framework_ai_d_diff_new
+    src/ai_misaka.cpp
+    src/ai_ax.cpp
+    src/ai_farter.cpp
+    src/integer_utils.cpp
+    src/random.cpp
+    test/framework_ai_d_diff.cpp
+)
+target_compile_definitions(framework_ai_d_diff_new PRIVATE AGENT_NEW)
+target_include_directories(framework_ai_d_diff_new PRIVATE src)
+target_link_libraries(framework_ai_d_diff_new PRIVATE tetris_core Threads::Threads)
+
+# Fresh-checkout: 2GB research snapshot 不入库. 存在才编 OLD 侧并逐字节对拍;
+# 缺失时 NEW 独立可编可跑 + 显式 SKIP (not PASS, not FAIL).
+if(EXISTS ${D_FREEZE_SRC}/ai_misaka.cpp)
+add_executable(framework_ai_d_diff_old
+    ${D_FREEZE_SRC}/ai_misaka.cpp
+    ${D_FREEZE_SRC}/ai_ax.cpp
+    ${D_FREEZE_SRC}/ai_farter.cpp
+    src/integer_utils.cpp
+    src/random.cpp
+    test/framework_ai_d_diff.cpp
+)
+target_compile_definitions(framework_ai_d_diff_old PRIVATE AGENT_OLD)
+target_include_directories(framework_ai_d_diff_old PRIVATE BEFORE ${D_FREEZE_SRC})
+target_link_libraries(framework_ai_d_diff_old PRIVATE Threads::Threads)
+
+add_test(NAME tetris_framework_ai_d_diff
+    COMMAND ${CMAKE_COMMAND}
+      -D NEW=$<TARGET_FILE:framework_ai_d_diff_new>
+      -D OLD=$<TARGET_FILE:framework_ai_d_diff_old>
+      -D BODY=${CMAKE_CURRENT_BINARY_DIR}/d_diff_body
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/d_diff_compare.cmake)
+else()
+# 缺 baseline: 不注册 old test; 独立 wrapper 以返回码 77 显式标 skip (ctest 认 77=Skipped),
+# 正常有 baseline 时比较成功必须返回 0. new-only 不构成 numeric 等价, 不当 pass.
+add_test(NAME tetris_framework_ai_d_diff
+    COMMAND ${CMAKE_COMMAND} -E echo "SKIP(77): frozen OLD snapshot missing; NEW binary retained but no OLD equivalence asserted")
+set_tests_properties(tetris_framework_ai_d_diff PROPERTIES SKIP_RETURN_CODE 77)
+endif()
+
+# ---------------------------------------------------------------------------
+# framework_ai_c_diff: shard C (io/tag/enemy) 双编译 OLD(snapshot) vs NEW,
+# body 逐字节对拍. baseline optional: 缺 snapshot 时 SKIP(77), NEW 独立可编.
+# ---------------------------------------------------------------------------
+set(C_FREEZE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/research/baseline_freeze_7af0537a_20261028/snapshot/src)
+
+add_executable(framework_ai_c_diff_new
+    src/ai_zzz_io.cpp
+    src/ai_zzz_io_lethal.cpp
+    src/ai_tag.cpp
+    src/integer_utils.cpp
+    src/random.cpp
+    test/framework_ai_c_diff.cpp
+)
+target_compile_definitions(framework_ai_c_diff_new PRIVATE AGENT_NEW)
+target_include_directories(framework_ai_c_diff_new PRIVATE src)
+target_link_libraries(framework_ai_c_diff_new PRIVATE tetris_core Threads::Threads)
+
+if(EXISTS ${C_FREEZE_SRC}/ai_zzz_io.cpp)
+add_executable(framework_ai_c_diff_old
+    ${C_FREEZE_SRC}/ai_zzz_io.cpp
+    ${C_FREEZE_SRC}/ai_zzz_io_lethal.cpp
+    ${C_FREEZE_SRC}/ai_tag.cpp
+    src/integer_utils.cpp
+    src/random.cpp
+    test/framework_ai_c_diff.cpp
+)
+target_compile_definitions(framework_ai_c_diff_old PRIVATE AGENT_OLD)
+target_include_directories(framework_ai_c_diff_old PRIVATE BEFORE ${C_FREEZE_SRC})
+target_link_libraries(framework_ai_c_diff_old PRIVATE Threads::Threads)
+
+add_test(NAME tetris_framework_ai_c_diff
+    COMMAND ${CMAKE_COMMAND}
+      -D NEW=$<TARGET_FILE:framework_ai_c_diff_new>
+      -D OLD=$<TARGET_FILE:framework_ai_c_diff_old>
+      -D BODY=${CMAKE_CURRENT_BINARY_DIR}/c_diff_body
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/d_diff_compare.cmake)
+else()
+# fresh-checkout: snapshot OLD missing → 不注册 compare 测试 (omitted), 不假 SKIP/echo.
+message(STATUS "framework_ai_c_diff: snapshot OLD missing, compare test OMITTED")
+endif()
+
+# C golden: NEW vs入库 golden (fresh-checkout 安全, 不依赖 snapshot).
+add_test(NAME tetris_framework_ai_c_golden
+    COMMAND ${CMAKE_COMMAND}
+      -D NEW=$<TARGET_FILE:framework_ai_c_diff_new>
+      -D GOLDEN=${CMAKE_CURRENT_SOURCE_DIR}/test/framework_ai_c_diff.golden
+      -D BODY=${CMAKE_CURRENT_BINARY_DIR}/c_golden_body
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/c_golden_compare.cmake)
+
+# ---------------------------------------------------------------------------
+# framework_eval_cache_test: 共享框架 EvalCache 独立探针 (不依赖任何 15 AI).
+# 覆盖: 单 bucket 容量、hash_override fullhash 碰撞重算、空盘为正常键、
+#       非平凡 Result 生命周期、disabled 旁路、generation 失效与 stats 字段.
+# ---------------------------------------------------------------------------
+project(framework_eval_cache_test)
+add_executable(${PROJECT_NAME}
+    src/integer_utils.cpp
+    src/random.cpp
+    test/framework_eval_cache_test.cpp
+)
+target_include_directories(${PROJECT_NAME} PRIVATE src)
+target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core)
+if(NOT MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
+    target_link_libraries(${PROJECT_NAME} PRIVATE -fsanitize=address,undefined)
+endif()
+add_test(NAME tetris_framework_eval_cache COMMAND framework_eval_cache_test)
+
+# farter 真实 engine 0-eval smoke (GetArgs 无 Eval).
+project(framework_farter_engine_smoke_test)
+add_executable(${PROJECT_NAME}
+    src/ai_farter.cpp
+    src/integer_utils.cpp
+    src/random.cpp
+    test/framework_farter_engine_smoke_test.cpp
+)
+target_include_directories(${PROJECT_NAME} PRIVATE src)
+target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core Threads::Threads)
+add_test(NAME tetris_framework_farter_engine_smoke COMMAND framework_farter_engine_smoke_test)
+
 project(aspin_dump)
 add_executable(${PROJECT_NAME}
     src/ai_zzz.cpp
@@ -358,6 +504,66 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     CULTRIS_SAFE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core Threads::Threads)
 add_test(NAME tetris_cultris_safe_regression COMMAND cultris_safe_regression_test)
+
+# C2 combo continuation policy (root 注册; cultris/CMake 另含 arm 原 3 项).
+# 真实 10x28 map, cells==4 map-only eval 断言.
+project(c2_combo_policy_test)
+add_executable(${PROJECT_NAME}
+    src/ai_zzz.cpp
+    src/integer_utils.cpp
+    src/random.cpp
+    test/c2_combo_policy_test.cpp
+)
+target_include_directories(${PROJECT_NAME} PRIVATE src cultris)
+target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core Threads::Threads)
+add_test(NAME tetris_c2_combo_policy COMMAND c2_combo_policy_test)
+
+# framework_contract_probes: Config lifecycle/generation wrap/fixed-scored on-off/empty GetArgs.
+project(framework_contract_probes)
+add_executable(${PROJECT_NAME}
+    test/framework_contract_probes.cpp
+)
+target_include_directories(${PROJECT_NAME} PRIVATE src)
+target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core Threads::Threads)
+add_test(NAME tetris_framework_contract_probes COMMAND framework_contract_probes)
+
+# framework_allai_smoke: zzz 家族真实 prepare/run/link (Botris_PC ASpin config 绑定 finding 注释).
+project(framework_allai_smoke)
+add_executable(${PROJECT_NAME} test/framework_allai_smoke.cpp src/ai_zzz.cpp src/integer_utils.cpp src/random.cpp)
+target_include_directories(${PROJECT_NAME} PRIVATE src)
+target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core Threads::Threads)
+add_test(NAME tetris_framework_allai_smoke COMMAND framework_allai_smoke)
+
+# B owner 5 zzz engine smoke (BotrisPC/TOJv08/Botris/TOJ/C2).
+project(framework_allai_zzz_smoke)
+add_executable(${PROJECT_NAME} test/framework_allai_zzz_smoke.cpp src/ai_zzz.cpp src/integer_utils.cpp src/random.cpp)
+target_include_directories(${PROJECT_NAME} PRIVATE src)
+target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core Threads::Threads)
+add_test(NAME tetris_framework_allai_zzz_smoke COMMAND framework_allai_zzz_smoke)
+
+# D owner remaining-7 engine smoke (misaka/ax/farter/tag3/io).
+project(framework_allai_remaining7_smoke)
+add_executable(${PROJECT_NAME} test/framework_allai_remaining7_smoke.cpp
+    src/ai_misaka.cpp src/ai_ax.cpp src/ai_farter.cpp src/ai_tag.cpp src/ai_zzz.cpp src/ai_zzz_io.cpp
+    src/integer_utils.cpp src/random.cpp)
+target_include_directories(${PROJECT_NAME} PRIVATE src)
+target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core Threads::Threads)
+add_test(NAME tetris_framework_allai_remaining7_smoke COMMAND framework_allai_remaining7_smoke)
+
+# framework_ax_smoke: owner ax 真实 engine run (其余 6 remaining-7 由 D).
+project(framework_ax_smoke)
+add_executable(${PROJECT_NAME} test/framework_ax_smoke.cpp src/ai_ax.cpp src/integer_utils.cpp src/random.cpp)
+target_include_directories(${PROJECT_NAME} PRIVATE src)
+target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core Threads::Threads)
+add_test(NAME tetris_framework_ax_smoke COMMAND framework_ax_smoke)
+
+# framework_tree_probes: 多层 Config tree staleEval / duplicate same-tag 计数 /
+#   ThreadEngine 真 run+lifecycle / fixed-budget on-off 逐字段.
+project(framework_tree_probes)
+add_executable(${PROJECT_NAME} test/framework_tree_probes.cpp src/integer_utils.cpp src/random.cpp)
+target_include_directories(${PROJECT_NAME} PRIVATE src)
+target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core Threads::Threads)
+add_test(NAME tetris_framework_tree_probes COMMAND framework_tree_probes)
 
 # ---------------------------------------------------------------------------
 # ctest 注册. 名字前缀 tetris_diff_* 让 `ctest -R tetris_diff_` 能一键勾选.

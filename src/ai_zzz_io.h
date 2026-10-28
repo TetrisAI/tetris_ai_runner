@@ -157,21 +157,19 @@ namespace ai_zzz
             Param param;
         };
 
+        // 纯盘面量：落块后棋盘 + Config.param/rules 的加权与派生。clear/spin/piece/all_clear/lock_out/
+        // cleared_rows 依赖落点与消行，不在此停留，由 get 从 Clear/Landing/MapBefore 现场重算。
         struct Result
         {
             double value;
-            std::uint64_t cleared_rows; // rows of the board before the placement that were cleared
-            int clear;
             int cells;
             int roof;
             // Per piece index, bit r set iff tanking r rows makes its spawn overlap the stack or the risen garbage.
             std::array<std::uint64_t, kPieceTypes> spawn_blocked;
             // Per piece index: the best line-clearing spin the board offers that piece.
             std::array<SpinSlot, kPieceTypes> spin_slots;
-            io_rules::Spin spin;
-            char piece;
-            bool all_clear;
-            bool lock_out;
+            // 落块消行后盘面是否为空；all_clear = clear > 0 && map_empty（get 侧与 Clear 合并）。
+            bool map_empty = false;
         };
         struct Status
         {
@@ -193,9 +191,6 @@ namespace ai_zzz
             bool death = false;
             bool kill = false;
             bool operator<(Status const &other) const;
-            // Every field but the score accumulators (like, value, sent, surge_sent, cancelled, b2b_gained, max_combo):
-            // the beam expands only the first node it pops among those at one depth that differ in them alone.
-            std::uint64_t transposition_key() const;
         };
 
         static Status make_root_status(RootState const &root, Config const &config);
@@ -214,17 +209,33 @@ namespace ai_zzz
         std::string ai_name() const;
         double ratio() const { return config_->param.ratio; }
 
-        template<class Details>
-        Result eval(m_tetris2::TetrisNode<Details, EvalSpinType> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const;
-        Status get(Result const &eval_result, size_t depth, Status const &status, m_tetris2::AIEnv const &env) const;
+        using Landing = m_tetris2::GetLanding<EvalSpinType>;
+        // 引擎按此表萃取节点上下文调 get；顺序即参数顺序。
+        using GetArgs = m_tetris2::type_list<
+            m_tetris2::args::Eval<Result>,
+            m_tetris2::args::Clear,
+            m_tetris2::args::Landing<Landing>,
+            m_tetris2::args::MapBefore,
+            m_tetris2::args::Parent<Status>,
+            m_tetris2::args::Depth,
+            m_tetris2::args::Env>;
+
+        template<class MapT>
+        Result eval(MapT const &map) const;
+        template<class MapT>
+        Status get(Result const &eval_result, int clear, Landing const &landing, MapT const &src_map, Status const &parent, size_t depth, m_tetris2::AIEnv const &env) const;
 
     private:
+        // init<Spec> 绑定：eval(map) 无 Spec 形参，spin_slots 扫描的模板参数在 init 期固化到此函数指针。
+        using DetectSpinSlotsFn = std::array<SpinSlot, kPieceTypes> (*)(IO const *self, void const *map_raw);
+        DetectSpinSlotsFn detect_spin_slots_ = nullptr;
         template<class Spec>
         static std::array<SpinSlot, kPieceTypes> detect_spin_slots(typename m_tetris2::Helpers<Spec>::map_t const &map, io_rules::Options const &rules);
         double spin_slot_value(std::array<SpinSlot, kPieceTypes> const &slots, m_tetris2::AIEnv const &env) const;
 
         Config const *config_ = nullptr;
         int width_ = 0;
+        int height_ = 0;
         int full_count_ = 0;
         std::array<int, 256> piece_index_{};
         std::array<SpawnCells, kPieceTypes> spawn_cells_{};
@@ -262,9 +273,14 @@ namespace ai_zzz
         static_assert(m_tetris2::ai_rule_spec::piece_count<Spec>() <= kPieceTypes);
         config_ = config;
         width_ = static_cast<int>(Spec::width);
+        height_ = static_cast<int>(Spec::height);
         full_count_ = width_ * 24;
         m_tetris2::ai_rule_spec::fill_piece_index_cache<Spec>(piece_index_);
         spawn_cells_ = make_spawn_cells<Spec>();
+        detect_spin_slots_ = +[](IO const *self, void const *map_raw) -> std::array<SpinSlot, kPieceTypes> {
+            using MapT = typename m_tetris2::Helpers<Spec>::map_t;
+            return detect_spin_slots<Spec>(*static_cast<MapT const *>(map_raw), self->config_->rules);
+        };
     }
 
     template<class Spec>
@@ -292,11 +308,26 @@ namespace ai_zzz
         return find.template operator()<SpinRule::AllMiniPlus>();
     }
 
-    template<class Details>
-    IO::Result IO::eval(m_tetris2::TetrisNode<Details, EvalSpinType> const &lp, typename Details::map_type const &map, typename Details::map_type const &src_map, size_t clear) const
+    // Below the death penalty: killing and then dying is still death.
+    static constexpr double kKillValue = 1e8;
+
+    // Without charging the B2B bonus is a flat +1 whenever the chain is active, so only being active has value.
+    static inline double chain_value(IO::Param const &p, io_rules::Options const &rules, int btb, double multiplier)
     {
-        using MapT = typename Details::map_type;
-        using Spec = typename Details::spec_type;
+        if (!rules.b2bcharging)
+            return btb > 0 ? p.b2b * 16 : 0.0;
+        double const shown = std::max(0, btb - 1);
+        double const charge = io_rules::is_charged(rules, btb) ? (btb - rules.b2bcharge_at + rules.b2bcharge_base) * multiplier : 0.0;
+        return p.b2b * 16 * shown + p.surge * 256 * charge;
+    }
+
+    template<class MapT>
+    IO::Result IO::eval(MapT const &map) const
+    {
+        // 防 mismatched MapT：scanner 在 init<Spec> 期绑定，只能处理与 init 同尺寸的 MapT。
+        // engine 调用方保证 init<Spec> 与本 MapT 尺寸一致；standalone 误用直接在这里炸。
+        assert(width_ == MapT::width && height_ == MapT::height &&
+               "IO::eval<MapT> called with a MapT whose dimensions do not match init<Spec>");
         constexpr int kW = MapT::width;
         constexpr int kH = MapT::height;
         constexpr std::uint32_t kRowMask = static_cast<std::uint32_t>(MapT::row_full);
@@ -389,28 +420,153 @@ namespace ai_zzz
             }
             result.spawn_blocked[i] = blocked;
         }
-        result.spin_slots = detect_spin_slots<Spec>(map, config_->rules);
+        // spin_slots 由 init<Spec> 固化的扫描器重算（当前 rules，不强制 8 变体重扫）。
+        result.spin_slots = detect_spin_slots_(this, &map);
         result.cells = map.popcount();
         result.roof = roof;
-        result.clear = static_cast<int>(clear);
-        result.cleared_rows = 0;
+        result.map_empty = map.none();
+        return result;
+    }
+
+    template<class MapT>
+    IO::Status IO::get(Result const &eval_result, int clear, Landing const &landing, MapT const &src_map, Status const &parent, size_t depth, m_tetris2::AIEnv const &env) const
+    {
+        constexpr int kH = MapT::height;
+        constexpr std::uint32_t kRowMask = static_cast<std::uint32_t>(MapT::row_full);
+        Config const &config = *config_;
+        io_rules::Options const &rules = config.rules;
+        Param const &p = config.param;
+        Status result = parent;
+
+        result.frame = depth == 0 ? parent.frame : parent.frame + 60 / config.pps;
+        result.pending.advance(static_cast<int>(std::floor(result.frame) - std::floor(parent.frame)));
+        ++result.pieces_placed;
+        double const multiplier = io_rules::garbage_multiplier(rules, result.frame);
+
+        // 旧 eval 尾部派生（顺序保留）：从 Clear/Landing/MapBefore 现场重算 cleared_rows/spin/piece/all_clear/lock_out。
+        std::uint64_t cleared_rows = 0;
         if (clear > 0)
         {
-            constexpr auto kCells = m_tetris2::shape::piece_cells<Spec, Details::t_value, Details::r_value>;
-            std::array<std::uint32_t, 4> piece_rows{};
-            int const bottom = lp.row();
-            for (std::size_t i = 0; i < kCells.count; ++i)
-                piece_rows[kCells.cells[i].y] |= 1u << (lp.col() + kCells.cells[i].x);
-            for (int i = 0; i < 4 && bottom + i < kH; ++i)
+            int const bottom = landing.row();
+            int const h = landing.h;
+            // lines[] 是 NxN 盒坐标；先找 shape_bottom（首个非零行）和 shape_left（最左 set bit）。
+            // lines[] y-down (i=0 顶行)；shape_bottom = 最后一个非零行 (piece 底)，shape_left = 最左 set bit。
+            int shape_bottom = -1;
+            int shape_left = h;
+            for (int i = 0; i < h; ++i)
+                if (landing.lines[i] != 0) shape_bottom = i;
+            for (int i = 0; i < h; ++i)
+                for (int x = 0; x < h; ++x)
+                    if ((landing.lines[i] >> x) & 1u) { shape_left = std::min(shape_left, x); break; }
+            for (int i = 0; i < h; ++i)
             {
-                if (piece_rows[i] != 0 && (static_cast<std::uint32_t>(src_map.occupied_row(bottom + i)) | piece_rows[i]) == kRowMask)
-                    result.cleared_rows |= std::uint64_t(1) << (bottom + i);
+                if (landing.lines[i] == 0) continue;
+                std::uint32_t const piece_row =
+                    static_cast<std::uint32_t>(landing.lines[i] >> shape_left) << landing.col();
+                int const board_row = bottom + (shape_bottom - i);
+                if (board_row < 0 || board_row >= kH) continue;
+                if ((static_cast<std::uint32_t>(src_map.occupied_row(board_row)) | piece_row) == kRowMask)
+                    cleared_rows |= std::uint64_t(1) << board_row;
             }
         }
-        result.spin = static_cast<io_rules::Spin>(lp.spin);
-        result.piece = Details::t_value;
-        result.all_clear = clear > 0 && map.none();
-        result.lock_out = lp.row() >= 20;
+        io_rules::Spin const spin = static_cast<io_rules::Spin>(landing.spin);
+        char const piece = landing.piece;
+        bool const all_clear = clear > 0 && eval_result.map_empty;
+        bool const lock_out = landing.row() >= 20;
+
+        std::uint64_t const garbage_mask = parent.garbage_rows >= 64 ? ~std::uint64_t(0) : (std::uint64_t(1) << parent.garbage_rows) - 1;
+        int const garbage_cleared = std::popcount(cleared_rows & garbage_mask);
+        result.garbage_rows -= garbage_cleared;
+
+        io_rules::Placement const placement{clear, spin, all_clear, garbage_cleared > 0};
+        io_rules::Attack const attack = io_rules::resolve_attack(rules, {parent.btb, parent.combo}, placement, multiplier);
+        io_rules::ExchangeResult const exchange = io_rules::exchange(rules, attack, result.pending, result.pieces_placed, result.lines_sent, io_rules::garbage_cap(rules, result.frame));
+        result.btb = attack.counters.btb;
+        result.combo = attack.counters.combo;
+        result.map_rise += exchange.tanked;
+        result.sent += exchange.sent;
+        result.surge_sent += exchange.surge_sent;
+        result.cancelled += exchange.cancelled;
+        double const valued_sent = result.sent - (1 - p.surge_release) * result.surge_sent;
+        int const b2b_gain = std::max(0, result.btb - parent.btb);
+        result.b2b_gained += rules.b2bcharging ? b2b_gain : (parent.btb == 0 && result.btb > 0 ? 1 : 0);
+        result.max_combo = std::max(result.combo, result.max_combo);
+
+        double const waste = piece == 'I' ? p.waste_i : 0;
+        switch (clear)
+        {
+        case 0:
+            if (exchange.tanked > 0)
+                result.like += waste;
+            break;
+        case 1:
+        case 2:
+        case 3:
+            if (spin == io_rules::Spin::Mini)
+            {
+                std::array<double, 3> const mini = {p.mini_1, p.mini_2, p.mini_3};
+                result.like += mini[clear - 1];
+            }
+            else if (spin == io_rules::Spin::Full)
+            {
+                std::array<double, 3> const full = {p.full_1, p.full_2, p.full_3};
+                result.like += full[clear - 1];
+            }
+            else
+            {
+                std::array<double, 3> const plain = {p.clear_1, p.clear_2, p.clear_3};
+                result.like += plain[clear - 1] + (clear < 3 ? waste : 0);
+            }
+            break;
+        default:
+            result.like += (result.combo + std::min(std::max(0, result.btb - 1), 5)) * (1 + result.sent + result.cancelled) * p.clear_4;
+            break;
+        }
+        if (clear > 0 && spin != io_rules::Spin::None && garbage_cleared > 0)
+            result.like += p.spin_garbage;
+        if (env.hold == 'I' && clear != 4)
+            result.like += p.hold_i;
+        result.like += valued_sent;
+
+        if (all_clear && !config.allow_pc)
+            result.death = true;
+        if (!rules.nolockout && lock_out)
+            result.death = true;
+        if (clear == 0 || !rules.clutch)
+        {
+            int const next_index = env.length > 0 ? piece_index_[static_cast<unsigned char>(*env.next)] : -1;
+            std::uint64_t blocked = 0;
+            for (int i = 0; i < kPieceTypes; ++i)
+            {
+                if (next_index < 0 || next_index == i)
+                    blocked |= eval_result.spawn_blocked[i];
+            }
+            if (result.map_rise >= 64 || ((blocked >> result.map_rise) & 1u) != 0)
+                result.death = true;
+        }
+
+        double const rate = 1. / static_cast<double>(depth + 1) + 3;
+        double const fullness = std::max(0.05, (full_count_ - eval_result.cells - result.map_rise * (width_ - 1)) / static_cast<double>(full_count_));
+        int const placement_attack = attack.total();
+        double const offense = valued_sent * 256 * rate * p.attack +
+                               result.cancelled * 256 * p.cancel +
+                               (b2b_gain > 0 ? placement_attack * 16 * (22 - eval_result.roof) : 0) +
+                               chain_value(p, rules, result.btb, multiplier) +
+                               result.b2b_gained * 256 * p.b2b_gain +
+                               result.like * 32 +
+                               spin_slot_value(eval_result.spin_slots, env) * 256;
+
+        double incoming = result.pending.total();
+        if (config.opponent.known)
+            incoming += p.opponent_surge * io_rules::surge_amount(rules, config.opponent.btb, multiplier);
+        double const uncovered = std::max(0.0, incoming - io_rules::surge_amount(rules, result.btb, multiplier));
+        result.kill = depth == 0 ? result.sent < 64 && ((config.opponent.lethal_sent >> result.sent) & 1) != 0 : parent.kill;
+
+        result.value = eval_result.value + offense * fullness +
+                       result.max_combo * (result.max_combo - 1) * (parent.btb <= result.btb ? placement_attack : 0) * p.combo -
+                       uncovered * 256 * p.pending +
+                       (result.kill ? kKillValue : 0) -
+                       (result.death ? 999999999.0 : 0);
         return result;
     }
 }

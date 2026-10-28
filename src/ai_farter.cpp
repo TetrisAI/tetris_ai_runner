@@ -21,14 +21,6 @@ namespace ai_farteryhr
         return "farteryhr v1";
     }
 
-    AI::Status AI::get(int eval_result, size_t depth, Status const &status) const
-    {
-        Status result =
-        {
-            eval_result + status.eval
-        };
-        result.value = result.eval / static_cast<int>(depth);
-        return result;
-    }
+    // get 已移至 ai_farter.h 内联模板（GetArgs = MapBefore, Landing, Parent, Depth）。
 
 }

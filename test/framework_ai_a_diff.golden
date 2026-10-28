@@ -1,0 +1,384 @@
+A case=0 eval.land_point=-62.399999999999999 eval.map=-3080 eval.danger=0 get.land_point=-62.399999999999999 get.attack=0 get.rubbish=0 get.value=-3142.4000000000001
+D case=0 eval.value=-14176 get.value=-14176
+T case=0 eval.value=9740 eval.roof=1 eval.tspin=0 get.attack=0 get.like=0 get.combo=0 get.b2b=0 get.pc=0 get.recv=0 get.under=0 get.value=9740
+B case=0 eval.value=9740 eval.roof=1 eval.aspin=0 get.attack=0 get.like=0 get.combo=0 get.b2b=0 get.pc=0 get.recv=0 get.under=0 get.value=9740
+A case=1 eval.land_point=-62.399999999999999 eval.map=-2624 eval.danger=0 get.land_point=-60.899999999999999 get.attack=2 get.rubbish=1 get.value=-3124.9000000000001
+D case=1 eval.value=-13184 get.value=-13184
+T case=1 eval.value=9740 eval.roof=4 eval.tspin=0 get.attack=0 get.like=0 get.combo=0 get.b2b=0 get.pc=0 get.recv=5 get.under=0 get.value=9740
+B case=1 eval.value=9740 eval.roof=4 eval.aspin=0 get.attack=0 get.like=0 get.combo=0 get.b2b=0 get.pc=0 get.recv=5 get.under=0 get.value=9740
+A case=2 eval.land_point=-62.399999999999999 eval.map=-3194 eval.danger=0 get.land_point=-59.399999999999999 get.attack=4 get.rubbish=2 get.value=-4133.3999999999996
+D case=2 eval.value=-14368 get.value=-14368
+T case=2 eval.value=9730 eval.roof=4 eval.tspin=0 get.attack=0 get.like=0 get.combo=0 get.b2b=0 get.pc=0 get.recv=3 get.under=0 get.value=9730
+B case=2 eval.value=9730 eval.roof=4 eval.aspin=0 get.attack=0 get.like=0 get.combo=0 get.b2b=0 get.pc=0 get.recv=3 get.under=0 get.value=9730
+A case=3 eval.land_point=-62.399999999999999 eval.map=-11448 eval.danger=0 get.land_point=-57.899999999999999 get.attack=6 get.rubbish=0 get.value=-10905.9
+D case=3 eval.value=-31208 get.value=-31208
+T case=3 eval.value=-372 eval.roof=19 eval.tspin=0 get.attack=0 get.like=-1 get.combo=0 get.b2b=0 get.pc=0 get.recv=8 get.under=0 get.value=-1000000372
+B case=3 eval.value=-372 eval.roof=19 eval.aspin=0 get.attack=0 get.like=-1 get.combo=0 get.b2b=0 get.pc=0 get.recv=8 get.under=0 get.value=-1000000372
+A case=4 eval.land_point=-62.399999999999999 eval.map=-3640 eval.danger=0 get.land_point=-56.399999999999999 get.attack=8 get.rubbish=1 get.value=-3536.3999999999996
+D case=4 eval.value=-15016 get.value=-15016
+T case=4 eval.value=-264 eval.roof=5 eval.tspin=0 get.attack=2 get.like=-1 get.combo=0 get.b2b=0 get.pc=0 get.recv=0 get.under=0 get.value=-1000000264
+B case=4 eval.value=-264 eval.roof=5 eval.aspin=0 get.attack=2 get.like=-1 get.combo=0 get.b2b=0 get.pc=0 get.recv=0 get.under=0 get.value=-1000000264
+A case=5 eval.land_point=-35000062.399999999 eval.map=-175272 eval.danger=5 get.land_point=-35000054.899999999 get.attack=0 get.rubbish=2 get.value=-35175126.899999999
+D case=5 eval.value=-370160 get.value=-370160
+T case=5 eval.value=-84 eval.roof=40 eval.tspin=0 get.attack=2 get.like=-1 get.combo=0 get.b2b=0 get.pc=0 get.recv=3 get.under=0 get.value=-1000000084
+B case=5 eval.value=-84 eval.roof=40 eval.aspin=0 get.attack=2 get.like=-1 get.combo=0 get.b2b=0 get.pc=0 get.recv=3 get.under=0 get.value=-1000000084
+A case=6 eval.land_point=-56.399999999999999 eval.map=-3080 eval.danger=0 get.land_point=-47.399999999999999 get.attack=2 get.rubbish=1 get.value=-3567.4000000000001
+D case=6 eval.value=-14176 get.value=-14176
+T case=6 eval.value=9740 eval.roof=1 eval.tspin=0 get.attack=2 get.like=0 get.combo=1 get.b2b=0 get.pc=0 get.recv=3 get.under=0 get.value=9740
+B case=6 eval.value=9740 eval.roof=1 eval.aspin=0 get.attack=2 get.like=0 get.combo=1 get.b2b=0 get.pc=0 get.recv=3 get.under=0 get.value=9740
+A case=7 eval.land_point=-56.399999999999999 eval.map=-2624 eval.danger=0 get.land_point=-56.399999999999999 get.attack=4 get.rubbish=2 get.value=-3560.4000000000001
+D case=7 eval.value=-13184 get.value=-13184
+T case=7 eval.value=9740 eval.roof=4 eval.tspin=0 get.attack=2 get.like=0 get.combo=1 get.b2b=0 get.pc=0 get.recv=3 get.under=5 get.value=9740
+B case=7 eval.value=9740 eval.roof=4 eval.aspin=0 get.attack=2 get.like=0 get.combo=1 get.b2b=0 get.pc=0 get.recv=3 get.under=5 get.value=9740
+A case=8 eval.land_point=-56.399999999999999 eval.map=-3194 eval.danger=0 get.land_point=-54.899999999999999 get.attack=6 get.rubbish=3 get.value=-4568.8999999999996
+D case=8 eval.value=-14368 get.value=-14368
+T case=8 eval.value=9730 eval.roof=4 eval.tspin=0 get.attack=0 get.like=50 get.combo=1 get.b2b=0 get.pc=0 get.recv=0 get.under=0 get.value=50000009730
+B case=8 eval.value=9730 eval.roof=4 eval.aspin=0 get.attack=0 get.like=50 get.combo=1 get.b2b=0 get.pc=0 get.recv=0 get.under=0 get.value=50000009730
+A case=9 eval.land_point=-56.399999999999999 eval.map=-11448 eval.danger=0 get.land_point=-53.399999999999999 get.attack=8 get.rubbish=1 get.value=-11341.4
+D case=9 eval.value=-31208 get.value=-31208
+T case=9 eval.value=-372 eval.roof=19 eval.tspin=0 get.attack=0 get.like=49 get.combo=1 get.b2b=0 get.pc=0 get.recv=0 get.under=5 get.value=48999999628
+B case=9 eval.value=-372 eval.roof=19 eval.aspin=0 get.attack=0 get.like=49 get.combo=1 get.b2b=0 get.pc=0 get.recv=0 get.under=5 get.value=48999999628
+A case=10 eval.land_point=-56.399999999999999 eval.map=-3640 eval.danger=0 get.land_point=-51.899999999999999 get.attack=0 get.rubbish=2 get.value=-4971.8999999999996
+D case=10 eval.value=-15016 get.value=-15016
+T case=10 eval.value=-264 eval.roof=5 eval.tspin=0 get.attack=0 get.like=49 get.combo=1 get.b2b=0 get.pc=0 get.recv=3 get.under=0 get.value=48999999736
+B case=10 eval.value=-264 eval.roof=5 eval.aspin=0 get.attack=0 get.like=49 get.combo=1 get.b2b=0 get.pc=0 get.recv=3 get.under=0 get.value=48999999736
+A case=11 eval.land_point=-35000056.399999999 eval.map=-175272 eval.danger=5 get.land_point=-35000050.399999999 get.attack=2 get.rubbish=3 get.value=-35174822.399999999
+D case=11 eval.value=-370160 get.value=-370160
+T case=11 eval.value=-84 eval.roof=40 eval.tspin=0 get.attack=0 get.like=49 get.combo=1 get.b2b=0 get.pc=0 get.recv=3 get.under=5 get.value=48999999916
+B case=11 eval.value=-84 eval.roof=40 eval.aspin=0 get.attack=0 get.like=49 get.combo=1 get.b2b=0 get.pc=0 get.recv=3 get.under=5 get.value=48999999916
+A case=12 eval.land_point=-50.399999999999999 eval.map=-3080 eval.danger=0 get.land_point=-42.899999999999999 get.attack=4 get.rubbish=2 get.value=-4002.8999999999996
+D case=12 eval.value=-14176 get.value=-14176
+T case=12 eval.value=9740 eval.roof=1 eval.tspin=0 get.attack=3 get.like=50 get.combo=1 get.b2b=0 get.pc=0 get.recv=0 get.under=0 get.value=50000009740
+B case=12 eval.value=9740 eval.roof=1 eval.aspin=0 get.attack=3 get.like=50 get.combo=1 get.b2b=0 get.pc=0 get.recv=0 get.under=0 get.value=50000009740
+A case=13 eval.land_point=-50.399999999999999 eval.map=-2624 eval.danger=0 get.land_point=-41.399999999999999 get.attack=6 get.rubbish=3 get.value=-3985.3999999999996
+D case=13 eval.value=-13184 get.value=-13184
+T case=13 eval.value=9740 eval.roof=4 eval.tspin=0 get.attack=3 get.like=50 get.combo=1 get.b2b=0 get.pc=0 get.recv=0 get.under=5 get.value=50000009740
+B case=13 eval.value=9740 eval.roof=4 eval.aspin=0 get.attack=3 get.like=50 get.combo=1 get.b2b=0 get.pc=0 get.recv=0 get.under=5 get.value=50000009740
+A case=14 eval.land_point=-50.399999999999999 eval.map=-3194 eval.danger=0 get.land_point=-50.399999999999999 get.attack=8 get.rubbish=4 get.value=-5004.3999999999996
+D case=14 eval.value=-14368 get.value=-14368
+T case=14 eval.value=9730 eval.roof=4 eval.tspin=0 get.attack=3 get.like=50 get.combo=1 get.b2b=0 get.pc=0 get.recv=3 get.under=0 get.value=50000009730
+B case=14 eval.value=9730 eval.roof=4 eval.aspin=0 get.attack=3 get.like=50 get.combo=1 get.b2b=0 get.pc=0 get.recv=3 get.under=0 get.value=50000009730
+A case=15 eval.land_point=-50.399999999999999 eval.map=-11448 eval.danger=0 get.land_point=-48.899999999999999 get.attack=0 get.rubbish=2 get.value=-12776.9
+D case=15 eval.value=-31208 get.value=-31208
+T case=15 eval.value=-372 eval.roof=19 eval.tspin=0 get.attack=3 get.like=49 get.combo=1 get.b2b=0 get.pc=0 get.recv=3 get.under=5 get.value=48999999628
+B case=15 eval.value=-372 eval.roof=19 eval.aspin=0 get.attack=3 get.like=49 get.combo=1 get.b2b=0 get.pc=0 get.recv=3 get.under=5 get.value=48999999628
+A case=16 eval.land_point=-50.399999999999999 eval.map=-3640 eval.danger=0 get.land_point=-47.399999999999999 get.attack=2 get.rubbish=3 get.value=-5407.3999999999996
+D case=16 eval.value=-15016 get.value=-15016
+T case=16 eval.value=-264 eval.roof=5 eval.tspin=0 get.attack=2 get.like=-1 get.combo=3 get.b2b=0 get.pc=0 get.recv=0 get.under=0 get.value=-1000000264
+B case=16 eval.value=-264 eval.roof=5 eval.aspin=0 get.attack=2 get.like=-1 get.combo=3 get.b2b=0 get.pc=0 get.recv=0 get.under=0 get.value=-1000000264
+A case=17 eval.land_point=-35000050.399999999 eval.map=-175272 eval.danger=5 get.land_point=-35000045.899999999 get.attack=4 get.rubbish=4 get.value=-35174517.899999999
+D case=17 eval.value=-370160 get.value=-370160
+T case=17 eval.value=-84 eval.roof=40 eval.tspin=0 get.attack=2 get.like=-1 get.combo=3 get.b2b=0 get.pc=0 get.recv=0 get.under=5 get.value=-1000000084
+B case=17 eval.value=-84 eval.roof=40 eval.aspin=0 get.attack=2 get.like=-1 get.combo=3 get.b2b=0 get.pc=0 get.recv=0 get.under=5 get.value=-1000000084
+A case=18 eval.land_point=-44.399999999999999 eval.map=-3080 eval.danger=0 get.land_point=-38.399999999999999 get.attack=306 get.rubbish=0 get.value=27481.599999999999
+D case=18 eval.value=-14176 get.value=-14176
+T case=18 eval.value=9740 eval.roof=1 eval.tspin=0 get.attack=3 get.like=0 get.combo=3 get.b2b=0 get.pc=0 get.recv=3 get.under=0 get.value=9740
+B case=18 eval.value=9740 eval.roof=1 eval.aspin=0 get.attack=3 get.like=0 get.combo=3 get.b2b=0 get.pc=0 get.recv=3 get.under=0 get.value=9740
+A case=19 eval.land_point=-44.399999999999999 eval.map=-2624 eval.danger=0 get.land_point=-36.899999999999999 get.attack=308 get.rubbish=1 get.value=27499.099999999999
+D case=19 eval.value=-13184 get.value=-13184
+T case=19 eval.value=9740 eval.roof=4 eval.tspin=0 get.attack=3 get.like=0 get.combo=3 get.b2b=0 get.pc=0 get.recv=3 get.under=5 get.value=9740
+B case=19 eval.value=9740 eval.roof=4 eval.aspin=0 get.attack=3 get.like=0 get.combo=3 get.b2b=0 get.pc=0 get.recv=3 get.under=5 get.value=9740
+A case=20 eval.land_point=-44.399999999999999 eval.map=-3194 eval.danger=0 get.land_point=-35.399999999999999 get.attack=300 get.rubbish=2 get.value=25490.599999999999
+D case=20 eval.value=-14368 get.value=-14368
+T case=20 eval.value=9730 eval.roof=4 eval.tspin=0 get.attack=5 get.like=0 get.combo=3 get.b2b=0 get.pc=0 get.recv=0 get.under=0 get.value=9730
+B case=20 eval.value=9730 eval.roof=4 eval.aspin=0 get.attack=5 get.like=0 get.combo=3 get.b2b=0 get.pc=0 get.recv=0 get.under=0 get.value=9730
+A case=21 eval.land_point=-44.399999999999999 eval.map=-11448 eval.danger=0 get.land_point=-44.399999999999999 get.attack=302 get.rubbish=0 get.value=18707.599999999999
+D case=21 eval.value=-31208 get.value=-31208
+T case=21 eval.value=-372 eval.roof=19 eval.tspin=0 get.attack=5 get.like=-1 get.combo=3 get.b2b=0 get.pc=0 get.recv=0 get.under=5 get.value=-1000000372
+B case=21 eval.value=-372 eval.roof=19 eval.aspin=0 get.attack=5 get.like=-1 get.combo=3 get.b2b=0 get.pc=0 get.recv=0 get.under=5 get.value=-1000000372
+A case=22 eval.land_point=-44.399999999999999 eval.map=-3640 eval.danger=0 get.land_point=-42.899999999999999 get.attack=304 get.rubbish=1 get.value=26077.099999999999
+D case=22 eval.value=-15016 get.value=-15016
+T case=22 eval.value=-264 eval.roof=5 eval.tspin=0 get.attack=5 get.like=-1 get.combo=3 get.b2b=0 get.pc=0 get.recv=3 get.under=0 get.value=-1000000264
+B case=22 eval.value=-264 eval.roof=5 eval.aspin=0 get.attack=5 get.like=-1 get.combo=3 get.b2b=0 get.pc=0 get.recv=3 get.under=0 get.value=-1000000264
+A case=23 eval.land_point=-35000044.399999999 eval.map=-175272 eval.danger=5 get.land_point=-35000041.399999999 get.attack=306 get.rubbish=2 get.value=-35144513.399999999
+D case=23 eval.value=-370160 get.value=-370160
+T case=23 eval.value=-84 eval.roof=40 eval.tspin=0 get.attack=5 get.like=-1 get.combo=3 get.b2b=0 get.pc=0 get.recv=3 get.under=5 get.value=-1000000084
+B case=23 eval.value=-84 eval.roof=40 eval.aspin=0 get.attack=5 get.like=-1 get.combo=3 get.b2b=0 get.pc=0 get.recv=3 get.under=5 get.value=-1000000084
+A case=24 eval.land_point=-38.399999999999999 eval.map=-3080 eval.danger=0 get.land_point=-33.899999999999999 get.attack=408 get.rubbish=0 get.value=37686.099999999999
+D case=24 eval.value=-14176 get.value=-14176
+T case=24 eval.value=9740 eval.roof=1 eval.tspin=0 get.attack=5 get.like=50 get.combo=3 get.b2b=1 get.pc=0 get.recv=0 get.under=0 get.value=50000009740
+B case=24 eval.value=9740 eval.roof=1 eval.aspin=0 get.attack=5 get.like=50 get.combo=3 get.b2b=1 get.pc=0 get.recv=0 get.under=0 get.value=50000009740
+A case=25 eval.land_point=-38.399999999999999 eval.map=-2624 eval.danger=0 get.land_point=-32.399999999999999 get.attack=400 get.rubbish=1 get.value=36703.599999999999
+D case=25 eval.value=-13184 get.value=-13184
+T case=25 eval.value=9740 eval.roof=4 eval.tspin=0 get.attack=5 get.like=50 get.combo=3 get.b2b=1 get.pc=0 get.recv=0 get.under=5 get.value=50000009740
+B case=25 eval.value=9740 eval.roof=4 eval.aspin=0 get.attack=5 get.like=50 get.combo=3 get.b2b=1 get.pc=0 get.recv=0 get.under=5 get.value=50000009740
+A case=26 eval.land_point=-38.399999999999999 eval.map=-3194 eval.danger=0 get.land_point=-30.899999999999999 get.attack=402 get.rubbish=2 get.value=35695.099999999999
+D case=26 eval.value=-14368 get.value=-14368
+T case=26 eval.value=9730 eval.roof=4 eval.tspin=0 get.attack=5 get.like=50 get.combo=3 get.b2b=1 get.pc=0 get.recv=3 get.under=0 get.value=50000009730
+B case=26 eval.value=9730 eval.roof=4 eval.aspin=0 get.attack=5 get.like=50 get.combo=3 get.b2b=1 get.pc=0 get.recv=3 get.under=0 get.value=50000009730
+A case=27 eval.land_point=-38.399999999999999 eval.map=-11448 eval.danger=0 get.land_point=-29.399999999999999 get.attack=404 get.rubbish=0 get.value=28922.599999999999
+D case=27 eval.value=-31208 get.value=-31208
+T case=27 eval.value=-372 eval.roof=19 eval.tspin=0 get.attack=5 get.like=49 get.combo=3 get.b2b=1 get.pc=0 get.recv=3 get.under=5 get.value=48999999628
+B case=27 eval.value=-372 eval.roof=19 eval.aspin=0 get.attack=5 get.like=49 get.combo=3 get.b2b=1 get.pc=0 get.recv=3 get.under=5 get.value=48999999628
+A case=28 eval.land_point=-38.399999999999999 eval.map=-3640 eval.danger=0 get.land_point=-38.399999999999999 get.attack=406 get.rubbish=1 get.value=36281.599999999999
+D case=28 eval.value=-15016 get.value=-15016
+T case=28 eval.value=-264 eval.roof=5 eval.tspin=0 get.attack=7 get.like=49 get.combo=3 get.b2b=1 get.pc=0 get.recv=0 get.under=0 get.value=48999999736
+B case=28 eval.value=-264 eval.roof=5 eval.aspin=0 get.attack=7 get.like=49 get.combo=3 get.b2b=1 get.pc=0 get.recv=0 get.under=0 get.value=48999999736
+A case=29 eval.land_point=-35000038.399999999 eval.map=-175272 eval.danger=5 get.land_point=-35000036.899999999 get.attack=408 get.rubbish=2 get.value=-35134308.899999999
+D case=29 eval.value=-370160 get.value=-370160
+T case=29 eval.value=-84 eval.roof=40 eval.tspin=0 get.attack=7 get.like=49 get.combo=3 get.b2b=1 get.pc=0 get.recv=0 get.under=5 get.value=48999999916
+B case=29 eval.value=-84 eval.roof=40 eval.aspin=0 get.attack=7 get.like=49 get.combo=3 get.b2b=1 get.pc=0 get.recv=0 get.under=5 get.value=48999999916
+A case=30 eval.land_point=-62.399999999999999 eval.map=-3080 eval.danger=0 get.land_point=-59.399999999999999 get.attack=0 get.rubbish=0 get.value=-3139.4000000000001
+D case=30 eval.value=-14176 get.value=-14176
+T case=30 eval.value=9740 eval.roof=1 eval.tspin=0 get.attack=2 get.like=50 get.combo=0 get.b2b=0 get.pc=0 get.recv=3 get.under=0 get.value=50000009740
+B case=30 eval.value=9740 eval.roof=1 eval.aspin=1 get.attack=2 get.like=50 get.combo=0 get.b2b=0 get.pc=0 get.recv=3 get.under=0 get.value=50000009740
+A case=31 eval.land_point=-62.399999999999999 eval.map=-2624 eval.danger=0 get.land_point=-57.899999999999999 get.attack=2 get.rubbish=1 get.value=-3121.9000000000001
+D case=31 eval.value=-13184 get.value=-13184
+T case=31 eval.value=9740 eval.roof=4 eval.tspin=0 get.attack=2 get.like=50 get.combo=0 get.b2b=0 get.pc=0 get.recv=6 get.under=0 get.value=50000009740
+B case=31 eval.value=9740 eval.roof=4 eval.aspin=1 get.attack=2 get.like=50 get.combo=0 get.b2b=0 get.pc=0 get.recv=6 get.under=0 get.value=50000009740
+A case=32 eval.land_point=-62.399999999999999 eval.map=-3194 eval.danger=0 get.land_point=-56.399999999999999 get.attack=4 get.rubbish=2 get.value=-4130.3999999999996
+D case=32 eval.value=-14368 get.value=-14368
+T case=32 eval.value=9730 eval.roof=4 eval.tspin=0 get.attack=0 get.like=0 get.combo=0 get.b2b=1 get.pc=0 get.recv=0 get.under=0 get.value=9730
+B case=32 eval.value=9730 eval.roof=4 eval.aspin=1 get.attack=0 get.like=0 get.combo=0 get.b2b=1 get.pc=0 get.recv=0 get.under=0 get.value=9730
+A case=33 eval.land_point=-62.399999999999999 eval.map=-11448 eval.danger=0 get.land_point=-54.899999999999999 get.attack=6 get.rubbish=0 get.value=-10902.9
+D case=33 eval.value=-31208 get.value=-31208
+T case=33 eval.value=-372 eval.roof=19 eval.tspin=0 get.attack=0 get.like=-1 get.combo=0 get.b2b=1 get.pc=0 get.recv=5 get.under=0 get.value=-1000000372
+B case=33 eval.value=-372 eval.roof=19 eval.aspin=1 get.attack=0 get.like=-1 get.combo=0 get.b2b=1 get.pc=0 get.recv=5 get.under=0 get.value=-1000000372
+A case=34 eval.land_point=-62.399999999999999 eval.map=-3640 eval.danger=0 get.land_point=-53.399999999999999 get.attack=8 get.rubbish=1 get.value=-3533.3999999999996
+D case=34 eval.value=-15016 get.value=-15016
+T case=34 eval.value=-264 eval.roof=5 eval.tspin=0 get.attack=0 get.like=-1 get.combo=0 get.b2b=1 get.pc=0 get.recv=3 get.under=0 get.value=-1000000264
+B case=34 eval.value=-264 eval.roof=5 eval.aspin=1 get.attack=0 get.like=-1 get.combo=0 get.b2b=1 get.pc=0 get.recv=3 get.under=0 get.value=-1000000264
+A case=35 eval.land_point=-35000062.399999999 eval.map=-175272 eval.danger=5 get.land_point=-35000062.399999999 get.attack=0 get.rubbish=2 get.value=-35175134.399999999
+D case=35 eval.value=-370160 get.value=-370160
+T case=35 eval.value=-84 eval.roof=40 eval.tspin=0 get.attack=0 get.like=-1 get.combo=0 get.b2b=1 get.pc=0 get.recv=8 get.under=0 get.value=-1000000084
+B case=35 eval.value=-84 eval.roof=40 eval.aspin=1 get.attack=0 get.like=-1 get.combo=0 get.b2b=1 get.pc=0 get.recv=8 get.under=0 get.value=-1000000084
+A case=36 eval.land_point=-56.399999999999999 eval.map=-3080 eval.danger=0 get.land_point=-54.899999999999999 get.attack=2 get.rubbish=1 get.value=-3574.9000000000001
+D case=36 eval.value=-14176 get.value=-14176
+T case=36 eval.value=9740 eval.roof=1 eval.tspin=1 get.attack=5 get.like=0 get.combo=1 get.b2b=1 get.pc=0 get.recv=0 get.under=0 get.value=9740
+B case=36 eval.value=9740 eval.roof=1 eval.aspin=1 get.attack=5 get.like=0 get.combo=1 get.b2b=1 get.pc=0 get.recv=0 get.under=0 get.value=9740
+A case=37 eval.land_point=-56.399999999999999 eval.map=-2624 eval.danger=0 get.land_point=-53.399999999999999 get.attack=4 get.rubbish=2 get.value=-3557.4000000000001
+D case=37 eval.value=-13184 get.value=-13184
+T case=37 eval.value=9740 eval.roof=4 eval.tspin=1 get.attack=5 get.like=0 get.combo=1 get.b2b=1 get.pc=0 get.recv=0 get.under=5 get.value=9740
+B case=37 eval.value=9740 eval.roof=4 eval.aspin=1 get.attack=5 get.like=0 get.combo=1 get.b2b=1 get.pc=0 get.recv=0 get.under=5 get.value=9740
+A case=38 eval.land_point=-56.399999999999999 eval.map=-3194 eval.danger=0 get.land_point=-51.899999999999999 get.attack=6 get.rubbish=3 get.value=-4565.8999999999996
+D case=38 eval.value=-14368 get.value=-14368
+T case=38 eval.value=9730 eval.roof=4 eval.tspin=1 get.attack=5 get.like=0 get.combo=1 get.b2b=1 get.pc=0 get.recv=3 get.under=0 get.value=9730
+B case=38 eval.value=9730 eval.roof=4 eval.aspin=1 get.attack=5 get.like=0 get.combo=1 get.b2b=1 get.pc=0 get.recv=3 get.under=0 get.value=9730
+A case=39 eval.land_point=-56.399999999999999 eval.map=-11448 eval.danger=0 get.land_point=-50.399999999999999 get.attack=8 get.rubbish=1 get.value=-11338.4
+D case=39 eval.value=-31208 get.value=-31208
+T case=39 eval.value=-372 eval.roof=19 eval.tspin=1 get.attack=5 get.like=-1 get.combo=1 get.b2b=1 get.pc=0 get.recv=3 get.under=5 get.value=-1000000372
+B case=39 eval.value=-372 eval.roof=19 eval.aspin=1 get.attack=5 get.like=-1 get.combo=1 get.b2b=1 get.pc=0 get.recv=3 get.under=5 get.value=-1000000372
+A case=40 eval.land_point=-56.399999999999999 eval.map=-3640 eval.danger=0 get.land_point=-48.899999999999999 get.attack=0 get.rubbish=2 get.value=-4968.8999999999996
+D case=40 eval.value=-15016 get.value=-15016
+T case=40 eval.value=-264 eval.roof=5 eval.tspin=1 get.attack=3 get.like=49 get.combo=1 get.b2b=1 get.pc=0 get.recv=0 get.under=0 get.value=48999999736
+B case=40 eval.value=-264 eval.roof=5 eval.aspin=1 get.attack=3 get.like=49 get.combo=1 get.b2b=1 get.pc=0 get.recv=0 get.under=0 get.value=48999999736
+A case=41 eval.land_point=-35000056.399999999 eval.map=-175272 eval.danger=5 get.land_point=-35000047.399999999 get.attack=2 get.rubbish=3 get.value=-35174819.399999999
+D case=41 eval.value=-370160 get.value=-370160
+T case=41 eval.value=-84 eval.roof=40 eval.tspin=1 get.attack=3 get.like=49 get.combo=1 get.b2b=1 get.pc=0 get.recv=0 get.under=5 get.value=48999999916
+B case=41 eval.value=-84 eval.roof=40 eval.aspin=1 get.attack=3 get.like=49 get.combo=1 get.b2b=1 get.pc=0 get.recv=0 get.under=5 get.value=48999999916
+A case=42 eval.land_point=-50.399999999999999 eval.map=-3080 eval.danger=0 get.land_point=-50.399999999999999 get.attack=4 get.rubbish=2 get.value=-4010.3999999999996
+D case=42 eval.value=-14176 get.value=-14176
+T case=42 eval.value=9740 eval.roof=1 eval.tspin=1 get.attack=6 get.like=50 get.combo=1 get.b2b=1 get.pc=0 get.recv=3 get.under=0 get.value=50000009740
+B case=42 eval.value=9740 eval.roof=1 eval.aspin=1 get.attack=6 get.like=50 get.combo=1 get.b2b=1 get.pc=0 get.recv=3 get.under=0 get.value=50000009740
+A case=43 eval.land_point=-50.399999999999999 eval.map=-2624 eval.danger=0 get.land_point=-48.899999999999999 get.attack=6 get.rubbish=3 get.value=-3992.8999999999996
+D case=43 eval.value=-13184 get.value=-13184
+T case=43 eval.value=9740 eval.roof=4 eval.tspin=1 get.attack=6 get.like=50 get.combo=1 get.b2b=1 get.pc=0 get.recv=3 get.under=5 get.value=50000009740
+B case=43 eval.value=9740 eval.roof=4 eval.aspin=1 get.attack=6 get.like=50 get.combo=1 get.b2b=1 get.pc=0 get.recv=3 get.under=5 get.value=50000009740
+A case=44 eval.land_point=-50.399999999999999 eval.map=-3194 eval.danger=0 get.land_point=-47.399999999999999 get.attack=8 get.rubbish=4 get.value=-5001.3999999999996
+D case=44 eval.value=-14368 get.value=-14368
+T case=44 eval.value=9730 eval.roof=4 eval.tspin=1 get.attack=8 get.like=50 get.combo=1 get.b2b=1 get.pc=0 get.recv=0 get.under=0 get.value=50000009730
+B case=44 eval.value=9730 eval.roof=4 eval.aspin=1 get.attack=8 get.like=50 get.combo=1 get.b2b=1 get.pc=0 get.recv=0 get.under=0 get.value=50000009730
+A case=45 eval.land_point=-50.399999999999999 eval.map=-11448 eval.danger=0 get.land_point=-45.899999999999999 get.attack=0 get.rubbish=2 get.value=-12773.9
+D case=45 eval.value=-31208 get.value=-31208
+T case=45 eval.value=-372 eval.roof=19 eval.tspin=1 get.attack=8 get.like=49 get.combo=1 get.b2b=1 get.pc=0 get.recv=0 get.under=5 get.value=48999999628
+B case=45 eval.value=-372 eval.roof=19 eval.aspin=1 get.attack=8 get.like=49 get.combo=1 get.b2b=1 get.pc=0 get.recv=0 get.under=5 get.value=48999999628
+A case=46 eval.land_point=-50.399999999999999 eval.map=-3640 eval.danger=0 get.land_point=-44.399999999999999 get.attack=2 get.rubbish=3 get.value=-5404.3999999999996
+D case=46 eval.value=-15016 get.value=-15016
+T case=46 eval.value=-264 eval.roof=5 eval.tspin=1 get.attack=8 get.like=49 get.combo=1 get.b2b=1 get.pc=0 get.recv=3 get.under=0 get.value=48999999736
+B case=46 eval.value=-264 eval.roof=5 eval.aspin=1 get.attack=8 get.like=49 get.combo=1 get.b2b=1 get.pc=0 get.recv=3 get.under=0 get.value=48999999736
+A case=47 eval.land_point=-35000050.399999999 eval.map=-175272 eval.danger=5 get.land_point=-35000042.899999999 get.attack=4 get.rubbish=4 get.value=-35174514.899999999
+D case=47 eval.value=-370160 get.value=-370160
+T case=47 eval.value=-84 eval.roof=40 eval.tspin=1 get.attack=8 get.like=49 get.combo=1 get.b2b=1 get.pc=0 get.recv=3 get.under=5 get.value=48999999916
+B case=47 eval.value=-84 eval.roof=40 eval.aspin=1 get.attack=8 get.like=49 get.combo=1 get.b2b=1 get.pc=0 get.recv=3 get.under=5 get.value=48999999916
+A case=48 eval.land_point=-44.399999999999999 eval.map=-3080 eval.danger=0 get.land_point=-35.399999999999999 get.attack=306 get.rubbish=0 get.value=27484.599999999999
+D case=48 eval.value=-14176 get.value=-14176
+T case=48 eval.value=9740 eval.roof=1 eval.tspin=1 get.attack=11 get.like=0 get.combo=3 get.b2b=1 get.pc=0 get.recv=0 get.under=0 get.value=9740
+B case=48 eval.value=9740 eval.roof=1 eval.aspin=1 get.attack=10 get.like=0 get.combo=3 get.b2b=1 get.pc=0 get.recv=0 get.under=0 get.value=9740
+A case=49 eval.land_point=-44.399999999999999 eval.map=-2624 eval.danger=0 get.land_point=-44.399999999999999 get.attack=308 get.rubbish=1 get.value=27491.599999999999
+D case=49 eval.value=-13184 get.value=-13184
+T case=49 eval.value=9740 eval.roof=4 eval.tspin=1 get.attack=11 get.like=0 get.combo=3 get.b2b=1 get.pc=0 get.recv=0 get.under=5 get.value=9740
+B case=49 eval.value=9740 eval.roof=4 eval.aspin=1 get.attack=10 get.like=0 get.combo=3 get.b2b=1 get.pc=0 get.recv=0 get.under=5 get.value=9740
+A case=50 eval.land_point=-44.399999999999999 eval.map=-3194 eval.danger=0 get.land_point=-42.899999999999999 get.attack=300 get.rubbish=2 get.value=25483.099999999999
+D case=50 eval.value=-14368 get.value=-14368
+T case=50 eval.value=9730 eval.roof=4 eval.tspin=1 get.attack=11 get.like=0 get.combo=3 get.b2b=1 get.pc=0 get.recv=3 get.under=0 get.value=9730
+B case=50 eval.value=9730 eval.roof=4 eval.aspin=1 get.attack=10 get.like=0 get.combo=3 get.b2b=1 get.pc=0 get.recv=3 get.under=0 get.value=9730
+A case=51 eval.land_point=-44.399999999999999 eval.map=-11448 eval.danger=0 get.land_point=-41.399999999999999 get.attack=302 get.rubbish=0 get.value=18710.599999999999
+D case=51 eval.value=-31208 get.value=-31208
+T case=51 eval.value=-372 eval.roof=19 eval.tspin=1 get.attack=11 get.like=-1 get.combo=3 get.b2b=1 get.pc=0 get.recv=3 get.under=5 get.value=-1000000372
+B case=51 eval.value=-372 eval.roof=19 eval.aspin=1 get.attack=10 get.like=-1 get.combo=3 get.b2b=1 get.pc=0 get.recv=3 get.under=5 get.value=-1000000372
+A case=52 eval.land_point=-44.399999999999999 eval.map=-3640 eval.danger=0 get.land_point=-39.899999999999999 get.attack=304 get.rubbish=1 get.value=26080.099999999999
+D case=52 eval.value=-15016 get.value=-15016
+T case=52 eval.value=-264 eval.roof=5 eval.tspin=1 get.attack=13 get.like=-1 get.combo=3 get.b2b=1 get.pc=0 get.recv=0 get.under=0 get.value=-1000000264
+B case=52 eval.value=-264 eval.roof=5 eval.aspin=1 get.attack=12 get.like=-1 get.combo=3 get.b2b=1 get.pc=0 get.recv=0 get.under=0 get.value=-1000000264
+A case=53 eval.land_point=-35000044.399999999 eval.map=-175272 eval.danger=5 get.land_point=-35000038.399999999 get.attack=306 get.rubbish=2 get.value=-35144510.399999999
+D case=53 eval.value=-370160 get.value=-370160
+T case=53 eval.value=-84 eval.roof=40 eval.tspin=1 get.attack=13 get.like=-1 get.combo=3 get.b2b=1 get.pc=0 get.recv=0 get.under=5 get.value=-1000000084
+B case=53 eval.value=-84 eval.roof=40 eval.aspin=1 get.attack=12 get.like=-1 get.combo=3 get.b2b=1 get.pc=0 get.recv=0 get.under=5 get.value=-1000000084
+A case=54 eval.land_point=-38.399999999999999 eval.map=-3080 eval.danger=0 get.land_point=-30.899999999999999 get.attack=408 get.rubbish=0 get.value=37689.099999999999
+D case=54 eval.value=-14176 get.value=-14176
+T case=54 eval.value=9740 eval.roof=1 eval.tspin=1 get.attack=8 get.like=0 get.combo=3 get.b2b=1 get.pc=0 get.recv=3 get.under=0 get.value=9740
+B case=54 eval.value=9740 eval.roof=1 eval.aspin=1 get.attack=8 get.like=0 get.combo=3 get.b2b=1 get.pc=0 get.recv=3 get.under=0 get.value=9740
+A case=55 eval.land_point=-38.399999999999999 eval.map=-2624 eval.danger=0 get.land_point=-29.399999999999999 get.attack=400 get.rubbish=1 get.value=36706.599999999999
+D case=55 eval.value=-13184 get.value=-13184
+T case=55 eval.value=9740 eval.roof=4 eval.tspin=1 get.attack=8 get.like=0 get.combo=3 get.b2b=1 get.pc=0 get.recv=3 get.under=5 get.value=9740
+B case=55 eval.value=9740 eval.roof=4 eval.aspin=1 get.attack=8 get.like=0 get.combo=3 get.b2b=1 get.pc=0 get.recv=3 get.under=5 get.value=9740
+A case=56 eval.land_point=-38.399999999999999 eval.map=-3194 eval.danger=0 get.land_point=-38.399999999999999 get.attack=402 get.rubbish=2 get.value=35687.599999999999
+D case=56 eval.value=-14368 get.value=-14368
+T case=56 eval.value=9730 eval.roof=4 eval.tspin=1 get.attack=6 get.like=50 get.combo=3 get.b2b=1 get.pc=0 get.recv=0 get.under=0 get.value=50000009730
+B case=56 eval.value=9730 eval.roof=4 eval.aspin=1 get.attack=6 get.like=50 get.combo=3 get.b2b=1 get.pc=0 get.recv=0 get.under=0 get.value=50000009730
+A case=57 eval.land_point=-38.399999999999999 eval.map=-11448 eval.danger=0 get.land_point=-36.899999999999999 get.attack=404 get.rubbish=0 get.value=28915.099999999999
+D case=57 eval.value=-31208 get.value=-31208
+T case=57 eval.value=-372 eval.roof=19 eval.tspin=1 get.attack=6 get.like=49 get.combo=3 get.b2b=1 get.pc=0 get.recv=0 get.under=5 get.value=48999999628
+B case=57 eval.value=-372 eval.roof=19 eval.aspin=1 get.attack=6 get.like=49 get.combo=3 get.b2b=1 get.pc=0 get.recv=0 get.under=5 get.value=48999999628
+A case=58 eval.land_point=-38.399999999999999 eval.map=-3640 eval.danger=0 get.land_point=-35.399999999999999 get.attack=406 get.rubbish=1 get.value=36284.599999999999
+D case=58 eval.value=-15016 get.value=-15016
+T case=58 eval.value=-264 eval.roof=5 eval.tspin=1 get.attack=6 get.like=49 get.combo=3 get.b2b=1 get.pc=0 get.recv=3 get.under=0 get.value=48999999736
+B case=58 eval.value=-264 eval.roof=5 eval.aspin=1 get.attack=6 get.like=49 get.combo=3 get.b2b=1 get.pc=0 get.recv=3 get.under=0 get.value=48999999736
+A case=59 eval.land_point=-35000038.399999999 eval.map=-175272 eval.danger=5 get.land_point=-35000033.899999999 get.attack=408 get.rubbish=2 get.value=-35134305.899999999
+D case=59 eval.value=-370160 get.value=-370160
+T case=59 eval.value=-84 eval.roof=40 eval.tspin=1 get.attack=6 get.like=49 get.combo=3 get.b2b=1 get.pc=0 get.recv=3 get.under=5 get.value=48999999916
+B case=59 eval.value=-84 eval.roof=40 eval.aspin=1 get.attack=6 get.like=49 get.combo=3 get.b2b=1 get.pc=0 get.recv=3 get.under=5 get.value=48999999916
+A case=60 eval.land_point=-62.399999999999999 eval.map=-3080 eval.danger=0 get.land_point=-56.399999999999999 get.attack=0 get.rubbish=0 get.value=-3136.4000000000001
+D case=60 eval.value=-14176 get.value=-14176
+T case=60 eval.value=9740 eval.roof=1 eval.tspin=0 get.attack=2 get.like=50 get.combo=0 get.b2b=1 get.pc=0 get.recv=0 get.under=0 get.value=50000009740
+B case=60 eval.value=9740 eval.roof=1 eval.aspin=1 get.attack=2 get.like=50 get.combo=0 get.b2b=1 get.pc=0 get.recv=0 get.under=0 get.value=50000009740
+A case=61 eval.land_point=-62.399999999999999 eval.map=-2624 eval.danger=0 get.land_point=-54.899999999999999 get.attack=2 get.rubbish=1 get.value=-3118.9000000000001
+D case=61 eval.value=-13184 get.value=-13184
+T case=61 eval.value=9740 eval.roof=4 eval.tspin=0 get.attack=2 get.like=50 get.combo=0 get.b2b=1 get.pc=0 get.recv=3 get.under=0 get.value=50000009740
+B case=61 eval.value=9740 eval.roof=4 eval.aspin=1 get.attack=2 get.like=50 get.combo=0 get.b2b=1 get.pc=0 get.recv=3 get.under=0 get.value=50000009740
+A case=62 eval.land_point=-62.399999999999999 eval.map=-3194 eval.danger=0 get.land_point=-53.399999999999999 get.attack=4 get.rubbish=2 get.value=-4127.3999999999996
+D case=62 eval.value=-14368 get.value=-14368
+T case=62 eval.value=9730 eval.roof=4 eval.tspin=0 get.attack=2 get.like=50 get.combo=0 get.b2b=1 get.pc=0 get.recv=3 get.under=0 get.value=50000009730
+B case=62 eval.value=9730 eval.roof=4 eval.aspin=1 get.attack=2 get.like=50 get.combo=0 get.b2b=1 get.pc=0 get.recv=3 get.under=0 get.value=50000009730
+A case=63 eval.land_point=-62.399999999999999 eval.map=-11448 eval.danger=0 get.land_point=-62.399999999999999 get.attack=6 get.rubbish=0 get.value=-10910.4
+D case=63 eval.value=-31208 get.value=-31208
+T case=63 eval.value=-372 eval.roof=19 eval.tspin=0 get.attack=2 get.like=49 get.combo=0 get.b2b=1 get.pc=0 get.recv=6 get.under=0 get.value=48999999628
+B case=63 eval.value=-372 eval.roof=19 eval.aspin=1 get.attack=2 get.like=49 get.combo=0 get.b2b=1 get.pc=0 get.recv=6 get.under=0 get.value=48999999628
+A case=64 eval.land_point=-62.399999999999999 eval.map=-3640 eval.danger=0 get.land_point=-60.899999999999999 get.attack=8 get.rubbish=1 get.value=-3540.8999999999996
+D case=64 eval.value=-15016 get.value=-15016
+T case=64 eval.value=-264 eval.roof=5 eval.tspin=0 get.attack=0 get.like=-1 get.combo=0 get.b2b=0 get.pc=1 get.recv=0 get.under=0 get.value=-1000000264
+B case=64 eval.value=-264 eval.roof=5 eval.aspin=1 get.attack=0 get.like=-1 get.combo=0 get.b2b=0 get.pc=1 get.recv=0 get.under=0 get.value=-1000000264
+A case=65 eval.land_point=-35000062.399999999 eval.map=-175272 eval.danger=5 get.land_point=-35000059.399999999 get.attack=0 get.rubbish=2 get.value=-35175131.399999999
+D case=65 eval.value=-370160 get.value=-370160
+T case=65 eval.value=-84 eval.roof=40 eval.tspin=0 get.attack=0 get.like=-1 get.combo=0 get.b2b=0 get.pc=1 get.recv=5 get.under=0 get.value=-1000000084
+B case=65 eval.value=-84 eval.roof=40 eval.aspin=1 get.attack=0 get.like=-1 get.combo=0 get.b2b=0 get.pc=1 get.recv=5 get.under=0 get.value=-1000000084
+A case=66 eval.land_point=-56.399999999999999 eval.map=-3080 eval.danger=0 get.land_point=-51.899999999999999 get.attack=2 get.rubbish=1 get.value=-3571.9000000000001
+D case=66 eval.value=-14176 get.value=-14176
+T case=66 eval.value=9740 eval.roof=1 eval.tspin=2 get.attack=1 get.like=0 get.combo=1 get.b2b=1 get.pc=1 get.recv=3 get.under=0 get.value=9740
+B case=66 eval.value=9740 eval.roof=1 eval.aspin=1 get.attack=2 get.like=0 get.combo=1 get.b2b=1 get.pc=1 get.recv=3 get.under=0 get.value=9740
+A case=67 eval.land_point=-56.399999999999999 eval.map=-2624 eval.danger=0 get.land_point=-50.399999999999999 get.attack=4 get.rubbish=2 get.value=-3554.4000000000001
+D case=67 eval.value=-13184 get.value=-13184
+T case=67 eval.value=9740 eval.roof=4 eval.tspin=2 get.attack=1 get.like=0 get.combo=1 get.b2b=1 get.pc=1 get.recv=3 get.under=5 get.value=9740
+B case=67 eval.value=9740 eval.roof=4 eval.aspin=1 get.attack=2 get.like=0 get.combo=1 get.b2b=1 get.pc=1 get.recv=3 get.under=5 get.value=9740
+A case=68 eval.land_point=-56.399999999999999 eval.map=-3194 eval.danger=0 get.land_point=-48.899999999999999 get.attack=6 get.rubbish=3 get.value=-4562.8999999999996
+D case=68 eval.value=-14368 get.value=-14368
+T case=68 eval.value=9730 eval.roof=4 eval.tspin=2 get.attack=3 get.like=0 get.combo=1 get.b2b=1 get.pc=1 get.recv=0 get.under=0 get.value=9730
+B case=68 eval.value=9730 eval.roof=4 eval.aspin=1 get.attack=4 get.like=0 get.combo=1 get.b2b=1 get.pc=1 get.recv=0 get.under=0 get.value=9730
+A case=69 eval.land_point=-56.399999999999999 eval.map=-11448 eval.danger=0 get.land_point=-47.399999999999999 get.attack=8 get.rubbish=1 get.value=-11335.4
+D case=69 eval.value=-31208 get.value=-31208
+T case=69 eval.value=-372 eval.roof=19 eval.tspin=2 get.attack=3 get.like=-1 get.combo=1 get.b2b=1 get.pc=1 get.recv=0 get.under=5 get.value=-1000000372
+B case=69 eval.value=-372 eval.roof=19 eval.aspin=1 get.attack=4 get.like=-1 get.combo=1 get.b2b=1 get.pc=1 get.recv=0 get.under=5 get.value=-1000000372
+A case=70 eval.land_point=-56.399999999999999 eval.map=-3640 eval.danger=0 get.land_point=-56.399999999999999 get.attack=0 get.rubbish=2 get.value=-4976.3999999999996
+D case=70 eval.value=-15016 get.value=-15016
+T case=70 eval.value=-264 eval.roof=5 eval.tspin=2 get.attack=3 get.like=-1 get.combo=1 get.b2b=1 get.pc=1 get.recv=3 get.under=0 get.value=-1000000264
+B case=70 eval.value=-264 eval.roof=5 eval.aspin=1 get.attack=4 get.like=-1 get.combo=1 get.b2b=1 get.pc=1 get.recv=3 get.under=0 get.value=-1000000264
+A case=71 eval.land_point=-35000056.399999999 eval.map=-175272 eval.danger=5 get.land_point=-35000054.899999999 get.attack=2 get.rubbish=3 get.value=-35174826.899999999
+D case=71 eval.value=-370160 get.value=-370160
+T case=71 eval.value=-84 eval.roof=40 eval.tspin=2 get.attack=3 get.like=-1 get.combo=1 get.b2b=1 get.pc=1 get.recv=3 get.under=5 get.value=-1000000084
+B case=71 eval.value=-84 eval.roof=40 eval.aspin=1 get.attack=4 get.like=-1 get.combo=1 get.b2b=1 get.pc=1 get.recv=3 get.under=5 get.value=-1000000084
+A case=72 eval.land_point=-50.399999999999999 eval.map=-3080 eval.danger=0 get.land_point=-47.399999999999999 get.attack=4 get.rubbish=2 get.value=-4007.3999999999996
+D case=72 eval.value=-14176 get.value=-14176
+T case=72 eval.value=9740 eval.roof=1 eval.tspin=1 get.attack=5 get.like=50 get.combo=1 get.b2b=1 get.pc=1 get.recv=0 get.under=0 get.value=50000009740
+B case=72 eval.value=9740 eval.roof=1 eval.aspin=1 get.attack=5 get.like=50 get.combo=1 get.b2b=1 get.pc=1 get.recv=0 get.under=0 get.value=50000009740
+A case=73 eval.land_point=-50.399999999999999 eval.map=-2624 eval.danger=0 get.land_point=-45.899999999999999 get.attack=6 get.rubbish=3 get.value=-3989.8999999999996
+D case=73 eval.value=-13184 get.value=-13184
+T case=73 eval.value=9740 eval.roof=4 eval.tspin=1 get.attack=5 get.like=50 get.combo=1 get.b2b=1 get.pc=1 get.recv=0 get.under=5 get.value=50000009740
+B case=73 eval.value=9740 eval.roof=4 eval.aspin=1 get.attack=5 get.like=50 get.combo=1 get.b2b=1 get.pc=1 get.recv=0 get.under=5 get.value=50000009740
+A case=74 eval.land_point=-50.399999999999999 eval.map=-3194 eval.danger=0 get.land_point=-44.399999999999999 get.attack=8 get.rubbish=4 get.value=-4998.3999999999996
+D case=74 eval.value=-14368 get.value=-14368
+T case=74 eval.value=9730 eval.roof=4 eval.tspin=1 get.attack=5 get.like=50 get.combo=1 get.b2b=1 get.pc=1 get.recv=3 get.under=0 get.value=50000009730
+B case=74 eval.value=9730 eval.roof=4 eval.aspin=1 get.attack=5 get.like=50 get.combo=1 get.b2b=1 get.pc=1 get.recv=3 get.under=0 get.value=50000009730
+A case=75 eval.land_point=-50.399999999999999 eval.map=-11448 eval.danger=0 get.land_point=-42.899999999999999 get.attack=0 get.rubbish=2 get.value=-12770.9
+D case=75 eval.value=-31208 get.value=-31208
+T case=75 eval.value=-372 eval.roof=19 eval.tspin=1 get.attack=5 get.like=49 get.combo=1 get.b2b=1 get.pc=1 get.recv=3 get.under=5 get.value=48999999628
+B case=75 eval.value=-372 eval.roof=19 eval.aspin=1 get.attack=5 get.like=49 get.combo=1 get.b2b=1 get.pc=1 get.recv=3 get.under=5 get.value=48999999628
+A case=76 eval.land_point=-50.399999999999999 eval.map=-3640 eval.danger=0 get.land_point=-41.399999999999999 get.attack=2 get.rubbish=3 get.value=-5401.3999999999996
+D case=76 eval.value=-15016 get.value=-15016
+T case=76 eval.value=-264 eval.roof=5 eval.tspin=1 get.attack=7 get.like=49 get.combo=1 get.b2b=1 get.pc=1 get.recv=0 get.under=0 get.value=48999999736
+B case=76 eval.value=-264 eval.roof=5 eval.aspin=1 get.attack=7 get.like=49 get.combo=1 get.b2b=1 get.pc=1 get.recv=0 get.under=0 get.value=48999999736
+A case=77 eval.land_point=-35000050.399999999 eval.map=-175272 eval.danger=5 get.land_point=-35000050.399999999 get.attack=4 get.rubbish=4 get.value=-35174522.399999999
+D case=77 eval.value=-370160 get.value=-370160
+T case=77 eval.value=-84 eval.roof=40 eval.tspin=1 get.attack=7 get.like=49 get.combo=1 get.b2b=1 get.pc=1 get.recv=0 get.under=5 get.value=48999999916
+B case=77 eval.value=-84 eval.roof=40 eval.aspin=1 get.attack=7 get.like=49 get.combo=1 get.b2b=1 get.pc=1 get.recv=0 get.under=5 get.value=48999999916
+A case=78 eval.land_point=-44.399999999999999 eval.map=-3080 eval.danger=0 get.land_point=-42.899999999999999 get.attack=306 get.rubbish=0 get.value=27477.099999999999
+D case=78 eval.value=-14176 get.value=-14176
+T case=78 eval.value=9740 eval.roof=1 eval.tspin=1 get.attack=10 get.like=50 get.combo=1 get.b2b=1 get.pc=1 get.recv=3 get.under=0 get.value=50000009740
+B case=78 eval.value=9740 eval.roof=1 eval.aspin=1 get.attack=10 get.like=50 get.combo=1 get.b2b=1 get.pc=1 get.recv=3 get.under=0 get.value=50000009740
+A case=79 eval.land_point=-44.399999999999999 eval.map=-2624 eval.danger=0 get.land_point=-41.399999999999999 get.attack=308 get.rubbish=1 get.value=27494.599999999999
+D case=79 eval.value=-13184 get.value=-13184
+T case=79 eval.value=9740 eval.roof=4 eval.tspin=1 get.attack=10 get.like=50 get.combo=1 get.b2b=1 get.pc=1 get.recv=3 get.under=5 get.value=50000009740
+B case=79 eval.value=9740 eval.roof=4 eval.aspin=1 get.attack=10 get.like=50 get.combo=1 get.b2b=1 get.pc=1 get.recv=3 get.under=5 get.value=50000009740
+A case=80 eval.land_point=-44.399999999999999 eval.map=-3194 eval.danger=0 get.land_point=-39.899999999999999 get.attack=300 get.rubbish=2 get.value=25486.099999999999
+D case=80 eval.value=-14368 get.value=-14368
+T case=80 eval.value=9730 eval.roof=4 eval.tspin=1 get.attack=9 get.like=0 get.combo=3 get.b2b=1 get.pc=1 get.recv=0 get.under=0 get.value=9730
+B case=80 eval.value=9730 eval.roof=4 eval.aspin=1 get.attack=9 get.like=0 get.combo=3 get.b2b=1 get.pc=1 get.recv=0 get.under=0 get.value=9730
+A case=81 eval.land_point=-44.399999999999999 eval.map=-11448 eval.danger=0 get.land_point=-38.399999999999999 get.attack=302 get.rubbish=0 get.value=18713.599999999999
+D case=81 eval.value=-31208 get.value=-31208
+T case=81 eval.value=-372 eval.roof=19 eval.tspin=1 get.attack=9 get.like=-1 get.combo=3 get.b2b=1 get.pc=1 get.recv=0 get.under=5 get.value=-1000000372
+B case=81 eval.value=-372 eval.roof=19 eval.aspin=1 get.attack=9 get.like=-1 get.combo=3 get.b2b=1 get.pc=1 get.recv=0 get.under=5 get.value=-1000000372
+A case=82 eval.land_point=-44.399999999999999 eval.map=-3640 eval.danger=0 get.land_point=-36.899999999999999 get.attack=304 get.rubbish=1 get.value=26083.099999999999
+D case=82 eval.value=-15016 get.value=-15016
+T case=82 eval.value=-264 eval.roof=5 eval.tspin=1 get.attack=9 get.like=-1 get.combo=3 get.b2b=1 get.pc=1 get.recv=3 get.under=0 get.value=-1000000264
+B case=82 eval.value=-264 eval.roof=5 eval.aspin=1 get.attack=9 get.like=-1 get.combo=3 get.b2b=1 get.pc=1 get.recv=3 get.under=0 get.value=-1000000264
+A case=83 eval.land_point=-35000044.399999999 eval.map=-175272 eval.danger=5 get.land_point=-35000035.399999999 get.attack=306 get.rubbish=2 get.value=-35144507.399999999
+D case=83 eval.value=-370160 get.value=-370160
+T case=83 eval.value=-84 eval.roof=40 eval.tspin=1 get.attack=9 get.like=-1 get.combo=3 get.b2b=1 get.pc=1 get.recv=3 get.under=5 get.value=-1000000084
+B case=83 eval.value=-84 eval.roof=40 eval.aspin=1 get.attack=9 get.like=-1 get.combo=3 get.b2b=1 get.pc=1 get.recv=3 get.under=5 get.value=-1000000084
+A case=84 eval.land_point=-38.399999999999999 eval.map=-3080 eval.danger=0 get.land_point=-38.399999999999999 get.attack=408 get.rubbish=0 get.value=37681.599999999999
+D case=84 eval.value=-14176 get.value=-14176
+T case=84 eval.value=9740 eval.roof=1 eval.tspin=1 get.attack=7 get.like=0 get.combo=3 get.b2b=1 get.pc=1 get.recv=0 get.under=0 get.value=9740
+B case=84 eval.value=9740 eval.roof=1 eval.aspin=1 get.attack=7 get.like=0 get.combo=3 get.b2b=1 get.pc=1 get.recv=0 get.under=0 get.value=9740
+A case=85 eval.land_point=-38.399999999999999 eval.map=-2624 eval.danger=0 get.land_point=-36.899999999999999 get.attack=400 get.rubbish=1 get.value=36699.099999999999
+D case=85 eval.value=-13184 get.value=-13184
+T case=85 eval.value=9740 eval.roof=4 eval.tspin=1 get.attack=7 get.like=0 get.combo=3 get.b2b=1 get.pc=1 get.recv=0 get.under=5 get.value=9740
+B case=85 eval.value=9740 eval.roof=4 eval.aspin=1 get.attack=7 get.like=0 get.combo=3 get.b2b=1 get.pc=1 get.recv=0 get.under=5 get.value=9740
+A case=86 eval.land_point=-38.399999999999999 eval.map=-3194 eval.danger=0 get.land_point=-35.399999999999999 get.attack=402 get.rubbish=2 get.value=35690.599999999999
+D case=86 eval.value=-14368 get.value=-14368
+T case=86 eval.value=9730 eval.roof=4 eval.tspin=1 get.attack=7 get.like=0 get.combo=3 get.b2b=1 get.pc=1 get.recv=3 get.under=0 get.value=9730
+B case=86 eval.value=9730 eval.roof=4 eval.aspin=1 get.attack=7 get.like=0 get.combo=3 get.b2b=1 get.pc=1 get.recv=3 get.under=0 get.value=9730
+A case=87 eval.land_point=-38.399999999999999 eval.map=-11448 eval.danger=0 get.land_point=-33.899999999999999 get.attack=404 get.rubbish=0 get.value=28918.099999999999
+D case=87 eval.value=-31208 get.value=-31208
+T case=87 eval.value=-372 eval.roof=19 eval.tspin=1 get.attack=7 get.like=-1 get.combo=3 get.b2b=1 get.pc=1 get.recv=3 get.under=5 get.value=-1000000372
+B case=87 eval.value=-372 eval.roof=19 eval.aspin=1 get.attack=7 get.like=-1 get.combo=3 get.b2b=1 get.pc=1 get.recv=3 get.under=5 get.value=-1000000372
+A case=88 eval.land_point=-38.399999999999999 eval.map=-3640 eval.danger=0 get.land_point=-32.399999999999999 get.attack=406 get.rubbish=1 get.value=36287.599999999999
+D case=88 eval.value=-15016 get.value=-15016
+T case=88 eval.value=-264 eval.roof=5 eval.tspin=1 get.attack=5 get.like=49 get.combo=3 get.b2b=1 get.pc=1 get.recv=0 get.under=0 get.value=48999999736
+B case=88 eval.value=-264 eval.roof=5 eval.aspin=1 get.attack=5 get.like=49 get.combo=3 get.b2b=1 get.pc=1 get.recv=0 get.under=0 get.value=48999999736
+A case=89 eval.land_point=-35000038.399999999 eval.map=-175272 eval.danger=5 get.land_point=-35000030.899999999 get.attack=408 get.rubbish=2 get.value=-35134302.899999999
+D case=89 eval.value=-370160 get.value=-370160
+T case=89 eval.value=-84 eval.roof=40 eval.tspin=1 get.attack=5 get.like=49 get.combo=3 get.b2b=1 get.pc=1 get.recv=0 get.under=5 get.value=48999999916
+B case=89 eval.value=-84 eval.roof=40 eval.aspin=1 get.attack=5 get.like=49 get.combo=3 get.b2b=1 get.pc=1 get.recv=0 get.under=5 get.value=48999999916
+A case=90 eval.land_point=-62.399999999999999 eval.map=-3080 eval.danger=0 get.land_point=-53.399999999999999 get.attack=0 get.rubbish=0 get.value=-3133.4000000000001
+D case=90 eval.value=-14176 get.value=-14176
+T case=90 eval.value=9740 eval.roof=1 eval.tspin=0 get.attack=0 get.like=50 get.combo=0 get.b2b=0 get.pc=1 get.recv=3 get.under=0 get.value=50000009740
+B case=90 eval.value=9740 eval.roof=1 eval.aspin=0 get.attack=0 get.like=50 get.combo=0 get.b2b=0 get.pc=1 get.recv=3 get.under=0 get.value=50000009740
+A case=91 eval.land_point=-62.399999999999999 eval.map=-2624 eval.danger=0 get.land_point=-62.399999999999999 get.attack=2 get.rubbish=1 get.value=-3126.4000000000001
+D case=91 eval.value=-13184 get.value=-13184
+T case=91 eval.value=9740 eval.roof=4 eval.tspin=0 get.attack=0 get.like=50 get.combo=0 get.b2b=0 get.pc=1 get.recv=8 get.under=0 get.value=50000009740
+B case=91 eval.value=9740 eval.roof=4 eval.aspin=0 get.attack=0 get.like=50 get.combo=0 get.b2b=0 get.pc=1 get.recv=8 get.under=0 get.value=50000009740
+A case=92 eval.land_point=-62.399999999999999 eval.map=-3194 eval.danger=0 get.land_point=-60.899999999999999 get.attack=4 get.rubbish=2 get.value=-4134.8999999999996
+D case=92 eval.value=-14368 get.value=-14368
+T case=92 eval.value=9730 eval.roof=4 eval.tspin=0 get.attack=2 get.like=50 get.combo=0 get.b2b=0 get.pc=1 get.recv=0 get.under=0 get.value=50000009730
+B case=92 eval.value=9730 eval.roof=4 eval.aspin=0 get.attack=2 get.like=50 get.combo=0 get.b2b=0 get.pc=1 get.recv=0 get.under=0 get.value=50000009730
+A case=93 eval.land_point=-62.399999999999999 eval.map=-11448 eval.danger=0 get.land_point=-59.399999999999999 get.attack=6 get.rubbish=0 get.value=-10907.4
+D case=93 eval.value=-31208 get.value=-31208
+T case=93 eval.value=-372 eval.roof=19 eval.tspin=0 get.attack=2 get.like=49 get.combo=0 get.b2b=0 get.pc=1 get.recv=3 get.under=0 get.value=48999999628
+B case=93 eval.value=-372 eval.roof=19 eval.aspin=0 get.attack=2 get.like=49 get.combo=0 get.b2b=0 get.pc=1 get.recv=3 get.under=0 get.value=48999999628
+A case=94 eval.land_point=-62.399999999999999 eval.map=-3640 eval.danger=0 get.land_point=-57.899999999999999 get.attack=8 get.rubbish=1 get.value=-3537.8999999999996
+D case=94 eval.value=-15016 get.value=-15016
+T case=94 eval.value=-264 eval.roof=5 eval.tspin=0 get.attack=2 get.like=49 get.combo=0 get.b2b=0 get.pc=1 get.recv=3 get.under=0 get.value=48999999736
+B case=94 eval.value=-264 eval.roof=5 eval.aspin=0 get.attack=2 get.like=49 get.combo=0 get.b2b=0 get.pc=1 get.recv=3 get.under=0 get.value=48999999736
+A case=95 eval.land_point=-35000062.399999999 eval.map=-175272 eval.danger=5 get.land_point=-35000056.399999999 get.attack=0 get.rubbish=2 get.value=-35175128.399999999
+D case=95 eval.value=-370160 get.value=-370160
+T case=95 eval.value=-84 eval.roof=40 eval.tspin=0 get.attack=2 get.like=49 get.combo=0 get.b2b=0 get.pc=1 get.recv=6 get.under=0 get.value=48999999916
+B case=95 eval.value=-84 eval.roof=40 eval.aspin=0 get.attack=2 get.like=49 get.combo=0 get.b2b=0 get.pc=1 get.recv=6 get.under=0 get.value=48999999916

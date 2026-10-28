@@ -37,16 +37,28 @@ ai_zzz::C2::Status transition(std::size_t combo, double remaining,
     ai_zzz::C2 ai;
     ai.init<rule_c2::TetrisRule::rule_spec>(&cfg);
     ai_zzz::C2::Result eval{};
-    eval.clear = lines;
     eval.fill = 0.30;
-    eval.hole = 0.02;
-    eval.new_hole = new_hole;
     ai_zzz::C2::Status status{};
     status.combo = combo;
     status.combo_limit = remaining;
-    m_tetris2::AIEnv env{};
-    env.node = ' ';
-    return ai.get(eval, 0, status, env);
+    // 新契约: clear 升为 get 现场参数; MapBefore/Landing/NextNode/NextLength 用空盘默认.
+    m_tetris2::TetrisMap<10, 28> src_map{};
+    return ai.get(eval, ai_zzz::C2::Landing{}, static_cast<int>(lines), src_map, status, ' ', 0);
+}
+
+// 真实带洞 map: 每 chamber 底行占 cols0..8 (col9 空), 顶行占 cols0..9, col9 底 = 1 个洞.
+// 与 C2 get 的 hole=srcHoles/(21-safe), new_hole=(hole_count-srcHoles)/21 口径一致.
+static m_tetris2::TetrisMap<10, 28> make_map_with_holes(int src_holes) {
+    using MapT = m_tetris2::TetrisMap<10, 28>;
+    MapT m{};
+    for (int h = 0; h < src_holes; ++h) {
+        int const y0 = h * 2;
+        uint32_t const bottom = 0x1ff; // cols 0..8 occupied, col9 hole
+        uint32_t const top = 0x3ff;   // cols 0..9 occupied
+        m.set_row(y0, static_cast<MapT::row_t>(MapT::row_full ^ bottom));
+        m.set_row(y0 + 1, static_cast<MapT::row_t>(MapT::row_full ^ top));
+    }
+    return m;
 }
 
 ai_zzz::C2::Status score_fixture(int safe, double fill, double hole,
@@ -55,18 +67,17 @@ ai_zzz::C2::Status score_fixture(int safe, double fill, double hole,
     auto cfg = scoring_config(safe, 600.0);
     ai_zzz::C2 ai;
     ai.init<rule_c2::TetrisRule::rule_spec>(&cfg);
+    // hole = srcHoles/(21-safe); new_hole = (hole_count-srcHoles)/21.
+    int const src_holes = std::max(0, static_cast<int>(std::lround(hole * (21.0 - safe))));
+    auto src_map = make_map_with_holes(src_holes);
     ai_zzz::C2::Result eval{};
     eval.attack = attack;
-    eval.clear = 0;
     eval.fill = fill;
-    eval.hole = hole;
-    eval.new_hole = new_hole;
+    eval.hole_count = src_holes + static_cast<int>(std::lround(new_hole * 21.0));
     ai_zzz::C2::Status status{};
     status.combo = combo;
     status.combo_limit = 20.0;
-    m_tetris2::AIEnv env{};
-    env.node = ' ';
-    return ai.get(eval, 0, status, env);
+    return ai.get(eval, ai_zzz::C2::Landing{}, 0, src_map, status, ' ', 0);
 }
 
 void check_reserved_abi_and_config_versions() {
@@ -318,14 +329,20 @@ void check_hole_scoring_fixtures() {
     constexpr double advantage = 4000.0;
     for (int safe = 0; safe <= 3; ++safe) {
         for (const auto& fixture : fixtures) {
+            // expected 由真实整数洞数推导 (与 fixture 内部一致): 不套旧 double 近似.
+            int const src_holes = std::max(0, static_cast<int>(std::lround(fixture.hole * (21.0 - safe))));
+            double const actual_hole = static_cast<double>(src_holes) / (21.0 - safe);
+            float const actual_new_hole_f = static_cast<float>(std::lround(new_hole * 21.0)) / 21.0f;
+            double const actual_new_hole = static_cast<double>(actual_new_hole_f);
             const auto a = score_fixture(safe, fixture.fill, fixture.hole, 0, 0, 0);
             const auto b = score_fixture(safe, fixture.fill, fixture.hole,
                                          advantage, new_hole, 0);
-            const double upstack = std::max(0.0, 1.0 - fixture.hole * 3.3)
+            const double upstack = std::max(0.0, 1.0 - actual_hole * 3.3)
                 * std::max(0.0, 1.0 - (fixture.fill < 0.4 ? 0.0 : fixture.fill - 0.4) * 4.0);
-            const double expected_margin = 60000.0 * new_hole - advantage * upstack;
+            const double expected_margin = 60000.0 * actual_new_hole - advantage * upstack;
+            // B 合同: hole/new_hole 现场以 float 重放, 容差按 float 精度 1e-3.
             expect(a.value > b.value, fixture.name);
-            expect(std::abs((a.value - b.value) - expected_margin) < 1e-9,
+            expect(std::abs((a.value - b.value) - expected_margin) < 1e-3,
                    "combo==0 keeps new_hole=60000");
         }
     }
@@ -349,19 +366,23 @@ void check_source_contracts() {
     expect(source.find("transposition_key() const") == std::string::npos,
            "C2 transposition remains disabled");
 
-    const auto assert_get_has_no_pow = [](const char* path, const char* signature) {
+    const auto assert_get_has_no_pow = [](const char* path, std::string const& signature) {
         std::ifstream stream(path);
         std::ostringstream buffer;
         buffer << stream.rdbuf();
         const std::string unit = buffer.str();
         const std::size_t begin = unit.find(signature);
-        const std::size_t end = unit.find("C2::Status C2::iterate", begin);
+        // header 内联版 C2::get 的结束标记为紧随其后的 iterate 声明.
+        const std::size_t end = (signature.find("src_map") != std::string::npos)
+            ? unit.find("Status iterate(Status const **status", begin)
+            : unit.find("C2::", begin + 1);
         expect(begin != std::string::npos && end != std::string::npos
                    && unit.substr(begin, end - begin).find("std::pow") == std::string::npos,
                "C2::get hot path contains no runtime pow");
     };
-    assert_get_has_no_pow(CULTRIS_SAFE_SOURCE_DIR "/src/ai_zzz.cpp",
-                          "C2::Status C2::get(Result const &eval_result");
+    // 新契约: C2::get body 在 header (模板/Multi 现含于 ai_zzz.h), 检查 header body.
+    assert_get_has_no_pow(CULTRIS_SAFE_SOURCE_DIR "/src/ai_zzz.h",
+                          "Status get(Result const &eval_result, Landing const &landing, int clear, MapT const &src_map");
     assert_get_has_no_pow(CULTRIS_SAFE_SOURCE_DIR "/oracle/ai_zzz.cpp",
                           "C2::Status C2::get(m_tetris::TetrisNode const *node");
 }

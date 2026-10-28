@@ -204,18 +204,30 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
         }
         table.table_max = max - 1;
     }
-    srs_ai.ai_config()->table = table.table;
-    srs_ai.ai_config()->table_max = table.table_max;
+    {
+        auto cfg = *srs_ai.ai_config();
+        cfg.table = table.table;
+        cfg.table_max = table.table_max;
+        srs_ai.set_ai_config(cfg);
+    }
 #if USE_PC
-    srs_pc->ai_config()->table = table.table;
-    srs_pc->ai_config()->table_max = table.table_max;
+    {
+        auto cfg = *srs_pc->ai_config();
+        cfg.table = table.table;
+        cfg.table_max = table.table_max;
+        srs_pc->set_ai_config(cfg);
+    }
 #endif
     srs_ai.memory_limit(256ull << 20);
 #if !USE_V08
-    srs_ai.ai_config()->safe = srs_ai.ai()->get_safe(map, active);
-    // srs_ai.ai_config()->param = { 36.118271157, 202.203495764, 200.737909778, 170.781301529, 277.040476787, 247.783175303, 3.729165582, -55.949272093, -30.745551429, 11.519702458, 3.400517468, 112.960485307, 171.678755503, -0.004778355, -0.111297405, -22.246305463, -7.869832591, -56.390368723, -70.581632887, -63.004355360, -1.839383519, 1.285416709, -0.143928932, -3.284161895, 5.967192336, 3.808250892, 3.238022919, 83.284536559, 0.309568618 };
-    srs_ai.ai_config()->param = {10.507166148, 7.539860726, 13.048099725, 13.388476179, 6.728747539, 9.476881786, 0.258534525, -0.108269503, 4.394241496, -4.892359035, 0.049148374, 1.586714505, 8.885878229, -0.006001836, -0.004336234, -2.021765056, -0.951446468, -1.145468832, -1.515758227, -0.612910192, -0.476031978, 0.009596827, -0.399212013, -0.855819915, -0.418779377, -0.454784178, -1.417493065, 1.050941751, 0.756272086};
-    // srs_ai.ai_config()->param = { 9.751914367, 6.771584511, 13.984778367, 20.368342456, 6.585961649, 20.332921226, 0.356373036, -0.386894461, -3.709699649, -1.675111576, 0.023687142, 10.297308519, 8.682478710, 0.001170853, 0.001022283, -1.241649334, -0.733500168, -1.611358148, -1.038454063, -0.445952144, -0.207823940, 0.000092385, -0.797795083, -6.153751596, -1.118142645, -0.641180767, -0.193865538, 0.505326328, 3.467200242 };
+    {
+        auto cfg = *srs_ai.ai_config();
+        cfg.safe = srs_ai.ai()->get_safe(map, active);
+        // cfg.param = { 36.118271157, 202.203495764, 200.737909778, 170.781301529, 277.040476787, 247.783175303, 3.729165582, -55.949272093, -30.745551429, 11.519702458, 3.400517468, 112.960485307, 171.678755503, -0.004778355, -0.111297405, -22.246305463, -7.869832591, -56.390368723, -70.581632887, -63.004355360, -1.839383519, 1.285416709, -0.143928932, -3.284161895, 5.967192336, 3.808250892, 3.238022919, 83.284536559, 0.309568618 };
+        cfg.param = {10.507166148, 7.539860726, 13.048099725, 13.388476179, 6.728747539, 9.476881786, 0.258534525, -0.108269503, 4.394241496, -4.892359035, 0.049148374, 1.586714505, 8.885878229, -0.006001836, -0.004336234, -2.021765056, -0.951446468, -1.145468832, -1.515758227, -0.612910192, -0.476031978, 0.009596827, -0.399212013, -0.855819915, -0.418779377, -0.454784178, -1.417493065, 1.050941751, 0.756272086};
+        // cfg.param = { 9.751914367, 6.771584511, 13.984778367, 20.368342456, 6.585961649, 20.332921226, 0.356373036, -0.386894461, -3.709699649, -1.675111576, 0.023687142, 10.297308519, 8.682478710, 0.001170853, 0.001022283, -1.241649334, -0.733500168, -1.611358148, -1.038454063, -0.445952144, -0.207823940, 0.000092385, -0.797795083, -6.153751596, -1.118142645, -0.641180767, -0.193865538, 0.505326328, 3.467200242 };
+        srs_ai.set_ai_config(cfg);
+    }
     srs_ai.status()->death = 0;
     srs_ai.status()->combo = combo;
     if (srs_ai.status()->under_attack != upcomeAtt)
@@ -374,10 +386,18 @@ extern "C" DECLSPEC_EXPORT char *__cdecl BotrisAI3(int field[], int field_w, int
         }
         table.table_max = max - 1;
     }
-    botris_ai.ai_config()->table = table.table;
-    botris_ai.ai_config()->table_max = table.table_max;
-    botris_pc->ai_config()->table = table.table;
-    botris_pc->ai_config()->table_max = table.table_max;
+    {
+        auto cfg = *botris_ai.ai_config();
+        cfg.table = table.table;
+        cfg.table_max = table.table_max;
+        botris_ai.set_ai_config(cfg);
+    }
+    {
+        auto cfg = *botris_pc->ai_config();
+        cfg.table = table.table;
+        cfg.table_max = table.table_max;
+        botris_pc->set_ai_config(cfg);
+    }
     botris_ai.memory_limit(1024ull << 20);
     botris_ai.status()->max_combo = 0;
     botris_ai.status()->max_attack = 0;
@@ -644,8 +664,12 @@ extern "C" DECLSPEC_EXPORT int __cdecl QQTetrisAI(int boardW, int boardH, int bo
     {
         *qq_ai.search_config() = QQTetrisSearch::Simple;
     }
-    qq_ai.ai_config()->level = level;
-    qq_ai.ai_config()->mode = mode;
+    {
+        auto cfg = *qq_ai.ai_config();
+        cfg.level = level;
+        cfg.mode = mode;
+        qq_ai.set_ai_config(cfg);
+    }
     qq_ai.status()->land_point = 0;
     qq_ai.status()->attack = 0;
     qq_ai.status()->rubbish = 0;
@@ -730,39 +754,43 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
     }
     c2_ai.memory_limit(1ull << 30);
     c2_ai.search_config()->fast_move_down = true;
-    c2_ai.ai_config()->p =
-        {
-            2.87224,
-            0.372169,
-            0.102604,
-            0.723501,
-            3.08721,
-            0.802789,
-            -0.786174,
-            107.713,
-            -0.540719,
-            109.116,
-            -3.84305,
-            116.58,
-            -1.00066,
-            49.7899,
-            -1.23986,
-            391.808,
-            -4.30493,
-            91.0623,
-            -1.60608,
-            67.7934,
-            2.36365,
-            46016.9,
-            34.2515,
-            0.285739,
-        };
-    c2_ai.ai_config()->p_rate = 1;
-    c2_ai.ai_config()->safe = safe;
-    c2_ai.ai_config()->mode = mode;
-    c2_ai.ai_config()->danger = danger;
-    c2_ai.ai_config()->soft_drop = soft_drop;
-    c2_ai.ai_config()->planning_bpm = 60.0;
+    {
+        auto cfg = *c2_ai.ai_config();
+        cfg.p =
+            {
+                2.87224,
+                0.372169,
+                0.102604,
+                0.723501,
+                3.08721,
+                0.802789,
+                -0.786174,
+                107.713,
+                -0.540719,
+                109.116,
+                -3.84305,
+                116.58,
+                -1.00066,
+                49.7899,
+                -1.23986,
+                391.808,
+                -4.30493,
+                91.0623,
+                -1.60608,
+                67.7934,
+                2.36365,
+                46016.9,
+                34.2515,
+                0.285739,
+            };
+        cfg.p_rate = 1;
+        cfg.safe = safe;
+        cfg.mode = mode;
+        cfg.danger = danger;
+        cfg.soft_drop = soft_drop;
+        cfg.planning_bpm = 60.0;
+        c2_ai.set_ai_config(cfg);
+    }
     c2_ai.status()->combo = combo;
     // Legacy ABI keeps the integer field; interpret it as whole remaining seconds.
     c2_ai.status()->combo_limit = std::max(0, combo_limit);

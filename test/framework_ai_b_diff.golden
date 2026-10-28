@@ -1,0 +1,52 @@
+V case=0 eval.value=-14528 eval.count=1 eval.t2=0 eval.t3=0 eval.roof=1 get.attack=1 get.like=-2 get.combo=0 get.b2b=1 get.death=0 get.maprise=1 get.value=-13140.333333333334
+R case=0 eval.value=-14528 eval.count=1 eval.roof=1 get.attack=1 get.like=-2 get.combo=0 get.b2b=1 get.clear=0 get.death=0 get.value=-13606.083333333334
+O case=0 eval.value=-14560 eval.count=1 eval.t2=0 eval.t3=0 eval.roof=1 get.under=0 get.like=0 get.combo=0 get.b2b=1 get.death=1 get.acc=-1000000767 get.value=-1001108543
+C case=0 eval.map=0 eval.attack=0 eval.fill=0.0058823530562222004 eval.cells=1 get.attack=-247.23529408313334 get.map=0 get.combo=0 get.combolimit=0 get.value=-247.23529408313334
+V case=1 eval.value=-13632 eval.count=40 eval.t2=0 eval.t3=0 eval.roof=4 get.attack=1 get.like=-2 get.combo=0 get.b2b=1 get.death=0 get.maprise=1 get.value=-12581.5
+R case=1 eval.value=-14912 eval.count=40 eval.roof=4 get.attack=1 get.like=-2 get.combo=0 get.b2b=1 get.clear=0 get.death=0 get.value=-14197.341666666667
+O case=1 eval.value=-15040 eval.count=40 eval.t2=0 eval.t3=0 eval.roof=4 get.under=0 get.like=7904 get.combo=0 get.b2b=1 get.death=0 get.acc=-768 get.value=-1137120
+C case=1 eval.map=0 eval.attack=0 eval.fill=0.23529411852359772 eval.cells=40 get.attack=-1434.2941155433655 get.map=-9999999999 get.combo=0 get.combolimit=0 get.value=-10000001433.294115
+V case=2 eval.value=-13632 eval.count=40 eval.t2=0 eval.t3=0 eval.roof=4 get.attack=5 get.like=-3 get.combo=2 get.b2b=1 get.death=0 get.maprise=0 get.value=-8852
+R case=2 eval.value=-14912 eval.count=40 eval.roof=4 get.attack=5 get.like=2 get.combo=2 get.b2b=1 get.clear=1 get.death=0 get.value=-11897
+O case=2 eval.value=-15040 eval.count=40 eval.t2=0 eval.t3=0 eval.roof=4 get.under=0 get.like=8640 get.combo=2 get.b2b=1 get.death=0 get.acc=25600 get.value=-1048640
+C case=2 eval.map=0 eval.attack=0 eval.fill=0.23529411852359772 eval.cells=40 get.attack=2871.588231086731 get.map=-9999999999 get.combo=0 get.combolimit=1.7281249999999997 get.value=-9999997127.4117699
+V case=3 eval.value=-13632 eval.count=40 eval.t2=0 eval.t3=0 eval.roof=4 get.attack=4 get.like=-1 get.combo=2 get.b2b=1 get.death=0 get.maprise=0 get.value=-9632
+R case=3 eval.value=-14912 eval.count=40 eval.roof=4 get.attack=5 get.like=2 get.combo=2 get.b2b=1 get.clear=1 get.death=0 get.value=-11897
+O case=3 eval.value=-15040 eval.count=40 eval.t2=0 eval.t3=0 eval.roof=4 get.under=0 get.like=9792 get.combo=2 get.b2b=1 get.death=0 get.acc=22784 get.value=-1050304
+C case=3 eval.map=0 eval.attack=0 eval.fill=0.23529411852359772 eval.cells=40 get.attack=718.64705777168274 get.map=-9999999999 get.combo=0 get.combolimit=1.7281249999999997 get.value=-9999999280.3529415
+V case=4 eval.value=-14820 eval.count=39 eval.t2=0 eval.t3=0 eval.roof=4 get.attack=3 get.like=-5 get.combo=2 get.b2b=0 get.death=0 get.maprise=0 get.value=-12334.700000000001
+R case=4 eval.value=-16100 eval.count=39 eval.roof=4 get.attack=3 get.like=-6 get.combo=2 get.b2b=0 get.clear=2 get.death=0 get.value=-14894.4
+O case=4 eval.value=-16192 eval.count=39 eval.t2=0 eval.t3=0 eval.roof=4 get.under=0 get.like=8640 get.combo=2 get.b2b=0 get.death=0 get.acc=7680 get.value=-1149504
+C case=4 eval.map=0 eval.attack=0 eval.fill=0.2294117659330368 eval.cells=39 get.attack=2337.1107198004079 get.map=-9999999999 get.combo=0 get.combolimit=2.3374999999999999 get.value=-9999997661.8892803
+V case=5 eval.value=-31120 eval.count=172 eval.t2=0 eval.t3=0 eval.roof=19 get.attack=4 get.like=-1 get.combo=2 get.b2b=0 get.death=0 get.maprise=0 get.value=-130044.68888888889
+R case=5 eval.value=-37200 eval.count=172 eval.roof=19 get.attack=4 get.like=-6 get.combo=2 get.b2b=0 get.clear=3 get.death=0 get.value=-136671.7111111111
+O case=5 eval.value=-32736 eval.count=172 eval.t2=0 eval.t3=0 eval.roof=19 get.under=0 get.like=768 get.combo=2 get.b2b=0 get.death=0 get.acc=12288 get.value=-2343936
+C case=5 eval.map=0 eval.attack=0 eval.fill=1.0117647647857666 eval.cells=172 get.attack=641.00000000000011 get.map=-9999999999 get.combo=2 get.combolimit=2.9468749999999999 get.value=-9999999358
+V case=6 eval.value=-15440 eval.count=48 eval.t2=0 eval.t3=0 eval.roof=5 get.attack=7 get.like=-3 get.combo=2 get.b2b=1 get.death=0 get.maprise=0 get.value=-9145.5999999999985
+R case=6 eval.value=-16400 eval.count=48 eval.roof=5 get.attack=7 get.like=-6 get.combo=2 get.b2b=1 get.clear=4 get.death=0 get.value=-12990.4
+O case=6 eval.value=-16544 eval.count=48 eval.t2=0 eval.t3=0 eval.roof=5 get.under=0 get.like=2880 get.combo=2 get.b2b=1 get.death=0 get.acc=30720 get.value=-1157568
+C case=6 eval.map=0 eval.attack=0 eval.fill=0.28235295414924622 eval.cells=48 get.attack=405.48441858594816 get.map=-9999999999 get.combo=2 get.combolimit=3.5562499999999995 get.value=-9999999593.5155811
+V case=7 eval.value=-350800 eval.count=40 eval.t2=0 eval.t3=0 eval.roof=40 get.attack=1 get.like=-2 get.combo=0 get.b2b=1 get.death=2 get.maprise=1 get.value=-2000449746.5
+R case=7 eval.value=-340560 eval.count=40 eval.roof=40 get.attack=1 get.like=-2 get.combo=0 get.b2b=1 get.clear=0 get.death=2 get.value=-2000439842.3416667
+O case=7 eval.value=-113856 eval.count=40 eval.t2=0 eval.t3=0 eval.roof=40 get.under=0 get.like=0 get.combo=0 get.b2b=1 get.death=1 get.acc=-1000000767 get.value=-1008655039
+C case=7 eval.map=0 eval.attack=0 eval.fill=0.23529411852359772 eval.cells=40 get.attack=-142.52941155433655 get.map=-9999999999 get.combo=0 get.combolimit=0 get.value=-10000000141.529411
+V case=8 eval.value=-13632 eval.count=40 eval.t2=0 eval.t3=0 eval.roof=4 get.attack=2 get.like=-3 get.combo=2 get.b2b=0 get.death=0 get.maprise=0 get.value=-11938.666666666666
+R case=8 eval.value=-14912 eval.count=40 eval.roof=4 get.attack=2 get.like=-6 get.combo=2 get.b2b=0 get.clear=1 get.death=0 get.value=-14192
+O case=8 eval.value=-15040 eval.count=40 eval.t2=0 eval.t3=0 eval.roof=4 get.under=1 get.like=9657 get.combo=2 get.b2b=0 get.death=0 get.acc=8800 get.value=-1094503
+C case=8 eval.map=0 eval.attack=0 eval.fill=0.23529411852359772 eval.cells=40 get.attack=11483.352924346924 get.map=-9999999999 get.combo=0 get.combolimit=1.7281249999999997 get.value=-9999988515.6470757
+V case=9 eval.value=-13632 eval.count=40 eval.t2=0 eval.t3=0 eval.roof=4 get.attack=1 get.like=-2 get.combo=0 get.b2b=1 get.death=0 get.maprise=1 get.value=-12615.455555555556
+R case=9 eval.value=-14912 eval.count=40 eval.roof=4 get.attack=1 get.like=-2 get.combo=0 get.b2b=1 get.clear=0 get.death=0 get.value=-14214.319444444445
+O case=9 eval.value=-15040 eval.count=40 eval.t2=0 eval.t3=0 eval.roof=4 get.under=0 get.like=1216 get.combo=0 get.b2b=1 get.death=0 get.acc=-768 get.value=-1143808
+C case=9 eval.map=0 eval.attack=0 eval.fill=0.23529411852359772 eval.cells=40 get.attack=-178.41176444292068 get.map=-9999999999 get.combo=0 get.combolimit=0 get.value=-10000000177.411764
+V case=10 eval.value=-14820 eval.count=39 eval.t2=0 eval.t3=0 eval.roof=4 get.attack=1 get.like=2 get.combo=0 get.b2b=1 get.death=0 get.maprise=1 get.value=-13559.200000000001
+R case=10 eval.value=-16100 eval.count=39 eval.roof=4 get.attack=1 get.like=-2 get.combo=0 get.b2b=1 get.clear=0 get.death=0 get.value=-15381.6
+O case=10 eval.value=-16192 eval.count=39 eval.t2=0 eval.t3=0 eval.roof=4 get.under=0 get.like=8168 get.combo=0 get.b2b=1 get.death=0 get.acc=-768 get.value=-1224408
+C case=10 eval.map=0 eval.attack=0 eval.fill=0.2294117659330368 eval.cells=39 get.attack=-2335.1107198004079 get.map=-9999999999 get.combo=0 get.combolimit=0 get.value=-10000002334.11072
+V case=11 eval.value=-31120 eval.count=172 eval.t2=0 eval.t3=0 eval.roof=19 get.attack=8 get.like=5 get.combo=2 get.b2b=1 get.death=0 get.maprise=0 get.value=-128391.53333333334
+R case=11 eval.value=-37200 eval.count=172 eval.roof=19 get.attack=8 get.like=-6 get.combo=2 get.b2b=1 get.clear=2 get.death=0 get.value=-135776.56666666668
+O case=11 eval.value=-32736 eval.count=172 eval.t2=0 eval.t3=0 eval.roof=19 get.under=0 get.like=512 get.combo=2 get.b2b=1 get.death=0 get.acc=30720 get.value=-2325760
+C case=11 eval.map=0 eval.attack=0 eval.fill=1.0117647647857666 eval.cells=172 get.attack=2561.0000000000005 get.map=-9999999999 get.combo=2 get.combolimit=2.3374999999999999 get.value=-9999997438
+C28 case=0 eval.map=0 eval.attack=0 eval.fill=0.11764705926179886 eval.cells=20 get.attack=1 get.map=-9999999999 get.combo=0 get.combolimit=0 get.value=-9999999998
+C28 case=1 eval.map=0 eval.attack=0 eval.fill=0.2294117659330368 eval.cells=39 get.attack=-6929.5882290750742 get.map=-9999999999 get.combo=1 get.combolimit=3.6562499999999996 get.value=-10000006928.588228
+C28 case=2 eval.map=0 eval.attack=0 eval.fill=1 eval.cells=170 get.attack=601 get.map=-9999999999 get.combo=1 get.combolimit=4.875 get.value=-9999999398
+C28 case=3 eval.map=0 eval.attack=0 eval.fill=0.23529411852359772 eval.cells=40 get.attack=1 get.map=-9999999999 get.combo=0 get.combolimit=0 get.value=-9999999998

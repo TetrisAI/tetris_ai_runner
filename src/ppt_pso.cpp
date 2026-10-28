@@ -183,7 +183,11 @@ struct test_ai
     void init(pso_data const &data, pso_config const &config)
     {
         map = Engine::map_t{};
-        ai.ai_config()->param = data.param;
+        {
+            auto cfg = *ai.ai_config();
+            cfg.param = data.param;
+            ai.set_ai_config(cfg);
+        }
         r_next.seed(std::random_device()());
         r_garbage.seed(r_next());
         next.clear();
@@ -231,9 +235,13 @@ struct test_ai
         ai.search_config()->last_rotate = false;
         ai.search_config()->allow_D = false;
         ai.search_config()->allow_LR = false;
-        ai.ai_config()->table = combo_table;
-        ai.ai_config()->table_max = combo_table_max;
-        ai.ai_config()->safe = ai.ai()->get_safe(map, next.front());
+        {
+            auto cfg = *ai.ai_config();
+            cfg.table = combo_table;
+            cfg.table_max = combo_table_max;
+            cfg.safe = ai.ai()->get_safe(map, next.front());
+            ai.set_ai_config(cfg);
+        }
         ai.status()->death = 0;
         ai.status()->combo = combo;
         ai.status()->under_attack = recv_attack;

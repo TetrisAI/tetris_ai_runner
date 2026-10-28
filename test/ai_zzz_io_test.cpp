@@ -1,6 +1,6 @@
 // ai_zzz_io_test: host-visible behaviour of ai_zzz::IO without a search — spawn-overlap death (rules.md §2),
-// the param text format, how spin slots are discounted by when their piece can be played, certain kills (IOLethal),
-// and which status fields the transposition key covers.
+// the param text format, how spin slots are discounted by when their piece can be played, and certain kills
+// (IOLethal). （transposition_key 已随框架移除，对应断言删除。）
 
 #include "../src/rule_io.h"
 #include "../src/ai_zzz_io.h"
@@ -35,21 +35,35 @@ namespace
         board.set_row(y, static_cast<Map::row_t>(Map::row_full ^ occupied));
     }
 
+    // Locks an O (no line clear) with its bottom-left cell at (x, row); returns the engine-filled Landing.
+    // 真实几何取自 TetrisNodeBase<TetrisNodeDetails<Spec,'O',0>> 的编译期 kWidth/kHeight/kOriginY/kLines,
+    // 与 core.h alloc_eval_typed 填充 node->landing 的口径一致 (不 hardcode bbox).
+    m_tetris2::GetLanding<Spin> make_o_landing(int x, int row)
+    {
+        using Base = m_tetris2::TetrisNodeBase<m_tetris2::TetrisNodeDetails<Spec, 'O', 0>>;
+        m_tetris2::GetLanding<Spin> landing{};
+        landing.piece = 'O';
+        landing.spin = Spin::None;
+        landing.xb = static_cast<std::int8_t>(x);
+        landing.yb = static_cast<std::int8_t>(row);
+        landing.w = static_cast<std::int8_t>(Base::kWidth);
+        landing.h = static_cast<std::int8_t>(Base::kHeight);
+        landing.y_master_plus1 = row + Base::kOriginY + 1;
+        for (int i = 0; i < Base::kHeight; ++i)
+            landing.lines[i] = static_cast<std::uint64_t>(Base::kLines[i]);
+        return landing;
+    }
+
     // Locks an O (no line clear) with its bottom-left cell at (x, row).
     ai_zzz::IO::Result place_o(ai_zzz::IO const &ai, Map const &src, int x, int row, Map &after)
     {
-        using Det = m_tetris2::TetrisNodeDetails<Spec, 'O', 0>;
-        m_tetris2::TetrisNode<Det, Spin> node;
-        node.x = static_cast<std::int8_t>(x);
-        node.y = static_cast<std::int8_t>(row + m_tetris2::TetrisNodeBase<Det>::kOriginY);
-        node.spin = Spin::None;
         after = src;
         for (int dy = 0; dy < 2; ++dy)
         {
             for (int dx = 0; dx < 2; ++dx)
                 after.set(x + dx, row + dy);
         }
-        return ai.eval(node, after, src, 0);
+        return ai.eval(after);
     }
 
     bool dies(ai_zzz::IO const &ai, ai_zzz::IO::Config const &config, Map const &board, int pending_rows)
@@ -63,7 +77,7 @@ namespace
         ai_zzz::IO::Result const result = place_o(ai, board, 0, 3, after);
         char next[] = "T";
         m_tetris2::AIEnv const env{next, 1, 'O', ' ', false};
-        return ai.get(result, 0, ai_zzz::IO::make_root_status(root, config), env).death;
+        return ai.get(result, 0, make_o_landing(0, 3), board, ai_zzz::IO::make_root_status(root, config), 0, env).death;
     }
 
     Map stack_with_column(int column, int top_row)
@@ -129,7 +143,7 @@ namespace
         root.btb = btb;
         char next[] = "T";
         m_tetris2::AIEnv const env{next, 1, 'O', ' ', false};
-        return ai.get(result, 0, ai_zzz::IO::make_root_status(root, config), env).value;
+        return ai.get(result, 0, make_o_landing(0, 0), Map{}, ai_zzz::IO::make_root_status(root, config), 0, env).value;
     }
 
     void test_chain_value()
@@ -154,8 +168,8 @@ namespace
         char next[] = "T";
         m_tetris2::AIEnv const env{next, 1, 'O', ' ', false};
         ai_zzz::IO::Status const root = ai_zzz::IO::make_root_status({}, config);
-        expect(ai.get(result, 0, root, env).kill, "a root placement sending a lethal amount kills");
-        expect(!ai.get(result, 1, root, env).kill, "only the root placement's garbage counts for a kill");
+        expect(ai.get(result, 0, make_o_landing(0, 0), Map{}, root, 0, env).kill, "a root placement sending a lethal amount kills");
+        expect(!ai.get(result, 0, make_o_landing(0, 0), Map{}, root, 1, env).kill, "only the root placement's garbage counts for a kill");
     }
 
     // No piece can clear a line: every hole is covered, the top row has one at each wall.
@@ -204,7 +218,7 @@ namespace
                 result.spin_slots[i] = {io_rules::Spin::Mini, 1};
         }
         m_tetris2::AIEnv const env{next.data(), next.size(), 'O', hold, false};
-        return ai.get(result, 0, ai_zzz::IO::make_root_status({}, config), env).value;
+        return ai.get(result, 0, make_o_landing(0, 0), Map{}, ai_zzz::IO::make_root_status({}, config), 0, env).value;
     }
 
     void test_spin_slot_availability()
@@ -227,44 +241,6 @@ namespace
         expect(value_with_s_slot(ai, config, "SZT", ' ') == value_with_s_slot(ai, config, "ZTL", ' '), "zero slot weights ignore slots");
     }
 
-    // The beam expands one node per key at each depth, so the key must ignore the score accumulators and split on
-    // everything that shapes later placements.
-    void test_transposition_key()
-    {
-        using Status = ai_zzz::IO::Status;
-        std::array<ai_zzz::IO::PendingGarbage, 1> const pending = {{{3, 20}}};
-        ai_zzz::IO::RootState root;
-        root.btb = 2;
-        root.combo = 1;
-        root.pending = pending;
-        Status const base = ai_zzz::IO::make_root_status(root, {});
-
-        Status scored = base;
-        scored.like += 5;
-        scored.value += 100;
-        scored.sent += 2;
-        scored.surge_sent += 1;
-        scored.cancelled += 1;
-        scored.b2b_gained += 1;
-        scored.max_combo += 1;
-        expect(scored.transposition_key() == base.transposition_key(), "score accumulators keep the transposition key");
-
-        for (int Status::*counter : {&Status::btb, &Status::combo, &Status::lines_sent, &Status::garbage_rows, &Status::map_rise})
-        {
-            Status other = base;
-            ++(other.*counter);
-            expect(other.transposition_key() != base.transposition_key(), "B2B, combo, lines sent, garbage rows and tanked rows split the key");
-        }
-        for (bool Status::*flag : {&Status::death, &Status::kill})
-        {
-            Status other = base;
-            other.*flag = true;
-            expect(other.transposition_key() != base.transposition_key(), "death and kill split the transposition key");
-        }
-        Status more_garbage = base;
-        more_garbage.pending.push(1, 40);
-        expect(more_garbage.transposition_key() != base.transposition_key(), "more pending garbage splits the transposition key");
-    }
 }
 
 int main()
@@ -275,7 +251,6 @@ int main()
     test_kill_credit();
     test_lethal();
     test_spin_slot_availability();
-    test_transposition_key();
     if (g_failures != 0)
     {
         std::fprintf(stderr, "%d failure(s)\n", g_failures);
