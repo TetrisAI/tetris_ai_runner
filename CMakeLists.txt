@@ -561,6 +561,20 @@ target_include_directories(${PROJECT_NAME} PRIVATE src)
 target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core Threads::Threads)
 add_test(NAME tetris_c2_config_invalidation COMMAND c2_config_invalidation_test)
 
+# C2 root eval_slot consistency: the recycled free_list node (same ptr) must have its slot resolved
+# against the ACTUAL new root map at the current generation/era; a sameMap stale gen/era early-return
+# must also refresh. Direct Context fixture; returns non-zero when the root slot lags its real map.
+project(c2_root_eval_consistency_test)
+add_executable(${PROJECT_NAME}
+    src/ai_zzz.cpp
+    src/integer_utils.cpp
+    src/random.cpp
+    test/c2_root_eval_consistency_test.cpp
+)
+target_include_directories(${PROJECT_NAME} PRIVATE src)
+target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core Threads::Threads)
+add_test(NAME tetris_c2_root_eval_consistency COMMAND c2_root_eval_consistency_test)
+
 # framework_contract_probes: Config lifecycle/generation wrap/fixed-scored on-off/empty GetArgs.
 project(framework_contract_probes)
 add_executable(${PROJECT_NAME}

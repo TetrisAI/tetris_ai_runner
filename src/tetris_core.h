@@ -903,10 +903,28 @@ namespace m_tetris2
             return lp.state.t != 0;
         }
 
+        // root 的 Status 由 host 直写、永不经 args::Eval 取 eval。回收/换盘会把带 foreign-map eval 副本的
+        // 旧节点提升为 root；早返路径 slot 纪元也可能过期。此时把整个 eval holder 重置为未求值默认
+        // （result=R{} + eval_gen=0 + eval_era=0），使旧 map 结果不得被当作 valid 读取；绝不为清洁 slot
+        // 强行 eval 空/原始盘面（会触发部分 AI 空盘 UB，且多算一次 eval 破坏 provider==cache 计数）。
+        // 真正需要该副本的 consumer（GetArgs args::Eval）在 operator() 内按完整 map+当前 Config resolve。
+        // cached map 与 epoch 仍有效时保留旧副本。
+        static void invalidate_root_eval_if_stale(Context *context, TetrisTreeNode *root)
+        {
+            if constexpr (GetTraits<TetrisAI>::kWantEval)
+            {
+                if (root->eval_slot.eval_gen != context->eval_cache.generation() ||
+                    root->eval_slot.eval_era != context->eval_era)
+                {
+                    root->eval_slot = {}; // 未求值 holder；consumer 按需 resolve
+                }
+            }
+        }
         TetrisTreeNode *update_root(Context *context, map_t const &_map)
         {
             if (map == _map)
             {
+                invalidate_root_eval_if_stale(context, this);
                 return this;
             }
             TetrisTreeNode *new_root = nullptr;
@@ -923,23 +941,14 @@ namespace m_tetris2
             {
                 new_root = context->alloc(nullptr);
                 new_root->map = _map;
+                // 回收节点带 foreign-map 副本：重置为未求值 holder，不 eval 原始盘面。
+                if constexpr (GetTraits<TetrisAI>::kWantEval)
+                    new_root->eval_slot = {};
             }
             else
             {
                 new_root->parent = nullptr;
-            }
-            // root 的 Status 由 host 直写、永不经 args::Eval 取 eval；alloc 回收的旧子节点会带着旧
-            // Config/旧 map 的 eval 副本成为新 root。建立（新建/复用）时按当前 map 与纪元补齐 root
-            // eval_slot，使其与当前 Config 一致；不请求 Eval provider 的 AI 该成员为 monostate，不产生 eval。
-            if constexpr (GetTraits<TetrisAI>::kWantEval)
-            {
-                if (new_root->eval_slot.eval_gen != context->eval_cache.generation() ||
-                    new_root->eval_slot.eval_era != context->eval_era)
-                {
-                    new_root->eval_slot.result = context->eval_cache.lookup(*context->ai, new_root->map);
-                    new_root->eval_slot.eval_gen = context->eval_cache.generation();
-                    new_root->eval_slot.eval_era = context->eval_era;
-                }
+                invalidate_root_eval_if_stale(context, new_root);
             }
             context->dealloc(this);
             return new_root;

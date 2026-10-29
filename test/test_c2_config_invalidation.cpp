@@ -5,10 +5,22 @@
 // weights (rule_c2 / cautious Search, 10x28, iterate[4,7]) on a reused tree after cfgA->cfgB (p[21]
 // 46016.9 -> 1000) and requires:
 //   1. reused tree after cfgB selects the exact same move, bit-for-bit, as a fresh cfgB engine;
-//   2. every reachable non-root node carries an eval_slot.eval_gen equal to the current generation
-//      (the root shell never takes an eval, so it is excluded by design).
+//   2. every reachable non-root node carries an eval_slot.eval_gen equal to the current generation;
+//   3. the ROOT shell owns an eval_slot but under the CURRENT lazy-invalidation contract a stale root
+//      slot is left UNEVALUATED on purpose: update_root() marks it eval_gen=0 (and on the
+//      free-list-recapture path drops the foreign-map copy to eval_gen=0) instead of re-looking the
+//      cache or force-evaluating the raw board — forcing would hit partial-AI empty-board UB and
+//      double-count provider evals. The real consumer (GetArgs args::Eval operator()) resolves by
+//      full map + current Config on demand. Asserted here: root map == the board just run, root slot
+//      eval_gen == 0 (deliberately unevaluated, NOT refreshed to current generation, NOT read back as
+//      a valid Result), and the reused tree still selects the exact same move as a fresh cfgB engine
+//      (assert 1) — i.e. lazy invalidation does not break selection. The old-valid-map-misuse negative
+//      control (recaptured slot with stale map) is covered by rootwriter's formal CMake regressions,
+//      not re-asserted here.
 // On the pre-fix lazy-bump behaviour this fails: the reused tree picks the cfgA-frozen child and tens of
-// thousands of nodes keep eval_gen == previous.
+// thousands of nodes keep eval_gen == previous. NOTE: the separate same-Config free-list-recapture hole
+// (recaptured node keeps current-gen slot with a stale map) is out of scope here; this test only covers
+// explicit Config-change coverage and does not probe that bug.
 #include <array>
 #include <cstdint>
 #include <cstdio>
@@ -118,15 +130,62 @@ int main()
            "reused-cfgB combo_limit bits equal fresh-cfgB");
 
     // Every reachable non-root node must carry a current-generation eval: no old-Config copy lingers in
-    // the tree to later feed iterate / beam ordering.
+    // the tree to later feed iterate / beam ordering. The root shell (parent == nullptr) is visited too:
+    // under the lazy contract its slot is intentionally unevaluated (checked separately below).
     std::size_t stale = 0, reachable = 0;
     std::uint64_t cur = reused.eval_generation();
+    E::TreeNode const *root_n = nullptr;
     reused.visit_tree([&](auto const &node, auto const *parent) {
-        if (parent == nullptr) return; // root shell never takes an eval
+        if (parent == nullptr) { root_n = &node; return; } // root shell: its eval_slot copy is asserted below
         ++reachable;
         if (node.eval_slot.eval_gen != cur) ++stale;
     });
     expect(stale == 0, "no reachable non-root node keeps a stale eval_slot generation after cfg change");
+
+    // Root shell: under the lazy-invalidation contract a stale root slot is deliberately left
+    // UNEVALUATED (eval_gen=0) — update_root() must NOT re-look the cache nor force-eval the raw
+    // board. What we can positively assert: the root map is still the board just run, and the slot
+    // is flagged unevaluated (never a stale-Config Result being read back as valid). The consumer
+    // resolves on demand; the user-visible truth that selection is still correct is assert 1.
+    expect(root_n != nullptr, "root shell present in visited reused tree");
+    if (root_n != nullptr)
+    {
+        expect(root_n->map == board, "root eval_slot map is the current board just run");
+        expect(root_n->eval_slot.eval_gen == 0,
+               "root stale eval_slot deliberately left unevaluated (eval_gen==0) after cfgB; no force-eval");
+        expect(root_n->eval_slot.eval_era == 0,
+               "root invalidated holder resets eval_era==0 alongside gen==0 (whole-holder invalid)");
+        expect(bits(root_n->eval_slot.result.attack) == bits(0.0) &&
+                   bits(root_n->eval_slot.result.map) == bits(0.0) &&
+                   bits(root_n->eval_slot.result.fill) == bits(0.0) &&
+                   bits(root_n->eval_slot.result.hole_count) == bits(0.0) &&
+                   root_n->eval_slot.result.cells == 0,
+               "root invalidated holder result=={} default placeholders; no stale foreign-map Result readable");
+    }
+    // Consumer-side resolution contract: the search already resolved a reachable non-root node's
+    // eval_slot under the NEW Config. Re-run the real consumer path (eval_cache.lookup on the same
+    // map via the live ai) and require the resolved 5 fields to equal the slot the search trusted
+    // bit-for-bit — i.e. consumer resolution is map-driven and self-consistent. (The root shell stays
+    // deliberately unevaluated above; nothing demands its Result during root child selection.)
+    E::TreeNode const *sample = nullptr;
+    reused.visit_tree([&](auto const &node, auto const *parent) {
+        if (parent != nullptr && sample == nullptr) sample = &node;
+    });
+    expect(sample != nullptr, "reachable non-root sample node present for consumer-lookup check");
+    if (sample != nullptr)
+    {
+        auto res = reused.eval_cache().lookup(*reused.ai(), sample->map);
+        expect(bits(sample->eval_slot.result.attack) == bits(res.attack),
+               "consumer lookup(attack) bits == slot cached under NEW Config");
+        expect(bits(sample->eval_slot.result.map) == bits(res.map),
+               "consumer lookup(map) bits == slot cached under NEW Config");
+        expect(bits(sample->eval_slot.result.fill) == bits(res.fill),
+               "consumer lookup(fill) bits == slot cached under NEW Config");
+        expect(bits(sample->eval_slot.result.hole_count) == bits(res.hole_count),
+               "consumer lookup(hole_count) bits == slot cached under NEW Config");
+        expect(sample->eval_slot.result.cells == res.cells,
+               "consumer lookup(cells) == slot cached under NEW Config");
+    }
     // Guard against an empty-tree / zero-get false pass: the run must actually expand nodes and take
     // both a real get<true> and a virtual get<false>, otherwise stale==0 and move-equality are vacuous.
     expect(reachable > 0, "tree actually expanded reachable non-root nodes (reachable>0)");

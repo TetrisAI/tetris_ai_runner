@@ -189,20 +189,24 @@ int main()
     expect(r1b.status.count == r2.status.count, "Status.count bit-exact");
     expect(r1b.status.root_marker == r2.status.root_marker, "Status.root_marker bit-exact");
 
-    // ---- Phase 5: per-node eval ALL nodes ----
+    // ---- Phase 5: per-node eval — every evaluated holder must match; root shell is unevaluated ----
     ConfigTreeAI const &ai = *e1.ai();
-    int eval_ok = 0, eval_tot = 0;
-    e1.visit_tree([&](auto const &n, auto const *) {
+    int eval_ok = 0, eval_tot = 0, unevaluated = 0, root_unevaluated = -1;
+    e1.visit_tree([&](auto const &n, auto const *par) {
         if (n.identity.state.t != 0) {
             ++eval_tot;
             int pop = n.map.popcount();
+            bool evaluated = (n.eval_slot.eval_gen != 0);   // gen0 = unevaluated root holder
+            if (par == nullptr) root_unevaluated = evaluated ? 0 : 1;
+            if (!evaluated) { ++unevaluated; return; }
             if (n.eval_slot.result.value == double(pop) * cfg2.weight && n.eval_slot.result.cells == pop)
                 ++eval_ok;
         }
     });
-    expect(eval_ok == eval_tot, "ALL nodes eval.value==popcount*2.5, cells==popcount");
+    expect(eval_ok == eval_tot - unevaluated, "ALL evaluated nodes eval.value==popcount*2.5, cells==popcount");
     expect(eval_tot > 0, "eval_tot > 0 (non-vacuous)");
-    std::printf("  eval: %d/%d\n", eval_ok, eval_tot);
+    expect(root_unevaluated == 1, "root shell is an unevaluated holder (gen0; no consumer resolves it)");
+    std::printf("  eval: %d/%d evaluated, unevaluated holders=%d\n", eval_ok, eval_tot - unevaluated, unevaluated);
 
     // ---- Phase 6: per-node raw status (parent.raw + current eval/clear_bonus) ----
     int raw_ok = 0, raw_tot = 0;
