@@ -326,9 +326,11 @@ namespace m_tetris2
         bool enabled = false;
         std::uint64_t eval = 0, parent = 0, depth = 0, clear = 0, map_before = 0, map_after = 0,
                       landing = 0, next_view = 0, next_length = 0, next_node = 0, hold = 0, is_hold = 0, env = 0;
+        std::uint64_t virtual_get = 0, real_get = 0;   // get<false> vs get<true> 调用计数
         void reset()
         {
             eval = parent = depth = clear = map_before = map_after = landing = next_view = next_length = next_node = hold = is_hold = env = 0;
+            virtual_get = real_get = 0;
         }
     };
 

@@ -548,6 +548,19 @@ target_include_directories(${PROJECT_NAME} PRIVATE src cultris)
 target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core Threads::Threads)
 add_test(NAME tetris_c2_combo_policy COMMAND c2_combo_policy_test)
 
+# C2 explicit Config-change lifecycle: set_ai_config on a reused tree must drop the old searched tree so
+# no stale eval_slot/raw/iterate copy feeds selection. Real 10x28 production weights, p[21] 46016.9->1000.
+project(c2_config_invalidation_test)
+add_executable(${PROJECT_NAME}
+    src/ai_zzz.cpp
+    src/integer_utils.cpp
+    src/random.cpp
+    test/test_c2_config_invalidation.cpp
+)
+target_include_directories(${PROJECT_NAME} PRIVATE src)
+target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core Threads::Threads)
+add_test(NAME tetris_c2_config_invalidation COMMAND c2_config_invalidation_test)
+
 # framework_contract_probes: Config lifecycle/generation wrap/fixed-scored on-off/empty GetArgs.
 project(framework_contract_probes)
 add_executable(${PROJECT_NAME}

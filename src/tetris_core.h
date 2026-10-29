@@ -410,7 +410,7 @@ namespace m_tetris2
         // GetArgsInvoker：每个唯一 provider 计算一次（在去重后的 type_list 上按序展开 braced-init，
         // C++20 保证左→右求值），命中即 +1 ProviderCounters；重复标签在原声明位置复用同一值。
         // NextLength/NextNode/Hold/IsHold 为 O(1)，不构 fullEnv；仅 NextView/Env 用 next_c/parent->env。
-        template<class TreeNode>
+        template<class TreeNode, bool EnableEnv>
         struct GetArgsInvoker
         {
             using Context = typename TreeNode::Context;
@@ -484,30 +484,59 @@ namespace m_tetris2
             L const &operator()(args::Landing<L>) const { return node->landing; }
             char const *operator()(args::NextView) const
             {
-                ensure_queue();
-                if (queue_len_ == 0) return nullptr;
-                return ctx->next_c.data() + (ctx->next_c.size() - queue_len_);
+                if constexpr (!EnableEnv) return nullptr;   // 虚拟 run：旧空 env 语义
+                else
+                {
+                    ensure_queue();
+                    if (queue_len_ == 0) return nullptr;
+                    return ctx->next_c.data() + (ctx->next_c.size() - queue_len_);
+                }
             }
-            std::size_t operator()(args::NextLength) const { return queue_length(); }
-            char operator()(args::NextNode) const { return node->identity.state.t; }
-            char operator()(args::Hold) const { return node->is_hold ? parent->node : parent->hold; }
-            bool operator()(args::IsHold) const { return node->is_hold; }
-            AIEnv operator()(args::Env) const { return parent->template env<true>(ctx, node); }
+            std::size_t operator()(args::NextLength) const
+            {
+                if constexpr (!EnableEnv) return 0;          // 旧空 env length=0
+                else return queue_length();
+            }
+            char operator()(args::NextNode) const
+            {
+                if constexpr (!EnableEnv) return ' ';        // 旧空 env node=' '
+                else return node->identity.state.t;
+            }
+            char operator()(args::Hold) const
+            {
+                if constexpr (!EnableEnv) return ' ';       // 旧空 env hold=' '
+                else return node->is_hold ? parent->node : parent->hold;
+            }
+            bool operator()(args::IsHold) const
+            {
+                if constexpr (!EnableEnv) return false;     // 旧空 env is_hold=false
+                else return node->is_hold;
+            }
+            AIEnv operator()(args::Env) const
+            {
+                if constexpr (!EnableEnv) return AIEnv{nullptr, 0, ' ', ' ', false};  // 旧 run_virtual 空 env
+                else return parent->template env<true>(ctx, node);
+            }
         };
 
-        template<class TreeNode, class... Us>
-        static auto make_storage(GetArgsInvoker<TreeNode> &p, type_list<Us...>)
+        template<class TreeNode, bool EnableEnv, class... Us>
+        static auto make_storage(GetArgsInvoker<TreeNode, EnableEnv> &p, type_list<Us...>)
         {
+            if (p.ctx->provider_counters.enabled)
+            {
+                if constexpr (EnableEnv) ++p.ctx->provider_counters.real_get;
+                else ++p.ctx->provider_counters.virtual_get;
+            }
             (p.bump(Us{}), ...); // 每个唯一标签计数一次（fold 左→右）
             return std::tuple<decltype(p(Us{}))...>{ p(Us{})... };
         }
-        template<class TreeNode, class... Ps>
-        static Status invoke_get(GetArgsInvoker<TreeNode> &p, type_list<Ps...>)
+        template<class TreeNode, bool EnableEnv, class... Ps>
+        static Status invoke_get(GetArgsInvoker<TreeNode, EnableEnv> &p, type_list<Ps...>)
         {
             using Args = type_list<Ps...>;
             using Unique = unique_types_t<Args>;
             // 固定顺序：braced-init 左→右，每个唯一 provider 计算一次 + 计数一次。
-            auto storage = make_storage<TreeNode>(p, Unique{});
+            auto storage = make_storage<TreeNode, EnableEnv>(p, Unique{});
             // 原声明位置展开：从 storage 取该标签对应唯一槽位（重复标签复用同一值）。
             auto got = (*p.ctx->ai).get(std::get<index_of_v<Ps, Unique>>(storage)...);
             static_assert(std::is_same_v<decltype(got), Status const &> || std::is_same_v<decltype(got), Status>,
@@ -527,8 +556,8 @@ namespace m_tetris2
         template<bool EnableEnv, class TreeNode>
         static void get(typename TreeNode::Context *context, TreeNode *node, TreeNode *parent)
         {
-            GetArgsInvoker<TreeNode> p{context, node, parent};
-            node->status.set(invoke_get(p, typename TetrisAI::GetArgs{}));
+            GetArgsInvoker<TreeNode, EnableEnv> p{context, node, parent};
+            node->status.set(invoke_get<TreeNode, EnableEnv>(p, typename TetrisAI::GetArgs{}));
         }
         template<class TreeNode>
         static void iterate(TetrisAI &ai, Status const **status, size_t status_length, TreeNode *tree_node)
@@ -898,6 +927,19 @@ namespace m_tetris2
             else
             {
                 new_root->parent = nullptr;
+            }
+            // root 的 Status 由 host 直写、永不经 args::Eval 取 eval；alloc 回收的旧子节点会带着旧
+            // Config/旧 map 的 eval 副本成为新 root。建立（新建/复用）时按当前 map 与纪元补齐 root
+            // eval_slot，使其与当前 Config 一致；不请求 Eval provider 的 AI 该成员为 monostate，不产生 eval。
+            if constexpr (GetTraits<TetrisAI>::kWantEval)
+            {
+                if (new_root->eval_slot.eval_gen != context->eval_cache.generation() ||
+                    new_root->eval_slot.eval_era != context->eval_era)
+                {
+                    new_root->eval_slot.result = context->eval_cache.lookup(*context->ai, new_root->map);
+                    new_root->eval_slot.eval_gen = context->eval_cache.generation();
+                    new_root->eval_slot.eval_era = context->eval_era;
+                }
             }
             context->dealloc(this);
             return new_root;
@@ -2119,14 +2161,29 @@ namespace m_tetris2
             local_context_.is_complete = false;
             root_->update_version(&local_context_);
         }
-        // Config 变更：bump eval generation（旧桶靠 written_gen 不等自动 stale）+
-        // update_version 使所有子 node.version 失效，下轮 run 自顶向下重跑 build_children/get。
+        // 显式 Config 变更：旧树每个节点都持有一份 eval(map) 副本（eval_slot.result）和由旧 Config 推出的
+        // raw Status / iterate 结果。bump cache generation 只在某节点下次被 get 时才刷新它；当轮 beam 未重访到的
+        // 节点副本保持旧 Config 量级，之后仍参与选子（reused 根 children 与未重访子树均如此）。因此主动丢弃整棵已搜
+        // 索子树、只留 root shell，下轮 run 用新 Config 全新重建。host 输入（盘面、Status、next）不受影响，由下次
+        // update() 重新套用。frontier(wait/sort) 与 version 仍由 update_version 清空/失效。
+        void discard_search_tree()
+        {
+            for (TreeNode *child = root_->children; child != nullptr; child = child->children_next)
+            {
+                local_context_.dealloc(child);
+            }
+            *root_ = TreeNode{};
+            root_->parent = nullptr;
+        }
+        // Config 变更：bump eval generation（旧桶靠 written_gen 不等自动 stale）+ 丢弃旧搜索树 +
+        // update_version 清空 frontier/失效 version，下轮 run 自顶向下全新重建。
         void on_ai_config_changed()
         {
             bool overflowed = local_context_.eval_cache.on_config_changed();
             // 缓存溢出（generation 环绕）：旧树节点 eval_gen 可能误等于新纪元，era++ 使全树 eval holder 失效。
             if (overflowed) ++local_context_.eval_era;
             local_context_.is_complete = false;
+            discard_search_tree();
             root_->update_version(&local_context_);
         }
         // Positions scored (AI::get calls) since the beam last restarted.
