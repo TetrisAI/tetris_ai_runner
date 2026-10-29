@@ -54,7 +54,9 @@ namespace ai_ax
             // top row empty: empty count = popcount(row_full ^ map.occupied_row(roof-1))
             //                occupied count (roof==height case) = popcount(map.occupied_row(roof-1))
             int ColTrans = 2 * (map_height - roof);
-            int RowTrans = ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.occupied_row(0))) +
+            int RowTrans = 0;
+            if (roof > 0)
+                RowTrans = ZZZ_BitCount(static_cast<uint32_t>(row_full ^ map.occupied_row(0))) +
                            ZZZ_BitCount(static_cast<uint32_t>(map.occupied_row(roof - 1)));
             for (int y = 0; y < roof; ++y)
             {
@@ -130,8 +132,8 @@ namespace ai_ax
             {
                 for (int y = v.HolePosy; y < roof; ++y)
                 {
-                    // TopHoleBits 用 1=empty 语义，对比当前行 empty bits。
-                    uint32_t CheckLine = v.TopHoleBits & static_cast<uint32_t>(row_full ^ map.occupied_row(y));
+                    // Hole-column mask intersected with occupied cells above the highest hole.
+                    uint32_t CheckLine = v.TopHoleBits & static_cast<uint32_t>(map.occupied_row(y));
                     if (CheckLine == 0)
                         break;
                     v.HolePiece += (y + 1) * ZZZ_BitCount(CheckLine);

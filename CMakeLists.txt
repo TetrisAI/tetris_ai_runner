@@ -575,6 +575,12 @@ target_include_directories(${PROJECT_NAME} PRIVATE src)
 target_link_libraries(${PROJECT_NAME} PRIVATE tetris_core Threads::Threads)
 add_test(NAME tetris_c2_root_eval_consistency COMMAND c2_root_eval_consistency_test)
 
+add_executable(ai_ax_feature_regression_test
+    test/ai_ax_feature_regression_test.cpp src/integer_utils.cpp)
+target_include_directories(ai_ax_feature_regression_test PRIVATE src)
+target_link_libraries(ai_ax_feature_regression_test PRIVATE tetris_core Threads::Threads)
+add_test(NAME tetris_ai_ax_feature_regression COMMAND ai_ax_feature_regression_test)
+
 # framework_contract_probes: Config lifecycle/generation wrap/fixed-scored on-off/empty GetArgs.
 project(framework_contract_probes)
 add_executable(${PROJECT_NAME}
