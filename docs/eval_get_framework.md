@@ -4,63 +4,67 @@ This page is the short reference for the new AI evaluation contract. The full de
 and per-AI migration table live in `eval_get_framework_plan.md`; the canonical
 implementation is `src/tetris_eval_get.h`.
 
-> Status (2026-10-29, full Debug rc0, commit 4b2d506a): framework header landed; all 15 src
-> AIs migrated; transposition pruning fully removed (standalone repeats-500x no-prune test).
-> The 37/36 numbers below are the **prior migration validation**; follow-up special tests are
-> passed (see below) but the full matrix / new commit / redeploy are still pending actual data.
-> Prior snapshot: engine groups 3+5+7 pass; per-AI numeric diffs A 384 / B 52 / D
-> (misaka 121500, ax 18000, farter 3600) / C golden PASS (241 lines, 240 cases / 2460 obs
-> matched; old tag boundary UB); core counter/wrap/tree scale 80→160 pass; serial suite 36/37
-> (one pre-existing baseline safe-BPM old-generation fail); Native dual-arch dlopen + C2
-> four-slice 6 pass. Four fat dylibs (x86_64+arm64) are built and deployed.
-> **Unrecovered high-priority warning:** the deploy also overwrote an out-of-project upper App
-> library (`Cultris II Mod.app/.../libcultrisai.dylib`) without authorization. A hash-matching
-> original backup was later found (`libs/libcultrisai.dylib.backup_before_dev`, SHA
-> 9c9d16ed…f992f, size 405856, re-verified); **not yet restored, zero writes to the upper App** —
-> restore only on explicit authorization. This is not a full-acceptance claim.
-> **Parallel non-determinism (investigated, not closed):** `research/eval_get_validation_followup/
-> parallel_investigation/README.md`. Base 7af and current 4b2, Debug serial 3 tests each pass; a
-> 3-proc concurrent round reproduced the same 5-TSD assert failures (release passes). The old
-> `run_hold` 300 ms wall budget is sensitive: solo probe scored 154 263 at width 726 vs concurrent
-> 95 050–98 497 at width 439–455 on a 12-core machine (not a 1/3 quota). The search-volume drop
-> supports an existing wall-budget explanation, but the probe still has TSpin=1, so the TSD
-> failure threshold is **not** determined; TSan has not been run, so a global race is **not**
-> excluded. Raw 300 ms assertions are unchanged. New multi-widen test (64 steps): scored 30 914,
-> cache hits 65 vs 0, final path/status exact.
-> **Follow-up special tests (passed, bounded):**
-> - Core failure API: non-zero power-of-two and element byte-bound rejections; `try_lookup` returns
->   `false` with `out` unchanged when unprepared; Engine/Thread `prepare` propagates; no-arg
->   `run()`/`run_hold()` graceful `false` vs map-taking runs fatal under NDEBUG; No-Config thread
->   empty holder, read-only `current_result()`, `visit_tree` all tested. D failure-API suite:
->   46 asserts (Debug / `-O2` NDEBUG) = 40 base + 6 No-Config-thread; runtime SIGABRT ×2 and a
->   Result-copy runtime error are surfaced, not swallowed.
-> - Multi-widen 64 steps, both modes: scored 30 914, hits 65 vs 0, actual final target / path /
->   status exact.
-> - Config v5 independent suite: 23 asserts pass — existing-tree cfg1→cfg2 vs fresh current:
->   619 544 Eval / raw direct reference, 3 630 virtual parents piece-best `child.status.get`
->   independent rank avg across all 4 fields, two-phase root input preserved, true-clear pos 311,
->   get-only config generation 3→5.
-> **Full Debug build rc0, final count: 41 tests / 40 pass / 1 fail** — the single failure is the
-> pre-existing `cultris_safe_regression` (old BPM-generation). 41 = 37 prior + beginner negative
-> + two failure-API acceptance suites (46 asserts each) + Config v5 (23 asserts). Log:
-> `build_validation_followup/Testing/Temporary/LastTest.log`.
+> **Status (2026-10-29, HEAD 037125c4 — prior semantic acceptance vetoed by the user):**
+> all 15 src AIs are migrated to eval(map)+GetArgs; transposition pruning is removed.
+> Commit chain on `dev`, not pushed: 7af0537a (old baseline) → 4b2d506a (migration) →
+> 3770535e (cache hardening) → 037125c4 (docs/comment-only). Working tree tracked edits:
+> this doc, the long-protected src/ai_ax.h guard/polarity two-hunk (pre-existing), and
+> in-progress src/tetris_core.h / src/tetris_eval_get.h EnableEnv fixes (not deployed).
 >
-> **Deployed production identity (code commit `3770535e346f5fb28f797f4d5030fbbc356a21fe`, parent
-> 4b2d506a, 13 files +976/−73):** four fat libs SHA256
-> `36c6febe604708dd42edb160e40b6383bbd98439a2763dbf35756c96f95b9a98`, size 1 843 728,
-> x86_64+arm64; embedded name `C2 ZZZ / 3770535e346f-dirty`, version
-> `8.4.0-generation-10ms`. 8 strict two-cycle loads all rc0/cycle1+2 OK; 12 Native special
-> tests (2 arch × Debug/Release, NextDPPolicy) on the new binary PASS. Deployment logs:
-> `research/eval_get_validation_followup/deployment/{build_fat_3770535e,four_fingerprints,
-> smoke_8runs_3770535e,c2_12tests_3770535e,README}.log`(.md). Prior identity 4b2d506a /
-> 34f546d is history. The multi-widen probe is a fixed 64 steps (scored 30 914, hits 65 vs 0),
-> not N=120.
+> **Fact vs conclusion.** The following are valid, real historical run records (they
+> happened; their hashes are correct): serial 40/41 (one pre-existing safe-BPM fail, not
+> cut); four fat libs 36c6febe (size 1843728, identity 3770535e-dirty); eight two-cycle
+> loads; twelve fresh C2 tests; failure API Debug/NDEBUG 46 assertions each; 64-widen
+> scored 30914/30914 hits 65/0; ConfigTreeAI 23 assertions / 619544 Eval-raw / 3630 virtual
+> aggregates (synthetic fixture, not all-production-AI whole-tree proof). **What the user
+> vetoed is the upgrade of these records into a "migration semantically equivalent /
+> complete" conclusion**, which overreached because of the regression below.
 >
-> **Boundaries (not claimed):** not all-search semantic equivalence, performance, end-to-end
-> match play/GUI, TSan, or the old tag-boundary UB semantics; the pre-existing safe-BPM
-> failure remains; restoring the overwritten upper App lib is still pending user decision. Not claimed: ASan data-race clean, whole-search path equivalence,
-> wall-ms strength, optimal bucket size. The next follow-up needs a fresh commit and rebuild;
-> do not treat the currently deployed library as the final follow-up artifact.
+> **Open regression:** `GetArgsInvoker(args::Env)` ignores `EnableEnv` and always returns
+> `env<true>`; the O(1) tags `NextView/NextLength/NextNode/Hold/IsHold` read real values
+> with no virtual gating. Old 7af `run_virtual` used `env<false>` = `{nullptr,0,' ',' ',false}`.
+> On virtual nodes C2 `length_ratio` is 64 where the old empty-env value gives 0.5, and
+> TOJ_v08/Botris/TOJ/IO/misaka read real parent hold/queue. As a conditional historical
+> example (root combo=3, combo_limit=10, `?T?` queue), one logged virtual child attack moved
+> from ~-4712.9 to ~-1.65M; the exact factor is node-dependent, not a universal constant.
+> Production fat libs still contain this bug; a scratch fixed build ran 5/5 but is not deployed.
+>
+> **Status: deployment complete for the requested fix scope (label e0731c6ccbb2); NOT all-green / NOT
+> universal 15-search equivalence.** Commit e0731c6ccbb2bbc19751f8c7f08499a20d69895f
+> (fix(core): preserve virtual env and invalidate config search state, identity C2 ZZZ/e0731c6ccbb2
+> no dirty); new fat 8144cd85…fd431 (1,860,720 B, arm64+x86_64 four authorized paths same hash)
+> deployed, arm64 dlopen rc0. Three issues (virtual-env gating, Config invalidation, root eval-slot
+> residual) fixed; strict 9-case 165056 all match; DP e073 rebuild 12-fresh 46/0 rc0 (true combo 5 /
+> 500ms / this-step attack not clipped). Boundaries: full suite 1 known fail (safe_regression BPM
+> generation assert not削); x86_64 dynamic still blocked by arm-only injection, unverified; GUI
+> complete-match / TSan / perf untested; semantic GO is limited fixture/node coverage. Upper real
+> App lib 34f546d… untouched; Java/JAR/ax protected hashes original. Old 36c6febe and candidate
+> 44854a21 are unused history. Subsequent: docs-only commit, no push, no Java 3 diagnostics.
+>
+> **This round:** candidate fat built but not deployed; no commit, no push. Build stage
+> (LLVM22, 4-slice rc0): candidate fat SHA256 44854a21031e3fad1cd397f53ce4247a54b2abceee4fc895d72c3420c0d632ed,
+> size 1860560, embedded identity 037125c480ac-dirty — carries the in-progress EnableEnv fix
+> but is NOT written to the four authorized paths; the final commit rebuild will change
+> identity/hash. Debug serial 41/40/1 rc8; the pre-existing safe-BPM generation assertion
+> (120→121) still fails and is not cut. arm64 dbg/rel/fat create/step/destroy two-cycle smoke
+> rc0; x86_64 dynamic load is blocked by the dyld arm-only injected lib (static exports pass,
+> dynamic unverified) — do not claim new dual-arch dynamic all-green. C2 is not closed: old-6
+> recompile is stage evidence only; build/smoke must not be rewritten as C2 closure.
+> GUI complete match / TSan / wall-ms perf-strength not run. Not claimed: all-search semantic
+> equivalence, ASan data-race clean, whole-search path equivalence, optimal cache bucket size.
+> Parallel observations have a limited wall-budget explanation, not global race exclusion.
+> Earlier upper old App overwrite remains unrecovered (currently 34f546d); matching
+> original bytes exist in libs/libcultrisai.dylib.backup_before_dev; restoration has not
+> been authorized or performed. No further writes to that extra path.
+> Evidence: research/eval_get_validation_followup/ and research/eval_get_virtual_env_correction/;
+> this-round build stage: research/build_env_resume_20261029/REPORT.md (+ ctest_debug.log);
+> independent audit: research/independent_audit_resume/AUDIT_MATRIX.md (10/15 production AIs
+> floatbit-matched on 7 boards; tag/enemy b4 shared topout invalid; 4 Env consumers have no
+> iterate so get<false> is engine-unreachable; direct_get is AI direct-call, not provider proof);
+> nonprod fixtures: research/nonprod_resume_20261029/REPORT.md (sections 29/30 matched; ax
+> empty-board old UB single-column); config lifecycle: research/config_resume_20261029/REPORT.md
+> (fresh convergence only, hit=0, no full-map hit/iterate/frontier claim). Still open: misaka Core
+> provider and the formal old/new full C2 engine trace. final HTML in parent project directory.
 
 ## Contract
 
@@ -115,8 +119,8 @@ Per-`Context` direct-mapped table:
 - `prepare(bucket_count)` requires a **non-zero power-of-two** capacity and returns `bool`:
   0 / non-power-of-two / size overflow / entry-bounds misuse all return `false`; legal capacity
   is fixed as given (no normalization). Index is `hash & (capacity-1)`.
-- `try_lookup(key, out)` returns `true` on hit with a valid `out`, or `false` on miss (or when
-  unprepared, leaving `out` unchanged); calling `lookup` while unprepared is fatal under NDEBUG.
+- `try_lookup(ai, map, out)` returns `true` on hit or miss after immediate eval, with valid `out`;
+  it returns `false` only when unprepared, leaving `out` unchanged; calling `lookup` while unprepared is fatal under NDEBUG.
   `Engine::prepare` / `Thread::prepare` propagate the `false`; `run()` / `run_hold()` are
   guarded by the same `PauseBackground` as the current thread. `current_result()` is a read-only
   snapshot of the current best — it does not widen or score the queue. A normal already-bound

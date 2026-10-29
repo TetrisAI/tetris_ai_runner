@@ -2,14 +2,21 @@
 
 ## Open
 
-- [ ] 上层 App 误覆盖库的还原仍待用户决定（已找到哈希匹配原库备份、明确不恢复、对上层 App 零写入）。docs-only comment commit 与生产 code commit（3770535e）显式分开，待 Git owner 执行。
+- [x] **请求修复范围 deployment complete（label=e0731c6ccbb2）。** 代码 commit `e0731c6ccbb2bbc19751f8c7f08499a20d69895f`（`fix(core): preserve virtual env and invalidate config search state`，身份 `C2 ZZZ / e0731c6ccbb2` 无 dirty）；新 fat `8144cd85…fd431`（1,860,720 B，arm64+x86_64 四路径同 hash）已投放，arm64 dlopen rc0。三问题（virtual-env 门控、Config 失效、root eval slot 残留）已修复，strict 9-case 165056 全 match；DP e073 重编 12-fresh 46/0 rc0（真 combo 5/500ms/本步 attack 不裁）。**边界（不 claim 全绿/universal 15-search 等价）**：full suite 1 known fail（safe_regression BPM generation 断言未削）；x86_64 动态仍被 arm-only 注入阻断未验；GUI 完整对局/TSan/perf 未测；语义 GO 为有限 fixture/node 覆盖。上层真实 App 库 `34f546d…` 未动；Java/JAR/ax protected hash 原样。旧 36c6febe 与候选 44854a21 历史未用。后续仅 docs 提交（统一身份，不 push，不夹 Java 3 diagnostic）。
+- [x] **virtual-env EnableEnv 回归（已修复，e0731c6ccbb2）**：`GetArgsInvoker(args::Env)` 曾忽略 `EnableEnv` 恒返回 `env<true>`，O(1) tag 在 virtual 节点不门控；旧 7af virtual 返回空 env。C2 `length_ratio` virtual 下按真实 queue 算 64（旧空 env 0.5）。4 生产 Env AI 无 iterate、false 路径生产不可达，misaka 仅 Core boundary 证明；实际证实回归在 C2 虚拟路径。此回归已在 e0731c6ccbb2 修复，新投放 fat `8144cd85` 不含此 bug。证据 `research/eval_get_virtual_env_correction/`、`research/c2_env_fix_resume_20261029/`。
+- [x] **C2 strict gate（已通过，有限覆盖）**：strict 9-case 165056 节点 matched/0 unmatched/全字段 NONE；Config 修复 Final GO（onConfigChanged discard 子树+cachegen+frontier，1454 shared key 0 diff）；root eval slot 残留已修（update_root WantEval 刷新 root holder）。完整 ctest 42/41/1（仅 known-safe safe_regression）。**不 claim universal 15-search 等价**。
+- [x] **构建与投放（已完成）**：代码 commit `e0731c6ccbb2`，新 fat `8144cd85…fd431`（1,860,720 B，arm64+x86_64 四路径同 hash）已投放四授权路径，arm64 dlopen rc0。x86_64 动态仍被 arm-only 注入阻断未验。DP e073 重编 12-fresh 46/0。旧候选 `44854a21`、旧生产 `36c6febe` 历史未用。证据 `research/build_env_resume_20261029/final/`、`research/eval_get_resume_final/README.md`。
+- [ ] 上层 App 误覆盖库的还原仍待用户决定（当前上层库为 34f546d；哈希匹配原库备份 `libs/libcultrisai.dylib.backup_before_dev`=9c9d16ed…992f，明确不恢复、对上层 App 零写入）。docs-only comment commit 与生产 code commit（3770535e）显式分开，待后续提交执行。
 - [ ] 性能与强度未测：eval 缓存最优桶数（命中率/内存，现默认 2^16）、wall-ms 强度（io_sim 配对种子/交换座位，预算 `think_ms`）、缓存 on/off 全搜索 path 等价（当前只在单 limit-0 验 path+status）、完整对局/GUI/perf 未跑。
-- [ ] C golden 观测 240 cases / 2460 field（旧 tag 边界 UB 在 LLVM 下排除）。
+- [ ] C golden 观测 240 cases / 2460 field（旧 tag 边界 UB 在 LLVM 下排除）——待复审后重确认。
 - [ ] 对手节奏作为 `ai_zzz::IO` 的评估输入：`OpponentView` 加对手实际 pps（io_uds 用 `opponent.pieces_placed` 和 `frame` 估算，io_sim 用对手的 `Pace`），pending/cancel/opponent_surge 按倍速插值
   - 前提：io_cmaes 的 `games.csv` 按 ratio 分组显示单一权重顾此失彼（快对手组变好时等速组变差）。依据：`.research/io-cmaes-training-quality/plan.md` §4。
 - [ ] io_sim 的击杀判定对手免费落子数与客户端 `auto_lethal_free_pieces` 对齐（对手平均节奏 + 12 帧回放刷新 + ping），目前用对手已排好的锁定帧，比实战多知道信息
 
 ## Done
+
+> 注：2026-10-29 两条迁移/补强记录（见下）为真实历史运行记录；其后用户以 virtual-env 回归为由，否决的是把这些记录升级为"迁移语义等价/完成"的结论，记录本身保留为历史快照，见 Open 第一条。
+
 - [x] 2026-10-29 core follow-up 专项（已实测通过，bounded）：prepare 非零 2^n / 元素 bytes bound 拒绝、try_lookup false/unprepared out 不变、Engine/Thread prepare 传播、无参 run/run_hold 优雅 false vs 带 map 调用 NDEBUG fatal、NoConfig thread 空 holder/readonly current best/visit_tree；D 失败 API 46 assert（Debug/-O2 NDEBUG = 40 base + 6 NoCfgThread），SIGABRT×2 与 Result copy runtime error 不吞；multi-widen 64 步两 mode scored 30914 hits 65 vs 0、final target/path/status exact；Config v5 独立 23 assert pass（旧树 cfg1->cfg2 vs fresh：619544 Eval/raw direct、3630 virtual parents piece-best child.status.get 独立 rank avg 全 4 字段、两 phase root 输入保、true-clear pos 311、get-only config gen 3->5）；parallel bounded（旧/new 同 5-TSD wall 300ms 独占过、并发搜索量降，未 TSan 不排除全局 race、不据探针推阈值、原断言未削）。
 - [x] 2026-10-29 eval(map)+GetArgs 契约迁移完成：框架头 `src/tetris_eval_get.h` 落地，全部 15 个 src AI 迁到新契约；换位剪枝已实际全删除，无剪枝重复展开由独立 repeats-500 测试覆盖；engine 组 3+5+7 全 pass；逐 AI 数值对拍 A 384 字段 / B 52 / D 扩大（misaka 121500、ax 18000、farter 3600）/ C golden 独立注册 PASS（241 行 golden，240 cases / 2460 obs matched，其余字段 bit-exact；旧 tag 边界 UB 不语义承诺）；core counter/wrap/tree scale 80->160 测试 pass；Native 双架构 Debug/Release dlopen 步骤全 pass，C2 专项四 slice smoke 6 pass。full Debug rc0 串行 37 项 36 pass，唯一 fail 为基线预存 safe-BPM old-generation 断言。无 ASan dataRace 洁净、全搜索 path 等价、wall-ms 强度、最优桶数仍待测（见 Open）。
 - [x] 2026-10-28 落地 eval(map)+GetArgs 框架头 `src/tetris_eval_get.h`：`type_list`/`args::*` 标签、`GetLanding<SpinT>`、`EvalCache<MapT,Result>`（post-map 直接映射、Config 变更 generation 失效）。旧"父 map 各 lane + lp_key"缓存草案被本真实 post-map 设计取代。
