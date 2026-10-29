@@ -34,15 +34,15 @@ global `extern FILE *g_c2_trace; extern int g_c2_trace_safe;` + a read-only G/MA
 | out_final4 (stage `5f1fbe85…`) vs old(7af) | **0** | **165056** | 0 | 0 | NONE (stage history, NOT used as current verification) |
 | broken(pre-fix) vs old | **3** (v2 gate: per-case record-count mismatch) | n/a — gate stops at structure | n/a | n/a | v1 gate previously reported YES nn/nl on vp=0 (UB boundary exhibit, freeze_gate REPORT) |
 
-Note: `cf3f058` in the previous draft was the interim preDiscard overlay hash, NOT production. The
-production core under current test is `aa50db569e69ec719b2b09df9c99e0cb23fc93e79359171451096cb2e2c9b9dd`
+Note: `cf3f058` was a historical intermediate production fingerprint (EnableEnv + discard, before the
+root fix), NOT the current final. The production core under current test is `aa50db569e69ec719b2b09df9c99e0cb23fc93e79359171451096cb2e2c9b9dd`
 (verified `shasum -a 256 src/tetris_core.h` at gate time). Root lifecycle evolution across stages:
 5f1f → 6edc (unconditional refresh_root_eval) → aa50db56 (lazy invalidator: stale root holder reset
 to `{}` result + gen=0 + era=0, consumer resolves by full map+Config on demand; never force-eval the
 raw board, never double-count provider evals). No scoring formula / weights / Eval-provider behavior
 change, confirmed by the 165056-record bit-exact re-run below.
 
-## Coverage — one consistent scope (9-case out_final5.txt, total G = 165056)
+## Coverage — one consistent scope (9-case out_final6.txt, total G = 165056)
 
 vp: `vp=0 virtual=163866`, `vp=1 real=1190` (sum = 165056).
 clr: `clr=0:163484, clr=1:974, clr=2:386, clr=3:106, clr=4:106` (sum = 165056).
@@ -78,10 +78,10 @@ clear1=25651 · clear4=25461 · clear3=25477 · clear2=25517 · virt_preview_T_c
 Each binary lists its exact TUs / include / macro explicitly — `overlay/*/` contains ~80 cpp
 files (demo.cpp, vs.cpp, botris.cpp, cmd_tris.cpp, tree_test.cpp … each with its own `main()`),
 so a `overlay/final/*.cpp` glob would pull multiple `main()` symbols and is NOT a reproducible
-command. The trace old/final binaries below already exist in `bin/` (built 13:20 / 14:21);
-this round did NOT re-run them (each regenerates ~381 MB) — the gate ran against the saved
-out_old3.txt / out_final4.txt produced by them. The nonUB binary WAS recompiled with the
-explicit TU list this round and its output is byte-identical to the saved log.
+command. The trace old/final6 binaries below exist in `bin/`; **out_final6.txt was freshly
+regenerated this round** from `c2_trace_final6` (current `aa50db56` production + observer);
+out_old3.txt is the saved old-side trace. The nonUB binary `c2_nonub_final6` was recompiled with
+the explicit TU list this round and its output is byte-identical to the saved log.
 
 ```
 R=research/c2_env_fix_resume_20261029; L=/opt/homebrew/opt/llvm/bin/clang++; B=$R/artifacts_newgate/bin
@@ -90,34 +90,46 @@ $L -std=c++20 -O0 -g -I $R/overlay/final6 $R/test_c2_trace_driver.cpp $R/overlay
 $B/c2_trace_final6 > $R/artifacts_newgate/out_final6.txt    # freshly generated this round (~381 MB)
 # trace old: same driver, OLD_SNAPSHOT macro, old overlay TUs
 $L -std=c++20 -O0 -g -DOLD_SNAPSHOT -I $R/overlay/old $R/test_c2_trace_driver.cpp $R/overlay/old/integer_utils.cpp $R/overlay/old/ai_zzz.cpp -o $B/c2_trace_old
-# gate (current evidence): out_old3.txt vs FRESH out_final5.txt
+# gate (current evidence): out_old3.txt vs FRESH out_final6.txt (aa50db56)
 python3 $R/artifacts_newgate/compare.py $R/artifacts_newgate/out_old3.txt $R/artifacts_newgate/out_final6.txt
 #   -> rc=0, GATE PASS, matched=165056 unmatched 0/0 dup extras 816/816 unique_chain_keys 164240 route_distinct 78345
 # (stage history only) out_final5/out_final4 were earlier core stages, NOT reused as verification:
 python3 $R/artifacts_newgate/compare.py $R/artifacts_newgate/out_old3.txt $R/artifacts_newgate/out_final4.txt   # rc=0 (stage)
-# nonUB negctl rebuilt on final5 this round (explicit TUs, NO *.cpp glob):
-$L -std=c++20 -O0 -g -I $R/overlay/final5 $R/test_c2_nonub_negctl.cpp $R/overlay/final5/integer_utils.cpp $R/overlay/final5/ai_zzz.cpp -o $B/c2_nonub_final5
+# nonUB negctl rebuilt on final6 this round (explicit TUs, NO *.cpp glob):
+$L -std=c++20 -O0 -g -I $R/overlay/final6 $R/test_c2_nonub_negctl.cpp $R/overlay/final6/integer_utils.cpp $R/overlay/final6/ai_zzz.cpp -o $B/c2_nonub_final6
 $L -std=c++20 -O0 -g -DOLD_SNAPSHOT -I $R/overlay/old $R/test_c2_nonub_negctl.cpp $R/overlay/old/integer_utils.cpp $R/overlay/old/ai_zzz.cpp -o $B/c2_nonub_old5
 $B/c2_nonub_old5 >/dev/null 2>$R/artifacts_newgate/nonub_old5.err      # rc=0
-$B/c2_nonub_final5 >/dev/null 2>$R/artifacts_newgate/nonub_final5.err  # rc=0
-cmp $R/artifacts_newgate/nonub_old5.err $R/artifacts_newgate/nonub_final5.err   # rc=0 stderr byte-identical
+$B/c2_nonub_final6 >/dev/null 2>$R/artifacts_newgate/nonub_final6.err  # rc=0
+cmp $R/artifacts_newgate/nonub_old5.err $R/artifacts_newgate/nonub_final6.err   # rc=0 stderr byte-identical
 ```
 
 ## test_c2_config_invalidation.cpp — real negative control (preDiscard overlay/new)
 
-- test hash (this round, root-assert strengthened): `79b9fbfbbf5792e0bf90545e6719f7e802309cf61d8195e981c3823d792d6094`
-  (previous: `52bcb9042d85e031c6fdbdcb447e407da719c7a943c549aa2a1762ffa2695c72`; +45/-5 lines: outdated
-  "root shell never takes an eval" comment corrected to the update_root-refreshed eval_slot copy
-  semantics, plus root eval_gen==current-gen / root.map==board / root eval_era==fresh / full Result
-  bits equality assertions; all original non-root/target/Status/provider-count assertions retained).
+- test hash (current, root explicit-unevaluated contract): `afee425d556ce0e58f1642ed2358445b4cce2fe91c6bcfd0c15ed02d0a9bc74f`
+  (root explicit unevaluated: gen0/era0/result{} placeholder + actual evaluated node lookup comparison;
+  does NOT force-evaluate current root; all original non-root/target/Status/provider-count assertions retained).
 - preDiscard header `overlay/new/tetris_core.h` hash: `bcee3dbcbb3a3cbca00c0a58272958f1567e16289110ec216f4a3df23f6e6bde`.
-- On the FIXED production core (current `5f1fbe85…` family; rebuild-time dirty hash `6edc5bfb…`):
-  PASS reachable=24813 stale=0 failures=0, direct rc=0, ctest `tetris_c2_config_invalidation` Passed.
-- On the preDiscard (noDiscard) overlay/new: **FAIL rc=1, reachable=46953 stale=22554 failures=7**
-  (move/value/attack/map/combo/combo_limit bits + stale gen≠cur all fail). Matches original c2_stale_probe
+- On the FIXED production core (current `aa50db56…`):
+  PASS reachable=24813 stale=0 failures=0, direct rc=0 (read-only actual direct binary run;
+  not a fresh CTest re-run).
+- On the preDiscard (noDiscard) overlay/new: **historical negative control under the earlier
+  test version `52bcb…` on old core `bcee3dbc…` — FAIL rc=1, reachable=46953 stale=22554 failures=7**
+  (move/value/attack/map/combo/combo_limit bits + stale gen≠cur all fail). The current `afee425d…`
+  test version on `aa50db56…` passes; the historical failure-7 figure is not attributed to the
+  current test's assertions. Matches original c2_stale_probe
   (reachable=46954/stale=22555) within the visit_tree root-count off-by-one.
+- Separate formal root negative control (`be22b85a…` harness on old `5f1fbe85…`): rc1 4 FAIL
+  (root same-ptr free-list map / stale-gen early / stale-era early), cases not deleted; the
+  current `aa50db56…` formal root test passes 11/11 rc0.
 - Build agent's "意外 PASS" was a mixed-include (did not actually compile the preDiscard overlay);
   the test fixture itself reliably catches Config stale.
+- Note: the formal root test `consumer_resolve` replicates provider logic as an equivalent
+  consumption verification; it is not the actual Invoker. The strict core trace (out_old3 vs
+  out_final6, 165056 records bit-exact) is the independent core evidence.
+- Note: a later targeted CTest re-run by Main was pending system confirmation (1h timeout) and
+  did not execute; this is neither a test failure nor a denial. The existing full-suite logs
+  (43 registered / 42 PASS / 1 FAIL rc8, only known-safe safe_regression) remain the objective
+  historical run record.
 
 Reproduce:
 ```
@@ -171,7 +183,7 @@ python3 $R/artifacts_newgate/gate_selftest.py
   BOTH sides renamed to the same wrong list           rc=3   (frozen-names gate)
   dup chain x2 same ordinal order                     rc=0
   dup chain x2 shuffled occurrences                   rc=2   (ordinal pairing catches it)
-  REAL out_old3 vs out_final5 (fresh 6edc trace)      rc=0   matched=165056 unmatched 0/0;
+  REAL out_old3 vs out_final6 (fresh aa50db56 trace)        rc=0   matched=165056 unmatched 0/0;
                                                             per-side dup extras 816/816;
                                                             unique_chain_keys 164240; route_distinct 78345
   REAL out_broken vs out_old3                         rc=3   (per-case record-count gate)
@@ -182,6 +194,6 @@ python3 $R/artifacts_newgate/gate_selftest.py
 - Driver: `/Users/zhaoming.274/Documents/CultrisII.def/c2_apple_silicon/tetris_ai_runner/research/c2_env_fix_resume_20261029/test_c2_trace_driver.cpp`
 - NonUB: `/Users/zhaoming.274/Documents/CultrisII.def/c2_apple_silicon/tetris_ai_runner/research/c2_env_fix_resume_20261029/test_c2_nonub_negctl.cpp`
 - Compare: `/Users/zhaoming.274/Documents/CultrisII.def/c2_apple_silicon/tetris_ai_runner/research/c2_env_fix_resume_20261029/artifacts_newgate/compare.py`
-- final trace: `/Users/zhaoming.274/Documents/CultrisII.def/c2_apple_silicon/tetris_ai_runner/research/c2_env_fix_resume_20261029/artifacts_newgate/out_final4.txt`
+- final trace: `/Users/zhaoming.274/Documents/CultrisII.def/c2_apple_silicon/tetris_ai_runner/research/c2_env_fix_resume_20261029/artifacts_newgate/out_final6.txt`
 - old trace: `/Users/zhaoming.274/Documents/CultrisII.def/c2_apple_silicon/tetris_ai_runner/research/c2_env_fix_resume_20261029/artifacts_newgate/out_old3.txt`
 - Freeze evidence: `/Users/zhaoming.274/Documents/CultrisII.def/c2_apple_silicon/tetris_ai_runner/research/c2_env_fix_resume_20261029/freeze_gate_20261029/`
