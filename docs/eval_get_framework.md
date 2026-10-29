@@ -29,17 +29,21 @@ implementation is `src/tetris_eval_get.h`.
 > from ~-4712.9 to ~-1.65M; the exact factor is node-dependent, not a universal constant.
 > Production fat libs still contain this bug; a scratch fixed build ran 5/5 but is not deployed.
 >
-> **Status: deployment complete for the requested fix scope (label e0731c6ccbb2); NOT all-green / NOT
-> universal 15-search equivalence.** Commit e0731c6ccbb2bbc19751f8c7f08499a20d69895f
-> (fix(core): preserve virtual env and invalidate config search state, identity C2 ZZZ/e0731c6ccbb2
-> no dirty); new fat 8144cd85…fd431 (1,860,720 B, arm64+x86_64 four authorized paths same hash)
-> deployed, arm64 dlopen rc0. Three issues (virtual-env gating, Config invalidation, root eval-slot
-> residual) fixed; strict 9-case 165056 all match; DP e073 rebuild 12-fresh 46/0 rc0 (true combo 5 /
-> 500ms / this-step attack not clipped). Boundaries: full suite 1 known fail (safe_regression BPM
-> generation assert not削); x86_64 dynamic still blocked by arm-only injection, unverified; GUI
-> complete-match / TSan / perf untested; semantic GO is limited fixture/node coverage. Upper real
-> App lib 34f546d… untouched; Java/JAR/ax protected hashes original. Old 36c6febe and candidate
-> 44854a21 are unused history. Subsequent: docs-only commit, no push, no Java 3 diagnostics.
+> **Status: ROOT lazy fix deployed — code 4a77bdea2137b72b8086ace5de6b00f3247ef3f6
+> (fix(core): invalidate recycled root eval holders lazily, 5-file scope), core source
+> aa50db569e69ec719b2b09df9c99e0cb23fc93e79359171451096cb2e2c9b9dd, fat
+> c8a1c492…931e (1,860,720 B, four authorized white paths same hash, ARM two-round
+> 2-cycle load rc0). Independent readonly final check PASS. Docs commit completed (no push); does not change code provenance.
+> Full ctest 43/42/1 rc8 (only known-safe safe_regression; 3 new regressions clear).
+> Strict fresh aa50 9-case compare v3 hard gate: 165056 nodes 0 unmatched / per-side unique
+> 164,240 / per-side dup 816 (both-sides sum 1,632); 21 positive/negative self-test cases pass.
+> Formal old 5f1f negative control rc1 4 FAIL; new aa50 formal 11/11 rc0. ConfigTree 24/24
+> (valid 619544 + invalid root shell 1), root shell default NOT used as AI score. DP latest-source
+> rebuild 12-fresh 46/0 rc0 (binary 1e5434fc…04868). Boundaries: 1 known fail (BPM generation assert
+> not cut); x86_64 dynamic blocked by arm-only injection, no bypass, unverified; GUI/TSan/perf
+> untested; not universal 15-search equivalence. Upper App lib 34f546d… untouched; Java/JAR/ax
+> protected hashes original. Source chain: 5f1fbe85/6edc5bfb are intermediate history; final aa50;
+> deploy commit 4a77bdea.
 >
 > **This round:** candidate fat built but not deployed; no commit, no push. Build stage
 > (LLVM22, 4-slice rc0): candidate fat SHA256 44854a21031e3fad1cd397f53ce4247a54b2abceee4fc895d72c3420c0d632ed,
