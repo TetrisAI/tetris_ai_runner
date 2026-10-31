@@ -37,10 +37,7 @@ namespace
     using io_league::Game;
     using io_sim::Pace;
 
-    constexpr std::string_view kCheckpointMagic = "io_cmaes_checkpoint_v2";
-    // The default lambda gives each worker about this many games per generation, which keeps the generation barrier
-    // short on any core count.
-    constexpr int kGamesPerWorker = 30;
+    constexpr std::string_view kCheckpointMagic = "io_cmaes_checkpoint_v4";
     // Groups per generation double when the moving average of the split-half rank reliability stays below the floor
     // for a whole window.
     constexpr double kReliabilityFloor = 0.3;
@@ -67,7 +64,7 @@ namespace
         io_sim::Cadence opponent_cadence = io_sim::Cadence::Burst;
         std::vector<std::string> anchors{"default", "spiker", "staller"};
         std::vector<std::string> freeze{"ratio"};
-        int lambda = 0; // 0: derived from --workers when the run starts
+        int lambda = 0;
         int groups = 12;
         int max_groups = 96;
         double sigma = 0.15;
@@ -78,6 +75,8 @@ namespace
         int validate_every = 8;
         int validation_seeds = 8;
         double promote_z = 1.0;
+        int patience = 8;
+        int restarts = 3;
         std::uint64_t seed = 1;
     };
 
@@ -102,7 +101,8 @@ namespace
             << " freeze=" << join(s.freeze) << " lambda=" << s.lambda << " groups=" << s.groups << " max_groups=" << s.max_groups
             << " sigma=" << io_league::format_number(s.sigma) << " next=" << s.next_count << " nodes=" << s.nodes << " think_ms=" << s.think_ms
             << " max_minutes=" << io_league::format_number(s.max_minutes) << " validate_every=" << s.validate_every
-            << " validation_seeds=" << s.validation_seeds << " promote_z=" << io_league::format_number(s.promote_z) << " seed=" << s.seed;
+            << " validation_seeds=" << s.validation_seeds << " promote_z=" << io_league::format_number(s.promote_z)
+            << " patience=" << s.patience << " restarts=" << s.restarts << " seed=" << s.seed;
         return out.str();
     }
 
@@ -175,6 +175,10 @@ namespace
             return integer(s.validation_seeds, 1);
         if (key == "promote_z")
             return real(s.promote_z, 0);
+        if (key == "patience")
+            return integer(s.patience, 1);
+        if (key == "restarts")
+            return integer(s.restarts, 0);
         if (key == "seed")
         {
             char *end = nullptr;
@@ -201,7 +205,7 @@ namespace
     struct Options
     {
         int workers = std::max(1, static_cast<int>(std::thread::hardware_concurrency()) - 2);
-        double hours = 6;
+        double hours = 0;
         int generations = 0;
         std::string out = "io_cmaes_out";
         std::string init;
@@ -217,10 +221,10 @@ namespace
             << "usage: io_cmaes [options]\n"
                "sep-CMA-ES over ai_zzz::IO::param_fields() with simulated TETR.IO S2 Tetra League matches under the bot client's\n"
                "conditions. Each generation deals --groups league groups (opponent x own pace x ratio; opponents: the current\n"
-               "mean, the anchors and the hall of fame) and every candidate plays each dealt group on its own seed, both seats.\n"
+               "mean, the anchors and the hall of fame) and every candidate plays each dealt group on the same seed, both seats.\n"
                "Fitness = mean score (win 1, loss 0, time limit: adjudicated, see io_sim.h); only the ranking updates the\n"
-               "distribution. Every --validate-every generations the mean and the champion play the same fresh panel (anchors x\n"
-               "own paces x ratios x --validation-seeds, both seats) and the mean becomes the champion when its paired advantage\n"
+               "distribution. Every --validate-every generations the top-ranked candidate and champion play the same fresh\n"
+               "panel (anchors x own paces x ratios x --validation-seeds, both seats); the challenger is promoted when its paired advantage\n"
                "reaches --promote-z standard errors. Outputs in --out: best.params and best_params.inc (the champion), mean.params\n"
                "(the distribution mean), hof/ (every champion), games.csv (every game), io_cmaes.log, checkpoint.txt.\n"
                "\n"
@@ -228,7 +232,7 @@ namespace
                "  --workers N          parallel match threads (default "
             << d.workers
             << " = cores - 2); results do not depend on it\n"
-               "  --hours H            wall-clock budget of this invocation, 0 = until SIGINT/SIGTERM (default "
+               "  --hours H            optional wall-clock safety limit, 0 = no deadline (default "
             << d.hours
             << ")\n"
                "  --generations N      stop once the run has N generations (default 0 = no limit)\n"
@@ -259,9 +263,8 @@ namespace
             << join(s.freeze)
             << "; ratio shapes the beam and\n"
                "                       its best value depends on the search budget)\n"
-               "  --lambda N           candidates per generation; the best N/2 are recombined (default: max(4 + floor(3 ln dims),\n"
-            << "                       " << kGamesPerWorker
-            << " x workers / games per candidate))\n"
+               "  --lambda N           candidates per generation; best N/2 recombined (default 4 + floor(3 ln dims),\n"
+               "                       independent of worker count)\n"
                "  --groups N           league groups per generation; games per candidate = 2N (default "
             << s.groups
             << ")\n"
@@ -290,6 +293,10 @@ namespace
                "  --promote-z Z        promotion threshold in standard errors (default "
             << s.promote_z
             << ")\n"
+               "  --patience N         restart after N validation rounds without a promotion (default "
+            << s.patience << ")\n"
+               "  --restarts N         stop on validation stagnation after N restarts (default "
+            << s.restarts << ")\n"
                "  --seed N             master random seed (default "
             << s.seed << ")\n";
     }
@@ -372,8 +379,13 @@ namespace
         std::vector<int> deck;
         std::size_t dealt = 0;
         Param champion;
+        std::optional<Param> challenger;
         int champion_generation = -1;
         int validations = 0; // completed validations; each one plays a fresh panel
+        int generation = 0;
+        int stalled = 0;
+        int restarts = 0;
+        bool converged = false;
         std::uint64_t games = 0;
         double game_seconds = 0;
         double wall_seconds = 0;
@@ -496,14 +508,13 @@ namespace
         return panel;
     }
 
-    // The mean and the champion play the same fresh panel, so their difference is paired and unbiased: a champion's
-    // score from the panel that selected it would be inflated by that selection. played[s * n + i] is panel game i of
-    // subject s (0 = mean, 1 = champion).
-    std::optional<std::array<std::vector<double>, 2>> validate(Param const &mean, Param const &champion, State const &st, Panel const &panel,
+    // Both policies play fresh seeds so the champion's selection-biased score is never reused.
+    // played[s * n + i] is panel game i of subject s (0 = challenger, 1 = champion).
+    std::optional<std::array<std::vector<double>, 2>> validate(Param const &challenger, Param const &champion, State const &st, Panel const &panel,
                                                                io_sim::MatchConfig const &base, int workers, std::function<bool()> const &stop,
                                                                std::vector<io_league::Played> &played)
     {
-        std::vector<Param> policies{mean, champion};
+        std::vector<Param> policies{challenger, champion};
         policies.insert(policies.end(), st.anchors.begin(), st.anchors.end());
         std::vector<Game> games;
         for (int subject = 0; subject < 2; ++subject)
@@ -601,6 +612,11 @@ namespace
         out << "\ngames " << st.games << '\n';
         out << "game_seconds " << st.game_seconds << '\n';
         out << "wall_seconds " << st.wall_seconds << '\n';
+        out << "progress " << st.generation << ' ' << st.stalled << ' ' << st.restarts << ' ' << st.converged << '\n';
+        out << "challenger " << st.challenger.has_value();
+        if (st.challenger)
+            write_param(out, *st.challenger);
+        out << '\n';
         out << "rng " << st.rng << '\n';
         es.save(out);
         return out.str();
@@ -658,7 +674,19 @@ namespace
                 return std::nullopt;
         }
         if (!expect("games") || !(in >> st.games) || !expect("game_seconds") || !(in >> st.game_seconds) || !expect("wall_seconds") ||
-            !(in >> st.wall_seconds) || !expect("rng") || !(in >> st.rng))
+            !(in >> st.wall_seconds) || !expect("progress") || !(in >> st.generation >> st.stalled >> st.restarts >> st.converged) ||
+            st.generation < 0 || st.stalled < 0 || st.restarts < 0 || st.restarts > st.scenario.restarts)
+            return std::nullopt;
+        bool pending = false;
+        if (!expect("challenger") || !(in >> pending))
+            return std::nullopt;
+        if (pending)
+        {
+            st.challenger.emplace();
+            if (!read_param(in, *st.challenger) || st.generation == 0 || st.converged)
+                return std::nullopt;
+        }
+        if (!expect("rng") || !(in >> st.rng))
             return std::nullopt;
         auto es = io_cmaes::SepCmaes::load(in);
         if (!es || es->dimension() != st.active.size() || es->lambda() != st.scenario.lambda)
@@ -694,7 +722,7 @@ namespace
 
     std::string champion_origin(int generation)
     {
-        return generation < 0 ? std::string("initial parameters") : "distribution mean after generation " + std::to_string(generation);
+        return generation < 0 ? std::string("initial parameters") : "validated policy after generation " + std::to_string(generation);
     }
 
     bool write_champion(std::filesystem::path const &out_dir, State const &st)
@@ -756,7 +784,7 @@ int main(int argc, char const *argv[])
         es = read_checkpoint(checkpoint_path, st);
         if (!es)
         {
-            std::cerr << "cannot resume from " << checkpoint_path << " (missing, corrupt, or different param fields)\n";
+            std::cerr << "cannot resume from " << checkpoint_path << " (missing, corrupt, incompatible version, or different param fields)\n";
             return 2;
         }
     }
@@ -815,7 +843,7 @@ int main(int argc, char const *argv[])
         st.rng.seed(scenario.seed);
         st.groups = scenario.groups;
         if (st.scenario.lambda == 0)
-            st.scenario.lambda = std::max(io_cmaes::SepCmaes::default_lambda(st.active.size()), kGamesPerWorker * options.workers / (2 * st.groups));
+            st.scenario.lambda = io_cmaes::SepCmaes::default_lambda(st.active.size());
         es.emplace(to_genotype(st, st.initial), st.scenario.sigma, st.scenario.lambda);
         st.champion = st.initial;
     }
@@ -854,7 +882,7 @@ int main(int argc, char const *argv[])
         frozen += " " + name;
     log.line(format("io_cmaes %s: generation %d, lambda %d, mu %d, %zu dims (frozen:%s), sigma %.4f, groups %d (max %d), %d games per generation, "
                     "validation 2 x %zu games every %d generations, %zu hall-of-fame entries, workers %d, hours %g | %s | out %s",
-                    options.resume ? "resume" : "start", es->generation(), es->lambda(), es->mu(), st.active.size(), frozen.empty() ? " none" : frozen.c_str(),
+                    options.resume ? "resume" : "start", st.generation, es->lambda(), es->mu(), st.active.size(), frozen.empty() ? " none" : frozen.c_str(),
                     es->sigma(), st.groups, st.scenario.max_groups, es->lambda() * st.groups * 2, panel_games, st.scenario.validate_every,
                     st.hof.size(), options.workers, options.hours, format_scenario(st.scenario).c_str(), options.out.c_str()));
 
@@ -871,7 +899,7 @@ int main(int argc, char const *argv[])
             for (std::size_t i = 0; i < panel.games.size(); ++i)
             {
                 int const anchor = panel.games[i].first == 0 ? panel.games[i].second : panel.games[i].first;
-                io_league::write_csv_row(csv, "valid", generation, s == 0 ? "mean" : "champion", st.scenario.anchors[static_cast<std::size_t>(anchor - 1)],
+                io_league::write_csv_row(csv, "valid", generation, s == 0 ? "challenger" : "champion", st.scenario.anchors[static_cast<std::size_t>(anchor - 1)],
                                          panel.games[i], panel.seat[i], played[s * panel.games.size() + i]);
             }
         }
@@ -880,14 +908,98 @@ int main(int argc, char const *argv[])
 
     std::vector<io_league::Played> played;
     double last_validation_seconds = 0;
-    if (!options.resume && (!write_champion(out_dir, st) || !write_atomically(checkpoint_path, checkpoint_text(st, *es))))
+    auto save_checkpoint = [&]
+    {
+        return write_atomically(checkpoint_path, checkpoint_text(st, *es)) &&
+               write_atomically(out_dir / "mean.params", ai_zzz::IO::format_params(to_param(st, es->mean())));
+    };
+    if (!options.resume && (!write_champion(out_dir, st) || !save_checkpoint()))
+    {
         log.line("CHECKPOINT WRITE FAILED");
+        return 1;
+    }
 
     std::vector<double> group_seconds(static_cast<std::size_t>(group_count(st)), -1);
     double last_generation_seconds = 0;
-    while (!g_interrupted.load() && (options.generations == 0 || es->generation() < options.generations))
+    while (!g_interrupted.load() && !st.converged && (st.challenger || options.generations == 0 || st.generation < options.generations))
     {
-        int const generation = es->generation();
+        if (st.challenger)
+        {
+            int const generation = st.generation - 1;
+            auto const validation_start = Clock::now();
+            Param const &snapshot = *st.challenger;
+            Panel const panel = make_panel(st, st.validations);
+            auto scores = validate(snapshot, st.champion, st, panel, base, options.workers, stop, played);
+            if (scores)
+            {
+                ++st.validations;
+                last_validation_seconds = seconds_since(validation_start);
+                write_validation_rows(panel, generation, played);
+                auto const &[mine, theirs] = *scores;
+                auto const d = io_league::paired_difference(mine, theirs, panel.cluster);
+                double const z = d.se > 0 ? d.mean / d.se : (d.mean > 0 ? std::numeric_limits<double>::infinity() : 0.0);
+                bool const promote = d.mean > 0 && z >= st.scenario.promote_z;
+                auto const e = io_league::clustered_mean(mine, panel.cluster);
+                auto const c = io_league::clustered_mean(theirs, panel.cluster);
+                std::string const previous = champion_origin(st.champion_generation);
+                std::string outcome = "kept";
+                if (promote)
+                {
+                    st.champion = snapshot;
+                    st.champion_generation = generation;
+                    st.hof.push_back({generation, snapshot});
+                    char name[32];
+                    std::snprintf(name, sizeof name, "gen_%05d.params", generation);
+                    bool const saved = write_champion(out_dir, st) && ai_zzz::IO::save_params((out_dir / "hof" / name).string(), snapshot);
+                    outcome = saved ? "promoted" : "promoted | CHAMPION WRITE FAILED";
+                }
+                st.stalled = promote ? 0 : st.stalled + 1;
+                log.line(format("validation %d after gen %d | challenger %.4f (%s) vs champion (%s) %.4f (%s) | delta %+.4f ± %.4f, z %.2f | %s | %zu games in %.1f min",
+                                st.validations, generation, e.mean, ratio_breakdown(st, panel, mine).c_str(), previous.c_str(), c.mean,
+                                ratio_breakdown(st, panel, theirs).c_str(), d.mean, d.se, z, outcome.c_str(), 2 * panel.games.size(),
+                                last_validation_seconds / 60));
+                if (st.stalled >= st.scenario.patience)
+                {
+                    if (st.restarts == st.scenario.restarts)
+                        st.converged = true;
+                    else
+                    {
+                        ++st.restarts;
+                        auto mean = to_genotype(st, st.champion);
+                        bool const global = st.restarts % 2 == 0;
+                        if (global)
+                        {
+                            std::uniform_real_distribution<double> uniform(0, 1);
+                            for (double &x : mean)
+                                x = uniform(st.rng);
+                        }
+                        double const sigma = st.scenario.sigma * (global ? 1 : 0.5);
+                        es.emplace(std::move(mean), sigma, st.scenario.lambda);
+                        st.stalled = 0;
+                        st.reliability = 0;
+                        st.reliability_count = 0;
+                        st.grown_at = generation;
+                        log.line(format("restart %d/%d after gen %d | %s start, sigma %.4f | champion retained",
+                                        st.restarts, st.scenario.restarts, generation, global ? "global" : "champion", sigma));
+                    }
+                }
+            }
+            else
+            {
+                log.line(format("validation after gen %d stopped (%s); challenger checkpointed", generation,
+                                g_interrupted.load() ? "interrupted" : "time budget"));
+                break;
+            }
+            st.challenger.reset();
+            st.wall_seconds += last_validation_seconds;
+            if (!save_checkpoint())
+            {
+                log.line("CHECKPOINT WRITE FAILED");
+                return 1;
+            }
+            continue;
+        }
+        int const generation = st.generation;
         bool const validate_now = (generation + 1) % st.scenario.validate_every == 0;
         auto const gen_start = Clock::now();
         if (has_deadline && gen_start + std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(
@@ -1024,7 +1136,9 @@ int main(int argc, char const *argv[])
                          { return fitness[a] > fitness[b]; });
         double const sigma = es->sigma();
         auto const [min_c, max_c] = std::ranges::minmax(es->variances());
-        es->tell(genotypes, ranking);
+        if (fitness[ranking.front()] > fitness[ranking.back()])
+            es->tell(genotypes, ranking);
+        ++st.generation;
 
         st.reliability = st.reliability_count == 0 ? reliability : (1 - kReliabilityDecay) * st.reliability + kReliabilityDecay * reliability;
         ++st.reliability_count;
@@ -1073,51 +1187,18 @@ int main(int argc, char const *argv[])
                         gen_seconds / 60, n_games * 3600 / gen_seconds, game_seconds / n_games, 100.0 * time_limit / n_games, growth.c_str()));
 
         if (validate_now)
-        {
-            auto const validation_start = Clock::now();
-            Param const snapshot = to_param(st, es->mean());
-            Panel const panel = make_panel(st, st.validations);
-            auto scores = validate(snapshot, st.champion, st, panel, base, options.workers, stop, played);
-            if (scores)
-            {
-                ++st.validations;
-                last_validation_seconds = seconds_since(validation_start);
-                write_validation_rows(panel, generation, played);
-                auto const &[mine, theirs] = *scores;
-                auto const d = io_league::paired_difference(mine, theirs, panel.cluster);
-                double const z = d.se > 0 ? d.mean / d.se : (d.mean > 0 ? std::numeric_limits<double>::infinity() : 0.0);
-                bool const promote = d.mean > 0 && z >= st.scenario.promote_z;
-                auto const e = io_league::clustered_mean(mine, panel.cluster);
-                auto const c = io_league::clustered_mean(theirs, panel.cluster);
-                std::string const previous = champion_origin(st.champion_generation);
-                std::string outcome = "kept";
-                if (promote)
-                {
-                    st.champion = snapshot;
-                    st.champion_generation = generation;
-                    st.hof.push_back({generation, snapshot});
-                    char name[32];
-                    std::snprintf(name, sizeof name, "gen_%05d.params", generation);
-                    bool const saved = write_champion(out_dir, st) && ai_zzz::IO::save_params((out_dir / "hof" / name).string(), snapshot);
-                    outcome = saved ? "promoted" : "promoted | CHAMPION WRITE FAILED";
-                }
-                log.line(format("validation %d after gen %d | mean %.4f (%s) vs champion (%s) %.4f (%s) | delta %+.4f ± %.4f, z %.2f | %s | %zu games in %.1f min",
-                                st.validations, generation, e.mean, ratio_breakdown(st, panel, mine).c_str(), previous.c_str(), c.mean,
-                                ratio_breakdown(st, panel, theirs).c_str(), d.mean, d.se, z, outcome.c_str(), 2 * panel.games.size(),
-                                last_validation_seconds / 60));
-            }
-            else
-                log.line(format("validation after gen %d stopped (%s)", generation, g_interrupted.load() ? "interrupted" : "time budget"));
-        }
+            st.challenger = policies[ranking.front()];
 
         last_generation_seconds = gen_seconds;
         st.wall_seconds += seconds_since(gen_start);
-        bool const saved = write_atomically(checkpoint_path, checkpoint_text(st, *es)) &&
-                           write_atomically(out_dir / "mean.params", ai_zzz::IO::format_params(to_param(st, es->mean())));
+        bool const saved = save_checkpoint();
         log.line(format("total %.2f h, %llu games, champion: %s%s", st.wall_seconds / 3600, static_cast<unsigned long long>(st.games),
                         champion_origin(st.champion_generation).c_str(), saved ? "" : " | CHECKPOINT WRITE FAILED"));
+        if (!saved)
+            return 1;
     }
-    log.line(format("io_cmaes stopped at generation %d; champion: %s; outputs in %s", es->generation(), champion_origin(st.champion_generation).c_str(),
+    log.line(format("io_cmaes stopped at generation %d; champion: %s; %s; outputs in %s", st.generation, champion_origin(st.champion_generation).c_str(),
+                    st.converged ? "converged: validation stagnation after bounded restarts" : g_interrupted.load() ? "interrupted" : "explicit limit",
                     options.out.c_str()));
     return 0;
 }

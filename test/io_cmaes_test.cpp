@@ -78,12 +78,27 @@ namespace
         assert(resumed->lambda() == straight.lambda() && resumed->generation() == straight.generation());
         assert(resumed->sigma() == straight.sigma() && resumed->mean() == straight.mean() && resumed->variances() == straight.variances());
     }
+
+    void mirrored_sampling_has_no_directional_bias()
+    {
+        auto es = centred(6);
+        std::mt19937_64 rng(11);
+        auto samples = es.ask(rng);
+        for (std::size_t j = 0; j < es.dimension(); ++j)
+        {
+            double sum = 0;
+            for (auto const &sample : samples)
+                sum += sample[j] - es.mean()[j];
+            assert(std::abs(sum) < 1e-14);
+        }
+    }
 }
 
 int main()
 {
     converges_to_optima_on_bounds();
     resume_continues_exactly();
+    mirrored_sampling_has_no_directional_bias();
     std::puts("io_cmaes_test: ok");
     return 0;
 }

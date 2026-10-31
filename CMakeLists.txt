@@ -783,6 +783,12 @@ add_executable(io_cmaes_test test/io_cmaes_test.cpp)
 target_link_libraries(io_cmaes_test PRIVATE tetris_core)
 add_test(NAME tetris_io_cmaes COMMAND io_cmaes_test)
 
+add_test(NAME tetris_io_cmaes_cli
+    COMMAND ${CMAKE_COMMAND}
+        "-DTRAINER=$<TARGET_FILE:io_cmaes>"
+        "-DOUT=${CMAKE_CURRENT_BINARY_DIR}/io_cmaes_cli_test"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/test/io_cmaes_cli_test.cmake")
+
 # ---------------------------------------------------------------------------
 # amini tests: rule_io + amini::Search against an independent TETR.IO model
 # (test/_amini_reference.h). amini_witness_test also uses the diff fixtures.

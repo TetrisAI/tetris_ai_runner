@@ -79,9 +79,23 @@ AIs live in `src/ai_*.h/.cpp`. The engine detects members with SFINAE and `requi
 - Kills: `src/ai_zzz_io_lethal.h` (`IOLethal`) searches the opponent's replies and returns `OpponentView::lethal_sent`, a bitmask over lines our root placement sends (bit X = certain kill); unmodelled cases count as survival. `IO::get` credits a kill only at depth 0 and adds a fixed `kKillValue` (no chain refund). Surge sent to the opponent is valued at `surge_release` × attack; cancelled surge keeps `cancel`.
 - `src/io_sim.*`: S2 1v1 simulator. Each seat has a `Pace`: constant cadence (lock k at `floor(k * 60 / pps)`) or the bot client's burst cadence (an exact port of botconnect's `Minion::next_frame`: sooner with a high stack, queued garbage or a combo, averaging the nominal pps); the AI always plans with the nominal pps. `MatchConfig` defaults: 4 pps constant, 10 previews, 32,768 positions scored per placement (`budget.nodes`, deterministic and equal for every `ratio`).
 - `src/io_league.*`: shared by the trainer and `io_eval`: builtin policies (`default`, `spiker`, `staller`) or param files, pace text (`2.5` constant, `2.5b` burst), disjoint seed streams (training, validation, test), a parallel runner whose result i belongs to game i whatever the thread count, clustered/paired statistics, the per-game CSV.
-- `src/io_cmaes.*`: sep-CMA-ES trainer over `IO::param_fields()` minus `--freeze` (default `ratio`). Each generation deals league groups (opponent: the current mean, an anchor or a hall-of-fame entry; own pace, default `1.5b,2.5b,3.5b`; opponent pace = own × ratio, default `1,1.25,1.5`, burst cadence) from a shuffled deck; every candidate plays each group on its own seed, both seats. Every `--validate-every` generations the mean and the champion play the same fresh validation panel (new seeds each round, so the comparison is paired and not inflated by the champion's own selection); the mean becomes the champion (`best.params`, also added to the hall of fame) when its paired advantage reaches `--promote-z` standard errors; `mean.params` is the distribution mean. Default λ gives each worker ~30 games per generation and is fixed for the run; results do not depend on `--workers`. Groups per generation double while the split-half reliability of the ranking stays below 0.3. The checkpoint stores the whole scenario, so `--resume` takes only `--workers`, `--hours`, `--generations`, `--out`; `--hours 0` runs until SIGINT/SIGTERM. Design, measurements and the v1 → v3 changes: `.research/io-cmaes-training-quality/plan.md`.
+- `src/io_cmaes.*`: sep-CMA-ES over `IO::param_fields()` minus `--freeze` (default `ratio`), with antithetic samples and a shuffled league of the mean, anchors and hall of fame. Fresh paired validation compares the top-ranked candidate with the champion; only a validated promotion replaces `best.params`. `mean.params` is the optimizer mean, not the deployment policy. Default population depends on dimensions, not workers; worker count changes scheduling only. Reliability adapts groups per generation. Checkpoints preserve the scenario, RNG, global generation and stopping/restart state. Bounded champion-centered/global restarts retain the champion; resuming a converged run adds no work. Usage: **CMA-ES training** below. When changing training quality or stopping, read `.research/io-cmaes-training-quality/plan.md`.
 - `src/io_eval.cpp`: every listed policy plays the same panel (opponents × own paces × ratios, or `--legacy`: own 4 pps against default@4, spiker@4, staller@6) on test seeds; prints per-group scores and pairwise paired differences with 95% intervals.
 - `src/io_uds.cpp`: protocol v4 socket server for the TETR.IO bot client (a sibling repo; its `src/services/ipc/protocol.ts` documents the JSON) and that client's TEST-field player (`bun run play-test`, `src/browser/`). Each `prepare` builds a fresh engine; every move it plays is committed, so background thinking runs on the next position. Speed belongs to the client: each move carries `pps` (the speed evaluation plans for) and `think_ms` (the most time from reading the request to sending the reply; the search gets what is left after parsing and the kill analysis, minus a 2 ms reserve). `--lethal-free-pieces N` (default 2) is how many opponent placements may lock before our garbage can enter; a move's optional `lethal_free_pieces` overrides it for that move (the client's `lethal` command). `io_sim` derives it from both speeds instead. How to run everything: the client's `CHEATSHEET.md` (its `bun start` launches `build-rel/io_uds`).
+
+## CMA-ES training
+- Build `io_cmaes` in Release; `--help` is the option reference.
+- There is no default deadline. After `--patience` unsuccessful validation rounds (default 8), restart; after `--restarts` (default 3), stop. Odd restarts begin near the champion at half the initial sigma; even restarts start globally. This is validation stagnation, not proof of a global optimum. Explicit `--hours` / `--generations` remain safety caps; generations count across restarts.
+- Each dealt group's seed is shared across candidates and both seats. An exactly tied batch leaves the search distribution unchanged; validation and restart counters still advance.
+- Checkpoint v4 preserves a pending validation challenger. Resume finishes that validation before new training, even at a generation cap. Older checkpoints are rejected; start a new run with `--init old-run/best.params`.
+- On this 14-core laptop, keep aggregate CPU-heavy program workers at or below 10 to leave three E cores available. This limits load; macOS controls core placement. `--workers` changes scheduling, not the algorithm.
+
+```sh
+build-rel/io_cmaes --out io_cmaes_4v6 --own 4 --ratios 1.5 \
+  --opponent-cadence constant --anchors staller --workers 4
+```
+
+This focuses validation and the anchor portion of training on constant 4pps versus the constant 6pps staller. Broader-league promotions need not improve this matchup.
 
 ## Key Directories
 - `src/` prefix rules:
@@ -104,8 +118,8 @@ TETRIS_DIFF_VERBOSE_INFO=1 ./build/aspin_diff     # also dump the [INFO] set dif
 cmake -S . -B build-rel -DCMAKE_BUILD_TYPE=Release -DTETRIS_IO_UDS=ON   # io_uds downloads nlohmann_json; off by default
 cmake --build build-rel -j --target io_uds io_cmaes io_eval
 TETRIS_AI_SOCKET=tetris_ai ./build-rel/io_uds   # param file: prepare.params (client: env TETRIS_AI_PARAMS); the client's `bun start` runs it
-./build-rel/io_cmaes --hours 6 --out io_cmaes_out [--init best.params]   # train in Release; --hours 0 runs until stopped; see --help
-./build-rel/io_cmaes --resume --out io_cmaes_out --hours 0                # continue a run (any core count)
+./build-rel/io_cmaes --out io_cmaes_out [--init best.params]   # train in Release until validation stagnation; see --help
+./build-rel/io_cmaes --resume --out io_cmaes_out              # continue a run (any core count)
 ./build-rel/io_eval io_cmaes_out/best.params default --seeds 16           # paired comparison on test seeds; see --help
 ```
 

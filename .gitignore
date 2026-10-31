@@ -57,9 +57,11 @@ Icon
 /ppt_pso.exe
 /build
 /build-rel
+/build-autoresearch
 /.vscode
 /.vs
 /x64/Release
 /compile_commands.json
 /io_cmaes_out
 /.research
+__pycache__/

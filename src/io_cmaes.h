@@ -71,10 +71,15 @@ namespace io_cmaes
         {
             std::normal_distribution<double> gauss(0, 1);
             std::vector<std::vector<double>> x(static_cast<std::size_t>(lambda_), mean_);
-            for (auto &xi : x)
+            for (std::size_t i = 0; i < x.size(); i += 2)
             {
-                for (std::size_t j = 0; j < xi.size(); ++j)
-                    xi[j] += sigma_ * std::sqrt(c_[j]) * gauss(rng);
+                for (std::size_t j = 0; j < mean_.size(); ++j)
+                {
+                    double const step = sigma_ * std::sqrt(c_[j]) * gauss(rng);
+                    x[i][j] += step;
+                    if (i + 1 < x.size())
+                        x[i + 1][j] -= step;
+                }
             }
             return x;
         }
