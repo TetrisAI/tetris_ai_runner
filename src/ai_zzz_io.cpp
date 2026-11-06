@@ -153,6 +153,7 @@ namespace ai_zzz
         status.pieces_placed = root.pieces_placed;
         status.lines_sent = root.lines_sent;
         status.garbage_rows = root.garbage_rows;
+        status.opponent = root.opponent;
         return status;
     }
 

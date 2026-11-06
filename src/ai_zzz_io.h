@@ -153,13 +153,14 @@ namespace ai_zzz
             int garbage_rows = 0; // contiguous garbage rows at the bottom of the board
             int frame = 0; // game frame at which the root placement locks (its scheduled execution), not the decision frame
             std::span<PendingGarbage const> pending;
+            OpponentView opponent;
         };
+        // A new config makes the engine drop its tree and eval cache; per-move inputs go in RootState instead.
         struct Config
         {
             io_rules::Options rules = io_rules::Options::tetra_league();
             double pps = 1.5;
             bool allow_pc = true;
-            OpponentView opponent;
             Param param;
 
             bool operator==(Config const &) const = default;
@@ -182,6 +183,7 @@ namespace ai_zzz
         struct Status
         {
             io_rules::PendingQueue<kPendingCapacity> pending;
+            OpponentView opponent; // the root's; get never changes it
             double frame = 0;
             double like = 0;
             double value = 0;
@@ -565,10 +567,10 @@ namespace ai_zzz
                                spin_slot_value(eval_result.spin_slots, env) * 256;
 
         double incoming = result.pending.total();
-        if (config.opponent.known)
-            incoming += p.opponent_surge * io_rules::surge_amount(rules, config.opponent.btb, multiplier);
+        if (parent.opponent.known)
+            incoming += p.opponent_surge * io_rules::surge_amount(rules, parent.opponent.btb, multiplier);
         double const uncovered = std::max(0.0, incoming - io_rules::surge_amount(rules, result.btb, multiplier));
-        result.kill = depth == 0 ? result.sent < 64 && ((config.opponent.lethal_sent >> result.sent) & 1) != 0 : parent.kill;
+        result.kill = depth == 0 ? result.sent < 64 && ((parent.opponent.lethal_sent >> result.sent) & 1) != 0 : parent.kill;
 
         result.value = eval_result.value + offense * fullness +
                        result.max_combo * (result.max_combo - 1) * (parent.btb <= result.btb ? placement_attack : 0) * p.combo -

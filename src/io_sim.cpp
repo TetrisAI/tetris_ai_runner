@@ -197,6 +197,12 @@ namespace io_sim
             search->allow_LR = true;
             search->is_20g = false;
             engines_[seat]->prepare(Map::width, Map::height);
+            ai_zzz::IO::Config ai_config;
+            ai_config.rules = config_.rules;
+            ai_config.pps = config_.pace[seat].pps;
+            ai_config.allow_pc = true;
+            ai_config.param = params_[seat];
+            engines_[seat]->set_ai_config(ai_config);
         }
         for (int seat = 0; seat < 2; ++seat)
         {
@@ -268,20 +274,13 @@ namespace io_sim
         me.sync(frame);
 
         int root_lock_frame = lock_frame(seat);
-        ai_zzz::IO::Config ai_config = *engine.ai_config();
-        ai_config.rules = config_.rules;
-        ai_config.pps = config_.pace[seat].pps;
-        ai_config.allow_pc = true;
-        ai_config.opponent = ai_zzz::IO::OpponentView{true, opponent.counters.btb, lethal_sent(seat, root_lock_frame)};
-        ai_config.param = params_[seat];
-        engine.set_ai_config(ai_config);
-
+        ai_zzz::IO::OpponentView const opponent_view{true, opponent.counters.btb, lethal_sent(seat, root_lock_frame)};
         projected_pending_.clear();
         for (auto const &entry : me.pending.entries())
             projected_pending_.push_back({entry.amount, std::max(0, entry.frames_until_active - (root_lock_frame - frame))});
         ai_zzz::IO::RootState root{me.counters.btb, me.counters.combo, me.pieces_placed, me.lines_sent, me.garbage_rows, root_lock_frame,
-                                   projected_pending_};
-        *engine.status() = ai_zzz::IO::make_root_status(root, ai_config);
+                                   projected_pending_, opponent_view};
+        *engine.status() = ai_zzz::IO::make_root_status(root, *engine.ai_config());
         engine.update();
 
         auto preview = me.preview();

@@ -161,13 +161,14 @@ namespace
     {
         ai_zzz::IO ai;
         ai_zzz::IO::Config config;
-        config.opponent.lethal_sent = 1; // sending nothing kills
         ai.init<Spec>(&config);
         Map after;
         ai_zzz::IO::Result const result = place_o(ai, Map{}, 0, 0, after);
         char next[] = "T";
         m_tetris2::AIEnv const env{next, 1, 'O', ' ', false};
-        ai_zzz::IO::Status const root = ai_zzz::IO::make_root_status({}, config);
+        ai_zzz::IO::RootState root_state;
+        root_state.opponent.lethal_sent = 1; // sending nothing kills
+        ai_zzz::IO::Status const root = ai_zzz::IO::make_root_status(root_state, config);
         expect(ai.get(result, 0, make_o_landing(0, 0), Map{}, root, 0, env).kill, "a root placement sending a lethal amount kills");
         expect(!ai.get(result, 0, make_o_landing(0, 0), Map{}, root, 1, env).kill, "only the root placement's garbage counts for a kill");
     }

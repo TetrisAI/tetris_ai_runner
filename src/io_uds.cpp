@@ -324,7 +324,7 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         {
             return root.btb == other.btb && root.combo == other.combo && root.pieces_placed == other.pieces_placed &&
                    root.lines_sent == other.lines_sent && root.garbage_rows == other.garbage_rows &&
-                   root.frame == other.frame && std::ranges::equal(pending, other.pending);
+                   root.frame == other.frame && root.opponent == other.opponent && std::ranges::equal(pending, other.pending);
         }
     };
 
@@ -513,7 +513,7 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
             return "garbage";
         root.pending = bot.pending;
 
-        auto &opponent = bot.config.opponent;
+        auto &opponent = root.opponent;
         opponent = {};
         auto opponent_json = data.find("opponent");
         if (opponent_json != data.end())
@@ -542,8 +542,8 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
             return "V";
         }
 
-        if (bot.config.opponent.known)
-            bot.config.opponent.lethal_sent = bot.lethal.lethal_sent(bot.opponent, bot.config.rules, move.root.frame, move.lethal_free_pieces);
+        if (move.root.opponent.known)
+            bot.move.root.opponent.lethal_sent = bot.lethal.lethal_sent(bot.opponent, bot.config.rules, move.root.frame, move.lethal_free_pieces);
         // Replies are not committed: until the next placement's move moves the root, background thinking widens this
         // one, which a replan of the same placement then reuses.
         auto &searched = bot.searched;

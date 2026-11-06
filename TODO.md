@@ -13,5 +13,8 @@
   - 前提：io_cmaes 的 `games.csv` 按 ratio 分组显示单一权重顾此失彼（快对手组变好时等速组变差）。依据：`.research/io-cmaes-training-quality/plan.md` §4。
 - [ ] io_sim 的击杀判定对手免费落子数与客户端 `auto_lethal_free_pieces` 对齐（对手平均节奏 + 12 帧回放刷新 + ping），目前用对手已排好的锁定帧，比实战多知道信息
 - [ ] 调查 `tetris_cultris_safe_regression` 的 BPM/combo latch 失败：2026-10-28 Debug 全量验证 23/24 通过，失败断言为 “BPM invalidates old results but preserves root combo latch”；目标使用 `cultris/c2_ai_impl.cpp` 和 `src/ai_zzz.cpp`，不链接本次修改的 CMA-ES trainer。
+- [ ] `src/ai.cpp` 的 `TetrisAI` / `BotrisAI3` 每次调用都 `set_ai_config`（combo 表不变也会），而 `TetrisEngine::set_ai_config` 无条件丢弃搜索树和 eval cache，后台思考随之作废；同局面预算下每步耗时 +40–45%（2026-11-06 实测）。改为配置变化时才调用。
 
 ## Done
+
+- [x] 2026-11-06 `ai_zzz::IO` 的对手视图移出 `Config`：`RootState::opponent` 经 `make_root_status` 进 `Status`，对手 B2B / 击杀掩码变化只需 `update()`，保留搜索树和 eval cache；`io_sim` 每座位只设一次 config，`io_uds` 的同根判断含对手视图。8 局 io_sim 对局结果逐字段不变，耗时 57 s → 44 s。
