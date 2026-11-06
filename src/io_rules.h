@@ -141,6 +141,8 @@ namespace io_rules
         double messiness_inner = 0;
         int garbageholesize = 1;
 
+        bool operator==(Options const &) const = default;
+
         static constexpr Options tetra_league()
         {
             Options o;

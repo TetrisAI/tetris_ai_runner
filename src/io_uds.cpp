@@ -25,6 +25,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -43,9 +44,9 @@ namespace
 
     using Clock = std::chrono::steady_clock;
 
-    constexpr int kProtocolVersion = 4;
+    constexpr int kProtocolVersion = 5;
     constexpr int kDefaultLethalFreePieces = 2;
-    // Taken off a move's think_ms for what follows the search: committing the move, building the path, sending.
+    // Taken off a move's think_ms for what follows the search: building the path, sending.
     constexpr auto kReplyReserve = std::chrono::milliseconds(2);
     constexpr std::uint64_t kMemoryLimit = 512ull << 20;
     constexpr std::string_view kPieces = "IJLOSTZ";
@@ -53,7 +54,7 @@ namespace
 
     constexpr char kUsage[] = R"(Usage: io_uds [--lethal-free-pieces N] [--verbose]
 
-TETR.IO bot server for the bot client (protocol v4): newline-delimited JSON over an AF_UNIX stream socket.
+TETR.IO bot server for the bot client (protocol v5): newline-delimited JSON over an AF_UNIX stream socket.
 
 Socket:
   $HOME/$TETRIS_AI_SOCKET (default $HOME/tetris_ai); a stale socket file is replaced.
@@ -70,8 +71,10 @@ from receiving the move to sending its reply.
 
 Commands (one JSON object per line: {"bot_id", "command", "data"}):
   create    start a bot engine for bot_id
-  prepare   data = {"protocol": 4, "options": <TETR.IO round options>, "params": <param file>?}
-  move      data = board state, "pps", "think_ms", "lethal_free_pieces"?; replies {"bot_id", "command": "move", "data": "<path>V"}
+  prepare   data = {"protocol": 5, "options": <TETR.IO round options>, "params": <param file>?}
+  move      data = board state, the active piece's pose when the path starts ("fallen", "shift", "rotation"),
+            "pps", "think_ms", "lethal_free_pieces"?; replies {"bot_id", "command": "move", "data": "<path>V"}.
+            Moves for the same placement (a replan from where the piece is now) keep searching the same tree.
   dismiss   drop the bot
 Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V = hard drop.
 )";
@@ -296,7 +299,11 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
     {
         Map board{};
         char active = ' ';
-        int row = 0; // spawn row minus `fallen`; may exceed the spawn row after a clutch raise
+        // Where the active piece is when the path starts, in rule_spec coordinates: the spawn's x plus `shift`, the
+        // spawn row minus `fallen` (above the spawn after a clutch raise), `rotation` quarter turns clockwise.
+        int x = 0;
+        int row = 0;
+        int rotation = 0;
         char hold = ' ';
         bool can_hold = true;
         std::string next;
@@ -305,12 +312,29 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         int lethal_free_pieces = 0;
     };
 
+    // The config and root the engine's tree was searched with. A move with the same ones restarts nothing, so a replan
+    // of the same placement keeps the beam the background thinking has widened since the last reply.
+    struct SearchedRoot
+    {
+        std::optional<ai_zzz::IO::Config> config;
+        ai_zzz::IO::RootState root{};
+        std::vector<ai_zzz::IO::PendingGarbage> pending;
+
+        bool same_root(ai_zzz::IO::RootState const &other) const
+        {
+            return root.btb == other.btb && root.combo == other.combo && root.pieces_placed == other.pieces_placed &&
+                   root.lines_sent == other.lines_sent && root.garbage_rows == other.garbage_rows &&
+                   root.frame == other.frame && std::ranges::equal(pending, other.pending);
+        }
+    };
+
     struct Bot
     {
         std::mutex mutex;
         std::unique_ptr<Engine> engine;
         ai_zzz::IO::Config config;
         MoveState move;
+        SearchedRoot searched;
         std::vector<ai_zzz::IO::PendingGarbage> pending;
         ai_zzz::IOLethal lethal;
         ai_zzz::IOLethal::Opponent opponent;
@@ -328,6 +352,7 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         void reset_engine(bool allow_180, SpinRule spin_rule)
         {
             engine = std::make_unique<Engine>();
+            searched = {};
             [[maybe_unused]] bool const prepared = engine->prepare(Map::width, Map::height);
             assert(prepared);
             engine->memory_limit(kMemoryLimit);
@@ -434,9 +459,19 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         int fallen = 0;
         if (!read_field(data, "fallen", fallen) || fallen < -Map::height || fallen > Map::height)
             return "fallen";
-        move.row = Spec::spawn(move.active, Map::width, Map::height).second - fallen;
+        auto const [spawn_x, spawn_row] = Spec::spawn(move.active, Map::width, Map::height);
+        move.row = spawn_row - fallen;
         if (move.row < 0 || move.row >= Map::height)
             return "fallen";
+        int shift = 0;
+        if (!read_field(data, "shift", shift) || shift < -Map::width || shift > Map::width)
+            return "shift";
+        move.x = spawn_x + shift;
+        if (!read_field(data, "rotation", move.rotation) || move.rotation < 0 || move.rotation > 3)
+            return "rotation";
+        // TETR.IO counts the rotations of an O; rule_io gives it one orientation.
+        if (move.active == 'O')
+            move.rotation = 0;
         if (!read_piece(data, "hold", move.hold, true))
             return "hold";
         if (!read_field(data, "can_hold", move.can_hold))
@@ -498,21 +533,34 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         auto &engine = *bot.engine;
         auto const &move = bot.move;
 
-        auto const spawn_x = Spec::spawn(move.active, Map::width, Map::height).first;
-        m_tetris2::TetrisBlockStatus const status(move.active, static_cast<std::int8_t>(spawn_x), static_cast<std::int8_t>(move.row), 0);
+        m_tetris2::TetrisBlockStatus const status(move.active, static_cast<std::int8_t>(move.x), static_cast<std::int8_t>(move.row), static_cast<std::int8_t>(move.rotation));
         std::array<Map, Helpers::kMaxR> usable;
         Helpers::build_usable_for_piece(move.active, move.board, usable);
-        if (!Helpers::check_T(move.active, status.x, status.y, 0, usable))
+        if (!Helpers::check_T(move.active, status.x, status.y, static_cast<std::uint8_t>(status.r), usable))
         {
-            log(bot_id, "error: active {} at row {} overlaps the board or leaves it", move.active, move.row);
+            log(bot_id, "error: active {} at ({}, {}) r{} overlaps the board or leaves it", move.active, move.x, move.row, move.rotation);
             return "V";
         }
 
         if (bot.config.opponent.known)
             bot.config.opponent.lethal_sent = bot.lethal.lethal_sent(bot.opponent, bot.config.rules, move.root.frame, move.lethal_free_pieces);
-        engine.set_ai_config(bot.config);
-        *engine.status() = ai_zzz::IO::make_root_status(move.root, bot.config);
-        engine.update();
+        // Replies are not committed: until the next placement's move moves the root, background thinking widens this
+        // one, which a replan of the same placement then reuses.
+        auto &searched = bot.searched;
+        bool const config_changed = searched.config != bot.config;
+        if (config_changed)
+        {
+            engine.set_ai_config(bot.config);
+            searched.config = bot.config;
+        }
+        if (config_changed || !searched.same_root(move.root))
+        {
+            *engine.status() = ai_zzz::IO::make_root_status(move.root, bot.config);
+            engine.update();
+            searched.root = move.root;
+            searched.pending.assign(move.root.pending.begin(), move.root.pending.end());
+            searched.root.pending = searched.pending;
+        }
         auto const deadline = received + std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double, std::milli>(move.think_ms)) - kReplyReserve;
         time_t const limit_ms = std::max<time_t>(1, std::chrono::duration_cast<std::chrono::milliseconds>(deadline - Clock::now()).count());
 
@@ -538,7 +586,6 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         if (move.can_hold)
         {
             auto const result = engine.run_hold(move.board, status, move.hold, true, move.next.data(), move.next.size(), limit_ms);
-            engine.commit(result);
             if (result.change_hold)
             {
                 path += 'v';
@@ -561,7 +608,6 @@ Path keys: l r L R D z c x (L/R = DAS to the wall), leading v = hold, trailing V
         else
         {
             auto const result = engine.run(move.board, status, move.next.data(), move.next.size(), limit_ms);
-            engine.commit(result);
             if (result.target != nullptr)
                 append_path(status, result);
             else

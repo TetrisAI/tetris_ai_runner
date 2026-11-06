@@ -71,6 +71,8 @@ namespace ai_zzz
             double slot_b2b = 8.7107788002209627;
             double slot_attack = 5.4450890372858591;
             double slot_decay = 0.32059936730460409;
+
+            bool operator==(Param const &) const = default;
         };
 
         struct ParamField
@@ -131,12 +133,16 @@ namespace ai_zzz
         {
             int amount;
             int frames_until_active; // relative to RootState::frame, clamped at 0
+
+            bool operator==(PendingGarbage const &) const = default;
         };
         struct OpponentView
         {
             bool known = false;
             int btb = 0; // client counter
             std::uint64_t lethal_sent = 0; // bit X: sending X lines kills (IOLethal)
+
+            bool operator==(OpponentView const &) const = default;
         };
         struct RootState
         {
@@ -155,6 +161,8 @@ namespace ai_zzz
             bool allow_pc = true;
             OpponentView opponent;
             Param param;
+
+            bool operator==(Config const &) const = default;
         };
 
         // 纯盘面量：落块后棋盘 + Config.param/rules 的加权与派生。clear/spin/piece/all_clear/lock_out/
